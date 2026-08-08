@@ -9,7 +9,9 @@ integration. The strategic product sequence is funded mandate → governed actio
 
 For the product thesis and planned sequence, read
 [`AGENTIC_CAPITAL_THESIS.md`](./AGENTIC_CAPITAL_THESIS.md) before introducing
-new mandate, attribution, outcome, or allocation concepts.
+new mandate, attribution, outcome, or allocation concepts. For the concrete
+implementation boundary and invariants, read
+[`AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md`](./AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md).
 
 | If you want to change…          | Start here                                                                                                                      | Usually also inspect                                                        |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -21,8 +23,8 @@ new mandate, attribution, outcome, or allocation concepts.
 | Auth and workspaces             | `src/backend/modules/api/controllers/AuthController.ts`, auth middleware, and workspace middleware                              | `src/frontend/src/lib/auth.ts`, `src/frontend/src/stores/auth-store.ts`     |
 | Frontend dashboard              | `src/frontend/src/app/(dashboard)/` and `src/frontend/src/components/`                                                          | matching `hooks/`, `lib/`, and frontend tests                               |
 | Frontend navigation or layout   | `src/frontend/src/components/layout/` and `src/frontend/src/lib/nav-items.ts`                                                   | dashboard route layout                                                      |
-| Audit trail                     | `src/backend/services/governance/AuditLogService.ts`, `src/backend/modules/api/controllers/AuditLogController.ts`               | `src/frontend/src/components/audit/`, audit tests                           |
-| CRE runs and event streams      | `src/backend/cre/` and `src/backend/modules/api/controllers/CreController.ts`                                                   | `src/frontend/src/components/runs/`, run tests                              |
+| Audit trail                     | `src/backend/services/governance/AuditLogService.ts`, `src/backend/modules/api/controllers/AuditLogController.ts`               | `src/frontend/src/components/audit/`, audit tests                           || CRE runs and event streams            | `src/backend/cre/` and `src/backend/modules/api/controllers/CreController.ts`                                                   | `src/frontend/src/components/runs/`, run tests                              |
+| Agentic capital and mandate attribution | `src/backend/cre/types.ts`, `src/backend/services/governance/SpendAttributionService.ts`, and `src/backend/modules/api/controllers/CreController.ts` | `src/frontend/src/components/capital/`, attribution tests, [implementation spec](./AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md) |
 | Observability                   | `src/backend/observability/`, `src/backend/modules/api/controllers/ObservabilityController.ts`                                  | `src/frontend/src/components/observability/`, `docs/signoz-dashboards.json` |
 | Native trading agents           | `src/backend/modules/agents/`                                                                                                   | `tooling/scripts/agents/`, agent tests                                      |
 | External Copilot example        | `examples/copilot/`                                                                                                             | [Agent README](../examples/copilot/README.md)                               |

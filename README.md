@@ -64,6 +64,7 @@ For the public/demo path, most optional integrations can remain disabled. See th
 - [Canton](./docs/CANTON.md) — Canton/Daml model and DevNet runbook
 - [HydraDB](./docs/HYDRADB.md) — optional cross-source retrieval integration
 - [Agentic capital thesis](./docs/AGENTIC_CAPITAL_THESIS.md) — funded mandates, attribution, outcomes, and capital allocation roadmap
+- [Agentic capital implementation spec](./docs/AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md) — mandate, outcome, statement, and evidence invariants
 - [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md) — sealed-bid and governance integration details
 
 ## Product surfaces

@@ -135,7 +135,10 @@ funded mandate → governed actions → attributable spend → evidenced outcome
 ```
 
 See [`AGENTIC_CAPITAL_THESIS.md`](./AGENTIC_CAPITAL_THESIS.md) for the product
-and distribution strategy.
+and distribution strategy. See
+[`AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md`](./AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md)
+for the mandate, outcome, statement, and evidence invariants before extending
+capital attribution.
 
 ### Responsibility Boundary
 
@@ -611,6 +614,7 @@ POST body includes optional `fhirContext` for HIPAA-aware governance evaluation 
 
 ### Current Limitations
 
+- Funded mandate identity and outcome ingestion are the next implementation layers; the current Capital surface reports governed spend attribution but does not yet generate mandate statements
 - Funded mandates and outcome ingestion are strategic product layers; current APIs primarily govern and record agent actions
 - Complete ROI/P&L accounting and causal attribution are not implemented; AI telemetry is not business accounting
 - External agent financing, investment, and credit underwriting are not implemented

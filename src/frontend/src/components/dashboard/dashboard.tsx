@@ -62,6 +62,7 @@ import { QuickCheck } from './quick-check';
 import { formatBudget } from '@/lib/budget-format';
 import { normalizeAuditLogs, computeAverageLatency } from '@/lib/normalizers';
 import { authFetch } from '@/lib/auth-fetch';
+import { AttributionCard } from './attribution-card';
 
 /* ─── Animated counter hook ────────────────────────────────── */
 
@@ -610,6 +611,8 @@ export function Dashboard() {
             activeIdentities={activeCount}
             onChainProofCount={onChainProofCount}
           />
+
+          <AttributionCard onOpen={() => router.push('/audit?view=capital')} />
 
           {/* Recent Activity */}
           <div>

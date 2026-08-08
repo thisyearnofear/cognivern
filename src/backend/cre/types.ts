@@ -1,4 +1,27 @@
 export type ChainId = number;
+
+/** Canonical, audit-safe record of what an agentic capital allocation produced. */
+export interface SpendAttribution {
+  version: number;
+  allocationId: string;
+  workspaceId?: string;
+  mandateId?: string;
+  budgetId?: string;
+  intentId: string;
+  agentId: string;
+  policyId?: string;
+  asset: string;
+  requestedAmount: string;
+  allocatedAmount: string;
+  consumedAmount: string;
+  status: 'allocated' | 'consumed' | 'held' | 'denied' | 'failed' | 'uncertain';
+  provider?: string;
+  executionId?: string;
+  transactionHash?: string;
+  transactionLink?: string;
+  outcome?: string;
+  recordedAt?: string;
+}
 export type CreRunStatus =
   | 'queued'
   | 'running'
@@ -87,6 +110,7 @@ export interface CreArtifact {
     | 'attestation_result'
     | 'receipt_verification'
     | 'spend_intent'
+    | 'capital_attribution'
     | 'error';
   createdAt: string;
   data: unknown;

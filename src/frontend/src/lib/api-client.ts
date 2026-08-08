@@ -112,6 +112,58 @@ export interface RunReconciliationExecution {
   receiptStatus?: string;
 }
 
+export interface FundedMandate {
+  id: string;
+  workspaceId: string;
+  name: string;
+  objective: string;
+  agentIds: string[];
+  status: 'draft' | 'active' | 'paused' | 'closed';
+  budget: { byAsset: Record<string, { authorizedAmount: string; allocatedAmount: string; consumedAmount: string; pendingAmount: string }> };
+  policyIds: string[];
+  measurementWindow?: { startsAt: string; endsAt?: string };
+  successMetrics: Array<{ id: string; name: string; unit: string; target?: string }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SpendAttributionReport {
+  generatedAt: string;
+  totalRecords: number;
+  totalsByAsset: Record<string, {
+    allocatedAmount: string;
+    consumedAmount: string;
+    pendingAmount: string;
+    recordCount: number;
+  }>;
+  counts: {
+    allocated: number;
+    consumed: number;
+    held: number;
+    denied: number;
+    failed: number;
+    uncertain: number;
+  };
+  records: Array<{
+    runId: string;
+    allocationId: string;
+    intentId: string;
+    agentId: string;
+    mandateId?: string;
+    asset: string;
+    requestedAmount: string;
+    allocatedAmount: string;
+    consumedAmount: string;
+    status: 'allocated' | 'consumed' | 'held' | 'denied' | 'failed' | 'uncertain';
+    provider?: string;
+    executionId?: string;
+    transactionHash?: string;
+    transactionLink?: string;
+    outcome?: string;
+    recordedAt: string;
+  }>;
+}
+
 export interface RunReconciliationResponse {
   success: boolean;
   statusFetched?: boolean;
@@ -308,6 +360,27 @@ class ApiClient {
   // Runs
   async getRuns(): Promise<ApiResponse<Run[]>> {
     return this.fetch('/api/cre/runs');
+  }
+
+  async getSpendAttribution(mandateId?: string): Promise<ApiResponse<SpendAttributionReport>> {
+    const query = mandateId ? `?mandateId=${encodeURIComponent(mandateId)}` : '';
+    return this.fetch(`/api/capital/attribution${query}`);
+  }
+
+  async getMandates(): Promise<ApiResponse<FundedMandate[]>> {
+    return this.fetch('/api/mandates');
+  }
+
+  async createMandate(params: Partial<FundedMandate> & { name: string; objective: string }): Promise<ApiResponse<FundedMandate>> {
+    return this.fetch('/api/mandates', { method: 'POST', body: JSON.stringify(params) });
+  }
+
+  async getMandate(mandateId: string): Promise<ApiResponse<FundedMandate>> {
+    return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}`);
+  }
+
+  async updateMandate(mandateId: string, params: Partial<FundedMandate>): Promise<ApiResponse<FundedMandate>> {
+    return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}`, { method: 'PATCH', body: JSON.stringify(params) });
   }
 
   async getRun(runId: string): Promise<ApiResponse<Run>> {

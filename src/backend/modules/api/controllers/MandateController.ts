@@ -1,0 +1,139 @@
+import type { Request, Response } from "express";
+import { z } from "zod";
+import { idempotencyStore } from "@backend/modules/api/storage/IdempotencyStore.js";
+import {
+  FundedMandateService,
+  type CreateFundedMandateInput,
+  type UpdateFundedMandateInput,
+} from "@backend/services/governance/FundedMandateService.js";
+
+const metricSchema = z.object({
+  id: z.string().min(1).max(120),
+  name: z.string().min(1).max(160),
+  unit: z.string().min(1).max(80),
+  target: z.string().max(160).optional(),
+});
+
+const bodySchema = z.object({
+  name: z.string().min(1).max(160),
+  objective: z.string().min(1).max(2000),
+  agentIds: z.array(z.string().min(1)).max(100).optional(),
+  status: z.enum(["draft", "active", "paused", "closed"]).optional(),
+  budget: z
+    .object({
+      byAsset: z
+        .record(
+          z.object({
+            authorizedAmount: z.string().regex(/^\d+$/).optional(),
+            allocatedAmount: z.string().regex(/^\d+$/).optional(),
+            consumedAmount: z.string().regex(/^\d+$/).optional(),
+            pendingAmount: z.string().regex(/^\d+$/).optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+  policyIds: z.array(z.string().min(1)).max(100).optional(),
+  measurementWindow: z
+    .object({ startsAt: z.string().datetime(), endsAt: z.string().datetime().optional() })
+    .optional(),
+  successMetrics: z.array(metricSchema).max(100).optional(),
+});
+
+function workspaceId(req: Request, res: Response): string | undefined {
+  if (!req.userId || !req.workspaceId) {
+    res.status(403).json({
+      success: false,
+      error: "Operator authentication and workspace context are required.",
+    });
+    return undefined;
+  }
+  return req.workspaceId;
+}
+
+function errorResponse(res: Response, error: unknown): void {
+  const message = error instanceof Error ? error.message : "Invalid mandate request";
+  const referenceError = /must belong|workspace/i.test(message);
+  res.status(referenceError ? 409 : 400).json({ success: false, error: message });
+}
+
+export class MandateController {
+  async list(req: Request, res: Response): Promise<void> {
+    const id = workspaceId(req, res);
+    if (!id) return;
+    res.json({ success: true, data: FundedMandateService.list(id) });
+  }
+
+  async get(req: Request, res: Response): Promise<void> {
+    const id = workspaceId(req, res);
+    if (!id) return;
+    const mandate = FundedMandateService.get(id, req.params.mandateId);
+    if (!mandate) {
+      res.status(404).json({ success: false, error: "Mandate not found" });
+      return;
+    }
+    res.json({ success: true, data: mandate });
+  }
+
+  async create(req: Request, res: Response): Promise<void> {
+    const id = workspaceId(req, res);
+    if (!id) return;
+    const parsed = bodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: "Invalid mandate payload", details: parsed.error.format() });
+      return;
+    }
+    const rawKey = req.header("Idempotency-Key") || req.header("X-Idempotency-Key");
+    const idemKey = rawKey?.trim() ? `mandate:create:${id}:${rawKey.trim().slice(0, 120)}` : undefined;
+    if (idemKey) {
+      const cached = await idempotencyStore.getRecord(idemKey);
+      if (cached) {
+        res.status(cached.statusCode).json(cached.body);
+        return;
+      }
+    }
+    try {
+      const mandate = FundedMandateService.create(id, parsed.data as CreateFundedMandateInput);
+      const body = { success: true, data: mandate } as Record<string, unknown>;
+      if (idemKey) {
+        await idempotencyStore.setRecord(idemKey, { statusCode: 201, body, createdAtMs: Date.now() });
+      }
+      res.status(201).json(body);
+    } catch (error) {
+      errorResponse(res, error);
+    }
+  }
+
+  async update(req: Request, res: Response): Promise<void> {
+    const id = workspaceId(req, res);
+    if (!id) return;
+    const parsed = bodySchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: "Invalid mandate payload", details: parsed.error.format() });
+      return;
+    }
+    const rawKey = req.header("Idempotency-Key") || req.header("X-Idempotency-Key");
+    const idemKey = rawKey?.trim() ? `mandate:update:${id}:${req.params.mandateId}:${rawKey.trim().slice(0, 120)}` : undefined;
+    if (idemKey) {
+      const cached = await idempotencyStore.getRecord(idemKey);
+      if (cached) {
+        res.status(cached.statusCode).json(cached.body);
+        return;
+      }
+    }
+    try {
+      const mandate = FundedMandateService.update(id, req.params.mandateId, parsed.data as UpdateFundedMandateInput);
+      if (!mandate) {
+        res.status(404).json({ success: false, error: "Mandate not found" });
+        return;
+      }
+      const body = { success: true, data: mandate } as Record<string, unknown>;
+      if (idemKey) {
+        await idempotencyStore.setRecord(idemKey, { statusCode: 200, body, createdAtMs: Date.now() });
+      }
+      res.json(body);
+    } catch (error) {
+      errorResponse(res, error);
+    }
+  }
+}

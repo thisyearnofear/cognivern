@@ -12,6 +12,12 @@ import { owsWalletService } from '@backend/services/blockchain/OwsWalletService.
 import { keeperHubExecutionProvider } from '@backend/services/blockchain/KeeperHubExecutionProvider.js';
 import { zeroGStorageService } from '@backend/services/blockchain/ZeroGStorageService.js';
 import { filecoinStorageService } from '@backend/services/blockchain/FilecoinStorageService.js';
+import { blockchainConfig } from '@backend/shared/config/index.js';
+import {
+  buildSpendAttributionReport,
+  getRunSpendAttribution,
+} from '@backend/services/governance/SpendAttributionService.js';
+import { FundedMandateService } from '@backend/services/governance/FundedMandateService.js';
 import {
   IdempotencyRecord,
   idempotencyStore,
@@ -209,6 +215,140 @@ export class CreController {
       body,
       createdAtMs: Date.now(),
     });
+  }
+
+  private async verifyLocalTransfer(
+    transactionHash: string,
+    expectedSender?: string,
+    expectedRecipient?: string,
+    expectedValueWei?: string,
+    expectedChainId?: number,
+  ): Promise<{ matched: boolean; reason?: string; chainId?: number; from?: string; to?: string; valueWei?: string; receiptStatus?: string; blockNumber?: number }> {
+    if (!/^0x[0-9a-fA-F]{64}$/.test(transactionHash)) return { matched: false, reason: 'Local transfer hash is malformed' };
+    try {
+      const provider = new ethers.JsonRpcProvider(blockchainConfig.rpcUrl);
+      const receipt = await provider.waitForTransaction(transactionHash, 1, 10_000);
+      if (!receipt) return { matched: false, reason: 'No local receipt was available' };
+      const transaction = await provider.getTransaction(transactionHash);
+      const network = await provider.getNetwork();
+      const actualChainId = Number(network.chainId);
+      const expectedChainIdValue = expectedChainId ?? blockchainConfig.chainId;
+      const matched =
+        actualChainId === expectedChainIdValue &&
+        receipt.status === 1 &&
+        Boolean(transaction?.from && expectedSender && transaction.from.toLowerCase() === expectedSender.toLowerCase()) &&
+        Boolean(transaction?.to && expectedRecipient && transaction.to.toLowerCase() === expectedRecipient.toLowerCase()) &&
+        Boolean(transaction && expectedValueWei && transaction.value === BigInt(expectedValueWei));
+      return {
+        matched,
+        reason: matched ? undefined : 'Local receipt did not match the expected chain, status, recipient, or value',
+        chainId: actualChainId,
+        from: transaction?.from ?? undefined,
+        to: transaction?.to ?? undefined,
+        valueWei: transaction?.value.toString(),
+        receiptStatus: receipt.status === 1 ? 'success' : 'reverted',
+        blockNumber: receipt.blockNumber,
+      };
+    } catch (error) {
+      return { matched: false, reason: `Local receipt verification failed: ${error instanceof Error ? error.message : String(error)}` };
+    }
+  }
+
+  private async resolveSpendLifecycle(params: {
+    run: CreRun;
+    intentId: string;
+    resolvedAt: string;
+    transactionHash?: string;
+    transactionLink?: string;
+    executionId?: string;
+  }): Promise<CreRun | undefined> {
+    const runs = await creRunStore.list();
+    const candidates = runs.filter((candidate) => {
+      if (candidate.projectId !== params.run.projectId) return false;
+      const attribution = getRunSpendAttribution(candidate);
+      if (attribution?.workspaceId && attribution.workspaceId !== params.run.projectId) return false;
+      const intentArtifact = candidate.artifacts.find((artifact) => artifact.type === 'spend_intent');
+      const candidateIntentId =
+        typeof intentArtifact?.data === 'object' && intentArtifact.data !== null
+          ? (intentArtifact.data as { id?: unknown }).id
+          : undefined;
+      return candidateIntentId === params.intentId;
+    });
+
+    // A spend intent may be retried, but an intent id is not a license to
+    // resolve every historical run that happens to reuse it. Follow only the
+    // explicit parent/child retry chain containing the requesting run.
+    const lifecycleIds = new Set<string>([params.run.runId]);
+    let expanded = true;
+    while (expanded) {
+      expanded = false;
+      for (const candidate of candidates) {
+        if (
+          (candidate.parentRunId && lifecycleIds.has(candidate.parentRunId)) ||
+          [...lifecycleIds].some((runId) => runId === candidate.runId && candidate.parentRunId)
+        ) {
+          if (!lifecycleIds.has(candidate.runId)) {
+            lifecycleIds.add(candidate.runId);
+            expanded = true;
+          }
+          if (candidate.parentRunId && !lifecycleIds.has(candidate.parentRunId)) {
+            lifecycleIds.add(candidate.parentRunId);
+            expanded = true;
+          }
+        }
+      }
+    }
+
+    const resolved: CreRun[] = [];
+    for (const candidate of candidates) {
+      if (!lifecycleIds.has(candidate.runId)) continue;
+      const next = normalizeRun(candidate);
+      for (const artifact of next.artifacts) {
+        if (artifact.type === 'error' && typeof artifact.data === 'object' && artifact.data !== null) {
+          const data = artifact.data as Record<string, unknown>;
+          if (data.status === 'execution_uncertain') {
+            artifact.data = { ...data, status: 'execution_reconciled', recoveryRequired: false, resolvedAt: params.resolvedAt };
+          }
+        }
+        if (artifact.type === 'capital_attribution' && typeof artifact.data === 'object' && artifact.data !== null) {
+          const data = artifact.data as Record<string, unknown>;
+          artifact.data = { ...data, status: 'consumed', consumedAmount: data.allocatedAmount, ...(params.executionId ? { executionId: params.executionId } : {}), ...(params.transactionHash ? { transactionHash: params.transactionHash } : {}), ...(params.transactionLink ? { transactionLink: params.transactionLink } : {}), outcome: 'value_transfer_reconciled', recordedAt: params.resolvedAt };
+        }
+      }
+      next.status = 'completed';
+      next.ok = true;
+      next.finishedAt = params.resolvedAt;
+      next.requiresApproval = false;
+      next.approvalState = 'approved';
+      resolved.push(normalizeRun(next));
+    }
+    const requesting = resolved.find((candidate) => candidate.runId === params.run.runId);
+    if (!requesting) return undefined;
+    await Promise.all(resolved.map((candidate) => creRunStore.replace(candidate)));
+    return requesting;
+  }
+
+  async getSpendAttribution(req: Request, res: Response) {
+    try {
+      if (!req.userId || !req.workspaceId) {
+        res.status(403).json({ success: false, error: 'Operator authentication and workspace context are required.' });
+        return;
+      }
+      const mandateId = typeof req.query.mandateId === 'string' ? req.query.mandateId.trim() : undefined;
+      if (mandateId && !FundedMandateService.get(req.workspaceId, mandateId)) {
+        res.status(404).json({ success: false, error: 'Mandate not found' });
+        return;
+      }
+      const runs = await creRunStore.list();
+      const workspaceRuns = runs.filter((run) => {
+        if (run.projectId !== req.workspaceId) return false;
+        const attribution = getRunSpendAttribution(run);
+        return attribution?.workspaceId === req.workspaceId;
+      });
+      res.json({ success: true, data: buildSpendAttributionReport(workspaceRuns, mandateId), timestamp: new Date().toISOString() });
+    } catch {
+      res.status(500).json({ success: false, error: 'Failed to build spend attribution report' });
+    }
   }
 
   async listRuns(req: Request, res: Response) {
@@ -416,6 +556,33 @@ export class CreController {
         return;
       }
 
+      if (run.projectId !== req.workspaceId) {
+        res.status(403).json({ success: false, error: 'Run does not belong to this workspace' });
+        return;
+      }
+
+      if (run.status === 'completed' && run.ok === true) {
+        const responseBody = {
+          success: true,
+          statusFetched: false,
+          run: normalizeRun(run),
+          execution: null,
+          matched: true,
+          readOnly: true,
+          recoveryRequired: false,
+          resolved: true,
+        };
+        if (reconciliationIdemKey) {
+          await this.setCachedIdempotentResponse(
+            reconciliationIdemKey,
+            200,
+            responseBody as unknown as Record<string, unknown>,
+          );
+        }
+        res.json(responseBody);
+        return;
+      }
+
       const uncertainArtifact = run.artifacts.find(
         (artifact) =>
           artifact.type === 'error' &&
@@ -436,7 +603,7 @@ export class CreController {
         });
         return;
       }
-      if (!run.projectId || run.projectId !== req.workspaceId) {
+      if (!run.projectId) {
         res.status(403).json({ success: false, error: 'Run does not belong to this workspace' });
         return;
       }
@@ -445,23 +612,62 @@ export class CreController {
         transferExecutionId?: string;
         transferIdempotencyKey?: string;
         expectedSender?: string;
+        transferTxHash?: string;
         expectedRecipient?: string;
         expectedValueWei?: string;
         chainId?: number;
         status?: string;
         recoveryRequired?: boolean;
       };
+      if (!data.transferExecutionId && data.transferTxHash) {
+        const local = await this.verifyLocalTransfer(data.transferTxHash, data.expectedSender, data.expectedRecipient, data.expectedValueWei, data.chainId);
+        if (local.matched && req.method === 'POST') {
+          const spendIntentArtifact = run.artifacts.find((artifact) => artifact.type === 'spend_intent');
+          const spendIntentId =
+            typeof spendIntentArtifact?.data === 'object' && spendIntentArtifact.data !== null
+              ? (spendIntentArtifact.data as { id?: unknown }).id
+              : undefined;
+          if (typeof spendIntentId !== 'string' || !spendIntentId) {
+            res.status(409).json({ success: false, error: 'Cannot reconcile a spend run without a valid spend intent id', recoveryRequired: true });
+            return;
+          }
+          const resolvedAt = new Date().toISOString();
+          const resolvedRun = await this.resolveSpendLifecycle({
+            run,
+            intentId: spendIntentId,
+            resolvedAt,
+            transactionHash: data.transferTxHash,
+          });
+          if (!resolvedRun) {
+            res.status(500).json({ success: false, error: 'Reconciliation could not persist the requesting lifecycle', recoveryRequired: true });
+            return;
+          }
+          const responseBody = {
+            success: true,
+            statusFetched: true,
+            run: resolvedRun,
+            execution: local,
+            matched: true,
+            readOnly: false,
+            recoveryRequired: false,
+            resolved: true,
+          };
+          if (reconciliationIdemKey) {
+            await this.setCachedIdempotentResponse(
+              reconciliationIdemKey,
+              200,
+              responseBody as unknown as Record<string, unknown>,
+            );
+          }
+          res.json(responseBody);
+          return;
+        }
+        res.json({ success: false, run: normalizeRun(run), execution: local, readOnly: true, recoveryRequired: true, message: local.reason || 'Local transfer still requires receipt reconciliation' });
+        return;
+      }
+
       if (!data.transferExecutionId) {
-        res.json({
-          success: false,
-          run: normalizeRun(run),
-          execution: null,
-          idempotencyKey: data.transferIdempotencyKey,
-          readOnly: true,
-          recoveryRequired: true,
-          message:
-            'No KeeperHub executionId was returned. Preserve the idempotency key and reconcile it through KeeperHub support or an approved provider lookup before retrying.',
-        });
+        res.json({ success: false, run: normalizeRun(run), execution: null, idempotencyKey: data.transferIdempotencyKey, readOnly: true, recoveryRequired: true, message: 'No execution id or transaction hash was returned. Preserve the idempotency key and reconcile through the provider or support before retrying.' });
         return;
       }
 
@@ -514,6 +720,12 @@ export class CreController {
           receipt.receiptStatus?.toLowerCase() === 'success',
       );
       if (matched && req.method === 'POST') {
+        const spendIntentArtifact = run.artifacts.find((artifact) => artifact.type === 'spend_intent');
+        const spendIntentId = typeof spendIntentArtifact?.data === 'object' && spendIntentArtifact.data !== null ? (spendIntentArtifact.data as { id?: unknown }).id : undefined;
+        if (typeof spendIntentId !== 'string' || !spendIntentId) {
+          res.status(409).json({ success: false, error: 'Cannot reconcile a spend run without a valid spend intent id', recoveryRequired: true });
+          return;
+        }
         const resolvedAt = new Date().toISOString();
         uncertainArtifact.data = {
           ...(typeof uncertainArtifact.data === 'object' && uncertainArtifact.data !== null
@@ -547,12 +759,22 @@ export class CreController {
             transactionHash,
           },
         });
-        const resolvedRun = normalizeRun(run);
-        await creRunStore.replace(resolvedRun);
+        const resolvedWithAttribution = await this.resolveSpendLifecycle({
+          run,
+          intentId: spendIntentId,
+          resolvedAt,
+          executionId: executionData?.executionId,
+          transactionHash,
+          transactionLink: executionData?.transactionLink,
+        });
+        if (!resolvedWithAttribution) {
+          res.status(500).json({ success: false, error: 'Reconciliation could not persist the requesting lifecycle', recoveryRequired: true });
+          return;
+        }
         const responseBody = {
           success: true,
           statusFetched: true,
-          run: resolvedRun,
+          run: resolvedWithAttribution,
           execution,
           matched: true,
           readOnly: false,

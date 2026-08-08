@@ -9,6 +9,7 @@ export function createCreRoutes(
   const router = Router();
 
   router.get("/cre/runs", (req, res) => creController.listRuns(req, res));
+  router.get("/capital/attribution", (req, res) => creController.getSpendAttribution(req, res));
   router.get("/cre/ledger/verify", (req, res) =>
     creController.verifyLedger(req, res),
   );
@@ -20,7 +21,7 @@ export function createCreRoutes(
     creController.reconcileRun(req, res),
   );
   // POST resolves an uncertain spend only after the controller proves the
-  // KeeperHub execution and receipt match the original intent.
+  // local or KeeperHub execution and receipt match the original intent.
   router.post("/cre/runs/:runId/reconcile/resolve", (req, res) =>
     creController.reconcileRun(req, res),
   );

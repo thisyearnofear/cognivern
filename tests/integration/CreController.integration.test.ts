@@ -38,6 +38,9 @@ const { creRunStore } = await import(
 const { owsLocalVaultService } = await import(
   "../../src/backend/services/blockchain/OwsLocalVaultService.js"
 );
+const { owsWalletService } = await import(
+  "../../src/backend/services/blockchain/OwsWalletService.js"
+);
 const { keeperHubExecutionProvider } = await import(
   "../../src/backend/services/blockchain/KeeperHubExecutionProvider.js"
 );
@@ -279,11 +282,12 @@ describe("CreController", () => {
 
     const sendSpy = vi
       .spyOn(owsLocalVaultService, "sendNativeTransfer")
-      .mockResolvedValue({ txHash: "0xctrl-success", from: wallet.accounts[0].address });
+      .mockResolvedValue({ txHash: "0x" + "c".repeat(64), from: wallet.accounts[0].address });
 
     // Build a held spend run via the real handleHold path so artifacts match
     // the production shape (spend_intent + error with walletId/policyId).
     const service = new OwsWalletService();
+    const verifySpy = vi.spyOn(OwsWalletService.prototype as any, "verifyTransferReceipt").mockResolvedValue({ outcome: "verified" });
     const intent = {
       id: "intent-ctrl-1",
       agentId: "agent-1",
@@ -304,6 +308,7 @@ describe("CreController", () => {
     );
 
     const controller = new CreController();
+    sendSpy.mockClear();
     const req = makeReq({
       params: { runId: held.runId },
       body: { approve: true, reason: "operator approves" },
@@ -316,11 +321,12 @@ describe("CreController", () => {
     expect(res.payload?.success).toBe(true);
     expect(res.payload?.run?.status).toBe("completed");
     expect(res.payload?.transfer?.transferStatus).toBe("sent");
-    expect(res.payload?.transfer?.transferTxHash).toBe("0xctrl-success");
+    expect(res.payload?.transfer?.transferTxHash).toBe("0x" + "c".repeat(64));
     expect(sendSpy).toHaveBeenCalledTimes(1);
     expect(sendSpy.mock.calls[0][0].operatorApproved).toBe(true);
     expect(sendSpy.mock.calls[0][0].valueWei).toBe(4242n);
     sendSpy.mockRestore();
+    verifySpy.mockRestore();
   });
 
   it("submitApproval (spend workflow) leaves run paused + returns error when transfer fails", async () => {
@@ -355,6 +361,7 @@ describe("CreController", () => {
       .mockResolvedValue({ error: "insufficient gas funds" });
 
     const service = new OwsWalletService();
+    const verifySpy = vi.spyOn(OwsWalletService.prototype as any, "verifyTransferReceipt").mockResolvedValue({ outcome: "verified" });
     const intent = {
       id: "intent-ctrl-2",
       agentId: "agent-1",
@@ -375,6 +382,7 @@ describe("CreController", () => {
     );
 
     const controller = new CreController();
+    sendSpy.mockClear();
     const req = makeReq({
       params: { runId: held.runId },
       body: { approve: true, reason: "operator approves" },
@@ -392,6 +400,7 @@ describe("CreController", () => {
     expect(persisted?.status).toBe("paused_for_approval");
     expect(sendSpy).toHaveBeenCalledTimes(1);
     sendSpy.mockRestore();
+    verifySpy.mockRestore();
   });
 
   it("submitApproval (spend workflow) refuses approve without operator userId", async () => {
@@ -444,6 +453,7 @@ describe("CreController", () => {
     );
 
     const controller = new CreController();
+    sendSpy.mockClear();
     // No userId on req — simulates a caller without a JWT (e.g. unauth or
     // workspace-key-only). Must be rejected with 403 and NEVER broadcast.
     const req = makeReq({
@@ -494,6 +504,110 @@ describe("CreController", () => {
     expect(res.statusCode).toBe(403);
     expect(res.payload?.success).toBe(false);
     expect(res.payload?.error).toMatch(/operator authentication/i);
+  });
+
+  it("getSpendAttribution requires operator authentication and workspace context", async () => {
+    const controller = new CreController();
+    const res = new MockRes();
+    await controller.getSpendAttribution(
+      makeReq() as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(403);
+    expect(res.payload).toMatchObject({
+      success: false,
+      error: expect.stringMatching(/operator authentication/i),
+    });
+  });
+
+  it("getSpendAttribution excludes artifacts with a conflicting workspace", async () => {
+    const run = {
+      ...makeRun("completed" as any),
+      runId: "workspace-conflict-run",
+      projectId: "workspace-1",
+      workflow: "spend" as const,
+      mode: "cre" as const,
+      artifacts: [
+        {
+          id: crypto.randomUUID(),
+          type: "capital_attribution" as const,
+          createdAt: new Date().toISOString(),
+          data: {
+            version: 1,
+            allocationId: "allocation-conflict",
+            workspaceId: "workspace-2",
+            intentId: "intent-conflict",
+            agentId: "agent-1",
+            asset: "ETH",
+            requestedAmount: "7",
+            allocatedAmount: "7",
+            consumedAmount: "7",
+            status: "consumed",
+          },
+        },
+      ],
+    };
+    await creRunStore.add(run as any);
+
+    const controller = new CreController();
+    const req = makeReq() as any;
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-1";
+    const res = new MockRes();
+    await controller.getSpendAttribution(req, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload?.data?.totalRecords).toBe(0);
+  });
+
+  it("getSpendAttribution aggregates only the current workspace", async () => {
+    const makeAttributionRun = (runId: string, projectId: string, intentId: string, amount: string) => ({
+      ...makeRun("completed" as any),
+      runId,
+      projectId,
+      workflow: "spend" as const,
+      mode: "cre" as const,
+      artifacts: [
+        {
+          id: crypto.randomUUID(),
+          type: "capital_attribution" as const,
+          createdAt: new Date().toISOString(),
+          data: {
+            version: 1,
+            allocationId: `allocation-${intentId}`,
+            workspaceId: projectId,
+            intentId,
+            agentId: "agent-1",
+            asset: "ETH",
+            requestedAmount: amount,
+            allocatedAmount: amount,
+            consumedAmount: amount,
+            status: "consumed",
+          },
+        },
+      ],
+    });
+    await creRunStore.add(makeAttributionRun("workspace-run", "workspace-1", "intent-w1", "7") as any);
+    await creRunStore.add(makeAttributionRun("other-run", "workspace-2", "intent-w2", "99") as any);
+
+    const controller = new CreController();
+    const req = makeReq() as any;
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-1";
+    const res = new MockRes();
+    await controller.getSpendAttribution(req, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload?.success).toBe(true);
+    expect(res.payload?.data?.totalRecords).toBe(1);
+    expect(res.payload?.data?.counts?.allocated).toBe(1);
+    expect(res.payload?.data?.totalsByAsset?.ETH).toMatchObject({
+      allocatedAmount: "7",
+      consumedAmount: "7",
+      pendingAmount: "0",
+    });
+    expect(res.payload?.data?.records[0]?.intentId).toBe("intent-w1");
   });
 
   it("reconcileRun rejects a run from another workspace before querying KeeperHub", async () => {
@@ -842,6 +956,29 @@ describe("CreController", () => {
         },
       },
     ];
+    run.artifacts.push({
+      id: crypto.randomUUID(),
+      type: "capital_attribution",
+      createdAt: new Date().toISOString(),
+      data: {
+        version: 1,
+        allocationId: "allocation-resolve",
+        workspaceId: "workspace-1",
+        intentId: "intent-resolve",
+        agentId: "agent-1",
+        asset: "ETH",
+        requestedAmount: "1000000000000000000",
+        allocatedAmount: "1000000000000000000",
+        consumedAmount: "0",
+        status: "uncertain",
+      },
+    });
+    run.artifacts.push({
+      id: crypto.randomUUID(),
+      type: "spend_intent",
+      createdAt: new Date().toISOString(),
+      data: { id: "intent-resolve" },
+    });
     await creRunStore.add(run);
 
     const transactionHash = "0x" + "f".repeat(64);
@@ -882,7 +1019,248 @@ describe("CreController", () => {
       run: { status: "completed", ok: true },
     });
     expect((await creRunStore.get(run.runId))?.status).toBe("completed");
+    const resolvedStored = await creRunStore.get(run.runId);
+    const resolvedAttribution = resolvedStored?.artifacts.find(
+      (artifact) => artifact.type === "capital_attribution",
+    );
+    const resolvedError = resolvedStored?.artifacts.find(
+      (artifact) => artifact.type === "error",
+    );
+    expect((resolvedError?.data as { status?: string })?.status).toBe("execution_reconciled");
+    expect(resolvedAttribution?.data).toMatchObject({
+      status: "consumed",
+      consumedAmount: "1000000000000000000",
+      transactionHash,
+      outcome: "value_transfer_reconciled",
+    });
     statusSpy.mockRestore();
+  });
+
+  it("POST reconciliation resolves parent and child lifecycle records once", async () => {
+    const parent = makeRun("running") as any;
+    parent.workflow = "spend";
+    parent.projectId = "workspace-1";
+    parent.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          transferExecutionId: "exec-parent-child",
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000",
+          chainId: 84532,
+        },
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "spend_intent",
+        createdAt: new Date().toISOString(),
+        data: { id: "intent-parent-child" },
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "capital_attribution",
+        createdAt: new Date().toISOString(),
+        data: {
+          version: 1,
+          allocationId: "allocation-parent-child",
+          workspaceId: "workspace-1",
+          intentId: "intent-parent-child",
+          agentId: "agent-1",
+          asset: "ETH",
+          requestedAmount: "1000",
+          allocatedAmount: "1000",
+          consumedAmount: "0",
+          status: "uncertain",
+        },
+      },
+    ];
+    const child = {
+      ...parent,
+      runId: crypto.randomUUID(),
+      parentRunId: parent.runId,
+      artifacts: parent.artifacts.filter((artifact: any) => artifact.type !== "error"),
+    };
+    await creRunStore.add(parent);
+    await creRunStore.add(child);
+
+    const transactionHash = "0x" + "9".repeat(64);
+    const statusSpy = vi
+      .spyOn(keeperHubExecutionProvider, "getExecutionStatus")
+      .mockResolvedValue({
+        executionId: "exec-parent-child",
+        status: "completed",
+        transactionHash,
+        chainId: 84532,
+        receipts: [
+          {
+            hash: transactionHash,
+            chainId: 84532,
+            from: "0x1111111111111111111111111111111111111111",
+            to: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+            value: "0.000000000000001",
+            verified: true,
+            receiptStatus: "success",
+          },
+        ],
+      });
+
+    const controller = new CreController();
+    const req = makeReq({ params: { runId: parent.runId } }) as any;
+    req.method = "POST";
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-1";
+    const res = new MockRes();
+    await controller.reconcileRun(req, res as any);
+
+    expect(res.payload).toMatchObject({ success: true, resolved: true });
+    const [parentStored, childStored] = await Promise.all([
+      creRunStore.get(parent.runId),
+      creRunStore.get(child.runId),
+    ]);
+    expect(parentStored?.status).toBe("completed");
+    expect(childStored?.status).toBe("completed");
+    expect((await creRunStore.list()).filter((candidate) => candidate.projectId === "workspace-1").length).toBe(2);
+    statusSpy.mockRestore();
+  });
+
+  it("POST local reconciliation keeps a sender mismatch recovery-required", async () => {
+    const run = makeRun("running") as any;
+    run.workflow = "spend";
+    run.projectId = "workspace-1";
+    const txHash = "0x" + "7".repeat(64);
+    run.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          transferTxHash: txHash,
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000",
+          chainId: 84532,
+        },
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "spend_intent",
+        createdAt: new Date().toISOString(),
+        data: { id: "intent-local-sender-mismatch" },
+      },
+    ];
+    await creRunStore.add(run);
+
+    const controller = new CreController();
+    const verifySpy = vi.spyOn(controller as any, "verifyLocalTransfer").mockResolvedValue({
+      matched: false,
+      reason: "Local receipt did not match the expected sender",
+      from: "0x2222222222222222222222222222222222222222",
+      to: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      valueWei: "1000",
+      chainId: 84532,
+      receiptStatus: "success",
+    });
+    const req = makeReq({ params: { runId: run.runId } }) as any;
+    req.method = "POST";
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-1";
+    const res = new MockRes();
+    await controller.reconcileRun(req, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload).toMatchObject({ success: false, readOnly: true, recoveryRequired: true });
+    expect(res.payload.message).toMatch(/expected sender/i);
+    expect(verifySpy).toHaveBeenCalledWith(
+      txHash,
+      "0x1111111111111111111111111111111111111111",
+      "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "1000",
+      84532,
+    );
+    verifySpy.mockRestore();
+  });
+
+  it("POST local reconciliation resolves a parent and child lifecycle", async () => {
+    const parent = makeRun("running") as any;
+    parent.workflow = "spend";
+    parent.projectId = "workspace-1";
+    const txHash = "0x" + "8".repeat(64);
+    parent.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          transferTxHash: txHash,
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000",
+          chainId: 84532,
+        },
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "spend_intent",
+        createdAt: new Date().toISOString(),
+        data: { id: "intent-local-parent-child" },
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "capital_attribution",
+        createdAt: new Date().toISOString(),
+        data: {
+          version: 1,
+          allocationId: "allocation-local-parent-child",
+          workspaceId: "workspace-1",
+          intentId: "intent-local-parent-child",
+          agentId: "agent-1",
+          asset: "ETH",
+          requestedAmount: "1000",
+          allocatedAmount: "1000",
+          consumedAmount: "0",
+          status: "uncertain",
+        },
+      },
+    ];
+    const child = { ...parent, runId: crypto.randomUUID(), parentRunId: parent.runId, artifacts: parent.artifacts.filter((artifact: any) => artifact.type !== "error") };
+    await creRunStore.add(parent);
+    await creRunStore.add(child);
+
+    const controller = new CreController();
+    const verifySpy = vi.spyOn(controller as any, "verifyLocalTransfer").mockResolvedValue({ matched: true, chainId: 84532, receiptStatus: "success" });
+    const req = makeReq({ params: { runId: parent.runId } }) as any;
+    req.method = "POST";
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-1";
+    const res = new MockRes();
+    await controller.reconcileRun(req, res as any);
+
+    expect(res.payload).toMatchObject({ success: true, resolved: true });
+    expect((await creRunStore.get(parent.runId))?.status).toBe("completed");
+    expect((await creRunStore.get(child.runId))?.status).toBe("completed");
+    expect(verifySpy).toHaveBeenCalledTimes(1);
+    verifySpy.mockRestore();
+  });
+
+  it("rejects completed reconciliation reads from another workspace", async () => {
+    const run = { ...makeRun("completed" as any), workflow: "spend" as const, projectId: "workspace-1" };
+    await creRunStore.add(run as any);
+
+    const controller = new CreController();
+    const req = makeReq({ params: { runId: run.runId } }) as any;
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-2";
+    const res = new MockRes();
+    await controller.reconcileRun(req, res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.payload).toMatchObject({ success: false, error: "Run does not belong to this workspace" });
   });
 
   it("POST reconciliation is idempotent when the resolve response is replayed", async () => {
@@ -901,6 +1279,29 @@ describe("CreController", () => {
           expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
           expectedValueWei: "1000",
           chainId: 84532,
+        },
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "spend_intent",
+        createdAt: new Date().toISOString(),
+        data: { id: "intent-idempotent-resolve" },
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "capital_attribution",
+        createdAt: new Date().toISOString(),
+        data: {
+          version: 1,
+          allocationId: "allocation-idempotent-resolve",
+          workspaceId: "workspace-1",
+          intentId: "intent-idempotent-resolve",
+          agentId: "agent-1",
+          asset: "ETH",
+          requestedAmount: "1000",
+          allocatedAmount: "1000",
+          consumedAmount: "0",
+          status: "uncertain",
         },
       },
     ];

@@ -13,6 +13,7 @@ import {
   SOURCE_KINDS,
   sourceAwareSpendAuthorizationService,
 } from '@backend/services/governance/SourceAwareSpendAuthorization.js';
+import { FundedMandateService } from '@backend/services/governance/FundedMandateService.js';
 
 const logger = new Logger('SpendController');
 
@@ -253,12 +254,27 @@ export class SpendController {
     return { status: currentStatus, override: false };
   }
 
+  private validateMandateReference(
+    req: Request,
+    metadata: Record<string, unknown> | undefined,
+    res: Response,
+  ): boolean {
+    const mandateId = typeof metadata?.mandateId === 'string' ? metadata.mandateId.trim() : undefined;
+    if (!mandateId) return true;
+    if (!req.workspaceId || !FundedMandateService.get(req.workspaceId, mandateId)) {
+      res.status(404).json({ success: false, error: 'Mandate not found in the current workspace' });
+      return false;
+    }
+    return true;
+  }
+
   private async executeIntent(
     req: Request,
     res: Response,
     intent: SpendIntent,
     context: SpendExecutionContext = {},
   ) {
+    if (!this.validateMandateReference(req, intent.metadata, res)) return;
     const owsScopedAccess = req.headers['x-ows-scoped-access'] as string | undefined;
     logger.debug('OWS scoped access received', {
       prefix: owsScopedAccess?.substring(0, 10),
@@ -347,6 +363,7 @@ export class SpendController {
         return;
       }
       if (!this.validateSourceProvenance(parse.data.metadata, res)) return;
+      if (!this.validateMandateReference(req, parse.data.metadata, res)) return;
 
       const bindings = this.verifyBindings(parse.data, res);
       if (!bindings) return;
@@ -391,6 +408,7 @@ export class SpendController {
         return;
       }
       if (!this.validateSourceProvenance(parse.data.metadata, res)) return;
+      if (!this.validateMandateReference(req, parse.data.metadata, res)) return;
 
       const bindings = this.verifyBindings(parse.data, res);
       if (!bindings) return;
@@ -604,6 +622,7 @@ export class SpendController {
       };
 
       if (!this.validateSourceProvenance(parse.data.metadata, res)) return;
+      if (!this.validateMandateReference(req, parse.data.metadata, res)) return;
 
       // Run policy preview
       const preview = await owsWalletService.previewSpend(intent, {

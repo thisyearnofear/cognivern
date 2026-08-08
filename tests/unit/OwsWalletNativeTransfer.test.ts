@@ -106,6 +106,7 @@ describe('OwsWalletService — native transfer on approve', () => {
       .mockResolvedValue({ txHash: '0x' + 'f'.repeat(64), from: access!.wallet.accounts[0]?.address });
 
     const service = new OwsWalletService();
+    vi.spyOn(service as any, 'verifyTransferReceipt').mockResolvedValue({ outcome: 'verified' });
     const intent = {
       id: 'intent-1',
       agentId: 'agent-1',
@@ -135,6 +136,42 @@ describe('OwsWalletService — native transfer on approve', () => {
     expect(result.status).toBe('approved');
     expect(result.transferStatus).toBe('sent');
     expect(result.transferTxHash).toBe('0x' + 'f'.repeat(64));
+  });
+
+  it('locks a broadcast with an unverified receipt instead of reporting consumption', async () => {
+    const { OwsWalletService, owsLocalVaultService } = await loadModules();
+    const { token, access } = await seedScopedAccess(owsLocalVaultService);
+
+    vi.spyOn(owsLocalVaultService, 'sendNativeTransfer').mockResolvedValue({
+      txHash: '0x' + '1'.repeat(64),
+      from: access!.wallet.accounts[0]?.address,
+    });
+
+    const service = new OwsWalletService();
+    vi.spyOn(service as any, 'verifyTransferReceipt').mockResolvedValue({
+      outcome: 'unverified',
+      reason: 'rpc unavailable',
+    });
+    const { CreRunRecorder } = await import('@backend/cre/runRecorder.js');
+    const result = await (service as any).handleApprove(
+      {
+        id: 'intent-unverified-local',
+        agentId: 'agent-1',
+        recipient: RECIPIENT,
+        amount: '1000',
+        asset: 'OKB',
+        reason: 'unverified receipt',
+        timestamp: new Date().toISOString(),
+      },
+      new CreRunRecorder({ workflow: 'spend', mode: 'cre' }),
+      'policy-1',
+      access,
+      token,
+    );
+
+    expect(result.transferStatus).toBe('uncertain');
+    expect(result.transferUncertain).toBe(true);
+    expect(result.receiptVerification?.outcome).toBe('unverified');
   });
 
   it('does NOT fabricate a txHash when the broadcast fails', async () => {
@@ -221,6 +258,7 @@ describe('OwsWalletService — resumeHeldSpend (operator approval)', () => {
       .mockResolvedValue({ txHash: '0x' + 'e'.repeat(64), from: access!.wallet.accounts[0]?.address });
 
     const service = new OwsWalletService();
+    vi.spyOn(service as any, 'verifyTransferReceipt').mockResolvedValue({ outcome: 'verified' });
     const intent = {
       id: 'intent-held',
       agentId: 'agent-1',

@@ -11,6 +11,7 @@ import {
   Sparkles,
   Gavel,
   Radar,
+  CircleDollarSign,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -50,6 +51,13 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Activity,
         href: '/runs',
         description: 'Resolve active and failed executions',
+      },
+      {
+        id: 'capital',
+        label: 'Capital',
+        icon: CircleDollarSign,
+        href: '/capital',
+        description: 'See what governed agent capital produced',
       },
     ],
   },

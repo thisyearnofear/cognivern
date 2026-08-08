@@ -20,6 +20,7 @@ import {
   sourceAwareSpendAuthorizationService,
   SpendSourceProvenance,
 } from '@backend/services/governance/SourceAwareSpendAuthorization.js';
+import { FundedMandateService } from '@backend/services/governance/FundedMandateService.js';
 
 export interface SpendIntent {
   id: string;
@@ -172,6 +173,14 @@ export class OwsWalletService {
     intent: SpendIntent,
     context: SpendExecutionContext = {},
   ): Promise<ExecutionResult> {
+    const mandateId = typeof intent.metadata?.mandateId === 'string' ? intent.metadata.mandateId.trim() : undefined;
+    if (mandateId && (!context.workspaceId || !FundedMandateService.get(context.workspaceId, mandateId))) {
+      return {
+        intentId: intent.id,
+        status: 'denied',
+        error: 'Mandate is not valid for the current workspace',
+      };
+    }
     const access = await this.resolveAccess(intent, context);
     const recorder = new CreRunRecorder({
       workflow: 'spend',
@@ -308,6 +317,12 @@ export class OwsWalletService {
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : 'Unknown execution error';
       logger.error(`SpendOS execution failed: ${errMsg}`);
+      await this.addSpendAttributionArtifact(recorder, intent, {
+        status: 'failed',
+        allocatedAmount: '0',
+        consumedAmount: '0',
+        outcome: errMsg,
+      });
       await recorder.finish(false);
       await this.persistRun(recorder);
       return {
@@ -560,9 +575,19 @@ export class OwsWalletService {
       'idempotencyKey' in transfer && typeof transfer.idempotencyKey === 'string'
         ? transfer.idempotencyKey
         : undefined;
-    const transferUncertain = 'uncertain' in transfer && transfer.uncertain === true;
+    const providerTransferUncertain = 'uncertain' in transfer && transfer.uncertain === true;
+    const hasValidTransferTxHash =
+      typeof transferTxHash === 'string' && /^0x[0-9a-fA-F]{64}$/.test(transferTxHash);
+    const claimedTransferResponse =
+      ('txHash' in transfer && transfer.txHash !== undefined) ||
+      ('executionId' in transfer && transfer.executionId !== undefined) ||
+      providerTransferUncertain;
     const transferStatus: 'sent' | 'failed' | 'uncertain' =
-      'txHash' in transfer ? 'sent' : transferUncertain ? 'uncertain' : 'failed';
+      hasValidTransferTxHash
+        ? 'sent'
+        : claimedTransferResponse
+          ? 'uncertain'
+          : 'failed';
 
     // Reconcile the claimed txHash against the actual chain receipt. The
     // executor's return value is treated as a claim; the audit record
@@ -625,6 +650,58 @@ export class OwsWalletService {
     const onChainDataHash = onChain.success ? onChain.dataHash : undefined;
     const onChainStatus: 'recorded' | 'failed' = onChain.success ? 'recorded' : 'failed';
 
+    // A failed broadcast is retryable because no transaction was claimed. A
+    // claimed-but-unverified or provider-uncertain execution is different:
+    // it may already have moved funds and must be reconciled before retry.
+    const transferUncertain =
+      transferStatus === 'uncertain' ||
+      (transferStatus === 'sent' && receiptVerification.outcome !== 'verified');
+    const attributionStatus =
+      transferStatus === 'failed'
+        ? 'failed'
+        : transferUncertain
+          ? 'uncertain'
+          : 'consumed';
+    const normalizedTransferStatus: 'sent' | 'failed' | 'uncertain' = transferUncertain
+      ? 'uncertain'
+      : transferStatus;
+    await this.addSpendAttributionArtifact(recorder, intent, {
+      status: attributionStatus,
+      allocatedAmount: valueWei.toString(),
+      consumedAmount: attributionStatus === 'consumed' ? valueWei.toString() : '0',
+      policyId,
+      provider: executionProvider,
+      executionId: transferExecutionId,
+      transactionHash: transferTxHash,
+      transactionLink: transferTransactionLink,
+      outcome:
+        attributionStatus === 'consumed'
+          ? 'value_transfer_verified'
+          : transferError || receiptVerification.reason,
+    });
+
+    if (transferUncertain) {
+      await recorder.addArtifact({
+        type: 'error',
+        data: {
+          intentId: intent.id,
+          status: 'execution_uncertain',
+          reason:
+            transferError ||
+            receiptVerification.reason ||
+            'Transfer was submitted but could not be independently verified',
+          recoveryRequired: true,
+          transferExecutionId,
+          transferIdempotencyKey,
+          transferTxHash,
+          expectedSender: transferFrom || signer,
+          expectedRecipient: intent.recipient,
+          expectedValueWei: valueWei.toString(),
+          chainId: transferChainId || walletChainId,
+        },
+      });
+    }
+
     await recorder.addArtifact({
       type: 'attestation_result',
       data: {
@@ -641,7 +718,7 @@ export class OwsWalletService {
         transferVerified,
         transferReceiptStatus,
         transferReceipts,
-        transferStatus,
+        transferStatus: normalizedTransferStatus,
         transferError,
         transferIdempotencyKey,
         transferUncertain,
@@ -659,13 +736,15 @@ export class OwsWalletService {
     });
 
     s.end({
-      ok: transferStatus === 'sent',
+      ok: normalizedTransferStatus === 'sent' && receiptVerification.outcome === 'verified',
       summary:
-        transferStatus === 'sent'
+        normalizedTransferStatus === 'sent'
           ? `Transfer broadcast: ${transferTxHash}`
-          : `Transfer failed: ${transferError}`,
+          : normalizedTransferStatus === 'uncertain'
+            ? 'Transfer submitted but receipt verification is required'
+            : `Transfer failed: ${transferError}`,
     });
-    await recorder.finish(transferStatus === 'sent');
+    await recorder.finish(normalizedTransferStatus === 'sent' && receiptVerification.outcome === 'verified');
     const run = await this.persistRun(recorder);
 
     return {
@@ -688,7 +767,7 @@ export class OwsWalletService {
       transferVerified,
       transferReceiptStatus,
       transferReceipts,
-      transferStatus,
+      transferStatus: normalizedTransferStatus,
       transferError,
       transferIdempotencyKey,
       transferUncertain,
@@ -821,6 +900,7 @@ export class OwsWalletService {
 
     const recorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre' });
     recorder.getRun().parentRunId = runId;
+    recorder.getRun().projectId = heldRun.projectId;
     await recorder.addArtifact({ type: 'spend_intent', data: intent });
     const s = recorder.startStep('evm_write', 'wallet_sign_and_broadcast', {
       resumedFrom: runId,
@@ -976,6 +1056,61 @@ export class OwsWalletService {
     }
   }
 
+  private async addSpendAttributionArtifact(
+    recorder: CreRunRecorder,
+    intent: SpendIntent,
+    params: {
+      status: 'allocated' | 'consumed' | 'held' | 'denied' | 'failed' | 'uncertain';
+      allocatedAmount: string;
+      consumedAmount: string;
+      policyId?: string;
+      provider?: string;
+      executionId?: string;
+      transactionHash?: string;
+      transactionLink?: string;
+      outcome?: string;
+    },
+  ): Promise<void> {
+    const metadata = intent.metadata || {};
+    const allocationId =
+      typeof metadata.allocationId === 'string' && metadata.allocationId.trim()
+        ? metadata.allocationId.trim()
+        : intent.id;
+    const mandateId = typeof metadata.mandateId === 'string' ? metadata.mandateId : undefined;
+    const budgetId = typeof metadata.budgetId === 'string' ? metadata.budgetId : undefined;
+    const workspaceId =
+      typeof metadata.workspaceId === 'string'
+        ? metadata.workspaceId
+        : recorder.getRun().projectId;
+    const requestedAmount = intent.amount;
+    const recordedAt = new Date().toISOString();
+
+    await recorder.addArtifact({
+      type: 'capital_attribution',
+      data: {
+        version: 1,
+        allocationId,
+        workspaceId,
+        mandateId,
+        budgetId,
+        intentId: intent.id,
+        agentId: intent.agentId,
+        policyId: params.policyId,
+        asset: intent.asset,
+        requestedAmount,
+        allocatedAmount: params.allocatedAmount,
+        consumedAmount: params.consumedAmount,
+        status: params.status,
+        provider: params.provider,
+        executionId: params.executionId,
+        transactionHash: params.transactionHash,
+        transactionLink: params.transactionLink,
+        outcome: params.outcome,
+        recordedAt,
+      },
+    });
+  }
+
   private async handleHold(
     intent: SpendIntent,
     recorder: CreRunRecorder,
@@ -983,6 +1118,14 @@ export class OwsWalletService {
     policyId?: string,
     access?: OwsResolvedAccess | null,
   ): Promise<ExecutionResult> {
+    const amountIsPositiveInteger = /^\d+$/.test(intent.amount) && BigInt(intent.amount) > 0n;
+    await this.addSpendAttributionArtifact(recorder, intent, {
+      status: 'held',
+      allocatedAmount: amountIsPositiveInteger ? intent.amount : '0',
+      consumedAmount: '0',
+      policyId,
+      outcome: reason,
+    });
     await recorder.addArtifact({
       type: 'error',
       data: {
@@ -1022,6 +1165,13 @@ export class OwsWalletService {
     policyId?: string,
     access?: OwsResolvedAccess | null,
   ): Promise<ExecutionResult> {
+    await this.addSpendAttributionArtifact(recorder, intent, {
+      status: 'denied',
+      allocatedAmount: '0',
+      consumedAmount: '0',
+      policyId,
+      outcome: reason,
+    });
     await recorder.addArtifact({
       type: 'error',
       data: {
