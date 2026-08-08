@@ -6,6 +6,7 @@ import {
   type CreateFundedMandateInput,
   type UpdateFundedMandateInput,
 } from "@backend/services/governance/FundedMandateService.js";
+import { StatementService } from "@backend/services/governance/StatementService.js";
 
 const metricSchema = z.object({
   id: z.string().min(1).max(120),
@@ -73,6 +74,19 @@ export class MandateController {
       return;
     }
     res.json({ success: true, data: mandate });
+  }
+
+  async getStatement(req: Request, res: Response): Promise<void> {
+    const id = workspaceId(req, res);
+    if (!id) return;
+    try {
+      const statement = await StatementService.generateCandidate(id, req.params.mandateId);
+      res.json({ success: true, data: statement });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to generate mandate statement";
+      const status = /not found/i.test(message) ? 404 : /cannot be generated|exceeds authorization/i.test(message) ? 409 : 500;
+      res.status(status).json({ success: false, error: message });
+    }
   }
 
   async create(req: Request, res: Response): Promise<void> {

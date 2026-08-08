@@ -127,6 +127,67 @@ export interface FundedMandate {
   updatedAt: string;
 }
 
+export type OutcomeObservationKind = 'observed' | 'verified_external_state';
+export type OutcomeObservationConfidence = 'self_reported' | 'system_observed' | 'independently_verified';
+export type OutcomeEvidenceType = 'url' | 'artifact' | 'run' | 'transaction' | 'external_record';
+
+export interface OutcomeObservation {
+  id: string;
+  mandateId: string;
+  workspaceId: string;
+  metricId?: string;
+  kind: OutcomeObservationKind;
+  value: string;
+  unit: string;
+  observedAt: string;
+  source: string;
+  confidence: OutcomeObservationConfidence;
+  evidence: Array<{ type: OutcomeEvidenceType; reference: string; hash?: string }>;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface CreateOutcomeObservationInput {
+  metricId?: string;
+  kind: OutcomeObservationKind;
+  value: string;
+  unit: string;
+  observedAt: string;
+  source: string;
+  confidence: OutcomeObservationConfidence;
+  evidence?: Array<{ type: OutcomeEvidenceType; reference: string; hash?: string }>;
+  notes?: string;
+}
+
+export interface FundedMandateStatement {
+  version: 1;
+  statementId: string;
+  mandate: FundedMandate;
+  capital: {
+    byAsset: Record<string, { authorizedAmount: string; allocatedAmount: string; consumedAmount: string; pendingAmount: string }>;
+    walletSpendByAsset: Record<string, string>;
+  };
+  performance: {
+    outcomes: OutcomeObservation[];
+    knownUnknowns: string[];
+    evidenceCompleteness: {
+      outcomeCount: number;
+      outcomesWithEvidence: number;
+      spendRecordCount: number;
+      spendRecordsWithTransactionEvidence: number;
+    };
+    attributionNote: string;
+  };
+  evidence: {
+    runIds: string[];
+    allocationIds: string[];
+    transactionHashes: string[];
+    externalReferences: string[];
+  };
+  generatedAt: string;
+  contentHash: string;
+}
+
 export interface SpendAttributionReport {
   generatedAt: string;
   totalRecords: number;
@@ -379,8 +440,29 @@ class ApiClient {
     return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}`);
   }
 
+  async getMandateStatement(mandateId: string): Promise<ApiResponse<FundedMandateStatement>> {
+    return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}/statement`);
+  }
+
   async updateMandate(mandateId: string, params: Partial<FundedMandate>): Promise<ApiResponse<FundedMandate>> {
     return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}`, { method: 'PATCH', body: JSON.stringify(params) });
+  }
+
+  async getOutcomeObservations(mandateId: string): Promise<ApiResponse<OutcomeObservation[]>> {
+    return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}/outcomes`);
+  }
+
+  async createOutcomeObservation(
+    mandateId: string,
+    input: CreateOutcomeObservationInput,
+    idempotencyKey: string,
+  ): Promise<ApiResponse<OutcomeObservation> & { replayed?: boolean }> {
+    if (!idempotencyKey.trim()) throw new Error('idempotencyKey is required for outcome observations');
+    return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}/outcomes`, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': idempotencyKey.trim() },
+      body: JSON.stringify(input),
+    });
   }
 
   async getRun(runId: string): Promise<ApiResponse<Run>> {

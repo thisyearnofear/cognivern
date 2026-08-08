@@ -111,6 +111,7 @@ function addAmount(target: bigint, value: string): bigint {
 export function buildSpendAttributionReport(
   runs: CreRun[],
   mandateId?: string,
+  recordFilter?: (record: SpendAttributionReportRecord) => boolean,
 ): SpendAttributionReport {
   const records: SpendAttributionReportRecord[] = [];
   const latestByIntent = new Map<string, SpendAttributionReportRecord>();
@@ -162,6 +163,7 @@ export function buildSpendAttributionReport(
   }
 
   for (const record of latestByIntent.values()) {
+    if (recordFilter && !recordFilter(record)) continue;
     records.push(record);
     counts[record.status] += 1;
     if (record.allocatedAmount !== '0') counts.allocated += 1;
@@ -188,6 +190,6 @@ export function buildSpendAttributionReport(
     totalRecords: records.length,
     totalsByAsset,
     counts,
-    records: records.slice(0, 100),
+    records: recordFilter ? records : records.slice(0, 100),
   };
 }

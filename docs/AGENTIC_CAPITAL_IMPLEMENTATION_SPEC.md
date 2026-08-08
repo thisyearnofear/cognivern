@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed next foundation layer.** This document turns the agentic capital thesis
+**Phase 4 read-only foundation in progress.** Funded mandate identity and links, operator-authenticated outcome observation ingestion, and an ephemeral read-only statement candidate are implemented. Statement publication/persistence, financing, and ROI claims remain out of scope. This document turns the agentic capital thesis
 into an implementation boundary without claiming complete ROI accounting, causal
 attribution, external financing, or automatic capital deployment.
 
@@ -214,7 +214,9 @@ must not be added together and labeled as a return or P&L figure by the product.
 - The embedded `mandate` is a value snapshot captured at generation time, never a
   live mutable reference to the current mandate record.
 - The statement hash covers the canonical statement payload excluding
-  `contentHash` itself. Canonicalization must recursively sort object keys,
+  `contentHash` itself and the generated-at display timestamp. Excluding the
+  display timestamp makes repeated read-only generation over unchanged evidence
+  produce the same integrity hash. Canonicalization must recursively sort object keys,
   preserve array order, encode UTF-8 JSON without insignificant whitespace,
   normalize JSON numbers to their ECMAScript JSON representation, and preserve
   Unicode characters without escaping them. Hash the resulting UTF-8 bytes with
@@ -254,20 +256,19 @@ Next code milestone:
 
 ### Phase 3 — outcome ingestion
 
-1. Add an operator-authenticated outcome observation endpoint.
-2. Validate metric, value, unit, source, timestamp, and evidence references.
-3. Support idempotent ingestion using a caller-supplied observation key.
-4. Keep manual observations visibly distinct from system-observed and independently
-   verified observations.
-5. Do not compute ROI or causal attribution.
+1. **Implemented:** Add an operator-authenticated, workspace-scoped outcome observation endpoint.
+2. **Implemented:** Validate metric ownership, value, unit, source, timestamp, and evidence references.
+3. **Implemented:** Support idempotent ingestion using a required caller-supplied observation key with a database uniqueness constraint.
+4. **Implemented:** Keep manual observations visibly distinct from system-observed and independently verified observations.
+5. **Implemented:** Do not compute ROI or causal attribution.
 
 ### Phase 4 — statement generation
 
-1. Build a statement from the mandate, current attribution report, and observations.
-2. Include known unknowns and evidence completeness.
-3. Hash the canonical payload and persist the published snapshot.
-4. Add a permissioned export/share path with redaction.
-5. Add review UI before considering any next-allocation recommendation.
+1. **Implemented:** Generate an ephemeral statement candidate from the workspace-owned mandate, measurement-windowed attribution report, and outcome observations.
+2. **Implemented:** Include known unknowns and evidence completeness.
+3. **Implemented:** Hash the canonical candidate payload with SHA-256. The candidate is not persisted or published.
+4. **Deferred:** Persist immutable published snapshots and add a permissioned export/share path with redaction.
+5. **Implemented:** Add a read-only Capital preview before considering any next-allocation recommendation.
 
 ### Phase 5 — bounded allocation recommendations
 
@@ -290,12 +291,31 @@ GET  /api/mandates/:mandateId
 PATCH /api/mandates/:mandateId
 ```
 
-The following endpoints should wait until mandate identity and workspace checks
-are in place:
+The following endpoints are now available for the Phase 3 observation layer:
 
 ```text
 POST /api/mandates/:mandateId/outcomes
+GET  /api/mandates/:mandateId/outcomes
+```
+
+`POST` requires a JWT-authenticated operator workspace context and an
+`Idempotency-Key` (workspace API keys intentionally do not satisfy this
+operator-authentication requirement). The key is enforced by a database uniqueness constraint, so
+concurrent retries cannot create duplicate observations. Reusing a key with a
+changed payload returns a conflict. `verified_external_state` additionally
+requires `independently_verified` confidence and at least one evidence
+reference. Neither endpoint computes ROI or causal attribution.
+
+The read-only statement candidate endpoint is now available:
+
+```text
 GET  /api/mandates/:mandateId/statement
+```
+
+It generates a point-in-time candidate and does not persist or publish it. The
+publish/export endpoint remains deferred:
+
+```text
 POST /api/mandates/:mandateId/statement/publish
 ```
 

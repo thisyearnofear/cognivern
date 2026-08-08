@@ -163,6 +163,27 @@ function migrate(db: Database.Database): void {
       FOREIGN KEY (workspace_id) REFERENCES workspaces(id)
     );
 
+    CREATE TABLE IF NOT EXISTS outcome_observations (
+      id TEXT PRIMARY KEY,
+      mandate_id TEXT NOT NULL,
+      workspace_id TEXT NOT NULL,
+      metric_id TEXT,
+      kind TEXT NOT NULL,
+      value TEXT NOT NULL,
+      unit TEXT NOT NULL,
+      observed_at TEXT NOT NULL,
+      source TEXT NOT NULL,
+      confidence TEXT NOT NULL,
+      evidence TEXT NOT NULL DEFAULT '[]',
+      notes TEXT,
+      idempotency_key TEXT NOT NULL,
+      payload_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (mandate_id) REFERENCES funded_mandates(id),
+      FOREIGN KEY (workspace_id) REFERENCES workspaces(id),
+      UNIQUE (workspace_id, mandate_id, idempotency_key)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_workspaces_owner ON workspaces(owner_id);
     CREATE INDEX IF NOT EXISTS idx_users_wallet ON users(wallet_address);
     CREATE INDEX IF NOT EXISTS idx_nonces_expires ON nonces(expires_at);
@@ -171,11 +192,58 @@ function migrate(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_workspace_agents_workspace ON workspace_agents(workspace_id);
     CREATE INDEX IF NOT EXISTS idx_workspace_policies_workspace ON workspace_policies(workspace_id);
     CREATE INDEX IF NOT EXISTS idx_funded_mandates_workspace ON funded_mandates(workspace_id);
+    CREATE INDEX IF NOT EXISTS idx_outcome_observations_mandate ON outcome_observations(workspace_id, mandate_id, observed_at);
     -- Composite indexes for common query patterns
     CREATE INDEX IF NOT EXISTS idx_workspace_agents_workspace_status ON workspace_agents(workspace_id, status);
     CREATE INDEX IF NOT EXISTS idx_api_keys_workspace_revoked ON api_keys(workspace_id, revoked_at);
     CREATE INDEX IF NOT EXISTS idx_workspace_policies_workspace_status ON workspace_policies(workspace_id, status);
   `);
+
+  // Compatibility guard for databases that were created by an older partial
+  // bootstrap before outcome observations were introduced. The normal CREATE
+  // TABLE path above handles new databases; these targeted ALTERs keep an
+  // existing table from silently missing fields used by the service.
+  const outcomeColumns = [
+    { name: "mandate_id", sql: "ALTER TABLE outcome_observations ADD COLUMN mandate_id TEXT" },
+    { name: "workspace_id", sql: "ALTER TABLE outcome_observations ADD COLUMN workspace_id TEXT" },
+    { name: "metric_id", sql: "ALTER TABLE outcome_observations ADD COLUMN metric_id TEXT" },
+    { name: "kind", sql: "ALTER TABLE outcome_observations ADD COLUMN kind TEXT DEFAULT 'observed'" },
+    { name: "value", sql: "ALTER TABLE outcome_observations ADD COLUMN value TEXT DEFAULT ''" },
+    { name: "unit", sql: "ALTER TABLE outcome_observations ADD COLUMN unit TEXT DEFAULT ''" },
+    { name: "observed_at", sql: "ALTER TABLE outcome_observations ADD COLUMN observed_at TEXT DEFAULT ''" },
+    { name: "source", sql: "ALTER TABLE outcome_observations ADD COLUMN source TEXT DEFAULT ''" },
+    { name: "confidence", sql: "ALTER TABLE outcome_observations ADD COLUMN confidence TEXT DEFAULT 'self_reported'" },
+    { name: "evidence", sql: "ALTER TABLE outcome_observations ADD COLUMN evidence TEXT DEFAULT '[]'" },
+    { name: "notes", sql: "ALTER TABLE outcome_observations ADD COLUMN notes TEXT" },
+    { name: "idempotency_key", sql: "ALTER TABLE outcome_observations ADD COLUMN idempotency_key TEXT DEFAULT ''" },
+    { name: "payload_hash", sql: "ALTER TABLE outcome_observations ADD COLUMN payload_hash TEXT DEFAULT ''" },
+    { name: "created_at", sql: "ALTER TABLE outcome_observations ADD COLUMN created_at TEXT DEFAULT ''" },
+  ];
+  for (const col of outcomeColumns) {
+    if (!columnExists(db, "outcome_observations", col.name)) db.exec(col.sql);
+  }
+  const invalidOutcomeKeys = db
+    .prepare(
+      `SELECT workspace_id, mandate_id, idempotency_key, COUNT(*) AS count
+       FROM outcome_observations
+       WHERE workspace_id IS NULL OR TRIM(workspace_id) = ''
+          OR mandate_id IS NULL OR TRIM(mandate_id) = ''
+          OR idempotency_key IS NULL OR TRIM(idempotency_key) = ''
+       GROUP BY workspace_id, mandate_id, idempotency_key
+       UNION ALL
+       SELECT workspace_id, mandate_id, idempotency_key, COUNT(*) AS count
+       FROM outcome_observations
+       GROUP BY workspace_id, mandate_id, idempotency_key
+       HAVING COUNT(*) > 1`,
+    )
+    .all() as Array<{ workspace_id: string; mandate_id: string; idempotency_key: string | null; count: number }>;
+  if (invalidOutcomeKeys.length > 0) {
+    throw new Error(
+      "Outcome observation migration found blank workspace/mandate references or duplicate idempotency keys; repair this data before starting the service",
+    );
+  }
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS outcome_observations_idempotency_unique ON outcome_observations (workspace_id, mandate_id, idempotency_key)");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_outcome_observations_mandate ON outcome_observations (workspace_id, mandate_id, observed_at)");
 
   // Migration: add source / webhook_url to workspace_agents (idempotent)
   try {

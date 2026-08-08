@@ -50,6 +50,7 @@ import { WorkspaceController } from "./controllers/WorkspaceController.js";
 import { EventsController } from "./controllers/EventsController.js";
 import { ObservabilityController } from "./controllers/ObservabilityController.js";
 import { MandateController } from "./controllers/MandateController.js";
+import { OutcomeObservationController } from "./controllers/OutcomeObservationController.js";
 import {
   ApiKeyController,
   resolveWorkspaceFromApiKey,
@@ -104,6 +105,7 @@ interface ControllerRegistry {
   events: EventsController;
   observability: ObservabilityController;
   mandate: MandateController;
+  outcomeObservation: OutcomeObservationController;
 }
 
 /** Typed error with optional HTTP status code */
@@ -577,6 +579,7 @@ export class ApiModule extends BaseService {
     this.controllers.events = new EventsController();
     this.controllers.observability = new ObservabilityController();
     this.controllers.mandate = new MandateController();
+    this.controllers.outcomeObservation = new OutcomeObservationController();
 
     // Initialize all controllers that have an initialize method
     for (const [name, controller] of Object.entries(this.controllers)) {
@@ -609,6 +612,7 @@ export class ApiModule extends BaseService {
       createEventsRoutes,
       createObservabilityRoutes,
       createMandateRoutes,
+      createOutcomeObservationRoutes,
     } = await import("./routes/index.js");
 
     // Health check (no API key required)
@@ -681,6 +685,7 @@ export class ApiModule extends BaseService {
     apiRouter.use(createEventsRoutes(this.ctrl("events")));
     apiRouter.use(createObservabilityRoutes(this.ctrl("observability")));
     apiRouter.use(createMandateRoutes(this.ctrl("mandate")));
+    apiRouter.use(createOutcomeObservationRoutes(this.ctrl("outcomeObservation")));
 
     // Sapience routes (conditional)
     if (this.controllers.sapience) {

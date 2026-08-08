@@ -8,6 +8,7 @@ import {
   integer,
   index,
   primaryKey,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
 // ── Users ──────────────────────────────────────────────────────────────────
@@ -144,6 +145,32 @@ export const fundedMandates = sqliteTable(
   (table) => [index("idx_funded_mandates_workspace").on(table.workspaceId)],
 );
 
+// ── Outcome Observations ────────────────────────────────────────────────────
+export const outcomeObservations = sqliteTable(
+  "outcome_observations",
+  {
+    id: text("id").primaryKey(),
+    mandateId: text("mandate_id").notNull(),
+    workspaceId: text("workspace_id").notNull(),
+    metricId: text("metric_id"),
+    kind: text("kind").notNull(),
+    value: text("value").notNull(),
+    unit: text("unit").notNull(),
+    observedAt: text("observed_at").notNull(),
+    source: text("source").notNull(),
+    confidence: text("confidence").notNull(),
+    evidence: text("evidence").notNull().default("[]"),
+    notes: text("notes"),
+    idempotencyKey: text("idempotency_key").notNull(),
+    payloadHash: text("payload_hash").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("idx_outcome_observations_mandate").on(table.workspaceId, table.mandateId, table.observedAt),
+    uniqueIndex("outcome_observations_idempotency_unique").on(table.workspaceId, table.mandateId, table.idempotencyKey),
+  ],
+);
+
 // ── Policy Versions ────────────────────────────────────────────────────────
 export const policyVersions = sqliteTable(
   "policy_versions",
@@ -209,6 +236,8 @@ export type WorkspacePolicy = typeof workspacePolicies.$inferSelect;
 export type NewWorkspacePolicy = typeof workspacePolicies.$inferInsert;
 export type FundedMandate = typeof fundedMandates.$inferSelect;
 export type NewFundedMandate = typeof fundedMandates.$inferInsert;
+export type OutcomeObservation = typeof outcomeObservations.$inferSelect;
+export type NewOutcomeObservation = typeof outcomeObservations.$inferInsert;
 export type PolicyVersion = typeof policyVersions.$inferSelect;
 export type NewPolicyVersion = typeof policyVersions.$inferInsert;
 export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
