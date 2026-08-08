@@ -38,6 +38,7 @@ import { OwsController } from "./controllers/OwsController.js";
 import { OwsWalletController } from "./controllers/OwsWalletController.js";
 import { OwsApiKeyController } from "./controllers/OwsApiKeyController.js";
 import { OwsPermissionsController } from "./controllers/OwsPermissionsController.js";
+import { CleanverseController } from "./controllers/CleanverseController.js";
 import { FhenixController } from "./controllers/FhenixController.js";
 import { IntentController } from "./controllers/IntentController.js";
 import { McpGovernanceController } from "./controllers/McpGovernanceController.js";
@@ -92,6 +93,7 @@ interface ControllerRegistry {
   owsWallet: OwsWalletController;
   owsApiKey: OwsApiKeyController;
   owsPermissions: OwsPermissionsController;
+  cleanverse: CleanverseController;
   fhenix: FhenixController;
   intent: IntentController;
   mcpGovernance: McpGovernanceController;
@@ -566,6 +568,7 @@ export class ApiModule extends BaseService {
     this.controllers.owsWallet = new OwsWalletController();
     this.controllers.owsApiKey = new OwsApiKeyController();
     this.controllers.owsPermissions = new OwsPermissionsController();
+    this.controllers.cleanverse = new CleanverseController();
     this.controllers.fhenix = new FhenixController();
     this.controllers.intent = new IntentController();
     this.controllers.mcpGovernance = new McpGovernanceController(policyService);
@@ -669,6 +672,7 @@ export class ApiModule extends BaseService {
         this.ctrl("owsWallet"),
         this.ctrl("owsApiKey"),
         this.ctrl("owsPermissions"),
+        this.ctrl("cleanverse"),
       ),
     );
     apiRouter.use(

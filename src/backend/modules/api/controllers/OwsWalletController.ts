@@ -29,9 +29,11 @@ const connectExternalSchema = z.object({
 });
 
 const updateWalletSchema = z.object({
-  executionProvider: z.enum(["local", "keeperhub"]).optional(),
+  executionProvider: z.enum(["local", "keeperhub", "cleanverse"]).optional(),
   chainId: z.union([z.number(), z.string()]).optional(),
   keeperHubWalletAddress: z.string().optional(),
+  cleanverseSenderAddress: z.string().optional(),
+  requireCleanverseIdentity: z.boolean().optional(),
 });
 
 export class OwsWalletController {
@@ -145,7 +147,7 @@ export class OwsWalletController {
   }
 
   /**
-   * PATCH /ows/wallets/:id - Update wallet metadata (executionProvider, chainId, keeperHubWalletAddress)
+   * PATCH /ows/wallets/:id - Update wallet metadata (executionProvider, chainId, keeperHubWalletAddress, cleanverseSenderAddress)
    */
   async updateWallet(req: Request, res: Response) {
     try {
@@ -193,6 +195,23 @@ export class OwsWalletController {
           return;
         }
         metadata.keeperHubWalletAddress = parse.data.keeperHubWalletAddress;
+      }
+      if (parse.data.cleanverseSenderAddress !== undefined) {
+        if (
+          parse.data.cleanverseSenderAddress !== "" &&
+          !ethers.isAddress(parse.data.cleanverseSenderAddress)
+        ) {
+          res.status(400).json({
+            success: false,
+            error: "Invalid cleanverseSenderAddress",
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+        metadata.cleanverseSenderAddress = parse.data.cleanverseSenderAddress;
+      }
+      if (parse.data.requireCleanverseIdentity !== undefined) {
+        metadata.requireCleanverseIdentity = parse.data.requireCleanverseIdentity;
       }
 
       const updated = await this.vaultService.updateWalletMetadata(id, metadata);

@@ -4,6 +4,7 @@ import type { OwsController } from '@backend/modules/api/controllers/OwsControll
 import type { OwsWalletController } from '@backend/modules/api/controllers/OwsWalletController.js';
 import type { OwsApiKeyController } from '@backend/modules/api/controllers/OwsApiKeyController.js';
 import type { OwsPermissionsController } from '@backend/modules/api/controllers/OwsPermissionsController.js';
+import type { CleanverseController } from '@backend/modules/api/controllers/CleanverseController.js';
 import { sharedAgentPreferenceService } from '@backend/services/ai/AgentPreferenceService.js';
 
 export function createSpendRoutes(
@@ -12,6 +13,7 @@ export function createSpendRoutes(
   owsWalletController: OwsWalletController,
   owsApiKeyController: OwsApiKeyController,
   owsPermissionsController: OwsPermissionsController,
+  cleanverseCtrl?: CleanverseController,
 ): Router {
   const router = Router();
 
@@ -27,6 +29,12 @@ export function createSpendRoutes(
   router.post('/spend/:decisionId/confirm', (req, res) =>
     spendController.confirmDecision(req, res),
   );
+
+  // Cleanverse CVI/CVA demo + status
+  if (cleanverseCtrl) {
+    router.get('/cleanverse/status', (req, res) => cleanverseCtrl.getStatus(req, res));
+    router.post('/cleanverse/screen', (req, res) => cleanverseCtrl.screen(req, res));
+  }
 
   // OWS status
   router.get('/ows/status', (req, res) => owsController.getStatus(req, res));

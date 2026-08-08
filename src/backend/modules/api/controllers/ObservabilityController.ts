@@ -179,6 +179,8 @@ export class ObservabilityController {
         { name: "audit.log_action", source: "AuditLogService", status: "live" },
         { name: "agent.sapience.forecast_cycle", source: "SapienceTradingAgent", status: "live" },
         { name: "agent.user_trading.cycle", source: "UserTradingAgent", status: "upcoming" },
+        { name: "spend.cleanverse.cvi_screen", source: "CleanverseIdentityService", status: "live" },
+        { name: "spend.cleanverse.cva_transfer", source: "CleanverseExecutionProvider", status: "live" },
       ],
       instrumentedMetrics: [
         { name: "cognivern.llm.tokens.total", source: "MultiModelRouter", status: "live" },

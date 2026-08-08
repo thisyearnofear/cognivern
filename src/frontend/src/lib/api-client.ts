@@ -659,13 +659,41 @@ class ApiClient {
   async updateWallet(
     walletId: string,
     params: {
-      executionProvider?: 'local' | 'keeperhub';
+      executionProvider?: 'local' | 'keeperhub' | 'cleanverse';
       chainId?: number | string;
       keeperHubWalletAddress?: string;
+      cleanverseSenderAddress?: string;
+      requireCleanverseIdentity?: boolean;
     },
   ): Promise<ApiResponse<Record<string, unknown>>> {
     return this.fetch(`/api/ows/wallets/${encodeURIComponent(walletId)}`, {
       method: 'PATCH',
+      body: JSON.stringify(params),
+    });
+  }
+
+  async getCleanverseStatus(): Promise<
+    ApiResponse<{
+      enabled: boolean;
+      chain: string;
+      monadChainId: number;
+      aTokenAddress: string;
+      aTokenSymbol: string;
+      aTokenDecimals: number;
+      gateAllSpends: boolean;
+      apiConfigured: boolean;
+    }>
+  > {
+    return this.fetch('/api/cleanverse/status');
+  }
+
+  async screenCleanverse(params: {
+    sender: string;
+    recipient: string;
+    chain?: string;
+  }): Promise<ApiResponse<Record<string, unknown>>> {
+    return this.fetch('/api/cleanverse/screen', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }

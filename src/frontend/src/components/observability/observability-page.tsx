@@ -196,6 +196,28 @@ export function ObservabilityPage() {
           </p>
         </div>
 
+        {/* Cross-link to Cleanverse CVI/CVA spends */}
+        <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-950/20 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-emerald-500" />
+            <h2
+              className="text-sm font-semibold text-emerald-900 dark:text-emerald-200"
+              style={{ fontFamily: "var(--font-space-grotesk)" }}
+            >
+              Finding a Cleanverse-verified spend
+            </h2>
+          </div>
+          <p className="text-xs text-emerald-900/80 dark:text-emerald-200/80 leading-relaxed">
+            Wallets with <code>executionProvider: &quot;cleanverse&quot;</code> screen sender and
+            recipient via A-Pass (CVI) before policy approval, then settle aUSD-D (CVA) on Monad.
+          </p>
+          <ul className="text-xs text-emerald-900/80 dark:text-emerald-200/80 space-y-1 list-disc list-inside">
+            <li>Open <a className="underline" href="/demo/cleanverse">/demo/cleanverse</a> to screen identities live.</li>
+            <li>CRE runs include a <code>cleanverse_apass</code> artifact plus aUSD-D <code>txHash</code> on MonadScan.</li>
+            <li>Check <code>GET /api/spend/status</code> for <code>cleanverse.enabled</code>.</li>
+          </ul>
+        </div>
+
         {/* Body */}
         {loading ? (
           <div className="flex items-center justify-center py-20">

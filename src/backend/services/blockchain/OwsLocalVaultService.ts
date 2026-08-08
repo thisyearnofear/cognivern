@@ -494,6 +494,91 @@ export class OwsLocalVaultService {
     }
   }
 
+  /**
+   * Broadcast an ERC-20 transfer FROM the scoped vault wallet.
+   * Same access rules as sendNativeTransfer (scoped key or operatorApproved).
+   */
+  async sendErc20Transfer(params: {
+    walletId: string;
+    apiKeyToken?: string | null;
+    operatorApproved?: boolean;
+    tokenAddress: string;
+    to: string;
+    amount: bigint;
+    rpcUrl: string;
+    chainId: number;
+    gasLimit?: number;
+  }): Promise<{ txHash: string; from: string } | { error: string }> {
+    if (!ethers.isAddress(params.to)) {
+      return { error: `Invalid recipient address: ${params.to}` };
+    }
+    if (!ethers.isAddress(params.tokenAddress)) {
+      return { error: `Invalid token address: ${params.tokenAddress}` };
+    }
+    if (params.amount <= 0n) {
+      return { error: `Transfer amount must be positive (got ${params.amount})` };
+    }
+
+    let storedWallet: OwsStoredWallet | undefined;
+    if (params.operatorApproved) {
+      const vault = this.readVault();
+      storedWallet = vault.wallets.find((w) => w.id === params.walletId);
+      if (!storedWallet) {
+        return { error: "Wallet not found in vault" };
+      }
+    } else {
+      const access = await this.resolveAccess({
+        walletId: params.walletId,
+        apiKeyToken: params.apiKeyToken,
+      });
+      if (!access) {
+        return { error: "Wallet access not authorized" };
+      }
+      const vault = this.readVault();
+      storedWallet = vault.wallets.find((w) => w.id === access.wallet.id);
+      if (!storedWallet) {
+        return { error: "Wallet not found in vault" };
+      }
+    }
+
+    const privateKey = this.decryptPrivateKey(storedWallet);
+    try {
+      return await circuitBreakers.blockchain.execute(async () => {
+        const provider = new ethers.JsonRpcProvider(
+          params.rpcUrl,
+          params.chainId,
+        );
+        const wallet = new ethers.Wallet(privateKey, provider);
+        const token = new ethers.Contract(
+          params.tokenAddress,
+          [
+            "function transfer(address to, uint256 amount) returns (bool)",
+          ],
+          wallet,
+        );
+        const tx = await token.transfer(params.to, params.amount, {
+          gasLimit: params.gasLimit ?? 120_000,
+        });
+        const receipt =
+          await withTimeout<ethers.TransactionReceipt | null>(
+            tx.wait(),
+            60000,
+          );
+        const txHash = receipt?.hash || tx.hash;
+        logger.info(`ERC-20 transfer broadcast: ${txHash}`);
+        return { txHash, from: wallet.address };
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown ERC-20 transfer error";
+      logger.error(
+        "ERC-20 transfer failed",
+        error instanceof Error ? error : undefined,
+      );
+      return { error: message };
+    }
+  }
+
   private readVault(): OwsVaultData {
     this.ensureVaultFile();
     const raw = fs.readFileSync(this.vaultPath, "utf8");

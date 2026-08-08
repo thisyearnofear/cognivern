@@ -111,6 +111,7 @@ export interface CreArtifact {
     | 'receipt_verification'
     | 'spend_intent'
     | 'capital_attribution'
+    | 'cleanverse_apass'
     | 'error';
   createdAt: string;
   data: unknown;

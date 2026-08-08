@@ -84,13 +84,35 @@ const keeperHubConfigSchema = z.object({
   KEEPERHUB_BASE_URL: z.string().default("https://app.keeperhub.com"),
 });
 
+// Cleanverse (CVI / CVA) configuration — Track 2 verified agent capital rail
+const cleanverseConfigSchema = z.object({
+  CLEANVERSE_API_ID: z.string().optional(),
+  CLEANVERSE_API_KEY: z.string().optional(),
+  CLEANVERSE_API_URL: z
+    .string()
+    .default("https://uatapi.cleanverse.com/api/cooperate"),
+  CLEANVERSE_CHAIN: z.string().default("monad"),
+  CLEANVERSE_ATOKEN_ADDRESS: z
+    .string()
+    .default("0xbD14cFAf1Fb8b08858E3FfcCeffEfe09cC013892"),
+  CLEANVERSE_ATOKEN_SYMBOL: z.string().default("aUSD-D"),
+  CLEANVERSE_ATOKEN_DECIMALS: z.coerce.number().default(6),
+  MONAD_RPC_URL: z.string().default("https://testnet-rpc.monad.xyz"),
+  MONAD_CHAIN_ID: z.coerce.number().default(10143),
+  CLEANVERSE_GATE_ALL_SPENDS: z
+    .string()
+    .optional()
+    .transform((v) => (v || "").toLowerCase() === "true"),
+});
+
 // Combined configuration schema
 const configSchema = baseConfigSchema
   .merge(sapienceConfigSchema)
   .merge(apiConfigSchema)
   .merge(aiConfigSchema)
   .merge(cantonConfigSchema)
-  .merge(keeperHubConfigSchema);
+  .merge(keeperHubConfigSchema)
+  .merge(cleanverseConfigSchema);
 
 // Parse and validate configuration
 const parseConfig = () => {
@@ -242,6 +264,70 @@ export const keeperHubConfig = {
   apiKey: config.KEEPERHUB_API_KEY || "",
   baseUrl: config.KEEPERHUB_BASE_URL || "https://app.keeperhub.com",
   enabled: Boolean(config.KEEPERHUB_API_KEY),
+};
+
+export const cleanverseConfig = {
+  get apiId(): string {
+    return process.env.CLEANVERSE_API_ID || config.CLEANVERSE_API_ID || "";
+  },
+  get apiKey(): string {
+    return process.env.CLEANVERSE_API_KEY || config.CLEANVERSE_API_KEY || "";
+  },
+  get apiUrl(): string {
+    return (
+      process.env.CLEANVERSE_API_URL ||
+      config.CLEANVERSE_API_URL ||
+      "https://uatapi.cleanverse.com/api/cooperate"
+    );
+  },
+  get chain(): string {
+    return process.env.CLEANVERSE_CHAIN || config.CLEANVERSE_CHAIN || "monad";
+  },
+  get aTokenAddress(): string {
+    return (
+      process.env.CLEANVERSE_ATOKEN_ADDRESS ||
+      config.CLEANVERSE_ATOKEN_ADDRESS ||
+      "0xbD14cFAf1Fb8b08858E3FfcCeffEfe09cC013892"
+    );
+  },
+  get aTokenSymbol(): string {
+    return (
+      process.env.CLEANVERSE_ATOKEN_SYMBOL ||
+      config.CLEANVERSE_ATOKEN_SYMBOL ||
+      "aUSD-D"
+    );
+  },
+  get aTokenDecimals(): number {
+    return Number(
+      process.env.CLEANVERSE_ATOKEN_DECIMALS ||
+        config.CLEANVERSE_ATOKEN_DECIMALS ||
+        6,
+    );
+  },
+  get monadRpcUrl(): string {
+    return (
+      process.env.MONAD_RPC_URL ||
+      config.MONAD_RPC_URL ||
+      "https://testnet-rpc.monad.xyz"
+    );
+  },
+  get monadChainId(): number {
+    return Number(
+      process.env.MONAD_CHAIN_ID || config.MONAD_CHAIN_ID || 10143,
+    );
+  },
+  get gateAllSpends(): boolean {
+    return (
+      (process.env.CLEANVERSE_GATE_ALL_SPENDS || "").toLowerCase() === "true" ||
+      Boolean(config.CLEANVERSE_GATE_ALL_SPENDS)
+    );
+  },
+  get enabled(): boolean {
+    return Boolean(this.apiId && this.apiKey);
+  },
+  explorerTxUrl(txHash: string): string {
+    return `https://testnet.monadscan.com/tx/${txHash}`;
+  },
 };
 
 // Environment helpers

@@ -111,9 +111,11 @@ function WalletsCard() {
     async (
       walletId: string,
       updates: {
-        executionProvider?: "local" | "keeperhub";
+        executionProvider?: "local" | "keeperhub" | "cleanverse";
         chainId?: string;
         keeperHubWalletAddress?: string;
+        cleanverseSenderAddress?: string;
+        requireCleanverseIdentity?: boolean;
       },
     ) => {
       setSavingId(walletId);
@@ -125,6 +127,8 @@ function WalletsCard() {
           executionProvider: updates.executionProvider,
           chainId: updates.chainId ? Number(updates.chainId) : undefined,
           keeperHubWalletAddress: updates.keeperHubWalletAddress,
+          cleanverseSenderAddress: updates.cleanverseSenderAddress,
+          requireCleanverseIdentity: updates.requireCleanverseIdentity,
         });
         if (res.success) {
           setSavedId(walletId);
@@ -146,6 +150,8 @@ function WalletsCard() {
 
   const keeperHubWallets =
     wallets?.filter((w) => (w.metadata as { executionProvider?: string } | null)?.executionProvider === "keeperhub") ?? [];
+  const cleanverseWallets =
+    wallets?.filter((w) => (w.metadata as { executionProvider?: string } | null)?.executionProvider === "cleanverse") ?? [];
   const hasAnyWallet = (wallets?.length ?? 0) > 0;
 
   return (
@@ -155,17 +161,24 @@ function WalletsCard() {
         <h2 className="font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
           Wallet Execution Provider
         </h2>
-        {keeperHubWallets.length > 0 && (
-          <Badge variant="default" className="ml-auto">
-            {keeperHubWallets.length} on KeeperHub
-          </Badge>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          {keeperHubWallets.length > 0 && (
+            <Badge variant="default">
+              {keeperHubWallets.length} on KeeperHub
+            </Badge>
+          )}
+          {cleanverseWallets.length > 0 && (
+            <Badge variant="default">
+              {cleanverseWallets.length} on Cleanverse
+            </Badge>
+          )}
+        </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Choose how each OWS wallet broadcasts approved spends. Local execution
-        uses the Cognivern vault; KeeperHub routes transfers through
-        KeeperHub&apos;s managed infrastructure with gas sponsorship, MEV
-        protection, and a structured audit trail that shows up in
+        Choose how each OWS wallet broadcasts approved spends. Local uses the
+        Cognivern vault; KeeperHub routes managed native transfers;
+        Cleanverse screens A-Pass (CVI) then settles aUSD-D (CVA) on Monad
+        testnet. Audit trails show up in
         <a className="underline ml-1" href="/observability">Observability</a>.
       </p>
 
@@ -248,9 +261,11 @@ interface WalletExecutionFormProps {
   onSave: (
     walletId: string,
     updates: {
-      executionProvider?: "local" | "keeperhub";
+      executionProvider?: "local" | "keeperhub" | "cleanverse";
       chainId?: string;
       keeperHubWalletAddress?: string;
+      cleanverseSenderAddress?: string;
+      requireCleanverseIdentity?: boolean;
     },
   ) => void;
 }
@@ -266,16 +281,41 @@ function WalletExecutionForm({
     executionProvider?: string;
     chainId?: number | string;
     keeperHubWalletAddress?: string;
+    cleanverseSenderAddress?: string;
+    requireCleanverseIdentity?: boolean;
   };
-  const [provider, setProvider] = useState<"local" | "keeperhub">(
-    meta.executionProvider === "keeperhub" ? "keeperhub" : "local",
+  const initialProvider =
+    meta.executionProvider === "keeperhub"
+      ? "keeperhub"
+      : meta.executionProvider === "cleanverse"
+        ? "cleanverse"
+        : "local";
+  const [provider, setProvider] = useState<"local" | "keeperhub" | "cleanverse">(
+    initialProvider,
   );
   const [chainId, setChainId] = useState<string>(
-    meta.chainId !== undefined ? String(meta.chainId) : "",
+    meta.chainId !== undefined
+      ? String(meta.chainId)
+      : provider === "cleanverse"
+        ? "10143"
+        : "",
   );
   const [keeperHubWalletAddress, setKeeperHubWalletAddress] = useState<string>(
     meta.keeperHubWalletAddress || "",
   );
+  const [cleanverseSenderAddress, setCleanverseSenderAddress] = useState<string>(
+    meta.cleanverseSenderAddress || "",
+  );
+  const [requireCleanverseIdentity, setRequireCleanverseIdentity] = useState(
+    meta.requireCleanverseIdentity === true,
+  );
+
+  const providerLabel =
+    provider === "keeperhub"
+      ? "KeeperHub"
+      : provider === "cleanverse"
+        ? "Cleanverse"
+        : "Local";
 
   return (
     <div className="rounded-lg border p-4 space-y-4">
@@ -287,8 +327,8 @@ function WalletExecutionForm({
             {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
           </code>
         </div>
-        <Badge variant={provider === "keeperhub" ? "default" : "secondary"}>
-          {provider === "keeperhub" ? "KeeperHub" : "Local"}
+        <Badge variant={provider === "local" ? "secondary" : "default"}>
+          {providerLabel}
         </Badge>
       </div>
 
@@ -297,17 +337,26 @@ function WalletExecutionForm({
           <label className="text-xs font-medium">Execution provider</label>
           <select
             value={provider}
-            onChange={(e) => setProvider(e.target.value as "local" | "keeperhub")}
+            onChange={(e) => {
+              const next = e.target.value as "local" | "keeperhub" | "cleanverse";
+              setProvider(next);
+              if (next === "cleanverse" && !chainId) {
+                setChainId("10143");
+              }
+            }}
             disabled={saving}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
           >
             <option value="local">Local vault</option>
             <option value="keeperhub">KeeperHub</option>
+            <option value="cleanverse">Cleanverse (Monad aUSD-D)</option>
           </select>
           <p className="text-[10px] text-muted-foreground">
             {provider === "keeperhub"
               ? "Transfers are routed through KeeperHub."
-              : "Transfers are signed and broadcast by the local Cognivern vault."}
+              : provider === "cleanverse"
+                ? "A-Pass (CVI) gates approval; aUSD-D (CVA) settles on Monad testnet."
+                : "Transfers are signed and broadcast by the local Cognivern vault."}
           </p>
         </div>
 
@@ -315,13 +364,15 @@ function WalletExecutionForm({
           <label className="text-xs font-medium">Chain ID</label>
           <Input
             type="number"
-            placeholder="e.g. 84532"
+            placeholder={provider === "cleanverse" ? "10143" : "e.g. 84532"}
             value={chainId}
             onChange={(e) => setChainId(e.target.value)}
             disabled={saving}
           />
           <p className="text-[10px] text-muted-foreground">
-            Chain ID for KeeperHub execution. Defaults to the configured Cognivern chain.
+            {provider === "cleanverse"
+              ? "Monad testnet is 10143."
+              : "Chain ID for KeeperHub execution. Defaults to the configured Cognivern chain."}
           </p>
         </div>
       </div>
@@ -345,6 +396,31 @@ function WalletExecutionForm({
         </>
       )}
 
+      {provider === "cleanverse" && (
+        <div className="space-y-2">
+          <label className="text-xs font-medium">Cleanverse sender address (optional)</label>
+          <Input
+            type="text"
+            placeholder={wallet.address}
+            value={cleanverseSenderAddress}
+            onChange={(e) => setCleanverseSenderAddress(e.target.value)}
+            disabled={saving}
+          />
+          <p className="text-[10px] text-muted-foreground">
+            Defaults to the vault wallet address. Must hold an active A-Pass and aUSD-D on Monad.
+          </p>
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={requireCleanverseIdentity}
+              onChange={(e) => setRequireCleanverseIdentity(e.target.checked)}
+              disabled={saving}
+            />
+            Always require CVI screening (even if provider changes later)
+          </label>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-3 text-xs text-red-600 dark:text-red-400">
           {error}
@@ -359,6 +435,9 @@ function WalletExecutionForm({
               executionProvider: provider,
               chainId,
               keeperHubWalletAddress,
+              cleanverseSenderAddress,
+              requireCleanverseIdentity:
+                provider === "cleanverse" ? true : requireCleanverseIdentity,
             })
           }
           disabled={saving}

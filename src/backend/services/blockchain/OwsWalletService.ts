@@ -14,8 +14,13 @@ import { ledgerSigningProvider } from '@backend/signing/LedgerSigningProvider.js
 import { FhenixPolicyService, sharedFhenixPolicyService } from './FhenixPolicyService.js';
 import { OwsWalletPolicyEvaluator } from './OwsWalletPolicy.js';
 import { OwsWalletOnChainManager } from './OwsWalletOnChain.js';
-import { blockchainConfig } from '@backend/shared/config/index.js';
+import { blockchainConfig, cleanverseConfig, keeperHubConfig } from '@backend/shared/config/index.js';
 import { keeperHubExecutionProvider } from './KeeperHubExecutionProvider.js';
+import {
+  cleanverseExecutionProvider,
+  cleanverseIdentityService,
+  type CleanverseIdentityScreening,
+} from './cleanverse/index.js';
 import {
   sourceAwareSpendAuthorizationService,
   SpendSourceProvenance,
@@ -220,6 +225,30 @@ export class OwsWalletService {
           'source-aware-authorization',
           access,
         );
+      }
+
+      // CVI gate — A-Pass screening before policy evaluation when the wallet
+      // is on the Cleanverse rail (or identity is explicitly required).
+      const cleanverseScreening = await this.screenCleanverseIdentity(intent, access);
+      if (cleanverseScreening) {
+        intent.metadata = {
+          ...(intent.metadata || {}),
+          cleanverseIdentity: cleanverseScreening,
+        };
+        await recorder.addArtifact({
+          type: 'cleanverse_apass',
+          data: cleanverseScreening,
+        });
+        if (!cleanverseScreening.ok) {
+          return await this.handleDeny(
+            intent,
+            recorder,
+            cleanverseScreening.reason || 'Cleanverse CVI (A-Pass) screening failed',
+            [],
+            'cleanverse-cvi',
+            access,
+          );
+        }
       }
 
       const step = recorder.startStep('compute', 'policy_evaluation', {
@@ -507,9 +536,9 @@ export class OwsWalletService {
       operatorApproved,
     } = params;
 
-    // Broadcast the real native value transfer FROM the scoped wallet.
-    // If the wallet is configured to use KeeperHub, route the broadcast
-    // through KeeperHub's managed execution layer instead of a local RPC.
+    // Broadcast the real value transfer FROM the scoped wallet.
+    // KeeperHub → managed native transfer; Cleanverse → aUSD-D ERC-20 on Monad;
+    // otherwise local native RPC.
     const executionProvider = (access.wallet.metadata?.executionProvider as string) || 'local';
     const rawChainId = access.wallet.metadata?.chainId;
     const walletChainId =
@@ -517,29 +546,56 @@ export class OwsWalletService {
         ? rawChainId
         : typeof rawChainId === 'string'
           ? Number(rawChainId)
-          : blockchainConfig.chainId;
+          : executionProvider === 'cleanverse'
+            ? cleanverseConfig.monadChainId
+            : blockchainConfig.chainId;
     const keeperHubWalletAddress = access.wallet.metadata?.keeperHubWalletAddress as
       | string
       | undefined;
-    const transfer =
-      executionProvider === 'keeperhub'
-        ? await keeperHubExecutionProvider.executeTransfer({
-            intentId: intent.id,
-            from: keeperHubWalletAddress || access.wallet.accounts[0]?.address || signer,
-            to: intent.recipient,
-            valueWei,
-            chainId: walletChainId,
-          })
-        : await owsLocalVaultService.sendNativeTransfer({
-            walletId: access.wallet.id,
-            apiKeyToken: operatorApproved ? undefined : apiKeyToken,
-            operatorApproved,
-            to: intent.recipient,
-            valueWei,
-            rpcUrl: blockchainConfig.rpcUrl,
-            chainId: blockchainConfig.chainId,
-            gasLimit: blockchainConfig.gasLimits.nativeTransfer,
-          });
+    const cleanverseSenderAddress = access.wallet.metadata?.cleanverseSenderAddress as
+      | string
+      | undefined;
+    const senderAddress =
+      executionProvider === 'cleanverse'
+        ? cleanverseSenderAddress || access.wallet.accounts[0]?.address || signer
+        : keeperHubWalletAddress || access.wallet.accounts[0]?.address || signer;
+
+    let transfer:
+      | Awaited<ReturnType<typeof keeperHubExecutionProvider.executeTransfer>>
+      | Awaited<ReturnType<typeof cleanverseExecutionProvider.executeTransfer>>
+      | Awaited<ReturnType<typeof owsLocalVaultService.sendNativeTransfer>>;
+
+    if (executionProvider === 'keeperhub') {
+      transfer = await keeperHubExecutionProvider.executeTransfer({
+        intentId: intent.id,
+        from: senderAddress,
+        to: intent.recipient,
+        valueWei,
+        chainId: walletChainId,
+      });
+    } else if (executionProvider === 'cleanverse') {
+      transfer = await cleanverseExecutionProvider.executeTransfer({
+        intentId: intent.id,
+        walletId: access.wallet.id,
+        apiKeyToken,
+        operatorApproved,
+        from: senderAddress,
+        to: intent.recipient,
+        amount: valueWei,
+        chainId: walletChainId || cleanverseConfig.monadChainId,
+      });
+    } else {
+      transfer = await owsLocalVaultService.sendNativeTransfer({
+        walletId: access.wallet.id,
+        apiKeyToken: operatorApproved ? undefined : apiKeyToken,
+        operatorApproved,
+        to: intent.recipient,
+        valueWei,
+        rpcUrl: blockchainConfig.rpcUrl,
+        chainId: blockchainConfig.chainId,
+        gasLimit: blockchainConfig.gasLimits.nativeTransfer,
+      });
+    }
     // Never fabricate transferTxHash on failure (same fail-loud contract as
     // onChainStatus). A failed transfer with status=approved is a PARTIAL
     // success, not moved money — callers must surface it.
@@ -570,6 +626,16 @@ export class OwsWalletService {
         : undefined;
     const transferReceipts =
       'receipts' in transfer && Array.isArray(transfer.receipts) ? transfer.receipts : undefined;
+    const transferTokenAddress =
+      'tokenAddress' in transfer && typeof transfer.tokenAddress === 'string'
+        ? transfer.tokenAddress
+        : undefined;
+    const transferTokenSymbol =
+      'tokenSymbol' in transfer && typeof transfer.tokenSymbol === 'string'
+        ? transfer.tokenSymbol
+        : undefined;
+    const transferVerifyApass =
+      'verifyApass' in transfer ? transfer.verifyApass : undefined;
     const transferError = 'error' in transfer ? transfer.error : undefined;
     const transferIdempotencyKey =
       'idempotencyKey' in transfer && typeof transfer.idempotencyKey === 'string'
@@ -614,6 +680,28 @@ export class OwsWalletService {
           verified && receiptStatusOk && recipientMatches && valueMatches
             ? undefined
             : 'KeeperHub did not provide a verified receipt matching the requested transfer',
+      };
+    } else if (executionProvider === 'cleanverse') {
+      const receiptStatusOk =
+        'receiptStatus' in transfer && transfer.receiptStatus === 'success';
+      const verified = 'verified' in transfer && transfer.verified === true;
+      const recipientMatches =
+        'recipientMatches' in transfer && transfer.recipientMatches === true;
+      const valueMatches = 'valueMatches' in transfer && transfer.valueMatches === true;
+      receiptVerification = {
+        outcome:
+          verified && receiptStatusOk && recipientMatches && valueMatches
+            ? 'verified'
+            : 'unverified',
+        checks: {
+          receiptStatusOk,
+          recipientMatches,
+          valueMatches,
+        },
+        reason:
+          verified && receiptStatusOk && recipientMatches && valueMatches
+            ? undefined
+            : 'Cleanverse aUSD-D Transfer event did not match the requested spend',
       };
     } else {
       receiptVerification = await this.verifyTransferReceipt(
@@ -718,6 +806,9 @@ export class OwsWalletService {
         transferVerified,
         transferReceiptStatus,
         transferReceipts,
+        transferTokenAddress,
+        transferTokenSymbol,
+        transferVerifyApass,
         transferStatus: normalizedTransferStatus,
         transferError,
         transferIdempotencyKey,
@@ -1215,6 +1306,17 @@ export class OwsWalletService {
       apiKeyCount: vaultStatus.apiKeyCount,
       activePolicyId: activePolicy?.id || null,
       activePolicyName: activePolicy?.name || null,
+      keeperHub: {
+        enabled: keeperHubConfig.enabled,
+      },
+      cleanverse: {
+        enabled: cleanverseConfig.enabled,
+        chain: cleanverseConfig.chain,
+        monadChainId: cleanverseConfig.monadChainId,
+        aTokenAddress: cleanverseConfig.aTokenAddress,
+        aTokenSymbol: cleanverseConfig.aTokenSymbol,
+        gateAllSpends: cleanverseConfig.gateAllSpends,
+      },
       features: [
         'encrypted-local-wallet-storage',
         'delegated-api-keys',
@@ -1222,8 +1324,70 @@ export class OwsWalletService {
         'held-action-review',
         'scoped-access',
         'run-ledger-persistence',
+        ...(cleanverseConfig.enabled ? ['cleanverse-cvi-cva'] : []),
       ],
     };
+  }
+
+  /**
+   * When the wallet is on the Cleanverse rail (or identity is required),
+   * screen sender + recipient A-Pass before policy evaluation.
+   */
+  private async screenCleanverseIdentity(
+    intent: SpendIntent,
+    access?: OwsResolvedAccess | null,
+  ): Promise<CleanverseIdentityScreening | null> {
+    const meta = access?.wallet.metadata || {};
+    const executionProvider = (meta.executionProvider as string) || 'local';
+    const requireIdentity = meta.requireCleanverseIdentity === true;
+    const needsScreening =
+      executionProvider === 'cleanverse' ||
+      requireIdentity ||
+      cleanverseConfig.gateAllSpends;
+
+    if (!needsScreening) {
+      return null;
+    }
+
+    if (!cleanverseConfig.enabled) {
+      return {
+        required: true,
+        chain: cleanverseConfig.chain,
+        sender: {
+          address: '',
+          ok: false,
+          reason: 'Cleanverse is not configured (missing API credentials)',
+        },
+        recipient: {
+          address: intent.recipient,
+          ok: false,
+          reason: 'Cleanverse is not configured (missing API credentials)',
+        },
+        ok: false,
+        reason:
+          'Cleanverse CVI screening required but CLEANVERSE_API_ID / CLEANVERSE_API_KEY are not set',
+      };
+    }
+
+    const sender =
+      (typeof meta.cleanverseSenderAddress === 'string' && meta.cleanverseSenderAddress) ||
+      access?.wallet.accounts[0]?.address;
+    if (!sender) {
+      return {
+        required: true,
+        chain: cleanverseConfig.chain,
+        sender: { address: '', ok: false, reason: 'Sender wallet address unavailable' },
+        recipient: { address: intent.recipient, ok: false, reason: 'Sender unavailable' },
+        ok: false,
+        reason: 'Cannot screen Cleanverse identity without a sender wallet address',
+      };
+    }
+
+    return cleanverseIdentityService.screenAddresses(
+      sender,
+      intent.recipient,
+      cleanverseConfig.chain,
+    );
   }
 
   public async previewSpend(

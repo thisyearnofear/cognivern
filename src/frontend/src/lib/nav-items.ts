@@ -144,4 +144,11 @@ export const DEMO_NAV_ITEMS: NavItem[] = [
     href: '/demo/spend',
     description: 'Watch the spend flow in action',
   },
+  {
+    id: 'demo-cleanverse',
+    label: 'Cleanverse Rail',
+    icon: PlayCircle,
+    href: '/demo/cleanverse',
+    description: 'CVI A-Pass screen + CVA aUSD-D settlement',
+  },
 ];
