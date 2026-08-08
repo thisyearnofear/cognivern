@@ -154,18 +154,27 @@ to `app.keeperhub.com` and walks you through the one-time setup.
 
 ## What you're looking at
 
-Cognivern is a **governance layer for autonomous spending agents**. It
-sits between your AI/trading agents and the blockchain, enforcing spend
-policies with optional FHE encryption so amounts stay confidential.
+Cognivern is the **economic control plane for agentic work**. The current
+workflow is policy-controlled agent activity: govern an action before capital
+leaves a wallet or execution boundary, then inspect the run and audit evidence.
+The strategic direction is to make a funded mandate first-class, connecting it
+to attributable spend, evidenced outcomes, and better future allocation. The
+current tester flow does not include a mandate UI or complete outcome statement.
 
+- **Mandates (strategic direction)** define the objective, budget, permissions,
+  evidence requirements, and release conditions for autonomous work
 - **Policies** define spending limits, vendor allowlists, and chain rules
 - **Agents** are governed identities with budgets and trade history
 - **Governance Check** evaluates a proposed action against active policies
-- **Audit** logs every decision with cryptographic evidence
-- **0G Chain** records every governance decision as an on-chain event for
-  tamper-proof verifiability (0G Galileo Testnet)
+- **Audit and Runs** preserve decision, execution, and evidence history
+- **0G Chain** records governance decisions as on-chain events for
+  tamper-evident verifiability (0G Galileo Testnet)
 - **Sealed Bids** run confidential vendor RFPs on Canton (live on Devnet)
-- **OS Terminal** is a natural-language interface to the entire platform
+- **OS Terminal** is a natural-language interface to the platform
+
+Cognivern does not yet provide complete ROI accounting, causal attribution, an
+external agent investment marketplace, or credit underwriting. The intended
+sequence is: govern → attribute → measure → allocate.
 
 ## Need help?
 

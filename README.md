@@ -1,8 +1,8 @@
 # Cognivern
 
-**Governance and spend control for autonomous agents.**
+**The economic control plane for agentic work.**
 
-Cognivern sits between agents and execution: it evaluates intended actions against policy, routes approvals, records an audit trail, and supports privacy-preserving governance for wallets, AI spend, and confidential vendor selection.
+Cognivern makes autonomous work fundable: a business can define a bounded mandate, allocate capital to an agent, enforce what the capital may be used for, record what happened, and build the evidence needed to allocate more. Today Cognivern provides the governed execution and audit substrate; outcome accounting and external capital allocation are strategic next layers.
 
 **Try it:** [Live app](https://cognivern.persidian.com) · [API](https://api.cognivern.persidian.com) · [PromptOS](https://cognivern.persidian.com/os)
 
@@ -63,14 +63,21 @@ For the public/demo path, most optional integrations can remain disabled. See th
 - [Tester Guide](./docs/TESTER_GUIDE.md) — canonical live/demo product walkthrough
 - [Canton](./docs/CANTON.md) — Canton/Daml model and DevNet runbook
 - [HydraDB](./docs/HYDRADB.md) — optional cross-source retrieval integration
+- [Agentic capital thesis](./docs/AGENTIC_CAPITAL_THESIS.md) — funded mandates, attribution, outcomes, and capital allocation roadmap
 - [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md) — sealed-bid and governance integration details
 
 ## Product surfaces
 
-- **Governed spend:** policy evaluation, approval workflows, wallet execution, and audit evidence.
+- **Funded mandates (strategic direction):** define the objective, budget, permissions, evidence requirements, and release conditions for autonomous work.
+- **Governed spend (available today):** policy evaluation, approval workflows, wallet execution, and audit evidence.
+- **Attributable execution (available today in substrate form):** agent, run, action, wallet, vendor, and transaction evidence can be linked through the CRE/run ledger when those fields are supplied by the workflow. A universal mandate/purpose/outcome graph is a roadmap layer.
 - **Confidential policy evaluation:** Fhenix-backed encrypted budgets and spend counters.
 - **Confidential vendor selection:** Canton/Daml sealed-bid rounds with role-based visibility and atomic reveal.
 - **Agent operations:** API identities, run history, PromptOS, observability, and integrations.
+
+Cognivern does not yet claim complete ROI accounting, causal attribution, an
+external agent investment marketplace, or credit underwriting. Those capabilities
+are earned in sequence: govern → attribute → measure → allocate.
 
 ## License
 

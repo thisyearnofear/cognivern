@@ -1,157 +1,210 @@
 # Product & GTM Canvas — Cognivern
 
-*Following the templates from the Arbitrum Open House London Product Framing
-session (Daniel Lumi, Offchain) and GTM Workshop (Swagtimus, Arbitrum DevRel).*
+## Strategic thesis
+
+**Cognivern makes autonomous work fundable.** It gives a business a bounded
+mandate for an agent or agentic workflow, enforces how the allocated capital may
+be used, records what each spend was for, and creates the evidence needed to
+measure outcomes and allocate more.
+
+See [`AGENTIC_CAPITAL_THESIS.md`](./AGENTIC_CAPITAL_THESIS.md) for the full
+strategy and product sequence.
 
 ---
 
 ## Product Canvas
 
-**Team Name:** thisyearnofear (Cognivern)
+**Team:** thisyearnofear (Cognivern)
 
-**One line — what you're building:** Spend governance for AI agent wallets —
-every agent spend is policy-checked, privacy-preserving, and audit-ready.
+**One line — what we're building:** The economic control plane for agentic work:
+governed spend, attributable execution, and an evidence trail from capital to
+outcome.
 
-**Who is this for:** The engineering lead or head of platform at a Web3-native
-team (5–50 people) that deploys autonomous trading or procurement agents and is
-answerable to investors, auditors, or compliance for what those agents spend.
+**Who is this for:** The operator, founder, finance lead, or head of platform
+who wants to allocate a meaningful budget to an autonomous workflow but cannot
+yet explain exactly what the agent spent, whether it followed its mandate, or
+whether the work produced value.
 
-**What they do today:** They hand an agent a wallet private key with a balance.
-The agent can spend the entire balance in one call. Budgets and spend limits
-live in plaintext or in the agent's prompt ("don't spend more than $500").
-There's no audit trail a regulator or investor would accept. When something
-goes wrong, they find out after the money is gone.
+**What they do today:** They give an agent a wallet, API key, corporate card, or
+small operational budget and rely on prompts, dashboards, and after-the-fact
+review. Spend may be visible, but its relationship to a business objective is
+weak. Outcomes are often tracked in a different system, making it difficult to
+answer whether more capital should be allocated.
 
-**The wedge:** A policy evaluation layer that intercepts every agent spend
-request before signing — deny / hold / approve based on budget, vendor, chain,
-risk — with budgets and spend counters encrypted on-chain via FHE so the
-agent's limits aren't visible to anyone with RPC access. One API call per
-spend, zero changes to the agent framework.
+**The wedge today:** Governed agent spend with enforceable controls. Cognivern
+intercepts agent actions before execution, evaluates them against policy, routes
+approval, and records a run and audit trail. The next product layer is a
+first-class funded mandate that carries objective, budget, purpose, and outcome
+links through the existing execution boundary. Existing implementations support
+governed wallet spend, model/token telemetry, and confidential policy/vendor
+workflows.
 
-**Why now:** Three trigger events converge: (1) AI agent frameworks (LangChain,
-CrewAI, AutoGen, Google ADK) are maturing and agents are increasingly given
-wallet keys to execute real transactions — the cost of an ungoverned spend is
-going from hypothetical to happening; (2) FHE coprocessors (CoFHE on Arbitrum
-Sepolia) just became production-ready enough to evaluate encrypted budgets
-on-chain — this wasn't possible 12 months ago; (3) regulatory pressure on AI
-agent spending is emerging — teams need compliance evidence before they can
-deploy autonomous agents in production.
+**The long-term product:** Add outcome ingestion, attribution confidence,
+mandate-level unit economics, and bounded next-tranche recommendations. Only
+after reliable performance histories exist should Cognivern support delegated
+capital or external funding.
+
+**Why now:** Agent capability is becoming abundant while accountable deployment
+remains scarce. Model and tool spend is becoming material; agents can now act on
+wallets and external systems; and businesses need a way to scale autonomous work
+without giving up control of capital or evidence.
+
+**The important truth:** The bottleneck to agent adoption may not be intelligence.
+It may be capital accountability. A capable agent is not economically useful if
+no one can safely fund it, attribute its spend, or decide whether it deserves a
+larger mandate.
+
+**Initial market candidates:**
+
+1. Autonomous procurement and vendor-selection workflows — closest to current
+   policy, sealed-bid, privacy, and settlement capabilities.
+2. B2B lead generation and sales development — large expansion market, but with
+   harder attribution and strong incumbent distribution.
+3. Invoice recovery and finance operations — measurable savings and clear budget
+   ownership.
+4. Support, compliance, and research workflows with explicit task outcomes.
 
 **Alternatives and gaps:**
-- *"Nothing"* — most teams hand the agent a key and hope. No governance at all.
-- *Multisig wallets* — slow, manual, not real-time, doesn't work for autonomous agents that need to act in seconds.
-- *Spending limits in the agent's prompt* — trivially bypassed by prompt injection, not enforceable, not auditable.
-- *Off-chain policy engines* (SaaS spend controls) — no on-chain enforcement, no cryptographic proof of compliance, the policy engine itself is a trusted party that could be compromised.
-- *The gap:* no existing solution enforces spend policy at the cryptographic / on-chain level while keeping budgets confidential AND producing a non-repudiable audit trail.
 
-**Why onchain, why Arbitrum:**
-- FHE policy evaluation **requires** on-chain verifiability — the decision (approve/deny) must be provable to auditors, not just asserted by a backend. Without onchain, the policy engine is a trusted party that could lie.
-- Budgets encrypted via FHE on Arbitrum Sepolia means limits aren't visible to anyone with RPC access — this is **only possible onchain** with FHE. Off-chain encryption still requires trusting the evaluator.
-- Cross-chain execution dispatch via Hyperlane (FHE decision → GovernanceContract → GovernedVault) all within the Arbitrum ecosystem.
-- Low fees make per-spend policy evaluation economically viable — a $0.001 evaluation guarding a $500 spend.
-- **What breaks without onchain:** no cryptographic proof of policy compliance, budgets visible to anyone with RPC, no non-repudiable audit trail, the policy engine is a trust assumption instead of a verifiable guarantee.
+- *Uncontrolled agent access* — give the agent a key, wallet, or card and hope.
+- *Generic observability* — see logs and token counts, but not enforceable capital
+  boundaries or mandate-level evidence.
+- *Wallet and spend controls* — limit transactions, but do not connect spend to
+  business objectives and outcomes.
+- *Accounting and CRM systems* — record financial or customer outcomes, but do
+  not govern the agent actions that produced them.
+- *Agent marketplaces* — expose capability, but generally lack a trusted,
+  standardized spend-to-outcome record.
+- **The gap:** a system that connects funded mandate → governed action →
+  attributable spend → evidenced outcome → next allocation.
 
-**First 5–10 users:**
-1. Web3-native trading bot teams on Arbitrum who need compliance for investor reporting
-2. DeFi protocol teams running automated treasury management agents
-3. AI agent platform teams deploying autonomous agents (CrewAI / LangChain / Google ADK ecosystems)
-4. OWS wallet users who already have agent wallets and need governance
-5. Hackathon teams at this event deploying agents that spend real testnet funds
-6. Audit/compliance firms serving Web3 teams (as distribution channel, not end user)
+**Why onchain and cryptography matter:**
 
-**Ship this weekend:** Demo the full flow live — agent requests spend → FHE
-policy evaluation on Arbitrum Sepolia (contracts already deployed) →
-approve/deny → audit trail anchored to Filecoin. Show the Gemini 3.1 agent
-runtime doing PLAN→EVIDENCE→PREVIEW→CONFIRM→EXECUTE→AUDIT. Show on-chain
-contract reads proving the deployment is live.
+- policy decisions can be independently evidenced rather than asserted by a
+  backend;
+- encrypted budgets and spend counters can protect sensitive allocation data;
+- wallet execution and settlement can be programmable and machine-readable;
+- durable evidence can support audit, review, and future capital decisions.
+
+Onchain infrastructure is a trust and execution substrate, not the entire
+product. The customer value is accountable autonomous work.
+
+**Current product surfaces:**
+
+- governed wallet spend and approval workflows;
+- policy and confidential-policy evaluation;
+- run ledger, audit evidence, and observability;
+- confidential vendor selection and atomic settlement;
+- agent framework / MCP integration surfaces.
+
+**Not current claims:** Cognivern does not yet provide complete ROI accounting,
+causal attribution, an external agent investment marketplace, or credit
+underwriting.
 
 ---
 
 ## GTM Canvas
 
-**Team Name:** thisyearnofear (Cognivern)
+**Proposed design-partner offer:** Fund an autonomous workflow with bounded,
+policy-controlled capital and a clear record of what happened. The current
+product already governs and records agent actions; first-class funded mandates
+are the next layer to productize.
 
-**One line — what you're building:** Spend governance for AI agent wallets —
-every spend policy-checked, privacy-preserving, audit-ready.
+**Who buys, who uses:**
 
-**Who buys, who uses:** The engineering lead or head of platform **buys**
-(budget owner, cares about compliance/risk); the agent developer and ops/finance
-team **use** day-to-day (policy configuration, audit trail review, spend
-monitoring).
+- **Buyer:** founder, finance lead, growth lead, or head of platform who owns the
+  budget and the risk;
+- **Operator:** agent developer, operations team, procurement lead, or finance
+  team configuring mandates and reviewing evidence;
+- **Agent:** the execution identity operating inside the mandate;
+- **Future capital provider:** an external sponsor or allocator, only after
+  Cognivern has reliable mandate performance histories.
 
-**First reachable audience:** Web3-native teams already running autonomous
-trading or procurement agents on Arbitrum who are answerable to investors or
-auditors — reachable through the Arbitrum ecosystem Discord, Encode/ETHGlobal
-hackathon alumni networks, and AI agent framework communities (CrewAI, LangChain,
-Google ADK Discord servers).
+**First reachable audience:** Web3-native and AI-native teams already operating
+agents with real spend, particularly procurement, treasury, operations, and
+agent-platform teams that need evidence before increasing autonomy.
 
-**3 distribution channels:**
-1. **Agent framework integrations (borrowed):** ship a Cognivern plugin for
-   CrewAI / LangChain / Google ADK so any agent built on those frameworks gets
-   spend governance by default. Governance is a required layer for any
-   enterprise agent deployment — the frameworks have a compelling reason to
-   integrate. (GMX lesson: GLP as a money lego → 28+ protocols built on top =
-   free distribution.)
-2. **Arbitrum ecosystem presence (earned):** the FHE-on-Arbitrum story is
-   narratively compelling — "your agent's budget is encrypted on-chain" is
-   unique and worth talking about. Founder-led content + demo at Arbitrum
-   events + open-source contracts verified on Arbiscan build trust through
-   transparency.
-3. **Compliance/audit adjacency (borrowed):** partner with audit firms and
-   compliance tools that serve Web3 teams — they have the customers who feel
-   the pain and have budget to solve it. When a firm recommends Cognivern as
-   the evidence trail for agent spend compliance, that's borrowed distribution
-   with built-in trust.
+**Initial offer:** Work with a design partner to define one funded mandate,
+connect the agent and wallet/tool boundary, govern every spend, and produce a
+weekly mandate statement showing allocation, spend, compliance, evidence, and
+known outcomes. Manual outcome reconciliation is acceptable during discovery.
 
-**Core message, one sentence:** "Your AI agent can't spend a dollar without a
-policy check — and the budget it's checked against is encrypted on-chain, so
-nobody can see your limits."
+### Distribution built into the product
 
-**Proof you need first:** One real team running an autonomous agent on Arbitrum
-with Cognivern governance in production, with a documented case where the policy
-layer caught or prevented an unauthorized spend — and the on-chain evidence to
-prove it.
+1. **Mandate artifacts:** Every completed mandate should produce a permissioned,
+   portable performance artifact that can be shared with finance, a board,
+   customers, partners, and future funders.
+2. **Agent integrations:** MCP and framework integrations should make the default
+   path “run under a funded mandate,” not merely “call a governance endpoint.”
+3. **Execution integrations:** Wallets, procurement systems, CRM systems, and
+   tool providers should carry mandate IDs and outcome links through the action
+   lifecycle.
+4. **Benchmarking:** As evidence accumulates, Cognivern can provide workflow,
+   vendor, model, and cost-per-outcome benchmarks that attract the next user.
+5. **Design-partner proof:** Start with a small number of manually supported
+   deployments. Turn repeated mandate setup and reporting into product only after
+   the pattern is understood.
 
-**The intro that helps:** An intro from the Arbitrum Foundation to a DeFi
-protocol team running automated treasury agents, or to an AI agent platform
-looking for a governance layer to differentiate their enterprise offering.
+### Compounding loop
 
-**5 named targets:**
-1. Arbitrum ecosystem DeFi protocols running automated agents (treasury
-   management, LP rebalancing, liquidation bots)
-2. CrewAI ecosystem — teams building production agents who need enterprise
-   governance
-3. Google Cloud Agent Builder ecosystem (we're already integrated with
-   Gemini 3.1 + MongoDB MCP — `examples/copilot/agent-builder.yaml`)
-4. OWS wallet users (existing user base with agent wallets, no governance layer)
-5. Encode / ETHGlobal hackathon teams deploying spending agents who need a
-   governance story for their own submissions
+```text
+more governed mandates
+  → more attributable spend/outcome data
+    → better performance evidence
+      → more confidence to allocate capital
+        → larger mandates and more integrations
+```
 
-**The ask this weekend:** Intros to two DeFi protocol teams on Arbitrum running
-autonomous agents, plus feedback from a product mentor on the wedge framing.
-CTA: try the live API (`api.cognivern.persidian.com`) with one agent spend this
-week.
+### GTM diagnosis
 
----
+| Question | Cognivern's answer |
+|---|---|
+| **Discover** | Begin with founder-led, manual design-partner acquisition in one measurable workflow. Then distribute through agent, wallet, procurement, CRM, and MCP integrations. |
+| **Trust** | Enforce spend before execution; preserve run/audit evidence; distinguish observed, verified, attributed, and causal outcomes. Use cryptography and onchain anchors where they improve trust. |
+| **Stay** | Mandate history, outcome evidence, policy configuration, and operating workflows become load-bearing. The spend-to-outcome graph creates switching costs beyond a policy dashboard. |
+| **Share** | Permissioned mandate statements and successful outcome evidence travel to finance teams, boards, customers, partners, and future capital providers. |
 
-## GTM Diagnosis — the four questions
+### Thiel-style monopoly test
 
-| GTM Question | Cognivern's answer |
-|--------------|-------------------|
-| **Discover** | **Borrowed** via agent framework integrations (CrewAI/LangChain/ADK plugin — governance is a required layer for enterprise agent deployment, so frameworks have a compelling reason to integrate). **Earned** via the FHE-on-Arbitrum narrative ("your agent's budget is encrypted on-chain") + founder-led content + open-source contracts. |
-| **Trust** | On-chain proof of policy compliance (every decision is a verifiable contract call on Arbitrum Sepolia, not a backend assertion). Open-source contracts (verified on Arbiscan). FHE cryptographic guarantees (budgets encrypted, not just hidden). Dual-anchor audit trail (Filecoin + 0G). Trust comes from **verifiability**, not from claims. |
-| **Stay** | **Workflow lock-in** — once Cognivern is the policy layer between agent and wallet, removing it means going back to ungoverned spending. The audit trail becomes load-bearing for compliance (you can't rip out the thing that produces your regulatory evidence). FHE-encrypted budgets create switching costs (re-encrypting policies on a new system). |
-| **Share** | When a team passes a compliance audit because Cognivern produced the evidence trail, they tell other teams facing the same audit. The narrative ("our AI agent's budget is encrypted on-chain") is novel enough to be worth talking about. Agent framework integrations create organic distribution — every agent built with the Cognivern plugin is a demo. |
+The goal is not to be another generic agent platform. The defensible combination is:
 
----
+1. mandate definition;
+2. capital and model/tool allocation;
+3. policy enforcement;
+4. wallet and execution boundaries;
+5. spend attribution;
+6. outcome evidence;
+7. bounded performance-based reallocation.
 
-## GTM anti-pattern check
+A narrow initial monopoly might be **governed, attributable procurement work**.
+Customer acquisition can follow once the attribution model is strong enough.
+
+### Metrics that matter
+
+The north-star metric should become **verified capital deployed through successful
+mandates**, not raw token volume.
+
+Supporting metrics:
+
+- active funded mandates;
+- repeat allocation rate;
+- percentage of spend tied to a mandate and purpose;
+- percentage of outcomes with evidence;
+- time to approve the next tranche;
+- capital utilization;
+- cost per verified outcome;
+- observed value generated per governed dollar.
+
+### Anti-pattern check
 
 | Anti-pattern | How Cognivern avoids it |
-|--------------|------------------------|
-| "I have contacts that will promote us" | Distribution is framework integrations + ecosystem narrative, not personal contacts. |
-| "We have points" | Retention comes from workflow lock-in + compliance dependency, not points or incentives. |
-| "We have a token" | No token. Business model is SaaS control-plane subscription + per-spend evaluation fees. |
-| "We are composable" | We name the specific integration target (agent frameworks) and the compelling reason: governance is a **required** layer for any enterprise agent deployment — without it, agents can't be deployed in regulated environments. |
-| "We'll partner with protocols" | We name specific targets (DeFi protocols with automated agents, audit firms) and why they care (compliance evidence, risk reduction). |
-| "We need users" | We name the specific first user profile (engineering lead at a Web3 team running autonomous agents, answerable to auditors) and why they have urgency (agent spending is happening now, ungoverned). |
+|---|---|
+| “Build an agent marketplace first” | Start with one operator, one workflow, and one funded mandate. Earn the marketplace from performance data. |
+| “We have ROI” | Separate telemetry, spend, observed outcomes, verified outcomes, attribution, and causality. |
+| “We are composable” | Name the integration and the reason: an agent runs under a funded mandate and carries evidence through execution. |
+| “We have a token” | No token is required. The product is a control and measurement layer first. |
+| “Partners will distribute us” | Make mandate artifacts, integrations, and benchmarks carry distribution. |
+
+**Near-term proof:** One design partner repeatedly funds one autonomous workflow,
+with Cognivern enforcing its mandate and producing a credible spend-to-outcome
+statement. That proof matters more than a broad marketplace narrative.

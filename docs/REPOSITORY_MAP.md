@@ -1,8 +1,15 @@
 # Repository Map
 
-Cognivern is a multi-surface system. You can work effectively in one area without understanding every integration.
+Cognivern is a multi-surface system and the economic control plane for agentic
+work. You can work effectively in one area without understanding every
+integration. The strategic product sequence is funded mandate → governed action
+→ attributable spend → evidenced outcome → allocation decision.
 
 ## Start by intent
+
+For the product thesis and planned sequence, read
+[`AGENTIC_CAPITAL_THESIS.md`](./AGENTIC_CAPITAL_THESIS.md) before introducing
+new mandate, attribution, outcome, or allocation concepts.
 
 | If you want to change…          | Start here                                                                                                                      | Usually also inspect                                                        |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |

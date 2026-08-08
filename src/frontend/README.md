@@ -1,6 +1,12 @@
 # Cognivern Frontend
 
-Next.js dashboard for the Cognivern AI Agent Governance Platform.
+Next.js dashboard for Cognivern, the economic control plane for agentic work.
+
+The current UI makes governed agent activity inspectable: policies, approvals,
+wallet boundaries, runs, audit evidence, and confidential vendor workflows. The
+product direction is to make funded mandates and their spend-to-outcome trail
+first-class. Outcome accounting and external capital allocation are not yet
+implemented.
 
 ## Tech Stack
 
@@ -101,13 +107,13 @@ src/frontend/
 5. Calls `/api/governance/evaluate` via the curl example on `/integrate`
 6. Sees the decision appear in the audit trail (`/audit`)
 
-### The Operator ("Prove my agents stay within bounds")
+### The Operator ("Prove my funded workflows stay within bounds")
 
 1. Logs into dashboard — sees attention status, approval rate, blocked actions, and recent activity
 2. Drills into a denied decision in audit — reads exactly why it was blocked
 3. Adjusts the policy that blocked it (`/policies`)
 4. Sees the FHE shield badge on confidential decisions
-5. Views evidence chain for cryptographic proof
+5. Views the evidence chain that will support future mandate-level allocation review
 
 ### The Procurement Lead ("Run a confidential vendor RFP")
 

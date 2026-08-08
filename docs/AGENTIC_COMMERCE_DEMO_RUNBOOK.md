@@ -1,9 +1,11 @@
 # Agentic Commerce Demo Runbook
 
 Use this sequence for the 3-minute submission demo. It demonstrates a real
-commercial control, not an AI wrapper: an agent initiates a private vendor RFP;
-policy prevents premature execution; Canton performs the confidential auction
-and atomic settlement.
+funded-workflow control, not an AI wrapper: an agent initiates a private vendor
+RFP under a bounded commercial mandate; policy prevents premature execution;
+Canton performs the confidential auction and atomic settlement. This is an
+implemented procurement primitive supporting Cognivern's broader thesis that
+autonomous work should be fundable, attributable, and evidenced.
 
 ## Demo data
 
@@ -43,7 +45,8 @@ the visible demo round is the submission evidence.
 
 ## Safe claims
 
-Use these statements in the pitch and video:
+This demo proves governed procurement and settlement, not full ROI accounting
+or an external capital marketplace. Use these statements in the pitch and video:
 
 - “An agent initiates a private procurement workflow under fixed spending and
   execution policy.”

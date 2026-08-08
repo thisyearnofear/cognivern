@@ -115,18 +115,36 @@ pnpm monorepo with three packages:
 
 ### Mission
 
-**Make agent wallet activity governable.**
+**Make autonomous work fundable.**
 
-Cognivern is a control plane for OWS wallets that handles policy checks, approvals, and audit for autonomous agents.
+Cognivern is the economic control plane for agentic work. It gives a business a
+bounded mandate for an autonomous workflow, governs the capital and execution
+inside that mandate, and preserves the evidence needed to understand what the
+work produced.
+
+The current implementation is strongest at governed execution and audit:
+policy checks, approvals, wallet boundaries, run records, source provenance,
+transaction evidence, and observability. Complete outcome accounting, causal
+ROI attribution, external agent investment, and credit underwriting are future
+layers—not current product claims.
+
+The strategic lifecycle is:
+
+```text
+funded mandate → governed actions → attributable spend → evidenced outcome → allocation decision
+```
+
+See [`AGENTIC_CAPITAL_THESIS.md`](./AGENTIC_CAPITAL_THESIS.md) for the product
+and distribution strategy.
 
 ### Responsibility Boundary
 
-| OWS Owns                   | Cognivern Owns                     | Swappable Via           |
-| -------------------------- | ---------------------------------- | ----------------------- |
-| Wallet storage             | Policy evaluation                  | —                       |
-| API-key issuance           | Approval workflows                 | —                       |
-| Transaction signing        | Audit-log indexing / signing layer | SigningProvider adapter |
-| Signing policy enforcement | Run ledger & analytics             | —                       |
+| OWS Owns                   | Cognivern Owns                                             | Swappable Via           |
+| -------------------------- | ---------------------------------------------------------- | ----------------------- |
+| Wallet storage             | Policy semantics and governed execution                    | —                       |
+| API-key issuance           | Approval workflows and spend/run evidence                  | —                       |
+| Transaction signing        | Run ledger and audit evidence; outcome links are roadmap   | SigningProvider adapter |
+| Signing policy enforcement | Allocation analytics and reporting (roadmap)                | —                       |
 
 ### System Overview
 
@@ -237,7 +255,11 @@ Implementation files:
 
 ### Fhenix Integration — Confidential Policy Evaluation
 
-Fhenix (CoFHE) lets Cognivern evaluate policy on **encrypted state** — budgets, spend counters, and vendor allowlists never appear in plaintext. Only the decision (approve/hold/deny) is revealed.
+Fhenix (CoFHE), where configured in the supported integration/testnet path, lets
+Cognivern evaluate policy on **encrypted state** — budgets, spend counters, and
+vendor allowlists never appear in plaintext. Only the decision
+(approve/hold/deny) is revealed. Production availability and fallback behavior
+remain environment-dependent; see [Current Limitations](#current-limitations).
 
 #### Layered Architecture
 
@@ -366,7 +388,12 @@ Dependencies: `@ledgerhq/device-management-kit`, `@ledgerhq/device-signer-kit-et
 
 ### Native Agents
 
-Cognivern's two native trading agents (`SapienceTradingAgent` and `UserTradingAgent`) route their actions through the same `/api/governance/evaluate → /api/spend/preview → /api/spend` flow used by external API callers. One policy engine, one audit log, one source of truth.
+Cognivern's native agents, including `SapienceTradingAgent` and
+`UserTradingAgent`, route actions through the same
+`/api/governance/evaluate → /api/spend/preview → /api/spend` flow used by
+external API callers. Trading is one implementation example, not the strategic
+center of the product. The durable abstraction is a funded mandate whose actions
+share one policy engine, one execution boundary, and one evidence trail.
 
 #### Sapience Trading Cycle
 
@@ -584,6 +611,9 @@ POST body includes optional `fhirContext` for HIPAA-aware governance evaluation 
 
 ### Current Limitations
 
+- Funded mandates and outcome ingestion are strategic product layers; current APIs primarily govern and record agent actions
+- Complete ROI/P&L accounting and causal attribution are not implemented; AI telemetry is not business accounting
+- External agent financing, investment, and credit underwriting are not implemented
 - File-backed stores are single-instance — need Redis/Postgres before horizontal scaling
 - Email auth supported alongside SIWE; SIWE path is more battle-tested
 - Ledger signing requires USB/WebHID access — limits deployment to single-instance or co-located with hardware
