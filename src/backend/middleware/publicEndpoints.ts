@@ -52,6 +52,8 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   "/cre/projects",
   "/cre/forecast",
   "/cre/runs/:runId/retry",
+  // Read-only execution reconciliation still requires the operator JWT; it
+  // is intentionally not public because it exposes provider execution data.
   // NOTE: /cre/runs/:runId/approval is NOT in this list. Held spend runs are
   // resumed through this endpoint and broadcast real money; an unauthenticated
   // approval would let any caller move funds from a scoped wallet. The

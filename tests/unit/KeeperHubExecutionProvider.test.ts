@@ -71,6 +71,27 @@ describe('KeeperHubExecutionProvider', () => {
     expect(result).toEqual({ error: 'KeeperHub API key is not configured' });
   });
 
+  it('reads an existing execution status without broadcasting', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          executionId: 'exec-read-only',
+          status: 'pending',
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await provider.getExecutionStatus('exec-read-only');
+
+    expect(result).toEqual({ executionId: 'exec-read-only', status: 'pending' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://app.keeperhub.com/api/execute/exec-read-only/status',
+      expect.objectContaining({ method: 'GET' }),
+    );
+  });
+
   it('simulates before broadcasting and polls the documented receipt fields', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValueOnce(
@@ -165,6 +186,25 @@ describe('KeeperHubExecutionProvider', () => {
       error: 'KeeperHub simulation rejected the transfer: Insufficient ETH balance',
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('treats a lost broadcast response as uncertain and never silently retryable', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ walletAddress: request.from }), { status: 200 }),
+    );
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(simulation), { status: 200 }));
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: 'gateway timeout' }), { status: 504 }),
+    );
+
+    const result = await provider.executeTransfer({ ...request, intentId: 'intent-lost-response' });
+
+    expect(result).toMatchObject({
+      error: expect.stringContaining('execution request failed'),
+      uncertain: true,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('returns an error when KeeperHub reports failure', async () => {

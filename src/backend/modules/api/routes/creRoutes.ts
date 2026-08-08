@@ -16,6 +16,14 @@ export function createCreRoutes(
   router.get("/cre/runs/:runId/events", (req, res) =>
     creController.getRunEvents(req, res),
   );
+  router.get("/cre/runs/:runId/reconcile", (req, res) =>
+    creController.reconcileRun(req, res),
+  );
+  // POST resolves an uncertain spend only after the controller proves the
+  // KeeperHub execution and receipt match the original intent.
+  router.post("/cre/runs/:runId/reconcile/resolve", (req, res) =>
+    creController.reconcileRun(req, res),
+  );
   router.get("/cre/runs/:runId/events/stream", (req, res) =>
     creController.streamRunEvents(req, res),
   );

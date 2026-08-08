@@ -318,6 +318,7 @@ export class SpendController {
     const result = await owsWalletService.executeSpend(intent, {
       apiKeyToken: owsScopedAccess,
       walletId,
+      workspaceId: req.workspaceId,
       ...context,
     });
 

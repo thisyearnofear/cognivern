@@ -268,6 +268,67 @@ describe('OwsWalletService — resumeHeldSpend (operator approval)', () => {
     expect(sendSpy).not.toHaveBeenCalled();
   });
 
+  it('keeps an uncertain KeeperHub execution locked for reconciliation', async () => {
+    const { OwsWalletService, owsLocalVaultService } = await loadModules();
+    const { access } = await seedScopedAccess(owsLocalVaultService);
+    const { keeperHubExecutionProvider } = await import(
+      '../../src/backend/services/blockchain/KeeperHubExecutionProvider.js'
+    );
+
+    await owsLocalVaultService.updateWalletMetadata(access!.wallet.id, {
+      ...(access!.wallet.metadata || {}),
+      executionProvider: 'keeperhub',
+      keeperHubWalletAddress: access!.wallet.accounts[0]?.address,
+    });
+    vi.spyOn(keeperHubExecutionProvider, 'executeTransfer').mockResolvedValue({
+      error: 'execution status is uncertain',
+      executionId: 'exec-uncertain-1',
+      uncertain: true,
+    });
+
+    const service = new OwsWalletService();
+    const intent = {
+      id: 'intent-uncertain',
+      agentId: 'agent-1',
+      recipient: RECIPIENT,
+      amount: '888',
+      asset: 'OKB',
+      reason: 'uncertain KeeperHub execution',
+      timestamp: new Date().toISOString(),
+    };
+
+    const { CreRunRecorder } = await import('../../src/backend/cre/runRecorder.js');
+    const heldRecorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre' });
+    await heldRecorder.addArtifact({ type: 'spend_intent', data: intent });
+    const held = await (service as any).handleHold(
+      intent,
+      heldRecorder,
+      'needs review',
+      'policy-1',
+      access,
+    );
+
+    const result = await service.resumeHeldSpend(held.runId, 'operator-uncertain');
+    expect(result.status).toBe('approved');
+    expect(result.transferStatus).toBe('uncertain');
+    expect(result.transferUncertain).toBe(true);
+
+    const { creRunStore } = await loadModules();
+    const persisted = await creRunStore.get(held.runId);
+    expect(persisted?.status).toBe('running');
+    expect(
+      persisted?.artifacts.some(
+        (artifact) =>
+          artifact.type === 'error' &&
+          (artifact.data as { status?: string }).status === 'execution_uncertain',
+      ),
+    ).toBe(true);
+
+    const retry = await service.resumeHeldSpend(held.runId, 'operator-retry');
+    expect(retry.status).toBe('denied');
+    expect(retry.error).toMatch(/not awaiting approval/);
+  });
+
   it('surfaces a failed transfer as a failed resume (not moved money)', async () => {
     const { OwsWalletService, owsLocalVaultService } = await loadModules();
     const { access } = await seedScopedAccess(owsLocalVaultService);

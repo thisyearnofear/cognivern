@@ -94,6 +94,7 @@ export interface ExecutionResult {
   }>;
   transferStatus?: 'sent' | 'failed' | 'skipped' | 'uncertain';
   transferError?: string;
+  transferIdempotencyKey?: string;
   /** A provider execution exists, but completion/evidence is not yet safe to retry. */
   transferUncertain?: boolean;
   /**
@@ -128,6 +129,8 @@ export interface SpendExecutionContext {
   /** Raw, short-lived authorization supplied for this request only. It is
    * validated into audit-safe evidence and is never persisted in the run. */
   sourceAuthorizationToken?: string;
+  /** Workspace context used to scope persisted spend evidence. */
+  workspaceId?: string;
 }
 
 export class OwsWalletService {
@@ -174,6 +177,7 @@ export class OwsWalletService {
       workflow: 'spend',
       mode: access ? 'cre' : 'local',
     });
+    recorder.getRun().projectId = context.workspaceId;
 
     try {
       logger.info(`SpendOS: Evaluating intent ${intent.id} from agent ${intent.agentId}`);
@@ -191,6 +195,7 @@ export class OwsWalletService {
       intent.metadata = {
         ...(intent.metadata || {}),
         sourceAuthorization,
+        ...(context.workspaceId ? { workspaceId: context.workspaceId } : {}),
       };
 
       await recorder.addArtifact({
@@ -551,6 +556,10 @@ export class OwsWalletService {
     const transferReceipts =
       'receipts' in transfer && Array.isArray(transfer.receipts) ? transfer.receipts : undefined;
     const transferError = 'error' in transfer ? transfer.error : undefined;
+    const transferIdempotencyKey =
+      'idempotencyKey' in transfer && typeof transfer.idempotencyKey === 'string'
+        ? transfer.idempotencyKey
+        : undefined;
     const transferUncertain = 'uncertain' in transfer && transfer.uncertain === true;
     const transferStatus: 'sent' | 'failed' | 'uncertain' =
       'txHash' in transfer ? 'sent' : transferUncertain ? 'uncertain' : 'failed';
@@ -634,6 +643,7 @@ export class OwsWalletService {
         transferReceipts,
         transferStatus,
         transferError,
+        transferIdempotencyKey,
         transferUncertain,
         receiptVerification,
         operatorApproved,
@@ -680,6 +690,7 @@ export class OwsWalletService {
       transferReceipts,
       transferStatus,
       transferError,
+      transferIdempotencyKey,
       transferUncertain,
       receiptVerification,
     };
@@ -833,9 +844,43 @@ export class OwsWalletService {
         operatorApproved: true,
       });
 
-      // A returned non-sent result proves that this invocation did not move
-      // money, so the original held run is safe to retry.
-      if (result.transferStatus !== 'sent') {
+      if (result.transferStatus === 'uncertain') {
+        // An ambiguous provider response does not prove that no funds moved.
+        // Keep the original claim locked and persist a recovery marker; an
+        // operator must reconcile the provider execution before any retry.
+        const recoveryRun: CreRun = {
+          ...claimed,
+          ok: false,
+          status: 'running',
+          requiresApproval: false,
+          approvalState: 'pending',
+          artifacts: [
+            ...claimed.artifacts,
+            {
+              id: crypto.randomUUID(),
+              type: 'error',
+              createdAt: new Date().toISOString(),
+              data: {
+                intentId: intent.id,
+                status: 'execution_uncertain',
+                reason: result.transferError || 'KeeperHub execution status is uncertain',
+                operatorId,
+                recoveryRequired: true,                    transferExecutionId: result.transferExecutionId,
+                    transferIdempotencyKey: result.transferIdempotencyKey,
+                    expectedSender:
+                      (access.wallet.metadata?.keeperHubWalletAddress as string | undefined) ||
+                      access.wallet.accounts[0]?.address,
+                    expectedRecipient: intent.recipient,
+                expectedValueWei: valueWei.toString(),
+                chainId: Number(access.wallet.metadata?.chainId || blockchainConfig.chainId),
+              },
+            },
+          ],
+        };
+        await creRunStore.replace(enrichCreRunEvidence(recoveryRun));
+      } else if (result.transferStatus !== 'sent') {
+        // A returned ordinary failure proves that this invocation did not
+        // move money, so the original held run is safe to retry.
         const rolledBack = {
           ...heldRun,
           status: 'paused_for_approval' as const,
@@ -868,8 +913,13 @@ export class OwsWalletService {
               intentId: intent.id,
               status: 'execution_uncertain',
               reason: message,
-              operatorId,
-              recoveryRequired: true,
+              operatorId,                    recoveryRequired: true,
+                    expectedSender:
+                      (access.wallet.metadata?.keeperHubWalletAddress as string | undefined) ||
+                      access.wallet.accounts[0]?.address,
+                    expectedRecipient: intent.recipient,
+                    expectedValueWei: valueWei.toString(),
+              chainId: Number(access.wallet.metadata?.chainId || blockchainConfig.chainId),
             },
           },
         ],

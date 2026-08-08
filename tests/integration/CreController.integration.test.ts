@@ -38,6 +38,9 @@ const { creRunStore } = await import(
 const { owsLocalVaultService } = await import(
   "../../src/backend/services/blockchain/OwsLocalVaultService.js"
 );
+const { keeperHubExecutionProvider } = await import(
+  "../../src/backend/services/blockchain/KeeperHubExecutionProvider.js"
+);
 
 type MockReq = {
   params: Record<string, string>;
@@ -458,6 +461,533 @@ describe("CreController", () => {
     const persisted = await creRunStore.get(held.runId);
     expect(persisted?.status).toBe("paused_for_approval");
     sendSpy.mockRestore();
+  });
+
+  it("reconcileRun requires operator authentication and workspace context", async () => {
+    const run = makeRun("running") as any;
+    run.workflow = "spend";
+    run.projectId = "workspace-1";
+    run.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          transferExecutionId: "exec-auth-check",
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000",
+          chainId: 84532,
+        },
+      },
+    ];
+    await creRunStore.add(run);
+
+    const controller = new CreController();
+    const res = new MockRes();
+    await controller.reconcileRun(
+      makeReq({ params: { runId: run.runId } }) as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(403);
+    expect(res.payload?.success).toBe(false);
+    expect(res.payload?.error).toMatch(/operator authentication/i);
+  });
+
+  it("reconcileRun rejects a run from another workspace before querying KeeperHub", async () => {
+    const run = makeRun("running") as any;
+    run.workflow = "spend";
+    run.projectId = "workspace-owner";
+    run.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          transferExecutionId: "exec-cross-workspace",
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000",
+          chainId: 84532,
+        },
+      },
+    ];
+    await creRunStore.add(run);
+
+    const statusSpy = vi.spyOn(keeperHubExecutionProvider, "getExecutionStatus");
+    const controller = new CreController();
+    const req = makeReq({ params: { runId: run.runId } }) as any;
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-other";
+    const res = new MockRes();
+    await controller.reconcileRun(req, res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.payload?.error).toMatch(/does not belong/i);
+    expect(statusSpy).not.toHaveBeenCalled();
+    statusSpy.mockRestore();
+  });
+
+  it("reconcileRun reports a completed but mismatched receipt as recovery-required", async () => {
+    const run = makeRun("running") as any;
+    run.workflow = "spend";
+    run.projectId = "workspace-1";
+    run.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          transferExecutionId: "exec-mismatch",
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000",
+          chainId: 84532,
+        },
+      },
+    ];
+    await creRunStore.add(run);
+
+    const transactionHash = "0x" + "c".repeat(64);
+    const statusSpy = vi
+      .spyOn(keeperHubExecutionProvider, "getExecutionStatus")
+      .mockResolvedValue({
+        executionId: "exec-mismatch",
+        status: "completed",
+        transactionHash,
+        chainId: 84532,
+        receipts: [
+          {
+            hash: transactionHash,
+            chainId: 84532,
+            from: "0x1111111111111111111111111111111111111111",
+            to: "0x3333333333333333333333333333333333333333",
+            value: "2",
+            verified: true,
+            receiptStatus: "success",
+          },
+        ],
+      });
+
+    const controller = new CreController();
+    const req = makeReq({ params: { runId: run.runId } }) as any;
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-1";
+    const res = new MockRes();
+    await controller.reconcileRun(req, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload).toMatchObject({
+      success: false,
+      statusFetched: true,
+      matched: false,
+      recoveryRequired: true,
+      readOnly: true,
+    });
+    statusSpy.mockRestore();
+  });
+
+  it("reconcileRun proves a matching receipt with equivalent ETH formatting", async () => {
+    const run = makeRun("running") as any;
+    run.workflow = "spend";
+    run.projectId = "workspace-1";
+    run.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          transferExecutionId: "exec-match",
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000000000000000000",
+          chainId: 84532,
+        },
+      },
+    ];
+    await creRunStore.add(run);
+
+    const transactionHash = "0x" + "d".repeat(64);
+    const statusSpy = vi
+      .spyOn(keeperHubExecutionProvider, "getExecutionStatus")
+      .mockResolvedValue({
+        executionId: "exec-match",
+        status: "completed",
+        transactionHash,
+        chainId: 84532,
+        receipts: [
+          {
+            hash: transactionHash,
+            chainId: 84532,
+            from: "0x1111111111111111111111111111111111111111",
+            to: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+            value: "1",
+            verified: true,
+            receiptStatus: "success",
+          },
+        ],
+      });
+
+    const controller = new CreController();
+    const req = makeReq({ params: { runId: run.runId } }) as any;
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-1";
+    const res = new MockRes();
+    await controller.reconcileRun(req, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload).toMatchObject({
+      success: true,
+      statusFetched: true,
+      matched: true,
+      recoveryRequired: false,
+      readOnly: true,
+    });
+    statusSpy.mockRestore();
+  });
+
+  it("uncertain spend runs cannot be cancelled or retried", async () => {
+    const run = makeRun("running") as any;
+    run.workflow = "spend";
+    run.projectId = "workspace-1";
+    run.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          recoveryRequired: true,
+          transferExecutionId: "exec-locked",
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000",
+          chainId: 84532,
+        },
+      },
+    ];
+    await creRunStore.add(run);
+
+    const controller = new CreController();
+    const cancelRes = new MockRes();
+    await controller.cancelRun(
+      makeReq({ params: { runId: run.runId } }) as any,
+      cancelRes as any,
+    );
+    expect(cancelRes.statusCode).toBe(409);
+    expect(cancelRes.payload?.error).toMatch(/reconciliation/i);
+
+    const retryRes = new MockRes();
+    await controller.retryRun(
+      makeReq({ params: { runId: run.runId }, body: {} }) as any,
+      retryRes as any,
+    );
+    expect(retryRes.statusCode).toBe(409);
+    expect(retryRes.payload?.error).toMatch(/reconciliation/i);
+    expect((await creRunStore.get(run.runId))?.status).toBe("running");
+  });
+
+  it("reconcileRun keeps a missing execution id in manual-support recovery", async () => {
+    const run = makeRun("running") as any;
+    run.workflow = "spend";
+    run.projectId = "workspace-1";
+    run.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          recoveryRequired: true,
+          transferIdempotencyKey: "0x" + "e".repeat(64),
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000",
+          chainId: 84532,
+        },
+      },
+    ];
+    await creRunStore.add(run);
+    const statusSpy = vi.spyOn(keeperHubExecutionProvider, "getExecutionStatus");
+    const controller = new CreController();
+    const req = makeReq({ params: { runId: run.runId } }) as any;
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-1";
+    const res = new MockRes();
+    await controller.reconcileRun(req, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload).toMatchObject({
+      success: false,
+      execution: null,
+      idempotencyKey: "0x" + "e".repeat(64),
+      recoveryRequired: true,
+      readOnly: true,
+    });
+    expect(res.payload?.message).toMatch(/support|lookup/i);
+    expect(statusSpy).not.toHaveBeenCalled();
+    statusSpy.mockRestore();
+  });
+
+  it("uncertain runs cannot change plan or approval state", async () => {
+    const run = makeRun("running") as any;
+    run.workflow = "spend";
+    run.projectId = "workspace-1";
+    run.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          transferExecutionId: "exec-mutation-locked",
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000",
+          chainId: 84532,
+        },
+      },
+    ];
+    await creRunStore.add(run);
+    const controller = new CreController();
+
+    const planRes = new MockRes();
+    await controller.updateRunPlan(
+      makeReq({
+        params: { runId: run.runId },
+        body: {
+          plan: {
+            version: 2,
+            steps: [{ id: "p1", title: "retry", enabled: true }],
+          },
+        },
+      }) as any,
+      planRes as any,
+    );
+    expect(planRes.statusCode).toBe(409);
+    expect(planRes.payload?.error).toMatch(/reconciliation/i);
+
+    const approvalRes = new MockRes();
+    const approvalReq = makeReq({
+      params: { runId: run.runId },
+      body: { approve: true },
+    }) as any;
+    approvalReq.userId = "operator-1";
+    await controller.submitApproval(approvalReq, approvalRes as any);
+    expect(approvalRes.statusCode).toBe(409);
+    expect(approvalRes.payload?.error).toMatch(/reconciliation/i);
+  });
+
+  it("reconcileRun keeps a pending provider status recovery-required", async () => {
+    const run = makeRun("running") as any;
+    run.workflow = "spend";
+    run.projectId = "workspace-1";
+    run.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          transferExecutionId: "exec-pending",
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000",
+          chainId: 84532,
+        },
+      },
+    ];
+    await creRunStore.add(run);
+
+    const statusSpy = vi
+      .spyOn(keeperHubExecutionProvider, "getExecutionStatus")
+      .mockResolvedValue({ executionId: "exec-pending", status: "pending" });
+    const controller = new CreController();
+    const req = makeReq({ params: { runId: run.runId } }) as any;
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-1";
+    const res = new MockRes();
+    await controller.reconcileRun(req, res as any);
+
+    expect(res.payload).toMatchObject({
+      success: false,
+      statusFetched: true,
+      matched: false,
+      recoveryRequired: true,
+    });
+    statusSpy.mockRestore();
+  });
+
+  it("POST reconcileRun resolves a fully matched execution and unlocks the run", async () => {
+    const run = makeRun("running") as any;
+    run.workflow = "spend";
+    run.projectId = "workspace-1";
+    run.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          transferExecutionId: "exec-resolve",
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000000000000000000",
+          chainId: 84532,
+        },
+      },
+    ];
+    await creRunStore.add(run);
+
+    const transactionHash = "0x" + "f".repeat(64);
+    const statusSpy = vi
+      .spyOn(keeperHubExecutionProvider, "getExecutionStatus")
+      .mockResolvedValue({
+        executionId: "exec-resolve",
+        status: "success",
+        transactionHash,
+        chainId: 84532,
+        receipts: [
+          {
+            hash: transactionHash,
+            chainId: 84532,
+            from: "0x1111111111111111111111111111111111111111",
+            to: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+            value: "1.0",
+            verified: true,
+            receiptStatus: "success",
+          },
+        ],
+      });
+
+    const controller = new CreController();
+    const req = makeReq({ params: { runId: run.runId } }) as any;
+    req.method = "POST";
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-1";
+    const res = new MockRes();
+    await controller.reconcileRun(req, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload).toMatchObject({
+      success: true,
+      resolved: true,
+      readOnly: false,
+      recoveryRequired: false,
+      run: { status: "completed", ok: true },
+    });
+    expect((await creRunStore.get(run.runId))?.status).toBe("completed");
+    statusSpy.mockRestore();
+  });
+
+  it("reconcileRun accepts a verified sponsored receipt with a relayer sender", async () => {
+    const run = makeRun("running") as any;
+    run.workflow = "spend";
+    run.projectId = "workspace-1";
+    run.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          transferExecutionId: "exec-sponsored",
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000",
+          chainId: 84532,
+        },
+      },
+    ];
+    await creRunStore.add(run);
+
+    const transactionHash = "0x" + "a".repeat(64);
+    const statusSpy = vi
+      .spyOn(keeperHubExecutionProvider, "getExecutionStatus")
+      .mockResolvedValue({
+        executionId: "exec-sponsored",
+        status: "completed",
+        transactionHash,
+        sponsored: true,
+        chainId: 84532,
+        receipts: [
+          {
+            hash: transactionHash,
+            chainId: 84532,
+            from: "0x9999999999999999999999999999999999999999",
+            to: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+            value: "0.000000000000001",
+            verified: true,
+            receiptStatus: "success",
+          },
+        ],
+      });
+
+    const controller = new CreController();
+    const req = makeReq({ params: { runId: run.runId } }) as any;
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-1";
+    const res = new MockRes();
+    await controller.reconcileRun(req, res as any);
+
+    expect(res.payload).toMatchObject({
+      success: true,
+      matched: true,
+      recoveryRequired: false,
+    });
+    statusSpy.mockRestore();
+  });
+
+  it("reconcileRun handles malformed provider hashes as recovery-required", async () => {
+    const run = makeRun("running") as any;
+    run.workflow = "spend";
+    run.projectId = "workspace-1";
+    run.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          transferExecutionId: "exec-malformed",
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000",
+          chainId: 84532,
+        },
+      },
+    ];
+    await creRunStore.add(run);
+
+    const statusSpy = vi
+      .spyOn(keeperHubExecutionProvider, "getExecutionStatus")
+      .mockResolvedValue({
+        executionId: "exec-malformed",
+        status: "completed",
+        transactionHash: "not-a-hash",
+        chainId: 84532,
+        receipts: [{ hash: "also-not-a-hash", verified: true, receiptStatus: "success" }],
+      });
+    const controller = new CreController();
+    const req = makeReq({ params: { runId: run.runId } }) as any;
+    req.userId = "operator-1";
+    req.workspaceId = "workspace-1";
+    const res = new MockRes();
+    await controller.reconcileRun(req, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload).toMatchObject({
+      success: false,
+      statusFetched: true,
+      matched: false,
+      recoveryRequired: true,
+    });
+    statusSpy.mockRestore();
   });
 
   it("streamRunEvents resumes from Last-Event-ID", async () => {

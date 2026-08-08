@@ -39,6 +39,23 @@ export interface KeeperHubSimulationResult {
   revertReason?: string;
 }
 
+export interface KeeperHubExecutionStatus {
+  executionId: string;
+  status?: string;
+  transactionHash?: string;
+  /** Legacy status responses may call this field txHash. */
+  txHash?: string;
+  transactionLink?: string;
+  sponsored?: boolean;
+  from?: string;
+  to?: string;
+  value?: string;
+  chainId?: number;
+  receipts?: KeeperHubReceipt[];
+  verified?: boolean;
+  receiptStatus?: string;
+}
+
 export interface KeeperHubTransferResult {
   /** Backwards-compatible alias for transactionHash. */
   txHash: string;
@@ -62,9 +79,9 @@ interface KeeperHubExecuteResponse {
   executionId?: string;
   status?: string;
   transactionHash?: string;
-  transactionLink?: string;
   /** Legacy/mock compatibility; real KeeperHub docs call this transactionHash. */
   txHash?: string;
+  transactionLink?: string;
   error?: string;
 }
 
@@ -95,6 +112,8 @@ type KeeperHubExecutionError = {
   error: string;
   /** Present when an execution was created but completion is uncertain. */
   executionId?: string;
+  /** Deterministic key used to make a lost broadcast response safe to investigate. */
+  idempotencyKey?: string;
   uncertain?: boolean;
 };
 
@@ -123,6 +142,39 @@ export class KeeperHubExecutionProvider {
   constructor(options: KeeperHubExecutionProviderOptions = {}) {
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
+  }
+
+  async getExecutionStatus(
+    executionId: string,
+  ): Promise<KeeperHubExecutionStatus | KeeperHubExecutionError> {
+    if (!keeperHubConfig.apiKey) {
+      return { error: 'KeeperHub API key is not configured' };
+    }
+    if (!executionId.trim()) {
+      return { error: 'KeeperHub executionId is required' };
+    }
+
+    try {
+      const res = await fetch(`${keeperHubConfig.baseUrl}/api/execute/${encodeURIComponent(executionId)}/status`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${keeperHubConfig.apiKey}` },
+      });
+      const data = await this.parseJson<KeeperHubExecutionStatus>(res);
+      if ('parseError' in data) return { error: data.parseError, uncertain: true };
+      if (!res.ok) {
+        return { error: `KeeperHub status request failed (${res.status})`, uncertain: true };
+      }
+      if (data.executionId !== executionId) {
+        return { error: 'KeeperHub status response executionId does not match the request', uncertain: true };
+      }
+      return {
+        ...data,
+        transactionHash: data.transactionHash || data.txHash,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { error: `KeeperHub status request failed: ${message}`, uncertain: true };
+    }
   }
 
   async executeTransfer(
@@ -222,23 +274,35 @@ export class KeeperHubExecutionProvider {
       });
 
       const data = await this.parseJson<KeeperHubExecuteResponse>(res);
-      if ('parseError' in data) return { error: data.parseError };
+      if ('parseError' in data) {
+        return { error: data.parseError, idempotencyKey, uncertain: true };
+      }
 
       if (!res.ok) {
         return {
           error: `KeeperHub execution request failed: ${data.error || res.statusText} (${res.status})`,
+          idempotencyKey,
+          uncertain: true,
         };
       }
 
       if (!data.executionId) {
-        return { error: 'KeeperHub response missing executionId' };
+        return {
+          error: 'KeeperHub response missing executionId; execution status is uncertain',
+          idempotencyKey,
+          uncertain: true,
+        };
       }
 
       logger.info(`KeeperHub execution created: ${data.executionId}`);
       return { executionId: data.executionId };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      return { error: `KeeperHub execution request failed: ${message}` };
+      return {
+        error: `KeeperHub execution request failed; execution status is uncertain: ${message}`,
+        idempotencyKey,
+        uncertain: true,
+      };
     }
   }
 
@@ -327,9 +391,22 @@ export class KeeperHubExecutionProvider {
 
           const expectedAmount = ethers.formatEther(params.valueWei);
           const receiptFrom = authoritativeReceipt.from || statusData.from || simulation.from;
-          if (!receiptFrom || receiptFrom.toLowerCase() !== params.from.toLowerCase()) {
+          const sponsored = statusData.sponsored === true;
+          // For direct executions, the on-chain sender must be the configured
+          // wallet. Sponsored executions may report KeeperHub's relayer as
+          // receipt.from; the read-only wallet binding above remains the
+          // provenance check, while KeeperHub's verified receipt is the
+          // authority for the relayed transaction.
+          if (!sponsored && (!receiptFrom || receiptFrom.toLowerCase() !== params.from.toLowerCase())) {
             return {
               error: 'KeeperHub receipt sender does not match the configured wallet',
+              executionId,
+              uncertain: true,
+            };
+          }
+          if (receiptFrom && !/^0x[0-9a-fA-F]{40}$/.test(receiptFrom)) {
+            return {
+              error: 'KeeperHub receipt sender is not a valid address',
               executionId,
               uncertain: true,
             };

@@ -9,6 +9,7 @@ import { creLedgerChain, hashRun } from '@backend/cre/persistence/CreLedgerChain
 import { CreRun } from '@backend/cre/types.js';
 import { translateCreEventToAgUi } from '@backend/cre/agUiTranslation.js';
 import { owsWalletService } from '@backend/services/blockchain/OwsWalletService.js';
+import { keeperHubExecutionProvider } from '@backend/services/blockchain/KeeperHubExecutionProvider.js';
 import { zeroGStorageService } from '@backend/services/blockchain/ZeroGStorageService.js';
 import { filecoinStorageService } from '@backend/services/blockchain/FilecoinStorageService.js';
 import {
@@ -71,6 +72,14 @@ function estimateTokenAndCost(stepCount: number, artifactCount: number) {
   return { estimatedTokens, estimatedCostUsd };
 }
 
+function hasExecutionUncertainty(run: CreRun): boolean {
+  return run.artifacts.some(
+    (artifact) =>
+      artifact.type === 'error' &&
+      (artifact.data as { status?: string }).status === 'execution_uncertain',
+  );
+}
+
 function normalizeRun(run: CreRun): CreRun {
   const status = run.status || (run.finishedAt ? (run.ok ? 'completed' : 'failed') : 'running');
   const retryCount = run.retryCount ?? 0;
@@ -83,6 +92,7 @@ function normalizeRun(run: CreRun): CreRun {
       ? Math.max(0, new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime())
       : undefined);
   const estimate = estimateTokenAndCost(stepCount, artifactCount);
+  const executionUncertain = hasExecutionUncertainty(run);
   const defaultPlan = {
     version: 1,
     updatedAt: new Date().toISOString(),
@@ -103,9 +113,11 @@ function normalizeRun(run: CreRun): CreRun {
     approvalState,
     plan: run.plan || defaultPlan,
     controls: {
-      canCancel: status === 'running' || status === 'queued',
-      canRetry: status === 'failed' || status === 'cancelled' || status === 'completed',
-      canApprove: status === 'paused_for_approval' || run.requiresApproval === true,
+      canCancel: !executionUncertain && (status === 'running' || status === 'queued'),
+      canRetry:
+        !executionUncertain &&
+        (status === 'failed' || status === 'cancelled' || status === 'completed'),
+      canApprove: !executionUncertain && (status === 'paused_for_approval' || run.requiresApproval === true),
     },
     metrics: {
       latencyMs,
@@ -376,6 +388,185 @@ export class CreController {
     }
   }
 
+  async reconcileRun(req: Request, res: Response) {
+    try {
+      if (!req.userId || !req.workspaceId) {
+        res.status(403).json({
+          success: false,
+          error: 'Operator authentication and workspace context are required.',
+        });
+        return;
+      }
+
+      const run = await creRunStore.get(req.params.runId);
+      if (!run) {
+        res.status(404).json({ success: false, error: 'Run not found' });
+        return;
+      }
+
+      const uncertainArtifact = run.artifacts.find(
+        (artifact) =>
+          artifact.type === 'error' &&
+          (artifact.data as { status?: string }).status === 'execution_uncertain',
+      );
+      if (!uncertainArtifact) {
+        res.status(409).json({
+          success: false,
+          error: 'Run does not require execution reconciliation',
+        });
+        return;
+      }
+
+      if (run.workflow !== 'spend') {
+        res.status(409).json({
+          success: false,
+          error: 'Only spend runs can require execution reconciliation',
+        });
+        return;
+      }
+      if (!run.projectId || run.projectId !== req.workspaceId) {
+        res.status(403).json({ success: false, error: 'Run does not belong to this workspace' });
+        return;
+      }
+
+      const data = uncertainArtifact.data as {
+        transferExecutionId?: string;
+        transferIdempotencyKey?: string;
+        expectedSender?: string;
+        expectedRecipient?: string;
+        expectedValueWei?: string;
+        chainId?: number;
+        status?: string;
+        recoveryRequired?: boolean;
+      };
+      if (!data.transferExecutionId) {
+        res.json({
+          success: false,
+          run: normalizeRun(run),
+          execution: null,
+          idempotencyKey: data.transferIdempotencyKey,
+          readOnly: true,
+          recoveryRequired: true,
+          message:
+            'No KeeperHub executionId was returned. Preserve the idempotency key and reconcile it through KeeperHub support or an approved provider lookup before retrying.',
+        });
+        return;
+      }
+
+      const execution = await keeperHubExecutionProvider.getExecutionStatus(
+        data.transferExecutionId,
+      );
+      const executionData =
+        'error' in execution || execution.executionId !== data.transferExecutionId
+          ? undefined
+          : execution;
+      const expectedChainId = data.chainId;
+      const expectedSender = data.expectedSender?.toLowerCase();
+      const transactionHash = executionData?.transactionHash;
+      const receipt = executionData?.receipts?.find(
+        (candidate) =>
+          typeof candidate.hash === 'string' &&
+          typeof transactionHash === 'string' &&
+          candidate.hash.toLowerCase() === transactionHash.toLowerCase(),
+      );
+      let valueMatches = false;
+      if (receipt?.value !== undefined && data.expectedValueWei !== undefined) {
+        try {
+          // KeeperHub receipt values are ETH-denominated strings; compare the
+          // canonical wei values so equivalent formats ("1", "1.0", or a
+          // precise decimal) cannot produce a false mismatch.
+          valueMatches = ethers.parseEther(receipt.value) === BigInt(data.expectedValueWei);
+        } catch {
+          valueMatches = false;
+        }
+      }
+      const receiptFrom = receipt?.from?.toLowerCase() || executionData?.from?.toLowerCase();
+      const senderMatches =
+        executionData?.sponsored === true
+          ? Boolean(receiptFrom && /^0x[0-9a-fA-F]{40}$/.test(receiptFrom))
+          : Boolean(expectedSender && receiptFrom === expectedSender);
+      const matched = Boolean(
+        executionData &&
+          receipt &&
+          transactionHash &&
+          /^0x[0-9a-fA-F]{64}$/.test(transactionHash) &&
+          (executionData.status?.toLowerCase() === 'completed' ||
+            executionData.status?.toLowerCase() === 'success') &&
+          typeof expectedChainId === 'number' &&
+          executionData.chainId === expectedChainId &&
+          receipt.chainId === expectedChainId &&
+          senderMatches &&
+          receipt.to?.toLowerCase() === data.expectedRecipient?.toLowerCase() &&
+          valueMatches &&
+          receipt.verified === true &&
+          receipt.receiptStatus?.toLowerCase() === 'success',
+      );
+      if (matched && req.method === 'POST') {
+        const resolvedAt = new Date().toISOString();
+        uncertainArtifact.data = {
+          ...(typeof uncertainArtifact.data === 'object' && uncertainArtifact.data !== null
+            ? uncertainArtifact.data
+            : {}),
+          status: 'execution_reconciled',
+          recoveryRequired: false,
+          resolvedAt,
+          resolvedBy: req.userId,
+          resolvedExecutionId: executionData?.executionId,
+          resolvedTransactionHash: transactionHash,
+          resolvedSender: receiptFrom,
+          resolvedRecipient: receipt?.to,
+          resolvedValue: receipt?.value,
+          resolvedChainId: receipt?.chainId,
+          resolvedSponsored: executionData?.sponsored === true,
+          resolvedVerified: receipt?.verified === true,
+          resolvedReceiptStatus: receipt?.receiptStatus,
+          resolvedReceipt: receipt,
+        };
+        run.status = 'completed';
+        run.ok = true;
+        run.finishedAt = resolvedAt;
+        run.requiresApproval = false;
+        run.approvalState = 'approved';
+        await pushRunEvent(run, {
+          type: 'run_finished',
+          payload: {
+            reason: 'execution_reconciled',
+            executionId: executionData?.executionId,
+            transactionHash,
+          },
+        });
+        const resolvedRun = normalizeRun(run);
+        await creRunStore.replace(resolvedRun);
+        res.json({
+          success: true,
+          statusFetched: true,
+          run: resolvedRun,
+          execution,
+          matched: true,
+          readOnly: false,
+          recoveryRequired: false,
+          resolved: true,
+        });
+        return;
+      }
+
+      res.json({
+        // `success` means the reconciliation proves the requested transfer;
+        // a reachable but pending/mismatched status is not a successful
+        // reconciliation and must remain recovery-required.
+        success: matched,
+        statusFetched: !('error' in execution),
+        run: normalizeRun(run),
+        execution,
+        matched,
+        readOnly: true,
+        recoveryRequired: !matched,
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: 'Failed to reconcile run' });
+    }
+  }
+
   async getRunEvents(req: Request, res: Response) {
     try {
       const run = await creRunStore.get(req.params.runId);
@@ -566,6 +757,14 @@ export class CreController {
         return;
       }
       const normalized = normalizeRun(run);
+      if (hasExecutionUncertainty(run)) {
+        res.status(409).json({
+          success: false,
+          error: 'Run requires execution reconciliation before it can be cancelled',
+          run: normalized,
+        });
+        return;
+      }
       if (!(normalized.status === 'running' || normalized.status === 'queued')) {
         res.status(409).json({
           success: false,
@@ -628,6 +827,14 @@ export class CreController {
       const run = await creRunStore.get(req.params.runId);
       if (!run) {
         res.status(404).json({ success: false, error: 'Run not found' });
+        return;
+      }
+      if (hasExecutionUncertainty(run)) {
+        res.status(409).json({
+          success: false,
+          error: 'Run requires execution reconciliation before it can be retried',
+          run: normalizeRun(run),
+        });
         return;
       }
       const original = normalizeRun(run);
@@ -705,6 +912,14 @@ export class CreController {
       const run = await creRunStore.get(req.params.runId);
       if (!run) {
         res.status(404).json({ success: false, error: 'Run not found' });
+        return;
+      }
+      if (hasExecutionUncertainty(run)) {
+        res.status(409).json({
+          success: false,
+          error: 'Run requires execution reconciliation before approval can change',
+          run: normalizeRun(run),
+        });
         return;
       }
       const normalized = normalizeRun(run);
@@ -894,6 +1109,14 @@ export class CreController {
       const run = await creRunStore.get(req.params.runId);
       if (!run) {
         res.status(404).json({ success: false, error: 'Run not found' });
+        return;
+      }
+      if (hasExecutionUncertainty(run)) {
+        res.status(409).json({
+          success: false,
+          error: 'Run requires execution reconciliation before its plan can be changed',
+          run: normalizeRun(run),
+        });
         return;
       }
       const normalized = normalizeRun(run);
