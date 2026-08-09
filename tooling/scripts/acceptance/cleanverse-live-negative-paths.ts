@@ -25,12 +25,14 @@
 const baseUrl = (
   process.env.CLEANVERSE_ACCEPTANCE_BASE_URL || 'https://api.cognivern.persidian.com'
 ).replace(/\/$/, '');
+// Defaults are the live demo pair (disposable Monad testnet wallet + Cleanverse
+// treasury). The negative fixture is a deliberately unregistered address.
 const negativeAddress =
   process.env.CLEANVERSE_NEGATIVE_ADDRESS || '0x3333333333333333333333333333333333333333';
 const demoSender =
-  process.env.CLEANVERSE_DEMO_SENDER || '0x1111111111111111111111111111111111111111';
+  process.env.CLEANVERSE_DEMO_SENDER || '0x2FeE0208c0d1598104f52fb55Dcc2811707c8879';
 const demoRecipient =
-  process.env.CLEANVERSE_DEMO_RECIPIENT || '0x2222222222222222222222222222222222222222';
+  process.env.CLEANVERSE_DEMO_RECIPIENT || '0x0cBAEF799662f1df638B1ef1Ae74eCb24Fd9bA56';
 
 function assertFixtureAddress(name: string, address: string): void {
   assert(
