@@ -114,7 +114,9 @@ export class CleanverseExecutionProvider {
       amount: request.amount,
       rpcUrl: cleanverseConfig.monadRpcUrl,
       chainId,
-      gasLimit: 120_000,
+      // aUSDC on Monad is a minimal proxy (delegatecall), so a real transfer
+      // costs ~300k gas — 120k was burning the full limit and reverting.
+      gasLimit: 400_000,
     });
 
     if ("error" in broadcast) {

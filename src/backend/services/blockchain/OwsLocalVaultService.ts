@@ -557,7 +557,7 @@ export class OwsLocalVaultService {
           wallet,
         );
         const tx = await token.transfer(params.to, params.amount, {
-          gasLimit: params.gasLimit ?? 120_000,
+          gasLimit: params.gasLimit ?? 400_000,
         });
         const receipt =
           await withTimeout<ethers.TransactionReceipt | null>(
