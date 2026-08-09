@@ -137,8 +137,9 @@ can run. Both sender and recipient need active A-Passes.
 5. Capital → statement shows Cleanverse-verified share; allocation holds if settlement gaps.
 
 _(The rail, country rule, and disposable MON-funded demo wallet are configured, and
-the first real CVA transaction is recorded: 1.00 aUSDC settled from the demo wallet
-to 0x0cBA…bA56 on Monad testnet (tx 0x97d174da…3acec, receipt verified).)_
+two real CVA transactions are recorded: 1.00 aUSDC (tx `0x97d174da…3acec`) and
+5.00 aUSDC (tx `0x55b155bf…7dd37`) settled from the demo wallet to
+`0x0cBA…bA56` on Monad testnet; both receipts verified on-chain.)_
 
 > **Gas note:** Access USDC/aUSDC on Monad is a minimal proxy whose `transfer`
 > costs ~300k+ gas. `CleanverseExecutionProvider` and `OwsLocalVaultService` use
@@ -168,5 +169,5 @@ to 0x0cBA…bA56 on Monad testnet (tx 0x97d174da…3acec, receipt verified).)_
 - [x] Live demo URL reachable (rail live + armed; `/api/cleanverse/status` → `enabled: true`)
 - [x] Read-only negative-path acceptance smoke run (fixture validation + unregistered denial + US-tagged demo pass; deterministic frozen/expired/country/outage cases remain in unit coverage)
 - [x] Disposable Monad demo wallet created and MON-funded
-- [x] Access USDC supplied and CVA transaction recorded (1.00 aUSDC, tx `0x97d174da…3acec`, run `5a51a150…`)
+- [x] Access USDC supplied and CVA transaction recorded (1.00 aUSDC tx `0x97d174da…3acec` run `5a51a150…`; 5.00 aUSDC tx `0x55b155bf…7dd37` run `e7431c75…`)
 - [ ] Email to isaac@cleanverse.com by Aug 9 23:59 UTC
