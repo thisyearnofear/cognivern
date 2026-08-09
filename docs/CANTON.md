@@ -1,5 +1,7 @@
 # Canton Backend
 
+> **Status (Aug 9 2026):** HackCanton S2 has **concluded**. The Canton **DevNet backend stays live** and the sealed-bid path is unchanged. The team plans to **re-apply for the next HackCanton round in September**. Canton is not the current active hackathon target (Flare Summer Signal is — see `docs/FLARE_SUMMER_SIGNAL.md`); keep Canton working but do not gate new work on it.
+
 Cognivern's sealed-bid vendor selection runs on a pluggable backend interface. The **Canton** backend uses a Daml sandbox to give sealed-bid auctions structural sub-transaction privacy and atomic multi-party reveal — capabilities the FHE backend can't provide.
 
 ## Why Canton

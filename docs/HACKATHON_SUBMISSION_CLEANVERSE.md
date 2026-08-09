@@ -1,5 +1,10 @@
 # Cleanverse Build — Trusted Assets Hackathon — Cognivern Submission
 
+> **⚠️ SUBMISSION DUE TODAY (Aug 9, ~23:59 UTC) — a few hours left.**
+> This is the active shipping target. Finish any outstanding checklist items, record the
+> demo video, and email isaac@cleanverse.com before the deadline. Flare Summer Signal is the
+> next priority and must **not** block this.
+
 **Hackathon:** Cleanverse Build: Trusted Assets (supported by Monad Foundation)  
 **Track:** Track 2 — DeFi (CVI and/or CVA in core flow)  
 **Window:** 2026-08-08 00:00 – 2026-08-09 23:59 UTC  

@@ -41,3 +41,9 @@ references break.
 
 Verify the running system before claiming it is broken. Read the existing docs first.
 A wrong "it's broken" diagnosis wastes far more than the two minutes it takes to check.
+
+## Hackathon state (Aug 9 2026)
+
+- **Cleanverse Build: Trusted Assets** — submission **due today Aug 9 ~23:59 UTC**. Active shipping target now.
+- **HackCanton S2** — **concluded**. The **Canton DevNet backend stays live** (see `docs/CANTON.md`), but the next HackCanton round is planned for **September**.
+- **Flare Summer Signal** — **now a top priority, additive**. See `docs/FLARE_SUMMER_SIGNAL.md`. Target Bounty 2 (Confidential Compute); must not regress the live Cleanverse rail or the Canton DevNet path.
