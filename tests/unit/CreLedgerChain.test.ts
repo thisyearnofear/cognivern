@@ -104,4 +104,20 @@ describe("CreLedgerChain", () => {
     expect(result.valid).toBe(true);
     expect(result.entries).toBe(20);
   });
+
+  it("a second instance continues from the true file tail (cross-process writers)", async () => {
+    // Simulates another process (pm2 server vs ops script) sharing the file:
+    // its own instance must append after the existing entries, not restart
+    // its sequence from genesis.
+    await chain.record("add", makeRun("run-1"));
+    await chain.record("replace", makeRun("run-1"));
+    const second = new CreLedgerChain({ filePath: ledgerFile });
+    await second.record("add", makeRun("run-2"));
+    await chain.record("add", makeRun("run-3"));
+    const result = await chain.verify();
+    expect(result.valid).toBe(true);
+    expect(result.entries).toBe(4);
+    const hashes = await chain.latestRunHashes();
+    expect(hashes.has("run-2")).toBe(true);
+  });
 });

@@ -55,7 +55,6 @@ export function hashRun(run: CreRun): string {
  */
 export class CreLedgerChain {
   private filePath: string;
-  private tail: { seq: number; hash: string } | undefined;
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(params: { filePath?: string } = {}) {
@@ -92,13 +91,16 @@ export class CreLedgerChain {
   }
 
   private async loadTail(): Promise<{ seq: number; hash: string }> {
-    if (this.tail) return this.tail;
+    // Always read the true tail from disk: the in-memory cache went stale the
+    // moment another process appended (the pm2 server and ops scripts share
+    // this file), which caused duplicate seq numbers and broken prevHash
+    // chains. The file is tiny, so re-reading per append is cheap. The
+    // per-instance queue still serializes appends within this process.
     const entries = await this.readEntries();
     const last = entries[entries.length - 1];
-    this.tail = last
+    return last
       ? { seq: last.seq, hash: last.entryHash }
       : { seq: 0, hash: GENESIS_HASH };
-    return this.tail;
   }
 
   async record(op: CreLedgerOp, run?: CreRun): Promise<CreLedgerEntry> {
@@ -124,7 +126,6 @@ export class CreLedgerChain {
         `${JSON.stringify(entry)}\n`,
         "utf8",
       );
-      this.tail = { seq: entry.seq, hash: entry.entryHash };
       return entry;
     });
   }
