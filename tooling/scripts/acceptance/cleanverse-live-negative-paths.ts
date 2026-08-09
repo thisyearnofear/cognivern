@@ -7,6 +7,10 @@
  *   2. a known unregistered sender is denied fail-closed;
  *   3. the two known US-tagged demo A-Passes pass together.
  *
+ * This is intentionally a smoke subset, not the full negative-path matrix. Frozen,
+ * expired, missing-country, country-deny, and upstream-outage cases are covered by
+ * deterministic unit tests. Fixture mismatches fail with a stale-fixture diagnostic.
+ *
  * Usage:
  *   pnpm tsx tooling/scripts/acceptance/cleanverse-live-negative-paths.ts
  *
@@ -28,6 +32,13 @@ const demoSender =
 const demoRecipient =
   process.env.CLEANVERSE_DEMO_RECIPIENT || '0x2222222222222222222222222222222222222222';
 
+function assertFixtureAddress(name: string, address: string): void {
+  assert(
+    /^0x[a-fA-F0-9]{40}$/.test(address),
+    `fixture ${name} is a valid EVM address (stale or malformed fixture)`,
+  );
+}
+
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
     throw new Error(`FAIL: ${message}`);
@@ -42,17 +53,32 @@ async function getJson(path: string): Promise<any> {
   return body;
 }
 
-async function screen(sender: string, recipient: string): Promise<any> {
+async function screen(sender: string, recipient: string, fixtureName: string): Promise<any> {
   const response = await fetch(`${baseUrl}/api/cleanverse/screen`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sender, recipient }),
   });
   const body = await response.json();
-  assert(response.ok, `screen ${sender} → ${recipient} returned HTTP ${response.status}`);
-  assert(body.success === true, 'screen response envelope is successful');
+  assert(
+    response.ok,
+    `${fixtureName} screen returned HTTP ${response.status}; fixture may be stale`,
+  );
+  assert(
+    body.success === true,
+    `${fixtureName} screen response envelope is successful; fixture may be stale`,
+  );
   return body.data;
 }
+
+assertFixtureAddress('negative sender', negativeAddress);
+assertFixtureAddress('demo sender', demoSender);
+assertFixtureAddress('demo recipient', demoRecipient);
+assert(
+  new Set([negativeAddress.toLowerCase(), demoSender.toLowerCase(), demoRecipient.toLowerCase()])
+    .size === 3,
+  'acceptance fixtures are distinct; stale fixture configuration detected',
+);
 
 const status = await getJson('/api/cleanverse/status');
 const config = status.data;
@@ -64,21 +90,31 @@ assert(
   'country allowlist includes US',
 );
 
-const denied = await screen(negativeAddress, demoRecipient);
-assert(denied.ok === false, 'unregistered sender is denied fail-closed');
+const denied = await screen(negativeAddress, demoRecipient, 'negative sender');
 assert(
-  typeof denied.reason === 'string' && /A-Pass|apass|CVI|CN_001/i.test(denied.reason),
-  'unregistered sender denial has an identity-screening reason',
+  denied.ok === false,
+  'negative sender is denied fail-closed; a passing result indicates a stale fixture',
+);
+assert(
+  typeof denied.reason === 'string' &&
+    /CN_001|not registered|not found|unregistered/i.test(denied.reason),
+  'negative sender is specifically unregistered; stale fixture if this fails',
 );
 
-const passing = await screen(demoSender, demoRecipient);
-assert(passing.ok === true, 'known demo pair passes CVI screening');
-assert(passing.sender?.aPass?.status === 1, 'demo sender A-Pass is active');
-assert(passing.recipient?.aPass?.status === 1, 'demo recipient A-Pass is active');
+const passing = await screen(demoSender, demoRecipient, 'demo pair');
+assert(passing.ok === true, 'known demo pair passes CVI screening; stale fixture if this fails');
+assert(
+  passing.sender?.aPass?.status === 1,
+  'demo sender A-Pass is active; stale fixture if this fails',
+);
+assert(
+  passing.recipient?.aPass?.status === 1,
+  'demo recipient A-Pass is active; stale fixture if this fails',
+);
 assert(
   passing.sender?.aPass?.countries?.includes('US') &&
     passing.recipient?.aPass?.countries?.includes('US'),
-  'both demo A-Passes carry the allowed US country tag',
+  'both demo A-Passes carry the allowed US country tag; stale fixture if this fails',
 );
 
 console.log('\nCleanverse live negative-path acceptance passed (read-only).');

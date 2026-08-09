@@ -25,6 +25,32 @@ vi.mock('@backend/services/governance/PolicyService.js', () => ({
   },
 }));
 
+vi.mock('mongodb', () => ({
+  MongoClient: class {
+    async connect(): Promise<void> {
+      throw new Error('MongoDB offline');
+    }
+  },
+}));
+
+vi.mock('viem', () => ({
+  createPublicClient: vi.fn(() => ({
+    getBlockNumber: vi.fn().mockRejectedValue(new Error('Fhenix offline')),
+  })),
+  http: vi.fn(),
+}));
+
+vi.mock('viem/chains', () => ({
+  arbitrumSepolia: { id: 421614 },
+}));
+
+vi.mock('@backend/services/blockchain/FheDecisionWatcher.js', () => ({
+  sharedFheDecisionWatcher: {
+    isRunning: vi.fn(() => false),
+    getPendingCount: vi.fn(() => 0),
+  },
+}));
+
 const { HealthController } = await import(
   '../../src/backend/modules/api/controllers/HealthController.js'
 );
@@ -34,6 +60,7 @@ const OPTIONAL_ENV_KEYS = [
   'FHENIX_RPC_URL',
   'FHENIX_PRIVATE_KEY',
   'FILECOIN_PRIVATE_KEY',
+  'FILECOIN_RPC_URL',
   'ZEROG_PRIVATE_KEY',
   'FHE_WATCHER_ENABLED',
   'ZEROG_INDEXER_URL',
@@ -143,7 +170,18 @@ describe('HealthController', () => {
       await controller.getHealth(mockReq({ deep: 'true' }), res);
       const body = res.json.mock.calls[0][0];
       expect(body.status).toBe('ok');
-      expect(body.message).toBe('All dependencies healthy');
+      expect(body.message).toBe(
+        'Required dependencies healthy; one or more optional integrations disabled',
+      );
+      expect(body.optionalDegraded).toBe(false);
+      expect(body.dependencies).toContainEqual(
+        expect.objectContaining({
+          name: 'control_evaluation',
+          status: 'healthy',
+          optional: true,
+          disabled: true,
+        }),
+      );
     });
 
     it('reports degraded when a dependency is unhealthy', async () => {
@@ -172,6 +210,93 @@ describe('HealthController', () => {
       const notifCheck = body.dependencies.find((d: any) => d.name === 'notifications_table');
       expect(notifCheck.status).toBe('unhealthy');
       expect(notifCheck.error).toBe('notifications table not found');
+    });
+
+    it('marks configured MongoDB as optional when it is unhealthy', async () => {
+      process.env.MONGODB_URI = 'mongodb://offline.test:27017';
+      mockPrepare.mockReturnValue({
+        get: vi.fn().mockReturnValue({ name: 'notifications' }),
+      });
+
+      const res = mockRes();
+      await controller.getHealth(mockReq({ deep: 'true' }), res);
+      const body = res.json.mock.calls[0][0];
+      expect(body.status).toBe('ok');
+      expect(body.optionalDegraded).toBe(true);
+      expect(body.dependencies).toContainEqual(
+        expect.objectContaining({
+          name: 'mongodb',
+          status: 'unhealthy',
+          optional: true,
+          error: 'MongoDB offline',
+        }),
+      );
+    });
+
+    it('marks configured Filecoin as optional when it is unhealthy', async () => {
+      process.env.FILECOIN_PRIVATE_KEY = 'configured-for-test';
+      process.env.FILECOIN_RPC_URL = 'https://filecoin.invalid/rpc';
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+      mockPrepare.mockReturnValue({
+        get: vi.fn().mockReturnValue({ name: 'notifications' }),
+      });
+
+      const res = mockRes();
+      await controller.getHealth(mockReq({ deep: 'true' }), res);
+      const body = res.json.mock.calls[0][0];
+      expect(body.status).toBe('ok');
+      expect(body.optionalDegraded).toBe(true);
+      expect(body.dependencies).toContainEqual(
+        expect.objectContaining({
+          name: 'filecoin_rpc',
+          status: 'unhealthy',
+          optional: true,
+          error: 'HTTP 503',
+        }),
+      );
+      vi.unstubAllGlobals();
+    });
+
+    it('marks configured Fhenix as optional when it is unhealthy', async () => {
+      process.env.FHENIX_RPC_URL = 'https://fhenix.invalid/rpc';
+      process.env.FHENIX_PRIVATE_KEY = 'configured-for-test';
+      mockPrepare.mockReturnValue({
+        get: vi.fn().mockReturnValue({ name: 'notifications' }),
+      });
+
+      const res = mockRes();
+      await controller.getHealth(mockReq({ deep: 'true' }), res);
+      const body = res.json.mock.calls[0][0];
+      expect(body.status).toBe('ok');
+      expect(body.optionalDegraded).toBe(true);
+      expect(body.dependencies).toContainEqual(
+        expect.objectContaining({
+          name: 'fhenix_client',
+          status: 'unhealthy',
+          optional: true,
+          error: 'Fhenix offline',
+        }),
+      );
+    });
+
+    it('marks an enabled FHE watcher as optional when it is not running', async () => {
+      process.env.FHE_WATCHER_ENABLED = 'true';
+      mockPrepare.mockReturnValue({
+        get: vi.fn().mockReturnValue({ name: 'notifications' }),
+      });
+
+      const res = mockRes();
+      await controller.getHealth(mockReq({ deep: 'true' }), res);
+      const body = res.json.mock.calls[0][0];
+      expect(body.status).toBe('ok');
+      expect(body.optionalDegraded).toBe(true);
+      expect(body.dependencies).toContainEqual(
+        expect.objectContaining({
+          name: 'fhe_watcher',
+          status: 'unhealthy',
+          optional: true,
+        }),
+      );
     });
 
     it('keeps core health ok when an optional 0G indexer is degraded', async () => {

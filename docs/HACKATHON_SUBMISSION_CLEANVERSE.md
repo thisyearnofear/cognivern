@@ -102,7 +102,7 @@ pnpm frontend     # UI → /verified-capital
 # Smoke (mock Cleanverse HTTP, no credentials required)
 pnpm tsx tooling/scripts/demo/test-cleanverse-spend.ts
 
-# Live read-only acceptance smoke subset: status + unregistered denial + demo pass
+# Live read-only acceptance smoke subset: fixture validation + status + denial + demo pass
 pnpm tsx tooling/scripts/acceptance/cleanverse-live-negative-paths.ts
 
 # Unit tests
@@ -156,7 +156,7 @@ run yet.)_
 - [ ] Demo video recorded
 - [ ] This one-pager attached / linked
 - [x] Live demo URL reachable (rail live + armed; `/api/cleanverse/status` → `enabled: true`)
-- [x] Read-only negative-path acceptance smoke run (unregistered denial + US-tagged demo pass; deterministic frozen/expired/country/outage cases remain in unit coverage)
+- [x] Read-only negative-path acceptance smoke run (fixture validation + unregistered denial + US-tagged demo pass; deterministic frozen/expired/country/outage cases remain in unit coverage)
 - [x] Disposable Monad demo wallet created and MON-funded
 - [ ] aUSD-D supplied and CVA transaction recorded
 - [ ] Email to isaac@cleanverse.com by Aug 9 23:59 UTC

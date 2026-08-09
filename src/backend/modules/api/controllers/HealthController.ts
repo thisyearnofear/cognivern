@@ -16,6 +16,8 @@ export interface DependencyCheck {
   error?: string;
   /** Optional integrations are reported without taking core readiness down. */
   optional?: boolean;
+  /** Optional checks that are intentionally disabled, rather than unhealthy. */
+  disabled?: boolean;
 }
 
 export class HealthController {
@@ -41,6 +43,7 @@ export class HealthController {
       const optionalDegraded = dependencies.some(
         (d) => d.optional === true && d.status === 'unhealthy',
       );
+      const optionalDisabled = dependencies.some((d) => d.optional === true && d.disabled === true);
       response.dependencies = dependencies;
       response.optionalDegraded = optionalDegraded;
       response.status = coreHealthy ? 'ok' : 'degraded';
@@ -48,7 +51,9 @@ export class HealthController {
         ? 'One or more required dependencies unhealthy'
         : optionalDegraded
           ? 'Core dependencies healthy; one or more optional integrations degraded'
-          : 'All dependencies healthy';
+          : optionalDisabled
+            ? 'Required dependencies healthy; one or more optional integrations disabled'
+            : 'All dependencies healthy';
     }
 
     res.json(response);
@@ -421,13 +426,18 @@ export class HealthController {
   }
 
   private checkControlEvaluation(): DependencyCheck {
+    const enabled = process.env.CONTROL_EVAL_MODE === 'true';
     return {
       name: 'control_evaluation',
-      status: process.env.CONTROL_EVAL_MODE === 'true' ? 'healthy' : 'healthy',
+      status: 'healthy',
       latencyMs: 0,
-      ...(process.env.CONTROL_EVAL_MODE === 'true'
+      optional: true,
+      ...(enabled
         ? {}
-        : { error: 'disabled (CONTROL_EVAL_MODE != true)' }),
+        : {
+            disabled: true,
+            error: 'disabled (CONTROL_EVAL_MODE != true)',
+          }),
     };
   }
 

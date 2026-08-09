@@ -608,9 +608,12 @@ The current disposable Monad testnet demo wallet is
 `executionProvider: "cleanverse"`, `chainId: 10143`, and must never have its
 private key committed or shared. The configured aUSD-D contract is
 `0xbD14cFAf1Fb8b08858E3FfcCeffEfe09cC013892` with 6 decimals.
-Product UI: `/verified-capital`. The read-only live acceptance check is
-`tooling/scripts/acceptance/cleanverse-live-negative-paths.ts`; it verifies the
-active country rule, an unregistered-address denial, and the known demo pair.
+Product UI: `/verified-capital`. The read-only live acceptance smoke subset is
+`tooling/scripts/acceptance/cleanverse-live-negative-paths.ts`; it validates EVM
+fixture shape, the active country rule, an unregistered-address denial, and the
+known demo pair. Stale or inactive fixtures fail with an explicit diagnostic.
+Frozen, expired, missing-country, country-deny, and outage cases remain
+hermetic deterministic unit coverage rather than live mutations.
 See [HACKATHON_SUBMISSION_CLEANVERSE.md](./HACKATHON_SUBMISSION_CLEANVERSE.md).
 
 ### Audit & Run Ledger
@@ -703,15 +706,18 @@ The write-verify-fix loop caught production issues during the build window; see 
 
 - `GET /health` is the core liveness probe.
 - `GET /health?deep=true` reports required dependencies separately from optional
-  integrations. An unavailable optional 0G Storage indexer remains visible as an
-  `optional: true` degraded dependency without taking core API health down;
-  `optionalDegraded: true` is the machine-readable signal.
+  integrations. An unavailable optional MongoDB, Filecoin, Fhenix, FHE watcher,
+  or 0G Storage integration remains visible as an `optional: true` degraded
+  dependency without taking core API health down; `optionalDegraded: true` is
+  the machine-readable signal. Intentionally disabled optional checks are marked
+  `disabled: true` and do not count as degraded.
 - `GET /health/slo` is intentionally unauthenticated so an external monitor can
   collect route latency/error metrics without production workspace credentials.
   It exposes operational route metrics only and is protected by the application's
-  dedicated `/health/slo` rate limiter (an upstream edge limiter may be added as
-  defense in depth). The generic deployment guide should use `/health/slo`, not
-  `/api/health/slo`.
+  dedicated `/health/slo` rate limiter (`HEALTH_SLO_RATE_LIMIT_PER_MINUTE`, 60/min
+  by default). The separately mounted `/api/health/slo` route uses the general
+  `/api/` limiter and therefore has a separate budget. An upstream edge limiter
+  may be added as defense in depth.
 - Configure `SLACK_WEBHOOK_URL` or `PAGERDUTY_ROUTING_KEY` to forward critical
   denied/flagged governance decisions to an operator alert sink.
 
