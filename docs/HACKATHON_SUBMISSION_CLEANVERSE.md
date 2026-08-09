@@ -20,15 +20,17 @@ Autonomous agents can move on-chain value, but institutional and compliant capit
 
 Cognivern is the economic control plane for agentic work. For this hackathon we make Cleanverse **core** to the governed spend loop:
 
-1. **CVI (A-Pass)** — before policy approval, sender and recipient wallets are screened via `query_apass` (fail-closed on missing / blacklisted / paused / frozen).
-2. **CVA (aUSD-D)** — approved spends with `executionProvider: "cleanverse"` call `verify_apass`, then broadcast an ERC-20 aUSD-D transfer on **Monad testnet (chain 10143)**.
-3. Evidence — `cleanverse_apass` CRE artifact + transfer receipt / MonadScan link in the run ledger.
+1. **CVI (A-Pass)** — before policy approval, sender and recipient wallets are screened via `query_apass` (fail-closed on missing / blacklisted / paused / frozen) against the documented v5.x contract (string `"0000"` envelope, payload in `data`, integer status 1/2, numeric tiers).
+2. **Country compliance** — an institutional allow/deny rule on A-Pass country tags (v5.5): `CLEANVERSE_ALLOW_COUNTRIES` whitelists both parties (fail-closed when a tag is missing), `CLEANVERSE_BLOCK_COUNTRIES` denies blocked tags. A configured rule is a hard deny gate alongside the tier buckets.
+3. **CVA (aUSD-D)** — approved spends with `executionProvider: "cleanverse"` call `verify_apass`, then broadcast an ERC-20 aUSD-D transfer on **Monad testnet (chain 10143)**.
+4. Evidence — `cleanverse_apass` CRE artifact + transfer receipt / MonadScan link in the run ledger.
 
 ### CVI · CVA integration points
 
 | Stage | Primitive | Where |
 | --- | --- | --- |
 | Pre-policy gate | CVI `POST /query_apass` | `OwsWalletService.executeSpend` → `CleanverseIdentityService.screenAddresses` |
+| Country compliance | A-Pass country tags (v5.5) | `deriveCleanversePolicySignals` → deny `cleanverse-country-rule` |
 | Settlement eligibility | CVA `POST /verify_apass` | `CleanverseExecutionProvider.executeTransfer` |
 | Value movement | aUSD-D ERC-20 `transfer` | Local vault signer → Monad RPC |
 | Operator UX | Status + screen API | `GET /api/cleanverse/status`, `POST /api/cleanverse/screen`, `/verified-capital` |
@@ -44,7 +46,12 @@ Cognivern is the economic control plane for agentic work. For this hackathon we 
 
 - Product: https://cognivern.persidian.com/verified-capital  
 - API status: `GET https://api.cognivern.persidian.com/api/cleanverse/status`  
-- Spend status (includes `cleanverse.enabled`): `GET …/api/spend/status`
+- Spend status (includes `cleanverse.enabled` + `countryRule`): `GET …/api/spend/status`
+
+**Rail status (Aug 9):** live and armed on Hetzner — `/api/cleanverse/status`
+returns `enabled: true`, `apiConfigured: true` (Monad `10143`, aUSD-D
+`0xbD14…3892`). The demo A-Pass accounts (cvRecordId 373/374, tier 50, US)
+screen as verified against the real UAT API.
 
 ---
 
@@ -58,6 +65,7 @@ OwsWalletService.executeSpend
     │  source-auth
     │  mandate settlement (allowedAssets / chain / requireVerifiedSettlement)
     │  CVI screen (A-Pass) ── deny if fail
+    │  country allow/deny (A-Pass tags) ── deny if non-compliant
     │  derive tier → amlCapUsd / reviewAboveUsd / travelRule → policy metadata
     │  policy evaluation (Cleanverse AML + tier review rules)
     ▼
@@ -81,6 +89,9 @@ Capital statement: cleanverseVerifiedShareOfConsumed → allocation hold if gaps
 CLEANVERSE_API_ID=…
 CLEANVERSE_API_KEY=…
 CLEANVERSE_API_URL=https://uatapi.cleanverse.com/api/cooperate
+# Optional institutional country rule on A-Pass tags (v5.5):
+# CLEANVERSE_ALLOW_COUNTRIES=US,SG   # whitelist — both parties must hold a tag
+# CLEANVERSE_BLOCK_COUNTRIES=RU,KP   # blacklist — denies blocked tags (wins if both set)
 MONAD_RPC_URL=https://testnet-rpc.monad.xyz
 MONAD_CHAIN_ID=10143
 
@@ -107,7 +118,8 @@ Configure a wallet in **Settings → Wallets**: execution provider `Cleanverse (
 4. **Execute CVA spend** with OWS scoped key — CRE run + MonadScan tx.
 5. Capital → statement shows Cleanverse-verified share; allocation holds if settlement gaps.
 
-*(Record after live credentials + funded Monad wallet are in place.)*
+*(Live credentials are in place and the rail is armed; record once a funded
+Monad wallet (MON gas + aUSD-D) is configured.)*
 
 ---
 
@@ -129,5 +141,5 @@ Configure a wallet in **Settings → Wallets**: execution provider `Cleanverse (
 - [ ] Public GitHub commits during Aug 8–9 UTC
 - [ ] Demo video recorded
 - [ ] This one-pager attached / linked
-- [ ] Live demo URL reachable
+- [x] Live demo URL reachable (rail live + armed; `/api/cleanverse/status` → `enabled: true`)
 - [ ] Email to isaac@cleanverse.com by Aug 9 23:59 UTC

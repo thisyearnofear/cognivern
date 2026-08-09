@@ -28,6 +28,7 @@ export class CleanverseController {
         aTokenDecimals: cleanverseConfig.aTokenDecimals,
         gateAllSpends: cleanverseConfig.gateAllSpends,
         apiConfigured: Boolean(cleanverseConfig.apiId && cleanverseConfig.apiKey),
+        countryRule: cleanverseConfig.countryRule,
       },
       timestamp: new Date().toISOString(),
     });

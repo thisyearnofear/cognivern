@@ -290,6 +290,18 @@ export class OwsWalletService {
             access,
           );
         }
+        // Institutional country rule (allow/block on A-Pass country tags) is
+        // a hard compliance gate, alongside the tier buckets.
+        if (policySignals && !policySignals.countryCompliant) {
+          return await this.handleDeny(
+            intent,
+            recorder,
+            policySignals.countryDenyReason || 'Cleanverse country compliance rule failed',
+            [],
+            'cleanverse-country-rule',
+            access,
+          );
+        }
       }
 
       // Mandates that require verified settlement must run on the Cleanverse rail.
@@ -991,6 +1003,37 @@ export class OwsWalletService {
       };
     }
 
+    // Re-assert the country compliance gate on resume: the CVI screen ran at
+    // hold time, but an institutional allow/block list may have been
+    // configured (or tightened) since. The verdict is persisted on the
+    // cleanverse_apass artifact (the spend_intent artifact is snapshotted
+    // before screening); fall back to intent metadata for legacy runs.
+    const cleanverseArtifact = heldRun.artifacts.find(
+      (a) => a.type === 'cleanverse_apass',
+    );
+    const persistedSignals = (
+      cleanverseArtifact?.data as
+        | { policySignals?: Record<string, unknown> }
+        | undefined
+    )?.policySignals;
+    const heldCleanverse = intent.metadata?.cleanverse as
+      | Record<string, unknown>
+      | undefined;
+    const countryCompliant =
+      persistedSignals?.countryCompliant !== undefined
+        ? persistedSignals.countryCompliant
+        : heldCleanverse?.countryCompliant;
+    if (countryCompliant === false) {
+      const reason =
+        (typeof persistedSignals?.countryDenyReason === 'string'
+          ? persistedSignals.countryDenyReason
+          : typeof heldCleanverse?.countryDenyReason === 'string'
+            ? heldCleanverse.countryDenyReason
+            : 'Cleanverse country compliance rule failed') +
+        ' (held run re-checked on resume)';
+      return { intentId: intent.id, status: 'denied', error: reason };
+    }
+
     // handleHold persisted walletId/policyId on the "error" (held) artifact.
     const heldArtifact = heldRun.artifacts.find((a) => a.type === 'error');
     const heldData = (heldArtifact?.data as Record<string, unknown>) || {};
@@ -1248,6 +1291,11 @@ export class OwsWalletService {
             travelRuleRequired: cleanverse?.travelRuleRequired === true,
             riskTier:
               typeof cleanverse?.riskTier === 'string' ? cleanverse.riskTier : undefined,
+            countryRule:
+              typeof cleanverse?.countryRule === 'string'
+                ? cleanverse.countryRule
+                : undefined,
+            countryCompliant: cleanverse?.countryCompliant === true,
             verifiedSettlement: params.provider === 'cleanverse' && params.status === 'consumed',
           }
         : undefined;
@@ -1518,6 +1566,7 @@ export class OwsWalletService {
         aTokenAddress: cleanverseConfig.aTokenAddress,
         aTokenSymbol: cleanverseConfig.aTokenSymbol,
         gateAllSpends: cleanverseConfig.gateAllSpends,
+        countryRule: cleanverseConfig.countryRule,
       },
       features: [
         'encrypted-local-wallet-storage',
@@ -1649,6 +1698,17 @@ export class OwsWalletService {
             wouldExecute: false,
             warnings: [cleanverseScreening.reason || 'CVI screening failed'],
           },
+          cleanverse: cleanverseMeta,
+        };
+      }
+      if (policySignals && !policySignals.countryCompliant) {
+        const reason =
+          policySignals.countryDenyReason || 'Cleanverse country compliance rule failed';
+        return {
+          intentId: intent.id,
+          status: 'denied',
+          reason,
+          simulation: { wouldExecute: false, warnings: [reason] },
           cleanverse: cleanverseMeta,
         };
       }

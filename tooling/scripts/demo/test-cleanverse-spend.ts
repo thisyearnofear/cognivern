@@ -19,12 +19,21 @@ process.env.CLEANVERSE_API_KEY = Buffer.alloc(16, 9).toString('base64');
 process.env.CLEANVERSE_API_URL = MOCK_URL;
 process.env.CLEANVERSE_CHAIN = 'monad';
 
+// Documented query_apass data payload (v5.x contract): status is 1=active,
+// tier is a numeric string (higher = more vetted), expirationTime in unix seconds.
 const PASSING = {
+  cvRecordId: '487',
+  customerId: 'CUST123456789012',
   chain: 'monad',
   address: '0x1111111111111111111111111111111111111111',
-  status: 'ACTIVE',
-  tier: 'TIER_1',
+  status: 1,
+  tier: '26',
+  subTier: 1,
   group: 'CLEANVERSE_USER',
+  subGroup: 'AB',
+  countries: ['SG', 'US'],
+  expirationTime: Math.floor(Date.now() / 1000) + 86400 * 365,
+  currentKycHash: '3557683c1e62fb7dc8ef438e81cb4ffd',
   isPaused: false,
   isBlacklisted: false,
   isRegisted: true,
@@ -55,25 +64,25 @@ const server = http.createServer((req, res) => {
       const address = String(parsed.address || '').toLowerCase();
       if (address === PASSING.address.toLowerCase()) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ code: 4, result: { ...PASSING, address: parsed.address } }));
+        res.end(JSON.stringify({ code: '0000', message: 'success', data: { ...PASSING, address: parsed.address } }));
         return;
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ code: 2, message: 'no A-Pass' }));
+      res.end(JSON.stringify({ code: '0000', message: 'success', data: null }));
       return;
     }
     if (req.url?.endsWith('/verify_apass')) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
-          code: 4,
-          result: {
-            token: {
-              chain: 'monad',
-              symbol: 'aUSD-D',
-              decimals: 6,
-              contractAddress: '0xbD14cFAf1Fb8b08858E3FfcCeffEfe09cC013892',
-            },
+          code: '0000',
+          message: 'ok',
+          data: {
+            chain: parsed.chain,
+            atoken: parsed.atoken,
+            address: parsed.address,
+            code: 4,
+            message: 'apass verify success',
           },
         }),
       );

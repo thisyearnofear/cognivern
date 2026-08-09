@@ -166,6 +166,10 @@ Cleanverse is a first-class spend rail: **CVI (A-Pass)** before policy approval,
    → **Execute CVA spend** with the scoped key.
 5. Follow the run / MonadScan link; Capital shows Cleanverse-verified share and
    holds next-allocation when settlement evidence is missing.
+6. If the institution has configured a country rule
+   (`CLEANVERSE_ALLOW_COUNTRIES` / `CLEANVERSE_BLOCK_COUNTRIES`), the preview
+   also reports each party's A-Pass country tags; a non-compliant pair is
+   denied with a `cleanverse-country-rule` reason.
 
 Details: [HACKATHON_SUBMISSION_CLEANVERSE.md](./HACKATHON_SUBMISSION_CLEANVERSE.md).
 

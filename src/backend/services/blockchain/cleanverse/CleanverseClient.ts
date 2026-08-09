@@ -14,8 +14,16 @@ export interface CleanverseRequestOptions {
 }
 
 export interface CleanverseApiResponse<T = unknown> {
-  code: number;
+  /**
+   * Business code per the Cleanverse contract: success is the STRING "0000";
+   * "0001" param error, "0002" business failure. (Legacy numeric codes are
+   * tolerated for older sandbox responses.)
+   */
+  code: string | number;
   message?: string;
+  /** Payload container — the documented contract field. */
+  data?: T;
+  /** Legacy payload container kept for tolerant parsing of older shapes. */
   result?: T;
   count?: number;
 }

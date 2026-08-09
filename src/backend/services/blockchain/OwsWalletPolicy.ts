@@ -26,6 +26,9 @@ export class OwsWalletPolicyEvaluator {
       cleanverseTravelRuleRequired: cleanverse?.travelRuleRequired === true,
       cleanverseRiskTier:
         typeof cleanverse?.riskTier === "string" ? cleanverse.riskTier : undefined,
+      cleanverseCountryRule:
+        typeof cleanverse?.countryRule === "string" ? cleanverse.countryRule : undefined,
+      cleanverseCountryCompliant: cleanverse?.countryCompliant === true,
     };
 
     return {

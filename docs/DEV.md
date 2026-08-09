@@ -597,8 +597,14 @@ before policy evaluation and settle as aUSD-D on Monad testnet (CVA).
 | `/api/cleanverse/screen`  | POST   | Screen sender + recipient A-Pass (`{ sender, recipient, chain? }`) |
 
 Env: `CLEANVERSE_API_ID`, `CLEANVERSE_API_KEY`, `CLEANVERSE_API_URL`,
-`MONAD_RPC_URL`, `MONAD_CHAIN_ID`, `CLEANVERSE_ATOKEN_ADDRESS`. Product UI:
-`/verified-capital`. See [HACKATHON_SUBMISSION_CLEANVERSE.md](./HACKATHON_SUBMISSION_CLEANVERSE.md).
+`MONAD_RPC_URL`, `MONAD_CHAIN_ID`, `CLEANVERSE_ATOKEN_ADDRESS`. Optional
+institutional country rule on A-Pass country tags (v5.5):
+`CLEANVERSE_ALLOW_COUNTRIES` (comma-separated ISO 3166-1 alpha-2 whitelist;
+both parties must hold a tag, fail-closed on missing tags) or
+`CLEANVERSE_BLOCK_COUNTRIES` (blacklist; wins if both set). A configured rule
+is a hard deny gate (`cleanverse-country-rule`) alongside the CVI screen.
+Product UI: `/verified-capital`. See
+[HACKATHON_SUBMISSION_CLEANVERSE.md](./HACKATHON_SUBMISSION_CLEANVERSE.md).
 
 ### Audit & Run Ledger
 

@@ -103,6 +103,11 @@ const cleanverseConfigSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v || "").toLowerCase() === "true"),
+  // Institutional country rule (Cleanverse A-Pass country tags, ISO 3166-1
+  // alpha-2, comma-separated). Set an allow list to whitelist, or a block
+  // list to deny. If both are set, the block list wins (fail-closed).
+  CLEANVERSE_ALLOW_COUNTRIES: z.string().optional(),
+  CLEANVERSE_BLOCK_COUNTRIES: z.string().optional(),
 });
 
 // Combined configuration schema
@@ -260,6 +265,24 @@ export const aiConfig = {
   geminiApiKey: config.GEMINI_API_KEY,
 };
 
+/**
+ * Institutional country allow/deny rule applied to Cleanverse A-Pass country
+ * tags (v5.5). Mirrors the A-Token rule object's `is_black_list` + `countries`
+ * semantics: mode "allow" whitelists, "block" blacklists, "none" = no
+ * country constraint (default).
+ */
+export interface CleanverseCountryRule {
+  mode: "allow" | "block" | "none";
+  countries: string[];
+}
+
+function parseCountryList(value: string | undefined): string[] {
+  return (value || "")
+    .split(",")
+    .map((c) => c.trim().toUpperCase())
+    .filter((c) => /^[A-Z]{2}$/.test(c));
+}
+
 export const keeperHubConfig = {
   apiKey: config.KEEPERHUB_API_KEY || "",
   baseUrl: config.KEEPERHUB_BASE_URL || "https://app.keeperhub.com",
@@ -321,6 +344,29 @@ export const cleanverseConfig = {
       (process.env.CLEANVERSE_GATE_ALL_SPENDS || "").toLowerCase() === "true" ||
       Boolean(config.CLEANVERSE_GATE_ALL_SPENDS)
     );
+  },
+  get allowCountries(): string[] {
+    return parseCountryList(
+      process.env.CLEANVERSE_ALLOW_COUNTRIES ||
+        config.CLEANVERSE_ALLOW_COUNTRIES,
+    );
+  },
+  get blockCountries(): string[] {
+    return parseCountryList(
+      process.env.CLEANVERSE_BLOCK_COUNTRIES ||
+        config.CLEANVERSE_BLOCK_COUNTRIES,
+    );
+  },
+  get countryRule(): CleanverseCountryRule {
+    const block = this.blockCountries;
+    if (block.length > 0) {
+      return { mode: "block", countries: block };
+    }
+    const allow = this.allowCountries;
+    if (allow.length > 0) {
+      return { mode: "allow", countries: allow };
+    }
+    return { mode: "none", countries: [] };
   },
   get enabled(): boolean {
     return Boolean(this.apiId && this.apiKey);
