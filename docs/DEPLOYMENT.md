@@ -160,11 +160,11 @@ No manual migration step required.
 ## Cleanverse verified-capital demo operations
 
 For the optional Cleanverse CVI/CVA rail, use Monad testnet (chain ID `10143`)
-and the configured aUSD-D contract:
+and the configured Access USDC/aUSDC contract:
 
 ```text
 RPC:      https://testnet-rpc.monad.xyz
-aUSD-D:   0xbD14cFAf1Fb8b08858E3FfcCeffEfe09cC013892
+Access USDC/aUSDC:   0xaC0893567D43C3E7e6e35a72803df05416C1f20D
 Decimals: 6
 ```
 
@@ -174,7 +174,7 @@ The current disposable demo wallet is:
 0x2FeE0208c0d1598104f52fb55Dcc2811707c8879
 ```
 
-It has MON for gas but still needs aUSD-D. Never fund the shared deployer wallet
+It has MON for gas but still needs Access USDC/aUSDC. Do not send Circle USDC directly to the A-Pass wallet: resolve the Cleanverse USDC deposit address with `GET /api/cleanverse/deposit-address?address=0x...`, fund that deposit address from the Monad testnet faucet, and let Cleanverse credit Access USDC. Never fund the shared deployer wallet
 for this demo, and never commit or share private key material. Before recording,
 run the read-only acceptance check:
 

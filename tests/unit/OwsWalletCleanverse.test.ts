@@ -125,7 +125,7 @@ describe('OwsWalletService — Cleanverse CVI/CVA rail', () => {
         agentId: 'agent-1',
         recipient: RECIPIENT,
         amount: '1000000',
-        asset: 'aUSD-D',
+        asset: 'aUSDC',
         reason: 'Cleanverse deny path',
         timestamp: new Date().toISOString(),
       },
@@ -184,7 +184,7 @@ describe('OwsWalletService — Cleanverse CVI/CVA rail', () => {
           agentId: 'agent-1',
           recipient: RECIPIENT,
           amount: '1000000',
-          asset: 'aUSD-D',
+          asset: 'aUSDC',
           reason: 'Country rule deny path',
           timestamp: new Date().toISOString(),
         },
@@ -215,7 +215,7 @@ describe('OwsWalletService — Cleanverse CVI/CVA rail', () => {
       agentId: 'agent-1',
       recipient: RECIPIENT,
       amount: '1000000',
-      asset: 'aUSD-D',
+      asset: 'aUSDC',
       reason: 'held then blocked by country rule',
       timestamp: new Date().toISOString(),
     };
@@ -250,7 +250,7 @@ describe('OwsWalletService — Cleanverse CVI/CVA rail', () => {
     expect(execSpy).not.toHaveBeenCalled();
   });
 
-  it('routes approved Cleanverse spends through the aUSD-D provider', async () => {
+  it('routes approved Cleanverse spends through the Access USDC provider', async () => {
     const {
       OwsWalletService,
       owsLocalVaultService,
@@ -276,8 +276,8 @@ describe('OwsWalletService — Cleanverse CVI/CVA rail', () => {
       to: RECIPIENT,
       amount: '1000000',
       chainId: 10143,
-      tokenAddress: '0xbD14cFAf1Fb8b08858E3FfcCeffEfe09cC013892',
-      tokenSymbol: 'aUSD-D',
+      tokenAddress: '0xaC0893567D43C3E7e6e35a72803df05416C1f20D',
+      tokenSymbol: 'aUSDC',
       transactionLink: `https://testnet.monadscan.com/tx/${txHash}`,
       recipientMatches: true,
       valueMatches: true,
@@ -292,7 +292,7 @@ describe('OwsWalletService — Cleanverse CVI/CVA rail', () => {
       agentId: 'agent-1',
       recipient: RECIPIENT,
       amount: '1000000',
-      asset: 'aUSD-D',
+      asset: 'aUSDC',
       reason: 'Cleanverse approve path',
       timestamp: new Date().toISOString(),
       metadata: {

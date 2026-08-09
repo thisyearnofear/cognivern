@@ -155,16 +155,18 @@ to `app.keeperhub.com` and walks you through the one-time setup.
 ## 9b. Optional: Use the Cleanverse verified capital rail (2 minutes)
 
 Cleanverse is a first-class spend rail: **CVI (A-Pass)** before policy approval,
-**CVA (aUSD-D)** settlement on Monad testnet.
+**CVA (Access USDC/aUSDC)** settlement on Monad testnet.
 
 1. Open **Operate → Verified Capital** (`/verified-capital`).
-2. Confirm rail status (API connected, Monad `10143`, aUSD-D).
+2. Confirm rail status (API connected, Monad `10143`, Access USDC/aUSDC).
 3. Arm a disposable wallet (Settings → Cleanverse provider, chain `10143`)
    and create an OWS scoped API key for it. The current demo funding address is
    `0x2FeE0208c0d1598104f52fb55Dcc2811707c8879`. It is a public Monad testnet
-   address; never request or share its private key. Fund MON for gas and aUSD-D
-   for settlement. Optionally attach a mandate with
-   `settlement.requireVerifiedSettlement` and an `aUSD-D` budget.
+address; never request or share its private key. Fund MON for gas. Resolve the
+Cleanverse USDC deposit address with the authenticated `GET /api/cleanverse/deposit-address?address=0x...`,
+then send Circle's Monad testnet USDC to that deposit address; do not send it
+directly to the A-Pass wallet. Cleanverse credits Access USDC/aUSDC for settlement. Optionally attach a mandate with
+   `settlement.requireVerifiedSettlement` and an `aUSDC` budget.
 4. On Verified Capital: **Screen A-Pass** → **Preview policy** (tier caps apply)
    → **Execute CVA spend** with the scoped key.
 5. Follow the run / MonadScan link; Capital shows Cleanverse-verified share and

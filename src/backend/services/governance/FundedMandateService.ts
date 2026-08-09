@@ -13,11 +13,11 @@ export interface MandateBudgetAsset {
 export interface MandateSettlementConstraints {
   /** When true, A-Pass screening is required for spends under this mandate. */
   requireCleanverseIdentity?: boolean;
-  /** When set, intent.asset must be one of these (e.g. ["aUSD-D"]). */
+  /** When set, intent.asset must be one of these (e.g. ["aUSDC"]). */
   allowedAssets?: string[];
   /** When set, wallet/spend chain must match (e.g. [10143]). */
   chainIds?: number[];
-  /** When true, consumed spend must settle via Cleanverse CVA (aUSD-D). */
+  /** When true, consumed spend must settle via Cleanverse CVA (Access USDC/aUSDC). */
   requireVerifiedSettlement?: boolean;
 }
 

@@ -606,7 +606,7 @@ export class OwsWalletService {
     } = params;
 
     // Broadcast the real value transfer FROM the scoped wallet.
-    // KeeperHub → managed native transfer; Cleanverse → aUSD-D ERC-20 on Monad;
+    // KeeperHub → managed native transfer; Cleanverse → Access USDC/aUSDC ERC-20 on Monad;
     // otherwise local native RPC.
     const executionProvider = (access.wallet.metadata?.executionProvider as string) || 'local';
     const rawChainId = access.wallet.metadata?.chainId;
@@ -770,7 +770,7 @@ export class OwsWalletService {
         reason:
           verified && receiptStatusOk && recipientMatches && valueMatches
             ? undefined
-            : 'Cleanverse aUSD-D Transfer event did not match the requested spend',
+            : 'Cleanverse aUSDC Transfer event did not match the requested spend',
       };
     } else {
       receiptVerification = await this.verifyTransferReceipt(
@@ -1565,6 +1565,8 @@ export class OwsWalletService {
         monadChainId: cleanverseConfig.monadChainId,
         aTokenAddress: cleanverseConfig.aTokenAddress,
         aTokenSymbol: cleanverseConfig.aTokenSymbol,
+        depositAddress: cleanverseConfig.depositAddress || null,
+        depositForAddress: cleanverseConfig.depositForAddress || null,
         gateAllSpends: cleanverseConfig.gateAllSpends,
         countryRule: cleanverseConfig.countryRule,
       },

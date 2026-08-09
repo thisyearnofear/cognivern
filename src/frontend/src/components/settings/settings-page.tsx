@@ -177,7 +177,7 @@ function WalletsCard() {
       <p className="text-xs text-muted-foreground">
         Choose how each OWS wallet broadcasts approved spends. Local uses the
         Cognivern vault; KeeperHub routes managed native transfers;
-        Cleanverse screens A-Pass (CVI) then settles aUSD-D (CVA) on Monad
+        Cleanverse screens A-Pass (CVI) then settles Access USDC/aUSDC (CVA) on Monad
         testnet. Audit trails show up in
         <a className="underline ml-1" href="/observability">Observability</a>.
       </p>
@@ -349,13 +349,13 @@ function WalletExecutionForm({
           >
             <option value="local">Local vault</option>
             <option value="keeperhub">KeeperHub</option>
-            <option value="cleanverse">Cleanverse (Monad aUSD-D)</option>
+            <option value="cleanverse">Cleanverse (Monad Access USDC)</option>
           </select>
           <p className="text-[10px] text-muted-foreground">
             {provider === "keeperhub"
               ? "Transfers are routed through KeeperHub."
               : provider === "cleanverse"
-                ? "A-Pass (CVI) gates approval; aUSD-D (CVA) settles on Monad testnet."
+                ? "A-Pass (CVI) gates approval; Access USDC/aUSDC (CVA) settles on Monad testnet."
                 : "Transfers are signed and broadcast by the local Cognivern vault."}
           </p>
         </div>
@@ -407,7 +407,7 @@ function WalletExecutionForm({
             disabled={saving}
           />
           <p className="text-[10px] text-muted-foreground">
-            Defaults to the vault wallet address. Must hold an active A-Pass and aUSD-D on Monad.
+            Defaults to the vault wallet address. Must hold an active A-Pass and Access USDC/aUSDC on Monad.
           </p>
           <label className="flex items-center gap-2 text-xs">
             <input

@@ -19,6 +19,13 @@ describe('publicEndpoints — auth bypass list', () => {
     expect(isPublicApiPath('/cre/runs/:runId/approval')).toBe(false);
   });
 
+  it('does NOT bypass credential-backed Cleanverse deposit lookups', () => {
+    // Deposit lookup spends server-side Cleanverse quota and must require
+    // the normal API/JWT authentication path.
+    expect(isPublicApiPath('/cleanverse/deposit-address')).toBe(false);
+    expect(PUBLIC_API_PATHS.has('/cleanverse/deposit-address')).toBe(false);
+  });
+
   it('still bypasses webhooks (prefix match)', () => {
     expect(isPublicApiPath('/webhooks/chain-gpt-news')).toBe(true);
     expect(isPublicApiPath('/webhooks/anything-else')).toBe(true);

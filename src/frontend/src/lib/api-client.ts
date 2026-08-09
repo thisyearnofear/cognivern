@@ -725,6 +725,9 @@ class ApiClient {
       aTokenAddress: string;
       aTokenSymbol: string;
       aTokenDecimals: number;
+      depositAddress: string | null;
+      depositForAddress: string | null;
+      depositAddressConfigured: boolean;
       gateAllSpends: boolean;
       apiConfigured: boolean;
     }>
@@ -749,6 +752,15 @@ class ApiClient {
     }>
   > {
     return this.fetch('/api/spend/status');
+  }
+
+  async getCleanverseDepositAddress(params: {
+    address: string;
+    chain?: string;
+  }): Promise<ApiResponse<{ address: string; chain: string; depositAddress: string }>> {
+    const query = new URLSearchParams({ address: params.address });
+    if (params.chain) query.set('chain', params.chain);
+    return this.fetch(`/api/cleanverse/deposit-address?${query.toString()}`);
   }
 
   async screenCleanverse(params: {

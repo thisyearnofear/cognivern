@@ -48,7 +48,8 @@ export class OwsWalletPolicyEvaluator {
     }
 
     const asset = intent.asset.toUpperCase();
-    // aUSD-D / aUSDC are 6-decimal stable units; intent.amount is base units.
+    // Access USDC/aUSDC is a 6-decimal stable unit; intent.amount is base units.
+    // AUSD-D remains accepted here only for legacy mandate/run compatibility.
     if (["AUSD-D", "AUSDC", "AUSD"].includes(asset) && Number.isFinite(amountValue)) {
       return amountValue / 1_000_000;
     }

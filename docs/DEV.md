@@ -589,15 +589,17 @@ Related: `GET /api/projects`, `GET /api/projects/:projectId/usage`
 
 Optional Track 2 verified-agent capital rail. When a wallet has
 `metadata.executionProvider: "cleanverse"`, spends are A-Pass gated (CVI)
-before policy evaluation and settle as aUSD-D on Monad testnet (CVA).
+before policy evaluation and settle as Access USDC/aUSDC on Monad testnet (CVA).
 
 | Endpoint                 | Method | Description                                                        |
 | ------------------------ | ------ | ------------------------------------------------------------------ |
-| `/api/cleanverse/status` | GET    | Config + Monad / aUSD-D status                                     |
+| `/api/cleanverse/status`          | GET    | Config + Monad / Access USDC status                              |
+| `/api/cleanverse/deposit-address` | GET    | Authenticated lookup of USDC deposit wallet (`?address=0x...&chain=monad`) |
 | `/api/cleanverse/screen` | POST   | Screen sender + recipient A-Pass (`{ sender, recipient, chain? }`) |
 
 Env: `CLEANVERSE_API_ID`, `CLEANVERSE_API_KEY`, `CLEANVERSE_API_URL`,
-`MONAD_RPC_URL`, `MONAD_CHAIN_ID`, `CLEANVERSE_ATOKEN_ADDRESS`. Optional
+`MONAD_RPC_URL`, `MONAD_CHAIN_ID`, `CLEANVERSE_ATOKEN_ADDRESS`,
+`CLEANVERSE_DEPOSIT_ADDRESS`, `CLEANVERSE_DEPOSIT_FOR_ADDRESS`. Optional
 institutional country rule on A-Pass country tags (v5.5):
 `CLEANVERSE_ALLOW_COUNTRIES` (comma-separated ISO 3166-1 alpha-2 whitelist;
 both parties must hold a tag, fail-closed on missing tags) or
@@ -606,8 +608,11 @@ is a hard deny gate (`cleanverse-country-rule`) alongside the CVI screen.
 The current disposable Monad testnet demo wallet is
 `0x2FeE0208c0d1598104f52fb55Dcc2811707c8879`; it is configured with
 `executionProvider: "cleanverse"`, `chainId: 10143`, and must never have its
-private key committed or shared. The configured aUSD-D contract is
-`0xbD14cFAf1Fb8b08858E3FfcCeffEfe09cC013892` with 6 decimals.
+private key committed or shared. The configured Access USDC/aUSDC contract is
+`0xaC0893567D43C3E7e6e35a72803df05416C1f20D` with 6 decimals. Fund the
+Cleanverse deposit address—not the A-Pass wallet—by querying
+An authenticated `GET /api/cleanverse/deposit-address?address=0x...` lookup and sending Circle's Monad
+testnet USDC to the returned `depositAddress`.
 Product UI: `/verified-capital`. The read-only live acceptance smoke subset is
 `tooling/scripts/acceptance/cleanverse-live-negative-paths.ts`; it validates EVM
 fixture shape, the active country rule, an unregistered-address denial, and the

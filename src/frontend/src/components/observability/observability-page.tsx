@@ -209,11 +209,11 @@ export function ObservabilityPage() {
           </div>
           <p className="text-xs text-emerald-900/80 dark:text-emerald-200/80 leading-relaxed">
             Wallets with <code>executionProvider: &quot;cleanverse&quot;</code> screen sender and
-            recipient via A-Pass (CVI) before policy approval, then settle aUSD-D (CVA) on Monad.
+            recipient via A-Pass (CVI) before policy approval, then settle Access USDC/aUSDC (CVA) on Monad.
           </p>
           <ul className="text-xs text-emerald-900/80 dark:text-emerald-200/80 space-y-1 list-disc list-inside">
             <li>Open <a className="underline" href="/verified-capital">/verified-capital</a> to screen identities and arm wallets.</li>
-            <li>CRE runs include a <code>cleanverse_apass</code> artifact plus aUSD-D <code>txHash</code> on MonadScan.</li>
+            <li>CRE runs include a <code>cleanverse_apass</code> artifact plus an Access USDC <code>txHash</code> on MonadScan.</li>
             <li>Check <code>GET /api/spend/status</code> for <code>cleanverse.enabled</code>.</li>
           </ul>
         </div>

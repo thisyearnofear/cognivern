@@ -122,12 +122,12 @@ beforeAll(async () => {
     objective: "Requires verified settlement but has only unverified spend",
     status: "active",
     budget: {
-      byAsset: { "aUSD-D": { authorizedAmount: "1000000", allocatedAmount: "500000", consumedAmount: "500000" } },
+      byAsset: { "aUSDC": { authorizedAmount: "1000000", allocatedAmount: "500000", consumedAmount: "500000" } },
     },
     settlement: {
       requireVerifiedSettlement: true,
       requireCleanverseIdentity: true,
-      allowedAssets: ["aUSD-D"],
+      allowedAssets: ["aUSDC"],
       chainIds: [10143],
     },
   }).id;
@@ -144,7 +144,7 @@ beforeAll(async () => {
     attributionRun(
       "cleanverse-unverified-run",
       cleanverseMandateId,
-      "aUSD-D",
+      "aUSDC",
       "500000",
       "consumed",
       "0x" + "b".repeat(64),

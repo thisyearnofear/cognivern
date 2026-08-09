@@ -1,6 +1,6 @@
 /**
  * CVA — Cleanverse Verified Assets settlement rail.
- * Verifies A-Pass transfer eligibility, then broadcasts an aUSD-D ERC-20 transfer
+ * Verifies A-Pass transfer eligibility, then broadcasts an Access USDC/aUSDC ERC-20 transfer
  * on Monad testnet via the local OWS vault signer.
  */
 
@@ -27,7 +27,7 @@ export interface CleanverseTransferRequest {
   operatorApproved?: boolean;
   from: string;
   to: string;
-  /** Token base units (aUSD-D uses 6 decimals by default). */
+  /** Token base units (Access USDC/aUSDC uses 6 decimals by default). */
   amount: bigint;
   chainId?: number;
 }
@@ -131,7 +131,7 @@ export class CleanverseExecutionProvider {
     });
 
     logger.info(
-      `Cleanverse aUSD-D transfer ${broadcast.txHash} verified=${verification.verified}`,
+      `Cleanverse aUSDC transfer ${broadcast.txHash} verified=${verification.verified}`,
     );
 
     return {

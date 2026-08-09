@@ -21,6 +21,7 @@ import { logger } from "@backend/shared/logging/Logger.js";
 import {
   cleanverseClient,
   type CleanverseClient,
+  type CleanverseDepositAddressData,
 } from "./CleanverseClient.js";
 
 export interface APassRecord {
@@ -124,6 +125,27 @@ function mapQueryApass(raw: RawQueryApassData): APassRecord {
 
 export class CleanverseIdentityService {
   constructor(private readonly client: CleanverseClient = cleanverseClient) {}
+
+  async queryDepositAddress(
+    chain: string,
+    address: string,
+  ): Promise<{
+    success: boolean;
+    data?: CleanverseDepositAddressData;
+    code?: string | number;
+    error?: string;
+  }> {
+    const response = await this.client.queryDepositAddress(chain, address);
+    const data = response.data !== undefined ? response.data : response.result;
+    if (String(response.code) === "0000" && data) {
+      return { success: true, data, code: response.code };
+    }
+    return {
+      success: false,
+      code: response.code,
+      error: response.message || `Deposit address query failed with code ${response.code}`,
+    };
+  }
 
   async queryAPass(
     chain: string,

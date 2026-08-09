@@ -33,6 +33,9 @@ export function createSpendRoutes(
   // Cleanverse CVI/CVA demo + status
   if (cleanverseCtrl) {
     router.get('/cleanverse/status', (req, res) => cleanverseCtrl.getStatus(req, res));
+    router.get('/cleanverse/deposit-address', (req, res) =>
+      cleanverseCtrl.getDepositAddress(req, res),
+    );
     router.post('/cleanverse/screen', (req, res) => cleanverseCtrl.screen(req, res));
   }
 

@@ -94,9 +94,11 @@ const cleanverseConfigSchema = z.object({
   CLEANVERSE_CHAIN: z.string().default("monad"),
   CLEANVERSE_ATOKEN_ADDRESS: z
     .string()
-    .default("0xbD14cFAf1Fb8b08858E3FfcCeffEfe09cC013892"),
-  CLEANVERSE_ATOKEN_SYMBOL: z.string().default("aUSD-D"),
+    .default("0xaC0893567D43C3E7e6e35a72803df05416C1f20D"),
+  CLEANVERSE_ATOKEN_SYMBOL: z.string().default("aUSDC"),
   CLEANVERSE_ATOKEN_DECIMALS: z.coerce.number().default(6),
+  CLEANVERSE_DEPOSIT_ADDRESS: z.string().optional(),
+  CLEANVERSE_DEPOSIT_FOR_ADDRESS: z.string().optional(),
   MONAD_RPC_URL: z.string().default("https://testnet-rpc.monad.xyz"),
   MONAD_CHAIN_ID: z.coerce.number().default(10143),
   CLEANVERSE_GATE_ALL_SPENDS: z
@@ -310,15 +312,21 @@ export const cleanverseConfig = {
     return (
       process.env.CLEANVERSE_ATOKEN_ADDRESS ||
       config.CLEANVERSE_ATOKEN_ADDRESS ||
-      "0xbD14cFAf1Fb8b08858E3FfcCeffEfe09cC013892"
+      "0xaC0893567D43C3E7e6e35a72803df05416C1f20D"
     );
   },
   get aTokenSymbol(): string {
     return (
       process.env.CLEANVERSE_ATOKEN_SYMBOL ||
       config.CLEANVERSE_ATOKEN_SYMBOL ||
-      "aUSD-D"
+      "aUSDC"
     );
+  },
+  get depositAddress(): string {
+    return process.env.CLEANVERSE_DEPOSIT_ADDRESS || config.CLEANVERSE_DEPOSIT_ADDRESS || "";
+  },
+  get depositForAddress(): string {
+    return process.env.CLEANVERSE_DEPOSIT_FOR_ADDRESS || config.CLEANVERSE_DEPOSIT_FOR_ADDRESS || "";
   },
   get aTokenDecimals(): number {
     return Number(

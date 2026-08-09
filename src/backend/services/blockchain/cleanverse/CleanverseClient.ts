@@ -13,6 +13,15 @@ export interface CleanverseRequestOptions {
   encrypted?: boolean;
 }
 
+export interface CleanverseDepositAddressData {
+  address?: string;
+  chain?: string;
+  txHash?: string;
+  aPassAddress?: string;
+  depositUSDCWallet?: string;
+  depositUSDTWallet?: string;
+}
+
 export interface CleanverseApiResponse<T = unknown> {
   /**
    * Business code per the Cleanverse contract: success is the STRING "0000";
@@ -29,6 +38,17 @@ export interface CleanverseApiResponse<T = unknown> {
 }
 
 export class CleanverseClient {
+  async queryDepositAddress(
+    chain: string,
+    address: string,
+  ): Promise<CleanverseApiResponse<CleanverseDepositAddressData | null>> {
+    return this.request<CleanverseDepositAddressData | null>({
+      endpoint: "/query_deposit_address",
+      method: "POST",
+      body: { chain, address },
+    });
+  }
+
   async request<T = unknown>(
     options: CleanverseRequestOptions,
   ): Promise<CleanverseApiResponse<T>> {

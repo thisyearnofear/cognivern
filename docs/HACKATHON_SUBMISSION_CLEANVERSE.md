@@ -22,7 +22,7 @@ Cognivern is the economic control plane for agentic work. For this hackathon we 
 
 1. **CVI (A-Pass)** — before policy approval, sender and recipient wallets are screened via `query_apass` (fail-closed on missing / blacklisted / paused / frozen) against the documented v5.x contract (string `"0000"` envelope, payload in `data`, integer status 1/2, numeric tiers).
 2. **Country compliance** — an institutional allow/deny rule on A-Pass country tags (v5.5): `CLEANVERSE_ALLOW_COUNTRIES` whitelists both parties (fail-closed when a tag is missing), `CLEANVERSE_BLOCK_COUNTRIES` denies blocked tags. A configured rule is a hard deny gate alongside the tier buckets.
-3. **CVA (aUSD-D)** — approved spends with `executionProvider: "cleanverse"` call `verify_apass`, then broadcast an ERC-20 aUSD-D transfer on **Monad testnet (chain 10143)**.
+3. **CVA (Access USDC/aUSDC)** — approved spends with `executionProvider: "cleanverse"` call `verify_apass`, then broadcast an ERC-20 Access USDC transfer on **Monad testnet (chain 10143)**.
 4. Evidence — `cleanverse_apass` CRE artifact + transfer receipt / MonadScan link in the run ledger.
 
 ### CVI · CVA integration points
@@ -32,14 +32,14 @@ Cognivern is the economic control plane for agentic work. For this hackathon we 
 | Pre-policy gate        | CVI `POST /query_apass`    | `OwsWalletService.executeSpend` → `CleanverseIdentityService.screenAddresses`    |
 | Country compliance     | A-Pass country tags (v5.5) | `deriveCleanversePolicySignals` → deny `cleanverse-country-rule`                 |
 | Settlement eligibility | CVA `POST /verify_apass`   | `CleanverseExecutionProvider.executeTransfer`                                    |
-| Value movement         | aUSD-D ERC-20 `transfer`   | Local vault signer → Monad RPC                                                   |
+| Value movement         | Access USDC ERC-20 `transfer` | Local vault signer → Monad RPC                                                 |
 | Operator UX            | Status + screen API        | `GET /api/cleanverse/status`, `POST /api/cleanverse/screen`, `/verified-capital` |
 | Wallet opt-in          | Metadata                   | `executionProvider: "cleanverse"`, `chainId: 10143`                              |
 
 ### Deployed chains
 
 - **Monad testnet** — chain ID `10143`, RPC `https://testnet-rpc.monad.xyz`
-- Demo A-Token (aUSD-D): `0xbD14cFAf1Fb8b08858E3FfcCeffEfe09cC013892`
+- Access USDC (aUSDC): `0xaC0893567D43C3E7e6e35a72803df05416C1f20D`
 - Explorer: https://testnet.monadscan.com
 
 ### Live demo URL
@@ -49,8 +49,8 @@ Cognivern is the economic control plane for agentic work. For this hackathon we 
 - Spend status (includes `cleanverse.enabled` + `countryRule`): `GET …/api/spend/status`
 
 **Rail status (Aug 9):** live and armed on Hetzner — `/api/cleanverse/status`
-returns `enabled: true`, `apiConfigured: true` (Monad `10143`, aUSD-D
-`0xbD14…3892`). The demo A-Pass accounts (cvRecordId 373/374, tier 50, US)
+returns `enabled: true`, `apiConfigured: true` (Monad `10143`, Access USDC/aUSDC
+`0xaC08…f20D`). The demo A-Pass accounts (cvRecordId 373/374, tier 50, US)
 screen as verified against the real UAT API.
 
 ---
@@ -74,7 +74,7 @@ finalizeApprovedSpend
     ▼
 CleanverseExecutionProvider
     │  verify_apass (sender + recipient)
-    │  ERC-20 aUSD-D transfer on Monad
+    │  ERC-20 Access USDC transfer on Monad
     ▼
 CRE: cleanverse_apass + capital_attribution.compliance + receipt
 Capital statement: cleanverseVerifiedShareOfConsumed → allocation hold if gaps
@@ -110,7 +110,7 @@ pnpm vitest run tests/unit/CleanverseIdentityService.test.ts tests/unit/Cleanver
 ```
 
 Configure the disposable demo wallet in **Settings → Wallets** with execution provider
-`Cleanverse (Monad aUSD-D)` and chain `10143`:
+`Cleanverse (Monad Access USDC)` and chain `10143`:
 
 ```text
 0x2FeE0208c0d1598104f52fb55Dcc2811707c8879
@@ -118,21 +118,21 @@ Configure the disposable demo wallet in **Settings → Wallets** with execution 
 
 This is a public testnet address only; never commit or share its private key.
 The shared deployer/treasury address is not the demo funding wallet. The wallet
-has been funded with MON for gas; it still requires aUSD-D before a CVA transfer
+has been funded with MON for gas; it still requires Access USDC/aUSDC before a CVA transfer
 can run. Both sender and recipient need active A-Passes.
 
 ---
 
 ## Demo video script (outline)
 
-1. Open `/verified-capital` — show rail status (API connected, Monad 10143, aUSD-D).
+1. Open `/verified-capital` — show rail status (API connected, Monad 10143, Access USDC/aUSDC).
 2. **Screen identities** — fail a wallet without A-Pass; pass a verified pair (show tier).
-3. **Preview policy** — amount in aUSD-D; show approve/hold driven by A-Pass tier caps.
+3. **Preview policy** — amount in Access USDC/aUSDC; show approve/hold driven by A-Pass tier caps.
 4. **Execute CVA spend** with OWS scoped key — CRE run + MonadScan tx.
 5. Capital → statement shows Cleanverse-verified share; allocation holds if settlement gaps.
 
 _(The rail, country rule, and disposable MON-funded demo wallet are configured.
-Record the final CVA beat after aUSD-D is supplied; no CVA transaction has been
+Record the final CVA beat after Access USDC is supplied; no CVA transaction has been
 run yet.)_
 
 ---
@@ -158,5 +158,5 @@ run yet.)_
 - [x] Live demo URL reachable (rail live + armed; `/api/cleanverse/status` → `enabled: true`)
 - [x] Read-only negative-path acceptance smoke run (fixture validation + unregistered denial + US-tagged demo pass; deterministic frozen/expired/country/outage cases remain in unit coverage)
 - [x] Disposable Monad demo wallet created and MON-funded
-- [ ] aUSD-D supplied and CVA transaction recorded
+- [ ] Access USDC supplied and CVA transaction recorded
 - [ ] Email to isaac@cleanverse.com by Aug 9 23:59 UTC

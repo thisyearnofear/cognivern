@@ -37,6 +37,9 @@ interface CleanverseStatus {
   aTokenAddress: string;
   aTokenSymbol: string;
   aTokenDecimals: number;
+  depositAddress: string | null;
+  depositForAddress: string | null;
+  depositAddressConfigured: boolean;
   gateAllSpends: boolean;
   apiConfigured: boolean;
 }
@@ -99,6 +102,9 @@ function toBaseUnits(humanAmount: string, decimals: number): string | null {
 
 export function VerifiedCapitalPage() {
   const [status, setStatus] = useState<CleanverseStatus | null>(null);
+  const [resolvedDepositAddress, setResolvedDepositAddress] = useState<string | null>(null);
+  const [depositLookupBusy, setDepositLookupBusy] = useState(false);
+  const [depositLookupError, setDepositLookupError] = useState<string | null>(null);
   const [spendStatus, setSpendStatus] = useState<SpendStatusSlice | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [wallets, setWallets] = useState<WalletRow[]>([]);
@@ -121,7 +127,7 @@ export function VerifiedCapitalPage() {
   const [error, setError] = useState<string | null>(null);
 
   const decimals = status?.aTokenDecimals ?? 6;
-  const assetSymbol = status?.aTokenSymbol ?? "aUSD-D";
+  const assetSymbol = status?.aTokenSymbol ?? "aUSDC";
   const amountBase = useMemo(
     () => toBaseUnits(amountHuman, decimals),
     [amountHuman, decimals],
@@ -147,7 +153,10 @@ export function VerifiedCapitalPage() {
           apiClient.getMandates(),
         ]);
         if (cancelled) return;
-        if (cv.success && cv.data) setStatus(cv.data);
+        if (cv.success && cv.data) {
+          setStatus(cv.data);
+          if (cv.data.depositAddress) setResolvedDepositAddress(cv.data.depositAddress);
+        }
         else setStatusError(cv.error || "Failed to load Cleanverse status");
         if (spend.success && spend.data) setSpendStatus(spend.data);
         if (walletRes.success && Array.isArray(walletRes.data)) {
@@ -188,6 +197,22 @@ export function VerifiedCapitalPage() {
       cancelled = true;
     };
   }, []);
+
+  const depositChain = status?.chain;
+  const resolveDepositAddress = useCallback(async () => {
+    if (!sender) return;
+    setDepositLookupBusy(true);
+    setDepositLookupError(null);
+    try {
+      const res = await apiClient.getCleanverseDepositAddress({ address: sender, chain: depositChain });
+      if (res.success && res.data) setResolvedDepositAddress(res.data.depositAddress);
+      else setDepositLookupError(res.error || 'Deposit address lookup failed');
+    } catch (err) {
+      setDepositLookupError(err instanceof Error ? err.message : 'Deposit address lookup failed');
+    } finally {
+      setDepositLookupBusy(false);
+    }
+  }, [sender, depositChain]);
 
   const runScreen = useCallback(async () => {
     setBusy("screen");
@@ -365,7 +390,7 @@ export function VerifiedCapitalPage() {
           {
             icon: Coins,
             title: "3 · CVA settle",
-            body: "verify_apass + aUSD-D on Monad",
+            body: "verify_apass + Access USDC on Monad",
           },
           {
             icon: Activity,
@@ -404,12 +429,23 @@ export function VerifiedCapitalPage() {
             <dl className="grid gap-2 text-xs">
               <Row label="API" value={status.enabled ? "connected" : "not configured"} />
               <Row label="Chain" value={`${status.chain} · ${status.monadChainId}`} mono />
-              <Row label="A-Token" value={status.aTokenSymbol} mono />
+              <Row label="Access asset" value={status.aTokenSymbol} mono />
               <Row
-                label="Contract"
+                label="Access USDC contract"
                 value={`${status.aTokenAddress.slice(0, 8)}…${status.aTokenAddress.slice(-6)}`}
                 mono
               />
+              {(resolvedDepositAddress || status.depositAddress) && (
+                <Row
+                  label="USDC deposit address"
+                  value={`${(resolvedDepositAddress || status.depositAddress)!.slice(0, 8)}…${(resolvedDepositAddress || status.depositAddress)!.slice(-6)}`}
+                  mono
+                />
+              )}
+              {depositLookupError && <p className="text-[10px] text-red-600">{depositLookupError}</p>}
+              <Button size="sm" variant="outline" onClick={resolveDepositAddress} disabled={depositLookupBusy || !sender || !railLive}>
+                {depositLookupBusy ? 'Looking up…' : 'Resolve USDC deposit address'}
+              </Button>
               <Row
                 label="Gate mode"
                 value={
@@ -425,7 +461,7 @@ export function VerifiedCapitalPage() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  View aUSD-D on MonadScan <ExternalLink className="h-3 w-3" />
+                  View Access USDC on MonadScan <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
             </dl>
@@ -444,7 +480,7 @@ export function VerifiedCapitalPage() {
           <ol className="list-decimal list-inside space-y-2 text-xs text-muted-foreground">
             <li>
               Settings → Wallets → execution provider{" "}
-              <code className="text-foreground">Cleanverse (Monad aUSD-D)</code>
+              <code className="text-foreground">Cleanverse (Monad Access USDC)</code>
             </li>
             <li>
               Chain ID <code className="text-foreground">10143</code>; fund MON

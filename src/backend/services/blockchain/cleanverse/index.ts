@@ -1,6 +1,7 @@
 export { CleanverseClient, cleanverseClient } from "./CleanverseClient.js";
 export type {
   CleanverseApiResponse,
+  CleanverseDepositAddressData,
   CleanverseRequestOptions,
 } from "./CleanverseClient.js";
 export {
