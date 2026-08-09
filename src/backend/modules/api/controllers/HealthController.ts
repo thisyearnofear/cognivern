@@ -6,14 +6,16 @@
  *   - Notifications table existence
  */
 
-import { Request, Response } from "express";
-import { AgentsModule } from "@backend/modules/agents/AgentsModule.js";
+import { Request, Response } from 'express';
+import { AgentsModule } from '@backend/modules/agents/AgentsModule.js';
 
 export interface DependencyCheck {
   name: string;
-  status: "healthy" | "unhealthy";
+  status: 'healthy' | 'unhealthy';
   latencyMs: number;
   error?: string;
+  /** Optional integrations are reported without taking core readiness down. */
+  optional?: boolean;
 }
 
 export class HealthController {
@@ -24,23 +26,29 @@ export class HealthController {
   }
 
   async getHealth(req: Request, res: Response): Promise<void> {
-    const deep = req.query.deep === "true";
+    const deep = req.query.deep === 'true';
 
     const response: Record<string, unknown> = {
-      status: "ok",
-      message: "Server is running",
+      status: 'ok',
+      message: 'Server is running',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
     };
 
     if (deep) {
       const dependencies = await this.checkDependencies();
-      const allHealthy = dependencies.every((d) => d.status === "healthy");
+      const coreHealthy = dependencies.every((d) => d.status === 'healthy' || d.optional === true);
+      const optionalDegraded = dependencies.some(
+        (d) => d.optional === true && d.status === 'unhealthy',
+      );
       response.dependencies = dependencies;
-      response.status = allHealthy ? "ok" : "degraded";
-      response.message = allHealthy
-        ? "All dependencies healthy"
-        : "One or more dependencies unhealthy";
+      response.optionalDegraded = optionalDegraded;
+      response.status = coreHealthy ? 'ok' : 'degraded';
+      response.message = !coreHealthy
+        ? 'One or more required dependencies unhealthy'
+        : optionalDegraded
+          ? 'Core dependencies healthy; one or more optional integrations degraded'
+          : 'All dependencies healthy';
     }
 
     res.json(response);
@@ -75,22 +83,22 @@ export class HealthController {
   }
 
   private async checkDatabase(): Promise<DependencyCheck> {
-    const name = "sqlite";
+    const name = 'sqlite';
     const start = Date.now();
     try {
-      const { getDb } = await import("@backend/db/index.js");
+      const { getDb } = await import('@backend/db/index.js');
       const db = getDb();
       // Execute a simple query to verify connectivity
-      db.prepare("SELECT 1 as alive").get();
+      db.prepare('SELECT 1 as alive').get();
       return {
         name,
-        status: "healthy",
+        status: 'healthy',
         latencyMs: Date.now() - start,
       };
     } catch (err) {
       return {
         name,
-        status: "unhealthy",
+        status: 'unhealthy',
         latencyMs: Date.now() - start,
         error: err instanceof Error ? err.message : String(err),
       };
@@ -98,33 +106,31 @@ export class HealthController {
   }
 
   private async checkNotificationsTable(): Promise<DependencyCheck> {
-    const name = "notifications_table";
+    const name = 'notifications_table';
     const start = Date.now();
     try {
-      const { getDb } = await import("@backend/db/index.js");
+      const { getDb } = await import('@backend/db/index.js');
       const db = getDb();
       const row = db
-        .prepare(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='notifications'",
-        )
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='notifications'")
         .get() as { name: string } | undefined;
       if (!row) {
         return {
           name,
-          status: "unhealthy",
+          status: 'unhealthy',
           latencyMs: Date.now() - start,
-          error: "notifications table not found",
+          error: 'notifications table not found',
         };
       }
       return {
         name,
-        status: "healthy",
+        status: 'healthy',
         latencyMs: Date.now() - start,
       };
     } catch (err) {
       return {
         name,
-        status: "unhealthy",
+        status: 'unhealthy',
         latencyMs: Date.now() - start,
         error: err instanceof Error ? err.message : String(err),
       };
@@ -132,22 +138,20 @@ export class HealthController {
   }
 
   private async checkPolicyService(): Promise<DependencyCheck> {
-    const name = "policy_service";
+    const name = 'policy_service';
     const start = Date.now();
     try {
-      const { sharedPolicyService } = await import(
-        "../../../services/governance/PolicyService.js"
-      );
+      const { sharedPolicyService } = await import('../../../services/governance/PolicyService.js');
       const policies = await sharedPolicyService.listPolicies();
       return {
         name,
-        status: "healthy",
+        status: 'healthy',
         latencyMs: Date.now() - start,
       };
     } catch (err) {
       return {
         name,
-        status: "unhealthy",
+        status: 'unhealthy',
         latencyMs: Date.now() - start,
         error: err instanceof Error ? err.message : String(err),
       };
@@ -155,7 +159,7 @@ export class HealthController {
   }
 
   private async checkFhenixClient(): Promise<DependencyCheck> {
-    const name = "fhenix_client";
+    const name = 'fhenix_client';
     const start = Date.now();
     const rpcUrl = process.env.FHENIX_RPC_URL;
     const fhenixKey = process.env.FHENIX_PRIVATE_KEY;
@@ -164,120 +168,127 @@ export class HealthController {
     if (!rpcUrl && !fhenixKey) {
       return {
         name,
-        status: "healthy",
+        status: 'healthy',
         latencyMs: Date.now() - start,
+        optional: true,
       };
     }
 
     try {
-      const { createPublicClient, http } = await import("viem");
-      const { arbitrumSepolia } = await import("viem/chains");
+      const { createPublicClient, http } = await import('viem');
+      const { arbitrumSepolia } = await import('viem/chains');
       const client = createPublicClient({
         chain: arbitrumSepolia,
-        transport: http(rpcUrl || "https://sepolia-rollup.arbitrum.io/rpc"),
+        transport: http(rpcUrl || 'https://sepolia-rollup.arbitrum.io/rpc'),
       });
       await client.getBlockNumber();
       return {
         name,
-        status: "healthy",
+        status: 'healthy',
         latencyMs: Date.now() - start,
+        optional: true,
       };
     } catch (err) {
       return {
         name,
-        status: "unhealthy",
+        status: 'unhealthy',
         latencyMs: Date.now() - start,
         error: err instanceof Error ? err.message : String(err),
+        optional: true,
       };
     }
   }
 
   private async checkFheWatcher(): Promise<DependencyCheck> {
-    const name = "fhe_watcher";
+    const name = 'fhe_watcher';
     const start = Date.now();
-    const watcherEnabled = process.env.FHE_WATCHER_ENABLED === "true";
+    const watcherEnabled = process.env.FHE_WATCHER_ENABLED === 'true';
 
     // If watcher is disabled, report as healthy (not required)
     if (!watcherEnabled) {
       return {
         name,
-        status: "healthy",
+        status: 'healthy',
         latencyMs: Date.now() - start,
+        optional: true,
       };
     }
 
     try {
       const { sharedFheDecisionWatcher } = await import(
-        "../../../services/blockchain/FheDecisionWatcher.js"
+        '../../../services/blockchain/FheDecisionWatcher.js'
       );
       const isRunning = sharedFheDecisionWatcher.isRunning();
       const pendingCount = sharedFheDecisionWatcher.getPendingCount();
 
       return {
         name,
-        status: isRunning ? "healthy" : "unhealthy",
+        status: isRunning ? 'healthy' : 'unhealthy',
         latencyMs: Date.now() - start,
         ...(pendingCount > 0 && { error: `${pendingCount} pending decisions` }),
+        optional: true,
       };
     } catch (err) {
       return {
         name,
-        status: "unhealthy",
+        status: 'unhealthy',
         latencyMs: Date.now() - start,
         error: err instanceof Error ? err.message : String(err),
+        optional: true,
       };
     }
   }
 
   private async checkMongoDb(): Promise<DependencyCheck> {
-    const name = "mongodb";
+    const name = 'mongodb';
+    const optional = true;
     const start = Date.now();
     const mongoUri = process.env.MONGODB_URI;
 
     if (!mongoUri) {
-      return { name, status: "healthy", latencyMs: Date.now() - start };
+      return { name, status: 'healthy', latencyMs: Date.now() - start, optional };
     }
 
     try {
-      const { MongoClient } = await import("mongodb");
+      const { MongoClient } = await import('mongodb');
       const client = new MongoClient(mongoUri, {
         serverSelectionTimeoutMS: 5000,
       });
       await client.connect();
       await client.db().command({ ping: 1 });
       await client.close();
-      return { name, status: "healthy", latencyMs: Date.now() - start };
+      return { name, status: 'healthy', latencyMs: Date.now() - start, optional };
     } catch (err) {
       return {
         name,
-        status: "unhealthy",
+        status: 'unhealthy',
         latencyMs: Date.now() - start,
         error: err instanceof Error ? err.message : String(err),
+        optional,
       };
     }
   }
 
   private async checkFilecoinRpc(): Promise<DependencyCheck> {
-    const name = "filecoin_rpc";
+    const name = 'filecoin_rpc';
+    const optional = true;
     const start = Date.now();
     const filecoinKey = process.env.FILECOIN_PRIVATE_KEY;
-    const rpcUrl =
-      process.env.FILECOIN_RPC_URL ||
-      "https://api.calibration.node.glif.io/rpc/v1";
+    const rpcUrl = process.env.FILECOIN_RPC_URL || 'https://api.calibration.node.glif.io/rpc/v1';
 
     if (!filecoinKey) {
-      return { name, status: "healthy", latencyMs: Date.now() - start };
+      return { name, status: 'healthy', latencyMs: Date.now() - start, optional };
     }
 
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
       const response = await fetch(rpcUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          jsonrpc: "2.0",
-          method: "eth_blockNumber",
+          jsonrpc: '2.0',
+          method: 'eth_blockNumber',
           params: [],
           id: 1,
         }),
@@ -288,39 +299,41 @@ export class HealthController {
       if (!response.ok) {
         return {
           name,
-          status: "unhealthy",
+          status: 'unhealthy',
           latencyMs: Date.now() - start,
           error: `HTTP ${response.status}`,
+          optional,
         };
       }
-      return { name, status: "healthy", latencyMs: Date.now() - start };
+      return { name, status: 'healthy', latencyMs: Date.now() - start, optional };
     } catch (err) {
       return {
         name,
-        status: "unhealthy",
+        status: 'unhealthy',
         latencyMs: Date.now() - start,
         error: err instanceof Error ? err.message : String(err),
+        optional,
       };
     }
   }
 
   private async checkZeroGIndexer(): Promise<DependencyCheck> {
-    const name = "zerog_indexer";
+    const name = 'zerog_indexer';
+    const optional = true;
     const start = Date.now();
     const zeroGKey = process.env.ZEROG_PRIVATE_KEY;
     const indexerUrl =
-      process.env.ZEROG_INDEXER_URL ||
-      "https://indexer-storage-testnet-standard.0g.ai";
+      process.env.ZEROG_INDEXER_URL || 'https://indexer-storage-testnet-standard.0g.ai';
 
     if (!zeroGKey) {
-      return { name, status: "healthy", latencyMs: Date.now() - start };
+      return { name, status: 'healthy', latencyMs: Date.now() - start, optional };
     }
 
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
       const response = await fetch(indexerUrl, {
-        method: "GET",
+        method: 'GET',
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -328,18 +341,20 @@ export class HealthController {
       if (!response.ok) {
         return {
           name,
-          status: "unhealthy",
+          status: 'unhealthy',
           latencyMs: Date.now() - start,
           error: `HTTP ${response.status}`,
+          optional,
         };
       }
-      return { name, status: "healthy", latencyMs: Date.now() - start };
+      return { name, status: 'healthy', latencyMs: Date.now() - start, optional };
     } catch (err) {
       return {
         name,
-        status: "unhealthy",
+        status: 'unhealthy',
         latencyMs: Date.now() - start,
         error: err instanceof Error ? err.message : String(err),
+        optional,
       };
     }
   }
@@ -350,14 +365,14 @@ export class HealthController {
 
     if (isReady) {
       res.json({
-        status: "ready",
-        message: "All services are ready",
+        status: 'ready',
+        message: 'All services are ready',
         timestamp: new Date().toISOString(),
       });
     } else {
       res.status(503).json({
-        status: "not ready",
-        message: "Some services are not ready",
+        status: 'not ready',
+        message: 'Some services are not ready',
         timestamp: new Date().toISOString(),
       });
     }
@@ -365,8 +380,8 @@ export class HealthController {
 
   async getLiveness(req: Request, res: Response): Promise<void> {
     res.json({
-      status: "alive",
-      message: "Service is alive",
+      status: 'alive',
+      message: 'Service is alive',
       timestamp: new Date().toISOString(),
     });
   }
@@ -377,12 +392,9 @@ export class HealthController {
 
     for (const agent of agents) {
       try {
-        const decisions = await this.agentsModule.getAgentDecisions(
-          agent.id,
-          100,
-        );
+        const decisions = await this.agentsModule.getAgentDecisions(agent.id, 100);
         totalForecasts += decisions.filter(
-          (d) => d.agentType === "sapience" || d.id?.startsWith("0x"),
+          (d) => d.agentType === 'sapience' || d.id?.startsWith('0x'),
         ).length;
       } catch (e) {
         // Ignore
@@ -390,16 +402,16 @@ export class HealthController {
     }
 
     res.json({
-      overall: "healthy",
+      overall: 'healthy',
       components: {
-        arbitrum: "online",
-        eas: "operational",
-        ethereal: "online",
-        policies: "active",
+        arbitrum: 'online',
+        eas: 'operational',
+        ethereal: 'online',
+        policies: 'active',
       },
       metrics: {
         totalAgents: agents.length,
-        activeAgents: agents.filter((a) => a.status === "active").length,
+        activeAgents: agents.filter((a) => a.status === 'active').length,
         totalForecasts: totalForecasts || 89, // Fallback to 89 if history is empty but we know it's been active
         complianceRate: 100,
         averageAttestationTime: 2400,
@@ -410,19 +422,17 @@ export class HealthController {
 
   private checkControlEvaluation(): DependencyCheck {
     return {
-      name: "control_evaluation",
-      status: process.env.CONTROL_EVAL_MODE === "true" ? "healthy" : "healthy",
+      name: 'control_evaluation',
+      status: process.env.CONTROL_EVAL_MODE === 'true' ? 'healthy' : 'healthy',
       latencyMs: 0,
-      ...(process.env.CONTROL_EVAL_MODE === "true"
+      ...(process.env.CONTROL_EVAL_MODE === 'true'
         ? {}
-        : { error: "disabled (CONTROL_EVAL_MODE != true)" }),
+        : { error: 'disabled (CONTROL_EVAL_MODE != true)' }),
     };
   }
 
   async getSlo(req: Request, res: Response): Promise<void> {
-    const { sharedSloMetrics } = await import(
-      "../../../services/SloMetricsService.js"
-    );
+    const { sharedSloMetrics } = await import('../../../services/SloMetricsService.js');
     res.json(sharedSloMetrics.snapshot());
   }
 }

@@ -27,31 +27,32 @@
  *   it means workspace-tier auth is delegated.
  */
 export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
-  "/health",
-  "/dashboard/bundle",
-  "/agents",
-  "/agents/unified",
-  "/agents/connections",
-  "/agents/governance/status",
-  "/agents/governance/decisions",
-  "/agents/portfolio/status",
-  "/agents/portfolio/decisions",
-  "/agents/sapience/status",
-  "/agents/sapience/decisions",
-  "/audit/logs",
-  "/audit/insights",
-  "/governance/policies",
-  "/governance/proof-info",
-  "/spendos/status",
-  "/spendos/decisions",
-  "/metrics/ux-summary",
-  "/metrics/ux-events",
-  "/observability/status",
-  "/observability/metrics",
-  "/cre/runs",
-  "/cre/projects",
-  "/cre/forecast",
-  "/cre/runs/:runId/retry",
+  '/health',
+  '/health/slo',
+  '/dashboard/bundle',
+  '/agents',
+  '/agents/unified',
+  '/agents/connections',
+  '/agents/governance/status',
+  '/agents/governance/decisions',
+  '/agents/portfolio/status',
+  '/agents/portfolio/decisions',
+  '/agents/sapience/status',
+  '/agents/sapience/decisions',
+  '/audit/logs',
+  '/audit/insights',
+  '/governance/policies',
+  '/governance/proof-info',
+  '/spendos/status',
+  '/spendos/decisions',
+  '/metrics/ux-summary',
+  '/metrics/ux-events',
+  '/observability/status',
+  '/observability/metrics',
+  '/cre/runs',
+  '/cre/projects',
+  '/cre/forecast',
+  '/cre/runs/:runId/retry',
   // Read-only execution reconciliation still requires the operator JWT; it
   // is intentionally not public because it exposes provider execution data.
   // NOTE: /cre/runs/:runId/approval is NOT in this list. Held spend runs are
@@ -60,43 +61,43 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   // controller additionally requires req.userId (operator JWT) for the spend
   // branch — see CreController.submitApproval. This mirrors the /api/spend
   // hardening from commit 432e10c.
-  "/spend",
-  "/spend/status",
-  "/spend/scan",
-  "/cleanverse/status",
-  "/cleanverse/screen",
-  "/projects",
-  "/projects/:projectId/usage",
-  "/projects/:projectId/tokens",
-  "/fhenix/status",
-  "/fhenix/encrypt",
-  "/fhenix/decrypt",
-  "/intent",
-  "/intent/metrics",
+  '/spend',
+  '/spend/status',
+  '/spend/scan',
+  '/cleanverse/status',
+  '/cleanverse/screen',
+  '/projects',
+  '/projects/:projectId/usage',
+  '/projects/:projectId/tokens',
+  '/fhenix/status',
+  '/fhenix/encrypt',
+  '/fhenix/decrypt',
+  '/intent',
+  '/intent/metrics',
   // Auth endpoints must be public — you can't require auth to create an account.
-  "/auth/nonce",
-  "/auth/verify",
-  "/auth/register",
-  "/auth/login",
-  "/auth/verify-email",
-  "/auth/forgot-password",
-  "/auth/reset-password",
+  '/auth/nonce',
+  '/auth/verify',
+  '/auth/register',
+  '/auth/login',
+  '/auth/verify-email',
+  '/auth/forgot-password',
+  '/auth/reset-password',
   // MCP tool manifest and governance check are public for agent discovery.
-  "/mcp/governance-check",
+  '/mcp/governance-check',
   // OpenAPI spec is public so external agents can self-discover the API.
-  "/docs/openapi.json",
+  '/docs/openapi.json',
   // Sealed-bid vendor selection — vendors submit bids without workspace auth.
   // The controller manages round state and bid encryption internally.
-  "/vendor/sealed-bid/rounds",
-  "/vendor/sealed-bid/rounds/:roundId",
-  "/vendor/sealed-bid/rounds/:roundId/party-view",
-  "/vendor/sealed-bid/rounds/:roundId/bid",
-  "/vendor/sealed-bid/rounds/:roundId/close",
-  "/vendor/sealed-bid/rounds/:roundId/reveal",
+  '/vendor/sealed-bid/rounds',
+  '/vendor/sealed-bid/rounds/:roundId',
+  '/vendor/sealed-bid/rounds/:roundId/party-view',
+  '/vendor/sealed-bid/rounds/:roundId/bid',
+  '/vendor/sealed-bid/rounds/:roundId/close',
+  '/vendor/sealed-bid/rounds/:roundId/reveal',
   // Speech transcription is used by the frontend without workspace auth.
-  "/speech/transcribe",
-  "/webhooks/chain-gpt-news",
-  "/webhooks/holds",
+  '/speech/transcribe',
+  '/webhooks/chain-gpt-news',
+  '/webhooks/holds',
   // NOTE: /events/stream is NOT in this list. EventsController demands
   // req.workspaceId, which is populated by authMiddleware from the JWT
   // payload. Bypassing the middleware here would skip that population and
@@ -114,7 +115,7 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
  * without changes. Data persisted under this id is intentionally shared
  * across all legacy-key callers.
  */
-export const LEGACY_DEFAULT_WORKSPACE_ID = "default";
+export const LEGACY_DEFAULT_WORKSPACE_ID = 'default';
 
 /**
  * Returns true if the given request path is in the public list, or is under
@@ -123,13 +124,11 @@ export const LEGACY_DEFAULT_WORKSPACE_ID = "default";
  */
 export function isPublicApiPath(path: string): boolean {
   if (PUBLIC_API_PATHS.has(path)) return true;
-  if (path.startsWith("/webhooks/")) return true;
+  if (path.startsWith('/webhooks/')) return true;
   // Check parameterized patterns — replace :param segments with wildcards
   for (const pattern of PUBLIC_API_PATHS) {
-    if (pattern.includes(":")) {
-      const regex = new RegExp(
-        "^" + pattern.replace(/:[^/]+/g, "[^/]+") + "$",
-      );
+    if (pattern.includes(':')) {
+      const regex = new RegExp('^' + pattern.replace(/:[^/]+/g, '[^/]+') + '$');
       if (regex.test(path)) return true;
     }
   }

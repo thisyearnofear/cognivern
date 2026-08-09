@@ -138,7 +138,7 @@ A port mismatch between `$PORT` and nginx makes every public endpoint return 502
 ```bash
 curl http://127.0.0.1:<PORT>/health           # from server
 curl https://<your-domain>/health?deep=true    # from outside
-curl -s https://<your-domain>/api/health/slo   # SLO metrics
+curl -s https://<your-domain>/health/slo     # public SLO metrics (application-rate-limited)
 ```
 
 ## SQLite Tables
@@ -156,6 +156,34 @@ No manual migration step required.
 - Rate limiting persistent across restarts (file-backed stores)
 - SIWE authentication uses nonce replay protection
 - Helmet CSP, CORS, body size limits, trust-proxy configured for production
+
+## Cleanverse verified-capital demo operations
+
+For the optional Cleanverse CVI/CVA rail, use Monad testnet (chain ID `10143`)
+and the configured aUSD-D contract:
+
+```text
+RPC:      https://testnet-rpc.monad.xyz
+aUSD-D:   0xbD14cFAf1Fb8b08858E3FfcCeffEfe09cC013892
+Decimals: 6
+```
+
+The current disposable demo wallet is:
+
+```text
+0x2FeE0208c0d1598104f52fb55Dcc2811707c8879
+```
+
+It has MON for gas but still needs aUSD-D. Never fund the shared deployer wallet
+for this demo, and never commit or share private key material. Before recording,
+run the read-only acceptance check:
+
+```bash
+pnpm tsx tooling/scripts/acceptance/cleanverse-live-negative-paths.ts
+```
+
+This checks the active country rule, an unregistered-address denial, and the
+known US-tagged demo pair without creating wallets, rounds, or transactions.
 
 ## Final submission — proof artifact and demo
 

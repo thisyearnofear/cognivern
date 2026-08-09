@@ -6,11 +6,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const mockPrepare = vi.fn().mockReturnValue({ get: vi.fn() });
 const mockDb = { prepare: mockPrepare };
-vi.mock("@backend/db/index.js", () => ({
+vi.mock('@backend/db/index.js', () => ({
   getDb: vi.fn(() => mockDb),
 }));
 
-vi.mock("@backend/modules/agents/AgentsModule.js", () => {
+vi.mock('@backend/modules/agents/AgentsModule.js', () => {
   return {
     AgentsModule: class {
       getAgents = vi.fn().mockResolvedValue([]);
@@ -19,7 +19,7 @@ vi.mock("@backend/modules/agents/AgentsModule.js", () => {
   };
 });
 
-vi.mock("@backend/services/governance/PolicyService.js", () => ({
+vi.mock('@backend/services/governance/PolicyService.js', () => ({
   sharedPolicyService: {
     listPolicies: vi.fn().mockResolvedValue([]),
   },
@@ -36,6 +36,7 @@ const OPTIONAL_ENV_KEYS = [
   'FILECOIN_PRIVATE_KEY',
   'ZEROG_PRIVATE_KEY',
   'FHE_WATCHER_ENABLED',
+  'ZEROG_INDEXER_URL',
 ] as const;
 
 /* ------------------------------------------------------------------ */
@@ -59,8 +60,7 @@ function mockReq(query: Record<string, string> = {}) {
 
 describe('HealthController', () => {
   let controller: InstanceType<typeof HealthController>;
-  const savedEnv: Partial<Record<(typeof OPTIONAL_ENV_KEYS)[number], string>> =
-    {};
+  const savedEnv: Partial<Record<(typeof OPTIONAL_ENV_KEYS)[number], string>> = {};
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -172,6 +172,31 @@ describe('HealthController', () => {
       const notifCheck = body.dependencies.find((d: any) => d.name === 'notifications_table');
       expect(notifCheck.status).toBe('unhealthy');
       expect(notifCheck.error).toBe('notifications table not found');
+    });
+
+    it('keeps core health ok when an optional 0G indexer is degraded', async () => {
+      process.env.ZEROG_PRIVATE_KEY = 'configured-for-test';
+      process.env.ZEROG_INDEXER_URL = 'https://indexer.invalid';
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+      mockPrepare.mockReturnValue({
+        get: vi.fn().mockReturnValue({ name: 'notifications' }),
+      });
+
+      const res = mockRes();
+      await controller.getHealth(mockReq({ deep: 'true' }), res);
+      const body = res.json.mock.calls[0][0];
+      expect(body.status).toBe('ok');
+      expect(body.optionalDegraded).toBe(true);
+      expect(body.message).toMatch(/optional integrations degraded/i);
+      expect(body.dependencies).toContainEqual(
+        expect.objectContaining({
+          name: 'zerog_indexer',
+          status: 'unhealthy',
+          optional: true,
+          error: 'HTTP 503',
+        }),
+      );
+      vi.unstubAllGlobals();
     });
   });
 

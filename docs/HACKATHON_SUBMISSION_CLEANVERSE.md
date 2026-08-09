@@ -27,14 +27,14 @@ Cognivern is the economic control plane for agentic work. For this hackathon we 
 
 ### CVI · CVA integration points
 
-| Stage | Primitive | Where |
-| --- | --- | --- |
-| Pre-policy gate | CVI `POST /query_apass` | `OwsWalletService.executeSpend` → `CleanverseIdentityService.screenAddresses` |
-| Country compliance | A-Pass country tags (v5.5) | `deriveCleanversePolicySignals` → deny `cleanverse-country-rule` |
-| Settlement eligibility | CVA `POST /verify_apass` | `CleanverseExecutionProvider.executeTransfer` |
-| Value movement | aUSD-D ERC-20 `transfer` | Local vault signer → Monad RPC |
-| Operator UX | Status + screen API | `GET /api/cleanverse/status`, `POST /api/cleanverse/screen`, `/verified-capital` |
-| Wallet opt-in | Metadata | `executionProvider: "cleanverse"`, `chainId: 10143` |
+| Stage                  | Primitive                  | Where                                                                            |
+| ---------------------- | -------------------------- | -------------------------------------------------------------------------------- |
+| Pre-policy gate        | CVI `POST /query_apass`    | `OwsWalletService.executeSpend` → `CleanverseIdentityService.screenAddresses`    |
+| Country compliance     | A-Pass country tags (v5.5) | `deriveCleanversePolicySignals` → deny `cleanverse-country-rule`                 |
+| Settlement eligibility | CVA `POST /verify_apass`   | `CleanverseExecutionProvider.executeTransfer`                                    |
+| Value movement         | aUSD-D ERC-20 `transfer`   | Local vault signer → Monad RPC                                                   |
+| Operator UX            | Status + screen API        | `GET /api/cleanverse/status`, `POST /api/cleanverse/screen`, `/verified-capital` |
+| Wallet opt-in          | Metadata                   | `executionProvider: "cleanverse"`, `chainId: 10143`                              |
 
 ### Deployed chains
 
@@ -44,8 +44,8 @@ Cognivern is the economic control plane for agentic work. For this hackathon we 
 
 ### Live demo URL
 
-- Product: https://cognivern.persidian.com/verified-capital  
-- API status: `GET https://api.cognivern.persidian.com/api/cleanverse/status`  
+- Product: https://cognivern.persidian.com/verified-capital
+- API status: `GET https://api.cognivern.persidian.com/api/cleanverse/status`
 - Spend status (includes `cleanverse.enabled` + `countryRule`): `GET …/api/spend/status`
 
 **Rail status (Aug 9):** live and armed on Hetzner — `/api/cleanverse/status`
@@ -102,11 +102,24 @@ pnpm frontend     # UI → /verified-capital
 # Smoke (mock Cleanverse HTTP, no credentials required)
 pnpm tsx tooling/scripts/demo/test-cleanverse-spend.ts
 
+# Live read-only acceptance smoke subset: status + unregistered denial + demo pass
+pnpm tsx tooling/scripts/acceptance/cleanverse-live-negative-paths.ts
+
 # Unit tests
 pnpm vitest run tests/unit/CleanverseIdentityService.test.ts tests/unit/CleanversePolicySignals.test.ts tests/unit/OwsWalletCleanverse.test.ts tests/unit/FundedMandateService.test.ts tests/unit/AllocationRecommendationService.test.ts
 ```
 
-Configure a wallet in **Settings → Wallets**: execution provider `Cleanverse (Monad aUSD-D)`, chain `10143`. Fund it with MON (gas) and aUSD-D; both parties need active A-Passes.
+Configure the disposable demo wallet in **Settings → Wallets** with execution provider
+`Cleanverse (Monad aUSD-D)` and chain `10143`:
+
+```text
+0x2FeE0208c0d1598104f52fb55Dcc2811707c8879
+```
+
+This is a public testnet address only; never commit or share its private key.
+The shared deployer/treasury address is not the demo funding wallet. The wallet
+has been funded with MON for gas; it still requires aUSD-D before a CVA transfer
+can run. Both sender and recipient need active A-Passes.
 
 ---
 
@@ -118,28 +131,32 @@ Configure a wallet in **Settings → Wallets**: execution provider `Cleanverse (
 4. **Execute CVA spend** with OWS scoped key — CRE run + MonadScan tx.
 5. Capital → statement shows Cleanverse-verified share; allocation holds if settlement gaps.
 
-*(Live credentials are in place and the rail is armed; record once a funded
-Monad wallet (MON gas + aUSD-D) is configured.)*
+_(The rail, country rule, and disposable MON-funded demo wallet are configured.
+Record the final CVA beat after aUSD-D is supplied; no CVA transaction has been
+run yet.)_
 
 ---
 
 ## Files added / touched
 
-| Path | Role |
-| --- | --- |
-| `src/backend/services/blockchain/cleanverse/*` | Client, CVI, CVA, crypto |
-| `src/backend/services/blockchain/OwsWalletService.ts` | CVI gate + CVA branch |
-| `src/backend/services/blockchain/OwsLocalVaultService.ts` | `sendErc20Transfer` |
-| `src/backend/modules/api/controllers/CleanverseController.ts` | Status + screen |
-| `src/frontend/.../verified-capital` | Operator UI for the live rail |
-| `docs/HACKATHON_SUBMISSION_CLEANVERSE.md` | This document |
+| Path                                                          | Role                          |
+| ------------------------------------------------------------- | ----------------------------- |
+| `src/backend/services/blockchain/cleanverse/*`                | Client, CVI, CVA, crypto      |
+| `src/backend/services/blockchain/OwsWalletService.ts`         | CVI gate + CVA branch         |
+| `src/backend/services/blockchain/OwsLocalVaultService.ts`     | `sendErc20Transfer`           |
+| `src/backend/modules/api/controllers/CleanverseController.ts` | Status + screen               |
+| `src/frontend/.../verified-capital`                           | Operator UI for the live rail |
+| `docs/HACKATHON_SUBMISSION_CLEANVERSE.md`                     | This document                 |
 
 ---
 
 ## Submission checklist
 
-- [ ] Public GitHub commits during Aug 8–9 UTC
+- [x] Public GitHub commits during Aug 8–9 UTC
 - [ ] Demo video recorded
 - [ ] This one-pager attached / linked
 - [x] Live demo URL reachable (rail live + armed; `/api/cleanverse/status` → `enabled: true`)
+- [x] Read-only negative-path acceptance smoke run (unregistered denial + US-tagged demo pass; deterministic frozen/expired/country/outage cases remain in unit coverage)
+- [x] Disposable Monad demo wallet created and MON-funded
+- [ ] aUSD-D supplied and CVA transaction recorded
 - [ ] Email to isaac@cleanverse.com by Aug 9 23:59 UTC

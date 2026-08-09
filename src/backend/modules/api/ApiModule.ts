@@ -8,65 +8,58 @@
  * - Centralized middleware
  */
 
-import express from "express";
-import cors from "cors";
-import helmet from "helmet";
-import compression from "compression";
-import rateLimit from "express-rate-limit";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-import { createHash, timingSafeEqual } from "crypto";
-import { BaseService } from "@backend/shared/services/BaseService.js";
-import { Logger } from "@backend/shared/logging/Logger.js";
-import {
-  apiConfig,
-  ServiceConfig,
-  DependencyHealth,
-} from "@backend/shared/index.js";
-import { HealthController } from "./controllers/HealthController.js";
-import { AgentsController } from "./controllers/AgentsController.js";
-import { GovernanceController } from "./controllers/GovernanceController.js";
-import { MetricsController } from "./controllers/MetricsController.js";
-import { AuditLogController } from "./controllers/AuditLogController.js";
-import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
-import { CreController } from "./controllers/CreController.js";
-import { CopilotController } from "./controllers/CopilotController.js";
-import { IngestController } from "./controllers/IngestController.js";
-import { SpendController } from "./controllers/SpendController.js";
-import { OwsController } from "./controllers/OwsController.js";
-import { OwsWalletController } from "./controllers/OwsWalletController.js";
-import { OwsApiKeyController } from "./controllers/OwsApiKeyController.js";
-import { OwsPermissionsController } from "./controllers/OwsPermissionsController.js";
-import { CleanverseController } from "./controllers/CleanverseController.js";
-import { FhenixController } from "./controllers/FhenixController.js";
-import { IntentController } from "./controllers/IntentController.js";
-import { McpGovernanceController } from "./controllers/McpGovernanceController.js";
-import { PayrollController } from "./controllers/PayrollController.js";
-import { SealedBidController } from "./controllers/SealedBidController.js";
-import { SpeechController } from "./controllers/SpeechController.js";
-import { WebhookController } from "./controllers/WebhookController.js";
-import { AuthController } from "./controllers/AuthController.js";
-import { WorkspaceController } from "./controllers/WorkspaceController.js";
-import { EventsController } from "./controllers/EventsController.js";
-import { ObservabilityController } from "./controllers/ObservabilityController.js";
-import { MandateController } from "./controllers/MandateController.js";
-import { OutcomeObservationController } from "./controllers/OutcomeObservationController.js";
-import {
-  ApiKeyController,
-  resolveWorkspaceFromApiKey,
-} from "./controllers/ApiKeyController.js";
-import { authMiddleware } from "@backend/middleware/authMiddleware.js";
-import { workspaceMiddleware } from "@backend/middleware/workspaceMiddleware.js";
-import { demoInterceptor } from "@backend/middleware/demoInterceptor.js";
-import { requestContextMiddleware } from "@backend/middleware/requestContext.js";
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { createHash, timingSafeEqual } from 'crypto';
+import { BaseService } from '@backend/shared/services/BaseService.js';
+import { Logger } from '@backend/shared/logging/Logger.js';
+import { apiConfig, ServiceConfig, DependencyHealth } from '@backend/shared/index.js';
+import { HealthController } from './controllers/HealthController.js';
+import { AgentsController } from './controllers/AgentsController.js';
+import { GovernanceController } from './controllers/GovernanceController.js';
+import { MetricsController } from './controllers/MetricsController.js';
+import { AuditLogController } from './controllers/AuditLogController.js';
+import { AuditLogService } from '@backend/services/governance/AuditLogService.js';
+import { CreController } from './controllers/CreController.js';
+import { CopilotController } from './controllers/CopilotController.js';
+import { IngestController } from './controllers/IngestController.js';
+import { SpendController } from './controllers/SpendController.js';
+import { OwsController } from './controllers/OwsController.js';
+import { OwsWalletController } from './controllers/OwsWalletController.js';
+import { OwsApiKeyController } from './controllers/OwsApiKeyController.js';
+import { OwsPermissionsController } from './controllers/OwsPermissionsController.js';
+import { CleanverseController } from './controllers/CleanverseController.js';
+import { FhenixController } from './controllers/FhenixController.js';
+import { IntentController } from './controllers/IntentController.js';
+import { McpGovernanceController } from './controllers/McpGovernanceController.js';
+import { PayrollController } from './controllers/PayrollController.js';
+import { SealedBidController } from './controllers/SealedBidController.js';
+import { SpeechController } from './controllers/SpeechController.js';
+import { WebhookController } from './controllers/WebhookController.js';
+import { AuthController } from './controllers/AuthController.js';
+import { WorkspaceController } from './controllers/WorkspaceController.js';
+import { EventsController } from './controllers/EventsController.js';
+import { ObservabilityController } from './controllers/ObservabilityController.js';
+import { MandateController } from './controllers/MandateController.js';
+import { OutcomeObservationController } from './controllers/OutcomeObservationController.js';
+import { ApiKeyController, resolveWorkspaceFromApiKey } from './controllers/ApiKeyController.js';
+import { authMiddleware } from '@backend/middleware/authMiddleware.js';
+import { workspaceMiddleware } from '@backend/middleware/workspaceMiddleware.js';
+import { demoInterceptor } from '@backend/middleware/demoInterceptor.js';
+import { requestContextMiddleware } from '@backend/middleware/requestContext.js';
 import {
   isPublicApiPath,
   LEGACY_DEFAULT_WORKSPACE_ID,
-} from "@backend/middleware/publicEndpoints.js";
-import { sharedSloMetrics } from "@backend/services/SloMetricsService.js";
-import { asyncHandler } from "@backend/shared/errors/ApiErrors.js";
-import type { Server } from "node:http";
+} from '@backend/middleware/publicEndpoints.js';
+import { sharedSloMetrics } from '@backend/services/SloMetricsService.js';
+import { asyncHandler } from '@backend/shared/errors/ApiErrors.js';
+import type { Server } from 'node:http';
 
 /** Typed controller registry */
 interface ControllerRegistry {
@@ -77,10 +70,7 @@ interface ControllerRegistry {
   sapience?: {
     getStatus(req: express.Request, res: express.Response): Promise<void>;
     submitForecast(req: express.Request, res: express.Response): Promise<void>;
-    submitAutomatedForecast(
-      req: express.Request,
-      res: express.Response,
-    ): Promise<void>;
+    submitAutomatedForecast(req: express.Request, res: express.Response): Promise<void>;
     getWallet(req: express.Request, res: express.Response): Promise<void>;
     getDecisions(req: express.Request, res: express.Response): Promise<void>;
   };
@@ -122,9 +112,7 @@ export class ApiModule extends BaseService {
   private controllers = {} as ControllerRegistry;
 
   /** Type-safe controller accessor */
-  private ctrl<K extends keyof ControllerRegistry>(
-    key: K,
-  ): NonNullable<ControllerRegistry[K]> {
+  private ctrl<K extends keyof ControllerRegistry>(key: K): NonNullable<ControllerRegistry[K]> {
     const controller = this.controllers[key];
     if (!controller) {
       throw new Error(`Controller '${String(key)}' is not enabled`);
@@ -134,15 +122,15 @@ export class ApiModule extends BaseService {
 
   constructor() {
     const env = process.env.NODE_ENV;
-    const environment: ServiceConfig["environment"] =
-      env === "production" || env === "test" ? env : "development";
+    const environment: ServiceConfig['environment'] =
+      env === 'production' || env === 'test' ? env : 'development';
 
     const config: ServiceConfig = {
-      name: "api",
-      version: "1.0.0",
+      name: 'api',
+      version: '1.0.0',
       environment,
       port: apiConfig.port,
-      logLevel: "info",
+      logLevel: 'info',
     };
 
     super(config);
@@ -150,34 +138,32 @@ export class ApiModule extends BaseService {
   }
 
   protected async onInitialize(): Promise<void> {
-    this.logger.info("🔧 ApiModule.onInitialize() starting");
+    this.logger.info('🔧 ApiModule.onInitialize() starting');
     await this.setupMiddleware();
-    this.logger.info("🔧 Middleware setup complete");
+    this.logger.info('🔧 Middleware setup complete');
     await this.setupControllers();
-    this.logger.info("🔧 Controllers setup complete");
+    this.logger.info('🔧 Controllers setup complete');
     await this.setupRoutes();
-    this.logger.info("🔧 Routes setup complete");
+    this.logger.info('🔧 Routes setup complete');
     await this.startServer();
-    this.logger.info("🔧 Server started - ApiModule.onInitialize() complete");
+    this.logger.info('🔧 Server started - ApiModule.onInitialize() complete');
   }
 
   protected async onShutdown(): Promise<void> {
     if (this.server) {
       await new Promise<void>((resolve) => {
         this.server!.close(() => {
-          this.logger.info("HTTP server closed");
+          this.logger.info('HTTP server closed');
           resolve();
         });
       });
     }
   }
 
-  protected async checkDependencies(): Promise<
-    Record<string, DependencyHealth>
-  > {
+  protected async checkDependencies(): Promise<Record<string, DependencyHealth>> {
     // Check if server is listening
     const serverHealth: DependencyHealth = {
-      status: this.server?.listening ? "healthy" : "unhealthy",
+      status: this.server?.listening ? 'healthy' : 'unhealthy',
     };
 
     return {
@@ -186,14 +172,14 @@ export class ApiModule extends BaseService {
   }
 
   private async setupMiddleware(): Promise<void> {
-    this.logger.info("Setting up middleware...");
+    this.logger.info('Setting up middleware...');
 
     // Request-scoped context (requestId + AsyncLocalStorage store) — MUST run
     // first so every downstream logger / middleware can read the requestId.
     this.app.use(requestContextMiddleware);
 
     // Trust proxy for rate limiting behind reverse proxy (secure configuration)
-    this.app.set("trust proxy", 1); // Trust only first proxy
+    this.app.set('trust proxy', 1); // Trust only first proxy
 
     // Security middleware
     this.app.use(
@@ -203,7 +189,7 @@ export class ApiModule extends BaseService {
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             scriptSrc: ["'self'"],
-            imgSrc: ["'self'", "data:", "https:"],
+            imgSrc: ["'self'", 'data:', 'https:'],
           },
         },
       }),
@@ -212,17 +198,16 @@ export class ApiModule extends BaseService {
     // CORS configuration
     this.app.use(
       cors({
-        origin:
-          apiConfig.corsOrigin === "*" ? true : apiConfig.corsOrigin.split(","),
+        origin: apiConfig.corsOrigin === '*' ? true : apiConfig.corsOrigin.split(','),
         credentials: true,
-        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowedHeaders: [
-          "Content-Type",
-          "X-API-KEY",
-          "Authorization",
-          "Idempotency-Key",
-          "X-Idempotency-Key",
-          "X-Workspace-Mode",
+          'Content-Type',
+          'X-API-KEY',
+          'Authorization',
+          'Idempotency-Key',
+          'X-Idempotency-Key',
+          'X-Workspace-Mode',
         ],
       }),
     );
@@ -235,9 +220,9 @@ export class ApiModule extends BaseService {
     // evaluations are exempted by checking the Accept header and path.
     this.app.use((req, res, next) => {
       const isStream =
-        req.headers.accept?.includes("text/event-stream") ||
-        req.path.includes("/stream") ||
-        req.path.includes("/events");
+        req.headers.accept?.includes('text/event-stream') ||
+        req.path.includes('/stream') ||
+        req.path.includes('/events');
       const timeoutMs = isStream
         ? Number(process.env.STREAM_TIMEOUT_MS || 120000)
         : Number(process.env.REQUEST_TIMEOUT_MS || 30000);
@@ -245,64 +230,75 @@ export class ApiModule extends BaseService {
         if (!res.headersSent) {
           res.status(504).json({
             success: false,
-            error: "Request timed out",
+            error: 'Request timed out',
           });
         }
         req.destroy();
       }, timeoutMs);
-      res.on("finish", () => clearTimeout(timer));
+      res.on('finish', () => clearTimeout(timer));
       next();
     });
 
     // Body parsing
     // Control plane can accept larger payloads for dashboards, etc.
-    this.app.use(express.json({ limit: "10mb" }));
+    this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true }));
 
     // Data plane: tighter limits to reduce abuse risk
-    this.app.use(
-      "/ingest",
-      express.json({ limit: process.env.INGEST_BODY_LIMIT || "512kb" }),
-    );
+    this.app.use('/ingest', express.json({ limit: process.env.INGEST_BODY_LIMIT || '512kb' }));
 
     // Rate limiting
     const limiter = rateLimit({
       windowMs: apiConfig.rateLimit.windowMs,
       max: apiConfig.rateLimit.maxRequests,
       message: {
-        error: "Too many requests from this IP, please try again later.",
+        error: 'Too many requests from this IP, please try again later.',
       },
       standardHeaders: true,
       legacyHeaders: false,
       validate: { trustProxy: false }, // We've already set trust proxy to 1 (first proxy only)
     });
-    this.app.use("/api/", limiter);
+    this.app.use('/api/', limiter);
+
+    // Public health/SLO routes are mounted at the root (outside /api), so
+    // protect the metrics endpoint with its own low-cost rate limit.
+    const healthSloLimiter = rateLimit({
+      windowMs: 60_000,
+      max: Number(process.env.HEALTH_SLO_RATE_LIMIT_PER_MINUTE || 60),
+      message: {
+        error: 'Too many health/SLO requests, please try again later.',
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+      validate: { trustProxy: false },
+    });
+    this.app.use('/health/slo', healthSloLimiter);
 
     // Data plane rate limit (separate from control plane)
     const ingestLimiter = rateLimit({
       windowMs: 60_000, // 1 min
       max: Number(process.env.INGEST_RATE_LIMIT_PER_MINUTE || 120),
       message: {
-        error: "Too many ingest requests, please slow down.",
+        error: 'Too many ingest requests, please slow down.',
       },
       standardHeaders: true,
       legacyHeaders: false,
       validate: { trustProxy: false },
     });
-    this.app.use("/ingest/", ingestLimiter);
+    this.app.use('/ingest/', ingestLimiter);
 
     // Strict rate limit for AI/intent endpoints (expensive operations)
     const intentLimiter = rateLimit({
       windowMs: 60_000, // 1 min
       max: Number(process.env.INTENT_RATE_LIMIT_PER_MINUTE || 30),
       message: {
-        error: "Too many intent requests, please slow down.",
+        error: 'Too many intent requests, please slow down.',
       },
       standardHeaders: true,
       legacyHeaders: false,
       validate: { trustProxy: false },
     });
-    this.app.use("/api/intent", intentLimiter);
+    this.app.use('/api/intent', intentLimiter);
 
     // Strict rate limit for decrypt endpoint (expensive CoFHE operation)
     const decryptLimiter = rateLimit({
@@ -312,40 +308,40 @@ export class ApiModule extends BaseService {
         const permit = req.body?.permit;
         if (permit) {
           try {
-            const parsed = typeof permit === "string" ? JSON.parse(permit) : permit;
+            const parsed = typeof permit === 'string' ? JSON.parse(permit) : permit;
             if (parsed.recipient) return parsed.recipient.toLowerCase();
           } catch {}
         }
-        return req.ip || "unknown";
+        return req.ip || 'unknown';
       },
       message: {
-        error: "Too many decrypt requests, please slow down.",
+        error: 'Too many decrypt requests, please slow down.',
       },
       standardHeaders: true,
       legacyHeaders: false,
       validate: { trustProxy: false },
     });
-    this.app.use("/api/fhenix/decrypt", decryptLimiter);
+    this.app.use('/api/fhenix/decrypt', decryptLimiter);
 
     // Strict rate limit for governance/spend endpoints
     const governanceLimiter = rateLimit({
       windowMs: 60_000, // 1 min
       max: Number(process.env.GOVERNANCE_RATE_LIMIT_PER_MINUTE || 60),
       message: {
-        error: "Too many governance requests, please slow down.",
+        error: 'Too many governance requests, please slow down.',
       },
       standardHeaders: true,
       legacyHeaders: false,
       validate: { trustProxy: false },
     });
-    this.app.use("/api/governance", governanceLimiter);
-    this.app.use("/api/spend", governanceLimiter);
+    this.app.use('/api/governance', governanceLimiter);
+    this.app.use('/api/spend', governanceLimiter);
 
     // Request logging + SLO recorder
     this.app.use((req, res, next) => {
       const start = Date.now();
 
-      res.on("finish", () => {
+      res.on('finish', () => {
         const duration = Date.now() - start;
         this.logger.logRequest(req, res, duration);
 
@@ -353,7 +349,7 @@ export class ApiModule extends BaseService {
         // (e.g. "/api/governance/evaluate") to avoid cardinality explosion
         // from parameterized paths like "/api/copilot/runs/:runId".
         try {
-          const routeKey = `${req.method} ${req.route?.path ?? (res.statusCode === 404 ? "unmatched" : req.path)}`;
+          const routeKey = `${req.method} ${req.route?.path ?? (res.statusCode === 404 ? 'unmatched' : req.path)}`;
           sharedSloMetrics.record(routeKey, res.statusCode, duration);
         } catch {
           // SLO recorder is best-effort — never break a request.
@@ -364,7 +360,7 @@ export class ApiModule extends BaseService {
     });
 
     // API key middleware for protected routes
-    this.app.use("/api/", this.apiKeyMiddleware.bind(this));
+    this.app.use('/api/', this.apiKeyMiddleware.bind(this));
   }
 
   private apiKeyMiddleware(
@@ -379,7 +375,7 @@ export class ApiModule extends BaseService {
       // the workspace dashboard hitting /api/governance/policies), still
       // validate it and set req.workspaceId so downstream controllers
       // that read workspaceId keep working.
-      const headerApiKey = req.headers["x-api-key"] as string | undefined;
+      const headerApiKey = req.headers['x-api-key'] as string | undefined;
       if (headerApiKey) {
         this.trySetLegacyWorkspaceId(req, res, headerApiKey, next);
         return;
@@ -389,7 +385,7 @@ export class ApiModule extends BaseService {
 
     // Skip if already authenticated via JWT (Bearer token)
     const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith("Bearer ")) {
+    if (authHeader?.startsWith('Bearer ')) {
       return next();
     }
 
@@ -397,17 +393,14 @@ export class ApiModule extends BaseService {
     // the JWT via ?token=<jwt>. authMiddleware (which runs after this) has
     // the matching extraction logic. We just need to step out of its way
     // here instead of rejecting on "no header".
-    if (
-      req.path.endsWith("/events/stream") &&
-      typeof req.query.token === "string"
-    ) {
+    if (req.path.endsWith('/events/stream') && typeof req.query.token === 'string') {
       return next();
     }
 
-    const headerApiKey = req.headers["x-api-key"] as string;
+    const headerApiKey = req.headers['x-api-key'] as string;
     const queryApiKey =
-      req.path.endsWith("/events/stream") && // pragma: allowlist secret
-      typeof req.query.apiKey === "string" // pragma: allowlist secret
+      req.path.endsWith('/events/stream') && // pragma: allowlist secret
+      typeof req.query.apiKey === 'string' // pragma: allowlist secret
         ? req.query.apiKey // pragma: allowlist secret
         : undefined;
     const apiKey = headerApiKey || queryApiKey;
@@ -415,15 +408,14 @@ export class ApiModule extends BaseService {
     if (!apiKey) {
       res.status(401).json({
         success: false,
-        error:
-          "Authentication required. Provide a Bearer token or x-api-key header.",
+        error: 'Authentication required. Provide a Bearer token or x-api-key header.',
         timestamp: new Date().toISOString(),
       });
       return;
     }
 
     // Check workspace-scoped API keys (cvn_ prefix)
-    if (apiKey.startsWith("cvn_")) {
+    if (apiKey.startsWith('cvn_')) {
       const workspaceId = resolveWorkspaceFromApiKey(apiKey);
       if (workspaceId) {
         req.workspaceId = workspaceId;
@@ -431,7 +423,7 @@ export class ApiModule extends BaseService {
       }
       res.status(401).json({
         success: false,
-        error: "Invalid or revoked API key",
+        error: 'Invalid or revoked API key',
         timestamp: new Date().toISOString(),
       });
       return;
@@ -443,17 +435,12 @@ export class ApiModule extends BaseService {
     // skip the JWT check. Legacy keys are mapped to a synthetic
     // "default" workspace; see publicEndpoints.ts for the rationale.
     if (apiConfig.apiKey) {
-      const expected = Buffer.from(
-        createHash("sha256").update(apiConfig.apiKey).digest(),
-      );
-      const actual = Buffer.from(createHash("sha256").update(apiKey).digest());
-      if (
-        expected.length !== actual.length ||
-        !timingSafeEqual(expected, actual)
-      ) {
+      const expected = Buffer.from(createHash('sha256').update(apiConfig.apiKey).digest());
+      const actual = Buffer.from(createHash('sha256').update(apiKey).digest());
+      if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
         res.status(401).json({
           success: false,
-          error: "Invalid API key",
+          error: 'Invalid API key',
           timestamp: new Date().toISOString(),
         });
         return;
@@ -462,7 +449,7 @@ export class ApiModule extends BaseService {
     } else {
       res.status(401).json({
         success: false,
-        error: "Invalid API key",
+        error: 'Invalid API key',
         timestamp: new Date().toISOString(),
       });
       return;
@@ -487,22 +474,17 @@ export class ApiModule extends BaseService {
     if (!apiConfig.apiKey) {
       res.status(401).json({
         success: false,
-        error: "Invalid API key",
+        error: 'Invalid API key',
         timestamp: new Date().toISOString(),
       });
       return;
     }
-    const expected = Buffer.from(
-      createHash("sha256").update(apiConfig.apiKey).digest(),
-    );
-    const actual = Buffer.from(createHash("sha256").update(apiKey).digest());
-    if (
-      expected.length !== actual.length ||
-      !timingSafeEqual(expected, actual)
-    ) {
+    const expected = Buffer.from(createHash('sha256').update(apiConfig.apiKey).digest());
+    const actual = Buffer.from(createHash('sha256').update(apiKey).digest());
+    if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
       res.status(401).json({
         success: false,
-        error: "Invalid API key",
+        error: 'Invalid API key',
         timestamp: new Date().toISOString(),
       });
       return;
@@ -512,28 +494,24 @@ export class ApiModule extends BaseService {
   }
 
   private async setupControllers(): Promise<void> {
-    this.logger.info("Setting up controllers...");
+    this.logger.info('Setting up controllers...');
 
-    const { AgentsModule } = await import("@backend/modules/agents/AgentsModule.js");
-    const agentsEnabled =
-      (process.env.AGENTS_ENABLED || "false").toLowerCase() === "true";
+    const { AgentsModule } = await import('@backend/modules/agents/AgentsModule.js');
+    const agentsEnabled = (process.env.AGENTS_ENABLED || 'false').toLowerCase() === 'true';
 
     const agentsModule = new AgentsModule();
     if (agentsEnabled) {
       await agentsModule.initialize();
     } else {
       this.logger.warn(
-        "AgentsModule disabled (set AGENTS_ENABLED=true to enable background agent loops)",
+        'AgentsModule disabled (set AGENTS_ENABLED=true to enable background agent loops)',
       );
     }
 
-    const sapienceEnabled =
-      (process.env.SAPIENCE_ENABLED || "false").toLowerCase() === "true";
+    const sapienceEnabled = (process.env.SAPIENCE_ENABLED || 'false').toLowerCase() === 'true';
 
     // Initialize shared services for controllers (CONSOLIDATION & DRY)
-    const { sharedPolicyService } = await import(
-      "../../services/governance/PolicyService.js"
-    );
+    const { sharedPolicyService } = await import('../../services/governance/PolicyService.js');
     const policyService = sharedPolicyService;
 
     // Initialize controllers with dependency injection
@@ -544,20 +522,13 @@ export class ApiModule extends BaseService {
       undefined, // Will initialize its own unified AuditLogService
       policyService,
     );
-    this.controllers.governance = new GovernanceController(
-      policyService,
-      undefined,
-    );
+    this.controllers.governance = new GovernanceController(policyService, undefined);
     this.controllers.metrics = new MetricsController();
     if (sapienceEnabled) {
-      const { SapienceController } = await import(
-        "./controllers/SapienceController.js"
-      );
+      const { SapienceController } = await import('./controllers/SapienceController.js');
       this.controllers.sapience = new SapienceController();
     } else {
-      this.logger.info(
-        "SapienceController disabled (set SAPIENCE_ENABLED=true to enable)",
-      );
+      this.logger.info('SapienceController disabled (set SAPIENCE_ENABLED=true to enable)');
     }
     this.controllers.auditLog = new AuditLogController();
     this.controllers.cre = new CreController();
@@ -587,7 +558,7 @@ export class ApiModule extends BaseService {
     // Initialize all controllers that have an initialize method
     for (const [name, controller] of Object.entries(this.controllers)) {
       const ctrl = controller as { initialize?(): Promise<void> };
-      if (ctrl.initialize && name !== "agents") {
+      if (ctrl.initialize && name !== 'agents') {
         await ctrl.initialize();
         this.logger.debug(`${name} controller initialized`);
       }
@@ -595,7 +566,7 @@ export class ApiModule extends BaseService {
   }
 
   private async setupRoutes(): Promise<void> {
-    this.logger.info("Setting up routes...");
+    this.logger.info('Setting up routes...');
 
     // Import route modules
     const {
@@ -616,27 +587,27 @@ export class ApiModule extends BaseService {
       createObservabilityRoutes,
       createMandateRoutes,
       createOutcomeObservationRoutes,
-    } = await import("./routes/index.js");
+    } = await import('./routes/index.js');
 
     // Health check (no API key required)
-    const healthRoutes = createHealthRoutes(this.ctrl("health"));
+    const healthRoutes = createHealthRoutes(this.ctrl('health'));
     this.app.use(healthRoutes);
 
     // Auth routes (public - no API key, no auth)
-    const authRoutes = createAuthRoutes(this.ctrl("auth"));
+    const authRoutes = createAuthRoutes(this.ctrl('auth'));
     this.app.use(authRoutes);
 
     // Workspace routes (protected by JWT auth middleware in routes)
-    const workspaceRoutes = createWorkspaceRoutes(this.ctrl("workspace"));
+    const workspaceRoutes = createWorkspaceRoutes(this.ctrl('workspace'));
     this.app.use(workspaceRoutes);
 
     // API key management routes (protected by JWT auth middleware in routes)
-    const apiKeyRoutes = createApiKeyRoutes(this.ctrl("apiKey"));
+    const apiKeyRoutes = createApiKeyRoutes(this.ctrl('apiKey'));
     this.app.use(apiKeyRoutes);
 
     // Data plane ingestion (NO API key middleware)
-    this.app.post("/ingest/runs", (req, res) => {
-      this.ctrl("ingest").ingestRun(req, res);
+    this.app.post('/ingest/runs', (req, res) => {
+      this.ctrl('ingest').ingestRun(req, res);
     });
 
     // API routes (require API key)
@@ -653,60 +624,55 @@ export class ApiModule extends BaseService {
     apiRouter.use(demoInterceptor);
 
     // Mount feature-based route modules
-    apiRouter.use(createHealthRoutes(this.ctrl("health")));
-    apiRouter.use(createAgentRoutes(this.ctrl("agents")));
-    apiRouter.use(
-      createGovernanceRoutes(
-        this.ctrl("governance"),
-        this.ctrl("mcpGovernance"),
-      ),
-    );
-    apiRouter.use(createMetricsRoutes(this.ctrl("metrics")));
-    apiRouter.use(createAuditRoutes(this.ctrl("auditLog")));
-    apiRouter.use(createCreRoutes(this.ctrl("cre"), this.ctrl("ingest")));
-    apiRouter.use(createCopilotRoutes(this.ctrl("copilot")));
+    apiRouter.use(createHealthRoutes(this.ctrl('health')));
+    apiRouter.use(createAgentRoutes(this.ctrl('agents')));
+    apiRouter.use(createGovernanceRoutes(this.ctrl('governance'), this.ctrl('mcpGovernance')));
+    apiRouter.use(createMetricsRoutes(this.ctrl('metrics')));
+    apiRouter.use(createAuditRoutes(this.ctrl('auditLog')));
+    apiRouter.use(createCreRoutes(this.ctrl('cre'), this.ctrl('ingest')));
+    apiRouter.use(createCopilotRoutes(this.ctrl('copilot')));
     apiRouter.use(
       createSpendRoutes(
-        this.ctrl("spend"),
-        this.ctrl("ows"),
-        this.ctrl("owsWallet"),
-        this.ctrl("owsApiKey"),
-        this.ctrl("owsPermissions"),
-        this.ctrl("cleanverse"),
+        this.ctrl('spend'),
+        this.ctrl('ows'),
+        this.ctrl('owsWallet'),
+        this.ctrl('owsApiKey'),
+        this.ctrl('owsPermissions'),
+        this.ctrl('cleanverse'),
       ),
     );
     apiRouter.use(
       createMiscRoutes(
-        this.ctrl("ingest"),
-        this.ctrl("fhenix"),
-        this.ctrl("intent"),
-        this.ctrl("payroll"),
-        this.ctrl("sealedBid"),
-        this.ctrl("speech"),
+        this.ctrl('ingest'),
+        this.ctrl('fhenix'),
+        this.ctrl('intent'),
+        this.ctrl('payroll'),
+        this.ctrl('sealedBid'),
+        this.ctrl('speech'),
       ),
     );
-    apiRouter.use(createWebhookRoutes(this.ctrl("webhook")));
-    apiRouter.use(createEventsRoutes(this.ctrl("events")));
-    apiRouter.use(createObservabilityRoutes(this.ctrl("observability")));
-    apiRouter.use(createMandateRoutes(this.ctrl("mandate")));
-    apiRouter.use(createOutcomeObservationRoutes(this.ctrl("outcomeObservation")));
+    apiRouter.use(createWebhookRoutes(this.ctrl('webhook')));
+    apiRouter.use(createEventsRoutes(this.ctrl('events')));
+    apiRouter.use(createObservabilityRoutes(this.ctrl('observability')));
+    apiRouter.use(createMandateRoutes(this.ctrl('mandate')));
+    apiRouter.use(createOutcomeObservationRoutes(this.ctrl('outcomeObservation')));
 
     // Sapience routes (conditional)
     if (this.controllers.sapience) {
-      apiRouter.get("/sapience/status", (req, res) => {
-        this.ctrl("sapience").getStatus(req, res);
+      apiRouter.get('/sapience/status', (req, res) => {
+        this.ctrl('sapience').getStatus(req, res);
       });
-      apiRouter.post("/sapience/forecast", (req, res) => {
-        this.ctrl("sapience").submitForecast(req, res);
+      apiRouter.post('/sapience/forecast', (req, res) => {
+        this.ctrl('sapience').submitForecast(req, res);
       });
-      apiRouter.post("/sapience/forecast/auto", (req, res) => {
-        this.ctrl("sapience").submitAutomatedForecast(req, res);
+      apiRouter.post('/sapience/forecast/auto', (req, res) => {
+        this.ctrl('sapience').submitAutomatedForecast(req, res);
       });
-      apiRouter.get("/sapience/wallet", (req, res) => {
-        this.ctrl("sapience").getWallet(req, res);
+      apiRouter.get('/sapience/wallet', (req, res) => {
+        this.ctrl('sapience').getWallet(req, res);
       });
-      apiRouter.get("/sapience/decisions", (req, res) => {
-        this.ctrl("sapience").getDecisions(req, res);
+      apiRouter.get('/sapience/decisions', (req, res) => {
+        this.ctrl('sapience').getDecisions(req, res);
       });
     }
 
@@ -715,34 +681,32 @@ export class ApiModule extends BaseService {
     // The spec is copied into dist/ during the backend build (see
     // build-backend-artifact.sh) so it's available in production without
     // the agent/ source directory.
-    apiRouter.get("/docs/openapi.json", (_req, res) => {
+    apiRouter.get('/docs/openapi.json', (_req, res) => {
       try {
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = dirname(__filename);
         // dist/src/backend/modules/api/ → dist/openapi.json (4 levels up)
-        const specPath = join(__dirname, "../../../../openapi.json");
-        const spec = readFileSync(specPath, "utf-8");
-        res.type("application/json").send(spec);
+        const specPath = join(__dirname, '../../../../openapi.json');
+        const spec = readFileSync(specPath, 'utf-8');
+        res.type('application/json').send(spec);
       } catch {
         res.status(404).json({
           success: false,
-          error: "OpenAPI spec not found",
+          error: 'OpenAPI spec not found',
         });
       }
     });
 
     // Mount API router
-    this.app.use("/api", apiRouter);
+    this.app.use('/api', apiRouter);
 
     // Wrap route handlers so async rejections reach the error middleware
     // instead of crashing the process via unhandledRejection.
     this.wrapAsyncHandlers(this.app);
 
     // 404 handler
-    this.app.use("*", (req, res) => {
-      const message = req.path.startsWith("/api")
-        ? "API Endpoint not found"
-        : "Resource not found";
+    this.app.use('*', (req, res) => {
+      const message = req.path.startsWith('/api') ? 'API Endpoint not found' : 'Resource not found';
       res.status(404).json({
         success: false,
         error: message,
@@ -752,19 +716,14 @@ export class ApiModule extends BaseService {
 
     // Error handler
     this.app.use(
-      (
-        error: Error,
-        req: express.Request,
-        res: express.Response,
-        _next: express.NextFunction,
-      ) => {
+      (error: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
         this.logger.error(`API Error: ${error.message}`, error);
 
-        if (error.name === "ZodError") {
+        if (error.name === 'ZodError') {
           return res.status(422).json({
             success: false,
-            error: "Validation failed",
-            code: "VALIDATION_ERROR",
+            error: 'Validation failed',
+            code: 'VALIDATION_ERROR',
             details: error,
             timestamp: new Date().toISOString(),
           });
@@ -774,8 +733,8 @@ export class ApiModule extends BaseService {
         const statusCode = httpError.statusCode || 500;
         return res.status(statusCode).json({
           success: false,
-          error: error.message || "Internal server error",
-          code: httpError.code || "INTERNAL_ERROR",
+          error: error.message || 'Internal server error',
+          code: httpError.code || 'INTERNAL_ERROR',
           timestamp: new Date().toISOString(),
         });
       },
@@ -799,7 +758,7 @@ export class ApiModule extends BaseService {
       if (layer.route) {
         for (const routeLayer of layer.route.stack) {
           const fn = routeLayer.handle;
-          if (typeof fn === "function" && fn.length <= 3) {
+          if (typeof fn === 'function' && fn.length <= 3) {
             routeLayer.handle = asyncHandler(
               fn as (
                 req: express.Request,
@@ -809,7 +768,7 @@ export class ApiModule extends BaseService {
             );
           }
         }
-      } else if (layer.name === "router" && layer.handle) {
+      } else if (layer.name === 'router' && layer.handle) {
         this.wrapAsyncHandlers(layer.handle);
       }
     }
@@ -822,8 +781,8 @@ export class ApiModule extends BaseService {
         resolve();
       });
 
-      this.server.on("error", (error: Error) => {
-        this.logger.error("Server error:", error);
+      this.server.on('error', (error: Error) => {
+        this.logger.error('Server error:', error);
         reject(error);
       });
     });

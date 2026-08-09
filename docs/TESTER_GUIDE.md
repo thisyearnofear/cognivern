@@ -159,8 +159,11 @@ Cleanverse is a first-class spend rail: **CVI (A-Pass)** before policy approval,
 
 1. Open **Operate → Verified Capital** (`/verified-capital`).
 2. Confirm rail status (API connected, Monad `10143`, aUSD-D).
-3. Arm a wallet (Settings → Cleanverse provider, chain `10143`) and create an
-   OWS scoped API key for it. Optionally attach a mandate with
+3. Arm a disposable wallet (Settings → Cleanverse provider, chain `10143`)
+   and create an OWS scoped API key for it. The current demo funding address is
+   `0x2FeE0208c0d1598104f52fb55Dcc2811707c8879`. It is a public Monad testnet
+   address; never request or share its private key. Fund MON for gas and aUSD-D
+   for settlement. Optionally attach a mandate with
    `settlement.requireVerifiedSettlement` and an `aUSD-D` budget.
 4. On Verified Capital: **Screen A-Pass** → **Preview policy** (tier caps apply)
    → **Execute CVA spend** with the scoped key.
@@ -170,6 +173,9 @@ Cleanverse is a first-class spend rail: **CVI (A-Pass)** before policy approval,
    (`CLEANVERSE_ALLOW_COUNTRIES` / `CLEANVERSE_BLOCK_COUNTRIES`), the preview
    also reports each party's A-Pass country tags; a non-compliant pair is
    denied with a `cleanverse-country-rule` reason.
+7. Before recording, run the read-only acceptance check:
+   `pnpm tsx tooling/scripts/acceptance/cleanverse-live-negative-paths.ts`.
+   It does not create wallets, rounds, or transactions.
 
 Details: [HACKATHON_SUBMISSION_CLEANVERSE.md](./HACKATHON_SUBMISSION_CLEANVERSE.md).
 
@@ -203,8 +209,8 @@ spends funds.
 3. **Preview statement** — a read-only, hashed candidate (sha256 shown) listing
    spend records, observed outcomes, evidence completeness, and known unknowns.
    It fails closed instead of showing optimistic numbers.
-4. **Review next allocation** — an advisory stance (`hold` or *consider next
-   allocation*) gated on verified outcomes and receipt-backed spend. It never
+4. **Review next allocation** — an advisory stance (`hold` or _consider next
+   allocation_) gated on verified outcomes and receipt-backed spend. It never
    executes anything.
 5. **Publish snapshot** — freezes an immutable versioned statement, then
    **Export redacted** downloads a JSON copy with internal sources, notes, and

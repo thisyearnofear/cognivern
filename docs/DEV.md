@@ -142,12 +142,12 @@ capital attribution.
 
 ### Responsibility Boundary
 
-| OWS Owns                   | Cognivern Owns                                             | Swappable Via           |
-| -------------------------- | ---------------------------------------------------------- | ----------------------- |
-| Wallet storage             | Policy semantics and governed execution                    | —                       |
-| API-key issuance           | Approval workflows and spend/run evidence                  | —                       |
-| Transaction signing        | Run ledger and audit evidence; outcome links are roadmap   | SigningProvider adapter |
-| Signing policy enforcement | Allocation analytics and reporting (roadmap)                | —                       |
+| OWS Owns                   | Cognivern Owns                                           | Swappable Via           |
+| -------------------------- | -------------------------------------------------------- | ----------------------- |
+| Wallet storage             | Policy semantics and governed execution                  | —                       |
+| API-key issuance           | Approval workflows and spend/run evidence                | —                       |
+| Transaction signing        | Run ledger and audit evidence; outcome links are roadmap | SigningProvider adapter |
+| Signing policy enforcement | Allocation analytics and reporting (roadmap)             | —                       |
 
 ### System Overview
 
@@ -578,11 +578,11 @@ Related: `GET /api/projects`, `GET /api/projects/:projectId/usage`
 
 ### Spend Execution
 
-| Endpoint               | Method | Description                                     |
-| ---------------------- | ------ | ----------------------------------------------- |
-| `/api/spend`           | POST   | Execute governed spend                          |
-| `/api/spend/encrypted` | POST   | Confidential-policy spend with encrypted amount |
-| `/api/spend/preview`   | POST   | Simulate spend (dry-run)                        |
+| Endpoint               | Method | Description                                            |
+| ---------------------- | ------ | ------------------------------------------------------ |
+| `/api/spend`           | POST   | Execute governed spend                                 |
+| `/api/spend/encrypted` | POST   | Confidential-policy spend with encrypted amount        |
+| `/api/spend/preview`   | POST   | Simulate spend (dry-run)                               |
 | `/api/spend/status`    | GET    | Execution status (includes `cleanverse` / `keeperHub`) |
 
 ### Cleanverse (CVI / CVA)
@@ -591,10 +591,10 @@ Optional Track 2 verified-agent capital rail. When a wallet has
 `metadata.executionProvider: "cleanverse"`, spends are A-Pass gated (CVI)
 before policy evaluation and settle as aUSD-D on Monad testnet (CVA).
 
-| Endpoint                  | Method | Description                                      |
-| ------------------------- | ------ | ------------------------------------------------ |
-| `/api/cleanverse/status`  | GET    | Config + Monad / aUSD-D status                   |
-| `/api/cleanverse/screen`  | POST   | Screen sender + recipient A-Pass (`{ sender, recipient, chain? }`) |
+| Endpoint                 | Method | Description                                                        |
+| ------------------------ | ------ | ------------------------------------------------------------------ |
+| `/api/cleanverse/status` | GET    | Config + Monad / aUSD-D status                                     |
+| `/api/cleanverse/screen` | POST   | Screen sender + recipient A-Pass (`{ sender, recipient, chain? }`) |
 
 Env: `CLEANVERSE_API_ID`, `CLEANVERSE_API_KEY`, `CLEANVERSE_API_URL`,
 `MONAD_RPC_URL`, `MONAD_CHAIN_ID`, `CLEANVERSE_ATOKEN_ADDRESS`. Optional
@@ -603,8 +603,15 @@ institutional country rule on A-Pass country tags (v5.5):
 both parties must hold a tag, fail-closed on missing tags) or
 `CLEANVERSE_BLOCK_COUNTRIES` (blacklist; wins if both set). A configured rule
 is a hard deny gate (`cleanverse-country-rule`) alongside the CVI screen.
-Product UI: `/verified-capital`. See
-[HACKATHON_SUBMISSION_CLEANVERSE.md](./HACKATHON_SUBMISSION_CLEANVERSE.md).
+The current disposable Monad testnet demo wallet is
+`0x2FeE0208c0d1598104f52fb55Dcc2811707c8879`; it is configured with
+`executionProvider: "cleanverse"`, `chainId: 10143`, and must never have its
+private key committed or shared. The configured aUSD-D contract is
+`0xbD14cFAf1Fb8b08858E3FfcCeffEfe09cC013892` with 6 decimals.
+Product UI: `/verified-capital`. The read-only live acceptance check is
+`tooling/scripts/acceptance/cleanverse-live-negative-paths.ts`; it verifies the
+active country rule, an unregistered-address denial, and the known demo pair.
+See [HACKATHON_SUBMISSION_CLEANVERSE.md](./HACKATHON_SUBMISSION_CLEANVERSE.md).
 
 ### Audit & Run Ledger
 
@@ -691,6 +698,22 @@ Test files live in `.testsprite/tests/` and cover: auth (register, login, nonce,
 The write-verify-fix loop caught production issues during the build window; see [`LOOP.md`](./history/LOOP.md) for the full iteration log.
 
 ## Production Readiness
+
+### Live demo operational checks
+
+- `GET /health` is the core liveness probe.
+- `GET /health?deep=true` reports required dependencies separately from optional
+  integrations. An unavailable optional 0G Storage indexer remains visible as an
+  `optional: true` degraded dependency without taking core API health down;
+  `optionalDegraded: true` is the machine-readable signal.
+- `GET /health/slo` is intentionally unauthenticated so an external monitor can
+  collect route latency/error metrics without production workspace credentials.
+  It exposes operational route metrics only and is protected by the application's
+  dedicated `/health/slo` rate limiter (an upstream edge limiter may be added as
+  defense in depth). The generic deployment guide should use `/health/slo`, not
+  `/api/health/slo`.
+- Configure `SLACK_WEBHOOK_URL` or `PAGERDUTY_ROUTING_KEY` to forward critical
+  denied/flagged governance decisions to an operator alert sink.
 
 ### Completed
 
