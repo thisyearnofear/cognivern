@@ -1,7 +1,7 @@
 import { Policy, PolicyRule } from "@backend/types/Policy.js";
 import type { PolicyService } from "@backend/services/governance/PolicyService.js";
 import type { PolicyEnforcementService } from "@backend/services/governance/PolicyEnforcementService.js";
-import type { FhenixPolicyService } from "./FhenixPolicyService.js";
+import type { ConfidentialPolicyEvaluator } from "./confidentialEvaluator.js";
 import type { AgentAction } from "@backend/types/Agent.js";
 import type { SpendIntent, SpendExecutionContext, ExecutionResult } from "./OwsWalletService.js";
 import { createHash } from "node:crypto";
@@ -172,7 +172,7 @@ export class OwsWalletPolicyEvaluator {
     activePolicy: Policy,
     context: SpendExecutionContext,
     policyEnforcement: PolicyEnforcementService,
-    fhenixPolicyService: FhenixPolicyService,
+    confidentialPolicyService: ConfidentialPolicyEvaluator,
   ): Promise<{
     policyChecks: AgentAction["policyChecks"];
     decision?: { status: ExecutionResult["status"]; reason?: string };
@@ -212,7 +212,7 @@ export class OwsWalletPolicyEvaluator {
         : `0x${createHash("sha256").update(intent.recipient).digest("hex")}`);
 
     const confidentialDecision =
-      await fhenixPolicyService.evaluateEncrypted({
+      await confidentialPolicyService.evaluateEncrypted({
         agentId: intent.agentId,
         policyId: activePolicy.id,
         amountWei,

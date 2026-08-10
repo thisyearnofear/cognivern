@@ -300,16 +300,26 @@ export class AuditLogController {
       }
 
       const conf = raw.confidential as Record<string, unknown> | undefined;
-      if (conf?.fheEvaluated === true) {
+      if (
+        conf?.confidentialEvaluated === true ||
+        conf?.fheEvaluated === true ||
+        conf?.teeEvaluated === true
+      ) {
         const ids = (conf.decisionIds as string[]) || [];
+        const rail =
+          conf.evaluator === 'flare' || conf.teeEvaluated === true
+            ? 'Flare TEE'
+            : 'Fhenix FHE';
         events.push({
           id: seq++,
-          type: 'fhe_evaluation',
-          label: 'FHE encrypted evaluation completed',
+          type: 'confidential_evaluation',
+          label: `${rail} evaluation completed`,
           timestamp: new Date(ms + seq * 10).toISOString(),
           payload: {
             decisionIds: ids,
             resolved: conf.resolved === true,
+            evaluator: conf.evaluator,
+            mechanism: conf.mechanism,
           },
           status: conf.resolved === true ? 'success' : 'pending',
         });

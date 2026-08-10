@@ -15,6 +15,23 @@ vi.mock("@backend/services/blockchain/FhenixPolicyService.js", () => ({
   sharedFhenixPolicyService: {},
 }));
 
+vi.mock("@backend/services/blockchain/FlareConfidentialPolicyService.js", () => ({
+  isFlareEvaluatorEnabled: () => false,
+  sharedFlareConfidentialPolicyService: { status: () => ({}) },
+}));
+
+vi.mock("@backend/services/blockchain/confidentialEvaluator.ts", () => ({
+  getConfidentialPolicyService: () => ({
+    evaluateEncrypted: vi.fn(),
+  }),
+}));
+
+vi.mock("@backend/services/blockchain/confidentialEvaluator.js", () => ({
+  getConfidentialPolicyService: () => ({
+    evaluateEncrypted: vi.fn(),
+  }),
+}));
+
 vi.mock("@backend/services/ai/ChainGPTAuditService.js", () => ({
   getChainGPTAuditService: () => null,
 }));

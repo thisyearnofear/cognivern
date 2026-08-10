@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Flare CSP — contact sheet v5</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!--
+    Contact sheet BEFORE motion (last30days grammar, Flare-differentiated story).
+    Steal anatomy: logo row → task headline → result items → harvest counter → ⊕
+    One query threads every card: Evaluate spend for agent 0xaa · policy 0x01
+    Open this file, screenshot each .card, or capture the whole grid.
+  -->
+  <style>
+    :root {
+      --bg: #0c0d10;
+      --card: #16181d;
+      --ink: #f4f4f5;
+      --muted: #8b909a;
+      --line: rgba(255, 255, 255, 0.08);
+      --amber: #f5b94a;
+      --green: #34d399;
+      --hold: #fbbf24;
+      --deny: #f87171;
+      --flare: #e11d48;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+      padding: 48px 40px 64px;
+    }
+    header {
+      max-width: 1180px;
+      margin: 0 auto 28px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: end;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      max-width: 52ch;
+      line-height: 1.45;
+    }
+    header .meta {
+      text-align: right;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .grid {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+    }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    /* Strict anatomy — no mono sublines, no poster taglines */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 18px 18px 16px;
+      min-height: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .mark.flare { background: linear-gradient(135deg, #fb7185, #e11d48); color: white; }
+    .mark.cog { background: #1e293b; color: #93c5fd; border: 1px solid #334155; }
+    .mark.tee { background: #422006; color: var(--amber); border: 1px solid #78350f; }
+    .mark.proxy { background: #0f172a; color: #a5b4fc; border: 1px solid #312e81; }
+    .mark.chain { background: #052e16; color: var(--green); border: 1px solid #14532d; }
+    .mark.file { background: #111827; color: #e5e7eb; border: 1px solid #374151; }
+    .logo-row .name {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .logo-row .pill {
+      margin-left: auto;
+      font-size: 10px;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 8px;
+    }
+
+    .task {
+      font-size: 17px;
+      line-height: 1.3;
+      letter-spacing: -0.02em;
+      font-weight: 550;
+    }
+    .task .lead {
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .task .ink {
+      color: var(--ink);
+    }
+
+    .results {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .row .k {
+      color: var(--muted);
+      min-width: 64px;
+      flex-shrink: 0;
+    }
+    .row .v { color: var(--ink); }
+    .row .v.mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      word-break: break-all;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 999px;
+    }
+    .chip.ok { background: rgba(52, 211, 153, 0.12); color: var(--green); }
+    .chip.hold { background: rgba(251, 191, 36, 0.12); color: var(--hold); }
+    .chip.deny { background: rgba(248, 113, 113, 0.12); color: var(--deny); }
+    .chip.run { background: rgba(245, 185, 74, 0.12); color: var(--amber); }
+
+    .foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 4px;
+      border-top: 1px solid var(--line);
+      margin-top: auto;
+    }
+    .harvest {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .harvest strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .plus {
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    /* Payoff card — TextEdit-ish brief, not another tool */
+    .card.payoff {
+      background: #12141a;
+      border-color: rgba(245, 185, 74, 0.28);
+    }
+    .brief {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      line-height: 1.55;
+      color: #c4c9d4;
+      background: #0a0b0e;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      flex: 1;
+    }
+    .brief .hl {
+      background: rgba(59, 130, 246, 0.28);
+      color: #fff;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+    .brief .dim { color: #6b7280; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Contact sheet v5 — Flare confidential spend conveyor</h1>
+      <p>
+        Same query on every card:
+        <strong style="color:#f4f4f5">Evaluate spend for agent 0xaa · policy 0x01</strong>.
+        Differentiated from research-source conveyors: cards are FCC path stages + outcome triad, payoff is the on-chain brief.
+      </p>
+    </div>
+    <div class="meta">
+      Contract 0x9280…1A94<br />
+      Extension 0x10238 · Coston2<br />
+      Grammar: logo → task → results → harvest → ⊕
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- 1 Cognivern intent -->
+    <article class="card" data-shot="01-cognivern">
+      <div class="logo-row">
+        <div class="mark cog">Cv</div>
+        <div class="name">Cognivern</div>
+        <div class="pill">control plane</div>
+      </div>
+      <div class="task">
+        <span class="lead">Submitting spend for </span>
+        <span class="ink">“agent 0xaa”</span>
+      </div>
+      <div class="results">
+        <div class="row"><span class="k">policy</span><span class="v mono">0x01 · private budget</span></div>
+        <div class="row"><span class="k">amount</span><span class="v">$750 USDC · Try confidential spend</span></div>
+        <div class="row"><span class="k">rail</span><span class="v">FLARE_EVALUATOR=flare</span></div>
+      </div>
+      <div class="foot">
+        <div class="harvest"><strong>1</strong> intent queued</div>
+        <div class="plus">⊕</div>
+      </div>
+    </article>
+
+    <!-- 2 InstructionSender -->
+    <article class="card" data-shot="02-instruction-sender">
+      <div class="logo-row">
+        <div class="mark flare">Fl</div>
+        <div class="name">InstructionSender</div>
+        <div class="pill">Coston2</div>
+      </div>
+      <div class="task">
+        <span class="lead">Sending instruction for </span>
+        <span class="ink">“agent 0xaa”</span>
+      </div>
+      <div class="results">
+        <div class="row"><span class="k">op</span><span class="v">EVALUATE_SPEND · SPEND_POLICY</span></div>
+        <div class="row"><span class="k">contract</span><span class="v mono">0x9280232a…1A94</span></div>
+        <div class="row"><span class="k">ext</span><span class="v mono">0x10238</span></div>
+      </div>
+      <div class="foot">
+        <div class="harvest"><strong>1</strong> TeeInstructionsSent</div>
+        <div class="plus">⊕</div>
+      </div>
+    </article>
+
+    <!-- 3 ext-proxy -->
+    <article class="card" data-shot="03-ext-proxy">
+      <div class="logo-row">
+        <div class="mark proxy">Px</div>
+        <div class="name">ext-proxy</div>
+        <div class="pill">flare-tee.persidian.com</div>
+      </div>
+      <div class="task">
+        <span class="lead">Relaying action for </span>
+        <span class="ink">“agent 0xaa”</span>
+      </div>
+      <div class="results">
+        <div class="row"><span class="k">status</span><span class="chip run">queued → TEE</span></div>
+        <div class="row"><span class="k">path</span><span class="v">/action/result/{instructionId}</span></div>
+        <div class="row"><span class="k">dp</span><span class="v">Flare data-provider consensus</span></div>
+      </div>
+      <div class="foot">
+        <div class="harvest"><strong>1</strong> action in flight</div>
+        <div class="plus">⊕</div>
+      </div>
+    </article>
+
+    <!-- 4 TEE enclave -->
+    <article class="card" data-shot="04-tee">
+      <div class="logo-row">
+        <div class="mark tee">TEE</div>
+        <div class="name">Flare Compute Extension</div>
+        <div class="pill">PRODUCTION</div>
+      </div>
+      <div class="task">
+        <span class="lead">Comparing private limits for </span>
+        <span class="ink">“agent 0xaa”</span>
+      </div>
+      <div class="results">
+        <div class="row"><span class="k">state</span><span class="v">daily / per-tx / threshold · enclave-only</span></div>
+        <div class="row"><span class="k">amount</span><span class="v">750 · vs approvalThreshold 500</span></div>
+        <div class="row"><span class="k">reason</span><span class="v">approval_threshold forming…</span></div>
+      </div>
+      <div class="foot">
+        <div class="harvest"><strong>0</strong> bytes of limits on-chain</div>
+        <div class="plus">⊕</div>
+      </div>
+    </article>
+
+    <!-- 5 Outcome triad — still the SAME query, three amounts as platform-native results -->
+    <article class="card" data-shot="05-outcomes">
+      <div class="logo-row">
+        <div class="mark cog">Cv</div>
+        <div class="name">Outcomes</div>
+        <div class="pill">same policy</div>
+      </div>
+      <div class="task">
+        <span class="lead">Resolving spend for </span>
+        <span class="ink">“agent 0xaa”</span>
+      </div>
+      <div class="results">
+        <div class="row">
+          <span class="k">$25</span>
+          <span class="chip ok">approve</span>
+          <span class="v">within_limits</span>
+        </div>
+        <div class="row">
+          <span class="k">$750</span>
+          <span class="chip hold">hold</span>
+          <span class="v">approval_threshold</span>
+        </div>
+        <div class="row">
+          <span class="k">$2,500</span>
+          <span class="chip deny">deny</span>
+          <span class="v">per_tx_limit</span>
+        </div>
+      </div>
+      <div class="foot">
+        <div class="harvest"><strong>3</strong> decisions published</div>
+        <div class="plus">⊕</div>
+      </div>
+    </article>
+
+    <!-- 6 Payoff — not a tool; the brief / on-chain file -->
+    <article class="card payoff" data-shot="06-payoff-brief">
+      <div class="logo-row">
+        <div class="mark file">◈</div>
+        <div class="name">Decision brief</div>
+        <div class="pill">flare.confidential</div>
+      </div>
+      <div class="task">
+        <span class="lead">Assembling proof for </span>
+        <span class="ink">“agent 0xaa”</span>
+      </div>
+      <div class="brief">
+        <div class="dim"># confidential spend · flare-coston2</div>
+        <div>evaluator: flare · mechanism: tee</div>
+        <div>contract: 0x9280232a…1A94</div>
+        <div>extension: 0x10238</div>
+        <div><span class="hl">outcome: hold · reason: approval_threshold</span></div>
+        <div>decisionId: 0xab5a4bf3…</div>
+        <div class="dim">limits never left the enclave</div>
+      </div>
+      <div class="foot">
+        <div class="harvest"><strong>1</strong> CRE artifact sealed</div>
+        <div class="plus">⊕</div>
+      </div>
+    </article>
+  </div>
+</body>
+</html>

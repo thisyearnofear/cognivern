@@ -62,6 +62,7 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   // branch — see CreController.submitApproval. This mirrors the /api/spend
   // hardening from commit 432e10c.
   '/spend',
+  '/spend/encrypted',
   '/spend/status',
   '/spend/scan',
   '/cleanverse/status',
@@ -70,6 +71,7 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   '/projects/:projectId/usage',
   '/projects/:projectId/tokens',
   '/fhenix/status',
+  '/flare/status',
   '/fhenix/encrypt',
   '/fhenix/decrypt',
   '/intent',

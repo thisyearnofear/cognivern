@@ -5,7 +5,11 @@ import {
   SpendIntent,
   SpendExecutionContext,
 } from '@backend/services/blockchain/OwsWalletService.js';
-import { sharedFhenixPolicyService } from '@backend/services/blockchain/FhenixPolicyService.js';
+import {
+  buildConfidentialEvidenceMeta,
+  getConfidentialPolicyService,
+} from '@backend/services/blockchain/confidentialEvaluator.js';
+import { isFlareEvaluatorEnabled } from '@backend/services/blockchain/FlareConfidentialPolicyService.js';
 import { getChainGPTAuditService, AuditResult } from '@backend/services/ai/ChainGPTAuditService.js';
 import crypto from 'node:crypto';
 import { Logger } from '@backend/shared/logging/Logger.js';
@@ -444,7 +448,7 @@ export class SpendController {
   }
 
   /**
-   * Handle demo-style confidential spend: encrypt server-side and evaluate via Fhenix.
+   * Handle demo-style confidential spend: evaluate via Fhenix or Flare (feature flag).
    */
   private async handleDemoConfidentialSpend(
     req: Request,
@@ -459,9 +463,10 @@ export class SpendController {
 
     // Convert USD amount to Wei (1 USD = 10^18 wei for demo purposes)
     const amountWei = BigInt(Math.floor(amountUsd * 1e18));
+    const evaluator = isFlareEvaluatorEnabled() ? 'flare' : 'fhenix';
 
     try {
-      const decision = await sharedFhenixPolicyService.evaluateEncrypted({
+      const decision = await getConfidentialPolicyService().evaluateEncrypted({
         agentId,
         policyId,
         amountWei,
@@ -474,28 +479,45 @@ export class SpendController {
         deny: 'deny',
       };
 
+      const liveNote =
+        evaluator === 'flare'
+          ? decision.outcome === 'approve'
+            ? 'FCC TEE evaluated spend against private budget limits'
+            : decision.outcome === 'hold'
+              ? 'Amount > approvalThreshold — hold for human review (FCC)'
+              : 'FCC TEE denied spend (limit exceeded)'
+          : decision.outcome === 'approve'
+            ? 'FHE.lte(newSpent, dailyLimit) evaluated in ciphertext'
+            : decision.outcome === 'hold'
+              ? 'Amount > approvalThreshold — sealed for human review'
+              : 'Confidential policy denied this spend';
+
       res.json({
         success: true,
         data: {
           decisionId: decision.decisionId,
           outcome: outcomeMap[decision.outcome] || decision.outcome,
+          evaluator,
+          confidential: buildConfidentialEvidenceMeta({
+            decisionIds: [decision.decisionId],
+            attestations: [decision.attestation],
+            resolved: decision.outcome !== 'hold',
+          }),
           fabricated: decision.fabricated === true || undefined,
           note: decision.fabricated
-            ? 'CoFHE unavailable — locally synthesized deny, no ciphertext evaluation'
-            : amountUsd <= 500
-              ? 'FHE.lte(newSpent, dailyLimit) evaluated in ciphertext'
-              : 'Amount > approvalThreshold — sealed for human review',
+            ? `${evaluator} unavailable — locally synthesized deny`
+            : liveNote,
         },
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
       logger.warn(`Demo confidential spend failed: ${error.message}`);
-      // The FHE evaluation failed — do NOT fabricate a decisionId and report
+      // The confidential evaluation failed — do NOT fabricate a decisionId and report
       // success. A fabricated decision is exactly the kind of self-reported
       // claim this system exists to prevent.
       res.status(502).json({
         success: false,
-        error: `FHE evaluation unavailable: ${error.message.slice(0, 120)}`,
+        error: `Confidential evaluation unavailable (${evaluator}): ${error.message.slice(0, 120)}`,
         timestamp: new Date().toISOString(),
       });
     }

@@ -15,7 +15,7 @@ import { sharedZeroGProofService } from "@backend/services/blockchain/ZeroGProof
 
 const logger = new Logger("GovernanceController");
 import { PolicyEnforcementService } from "@backend/services/governance/PolicyEnforcementService.js";
-import { sharedFhenixPolicyService } from "@backend/services/blockchain/FhenixPolicyService.js";
+import { getConfidentialPolicyService } from "@backend/services/blockchain/confidentialEvaluator.js";
 import { sharedControlEvaluationService } from "@backend/services/governance/ControlEvaluationService.js";
 import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
 import { NotificationService } from "@backend/services/NotificationService.js";
@@ -41,7 +41,7 @@ export class GovernanceController {
       policyEnforcementService ||
       new PolicyEnforcementService(
         this.policyService,
-        sharedFhenixPolicyService,
+        getConfidentialPolicyService(),
         undefined,
         process.env.CONTROL_EVAL_MODE === "true" ? sharedControlEvaluationService : undefined,
       );

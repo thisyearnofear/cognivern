@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useTheme } from "next-themes";
+import { useConfidentialRail } from "@/hooks/use-confidential-rail";
 import {
   Sun,
   Moon,
@@ -994,11 +995,14 @@ function AppearanceCard({
 }
 
 function ChainsCard() {
+  const { view: rail } = useConfidentialRail();
   const chains = [
     { name: "Arbitrum Sepolia", role: "Governance", note: "Gov + Vault live", noteColor: "text-emerald-500" },
     { name: "Robinhood Chain", role: "Governance", note: "Gov + Vault live", noteColor: "text-emerald-500" },
     { name: "X Layer", role: "Execution", note: "Live", noteColor: "text-emerald-500" },
-    { name: "Fhenix / Arb Sepolia", role: "Confidential Compute", note: "FHE live · verified", noteColor: "text-emerald-500" },
+    rail.rail === "flare"
+      ? { name: "Flare Coston2", role: "Confidential Compute", note: "TEE live · private budgets", noteColor: "text-emerald-500" }
+      : { name: "Fhenix / Arb Sepolia", role: "Confidential Compute", note: "FHE live · verified", noteColor: "text-emerald-500" },
     { name: "Ethereum", role: "Execution" },
     { name: "Base", role: "Execution" },
     { name: "Mantle", role: "Execution" },

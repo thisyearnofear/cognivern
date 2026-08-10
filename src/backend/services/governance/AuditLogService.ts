@@ -662,33 +662,64 @@ function extractTxHash(run: CreRun): string | undefined {
 }
 
 /**
- * Extract confidential (FHE) metadata. Present when any policyCheck was
- * evaluated under FHE (metadata.confidential === true) or when the run
- * carries Fhenix decision ids on its evidence block.
+ * Extract confidential evaluation metadata (Fhenix FHE or Flare TEE).
  */
 function extractConfidential(
   run: CreRun,
   policyChecks: PolicyCheck[],
 ): Record<string, unknown> | undefined {
-  const fheCheck = policyChecks.find(
-    (c) =>
-      (c.metadata as Record<string, unknown> | undefined)?.confidential === true,
+  const flareArtifact = run.artifacts.find(
+    (a) => a.type === "flare.confidential" || a.type === "confidential_eval",
   );
+  if (flareArtifact?.data && typeof flareArtifact.data === "object") {
+    return flareArtifact.data as Record<string, unknown>;
+  }
+
+  const confCheck = policyChecks.find((c) => {
+    const meta = c.metadata as Record<string, unknown> | undefined;
+    return meta?.confidential === true;
+  });
   const decisionIds: string[] = [];
   for (const c of policyChecks) {
     const meta = c.metadata as Record<string, unknown> | undefined;
     const did = meta?.decisionId;
     if (typeof did === "string") decisionIds.push(did);
   }
-  if (fheCheck || decisionIds.length > 0) {
-    return {
-      fheEvaluated: true,
-      chain: "fhenix-arbitrum-sepolia",
-      decisionIds,
-      attestations: policyChecks
-        .map((c) => (c.metadata as Record<string, unknown> | undefined)?.attestation)
-        .filter((a): a is string => typeof a === "string"),
-    };
-  }
-  return undefined;
+
+  if (!confCheck && decisionIds.length === 0) return undefined;
+
+  const meta = (confCheck?.metadata || {}) as Record<string, unknown>;
+  const evaluator =
+    typeof meta.evaluator === "string"
+      ? meta.evaluator
+      : meta.teeEvaluated === true
+        ? "flare"
+        : "fhenix";
+
+  return {
+    confidentialEvaluated: true,
+    fheEvaluated: evaluator !== "flare",
+    teeEvaluated: evaluator === "flare",
+    evaluator,
+    mechanism: meta.mechanism || (evaluator === "flare" ? "tee" : "fhe"),
+    chain:
+      typeof meta.chain === "string"
+        ? meta.chain
+        : evaluator === "flare"
+          ? "flare-coston2"
+          : "fhenix-arbitrum-sepolia",
+    chainId: meta.chainId,
+    contractAddress: meta.contractAddress ?? null,
+    explorerBase:
+      typeof meta.explorerBase === "string"
+        ? meta.explorerBase
+        : evaluator === "flare"
+          ? "https://coston2-explorer.flare.network"
+          : "https://explorer.fhenix.zone",
+    decisionIds,
+    attestations: policyChecks
+      .map((c) => (c.metadata as Record<string, unknown> | undefined)?.attestation)
+      .filter((a): a is string => typeof a === "string"),
+    resolved: meta.resolved === true,
+  };
 }

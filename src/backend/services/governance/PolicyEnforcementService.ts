@@ -1,7 +1,8 @@
 import { Policy, PolicyRule, PolicyRuleType } from "@backend/types/Policy.js";
 import { AgentAction, PolicyCheck } from "@backend/types/Agent.js";
 import { PolicyService } from "./PolicyService.js";
-import { FhenixPolicyService } from "@backend/services/blockchain/FhenixPolicyService.js";
+import type { ConfidentialPolicyEvaluator } from "@backend/services/blockchain/confidentialEvaluator.js";
+import { buildConfidentialEvidenceMeta } from "@backend/services/blockchain/confidentialEvaluator.js";
 import { ChainGPTAuditService } from "@backend/services/ai/ChainGPTAuditService.js";
 import { AgentPreferences } from "@backend/services/ai/AgentPreferenceService.js";
 import { ControlEvaluationService, SuspicionResult, AgentActionHistory } from "./ControlEvaluationService.js";
@@ -14,7 +15,7 @@ import { Script } from "node:vm";
  *
  * Evaluates agent actions against active governance policies including:
  * - Standard rule evaluation (allow/deny/require/rate_limit/contract_audit)
- * - Confidential FHE evaluation via FhenixPolicyService
+ * - Confidential evaluation via Fhenix or Flare (feature-flagged)
  * - Contract audit via ChainGPTAuditService
  *
  * This is the canonical evaluation path used by GovernanceController.
@@ -22,7 +23,7 @@ import { Script } from "node:vm";
 export class PolicyEnforcementService {
   private currentPolicy: Policy | null = null;
   private policyService: PolicyService | null = null;
-  private fhenixPolicyService: FhenixPolicyService | null = null;
+  private confidentialPolicyService: ConfidentialPolicyEvaluator | null = null;
   private chainGPTAuditService: ChainGPTAuditService | null = null;
   private controlEvaluationService: ControlEvaluationService | null = null;
   private rateLimitCounters: Map<string, { count: number; resetTime: number }> =
@@ -30,12 +31,12 @@ export class PolicyEnforcementService {
 
   constructor(
     policyService?: PolicyService,
-    fhenixPolicyService?: FhenixPolicyService,
+    confidentialPolicyService?: ConfidentialPolicyEvaluator,
     chainGPTAuditService?: ChainGPTAuditService,
     controlEvaluationService?: ControlEvaluationService,
   ) {
     this.policyService = policyService || null;
-    this.fhenixPolicyService = fhenixPolicyService || null;
+    this.confidentialPolicyService = confidentialPolicyService || null;
     this.chainGPTAuditService = chainGPTAuditService || null;
     this.controlEvaluationService = controlEvaluationService || null;
     logger.info("PolicyEnforcementService initialized");
@@ -46,13 +47,13 @@ export class PolicyEnforcementService {
    */
   initialize(
     policyService: PolicyService,
-    fhenixPolicyService?: FhenixPolicyService,
+    confidentialPolicyService?: ConfidentialPolicyEvaluator,
     chainGPTAuditService?: ChainGPTAuditService,
     controlEvaluationService?: ControlEvaluationService,
   ): void {
     this.policyService = policyService;
-    if (fhenixPolicyService) {
-      this.fhenixPolicyService = fhenixPolicyService;
+    if (confidentialPolicyService) {
+      this.confidentialPolicyService = confidentialPolicyService;
     }
     if (chainGPTAuditService) {
       this.chainGPTAuditService = chainGPTAuditService;
@@ -279,10 +280,9 @@ export class PolicyEnforcementService {
     rule: PolicyRule,
     action: AgentAction,
   ): Promise<{ allowed: boolean; reason?: string; metadata?: any }> {
-    // If rule is confidential, delegate to FhenixPolicyService
-    if (rule.metadata?.confidential && this.fhenixPolicyService) {
-      logger.info(`Evaluating confidential rule via Fhenix: ${rule.id}`);
-      const decision = await this.fhenixPolicyService.evaluateEncrypted({
+    if (rule.metadata?.confidential && this.confidentialPolicyService) {
+      logger.info(`Evaluating confidential rule: ${rule.id}`);
+      const decision = await this.confidentialPolicyService.evaluateEncrypted({
         agentId: action.metadata?.agentId || action.id || "unknown",
         policyId: rule.id,
         amountWei: BigInt(action.metadata?.amountWei || 0),
@@ -290,13 +290,19 @@ export class PolicyEnforcementService {
           action.metadata?.vendorHash ||
           "0x0000000000000000000000000000000000000000000000000000000000000000",
       });
+      const railMeta = buildConfidentialEvidenceMeta({
+        decisionIds: [decision.decisionId],
+        attestations: [decision.attestation],
+        resolved: decision.outcome !== "hold",
+      });
       return {
         allowed: decision.outcome === "approve",
-        reason: `Fhenix Evaluation: ${decision.outcome}`,
+        reason: `Confidential evaluation: ${decision.outcome}`,
         metadata: {
           decisionId: decision.decisionId,
           attestation: decision.attestation,
           confidential: true,
+          ...railMeta,
         },
       };
     }

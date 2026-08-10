@@ -37,6 +37,12 @@ import { SuspicionOverview } from './suspicion-overview';
 import { LedgerIntegrityCard } from './ledger-integrity-card';
 import { EventTimeline, type TimelineEvent } from '@/components/shared/event-timeline';
 import { useAuditLogs } from '@/hooks/use-api';
+import { useConfidentialRail } from '@/hooks/use-confidential-rail';
+import {
+  confidentialExplorerHref,
+  isConfidentialEvidence,
+  railViewFromEvidence,
+} from '@/lib/confidential-rail';
 import {
   Dialog,
   DialogContent,
@@ -123,13 +129,15 @@ function hasConfidentialFhe(rawLog: unknown): boolean {
   if (!rawLog || typeof rawLog !== 'object') return false;
   const r = rawLog as Record<string, unknown>;
   const conf = r.confidential as Record<string, unknown> | undefined;
-  if (conf?.fheEvaluated === true) return true;
+  if (isConfidentialEvidence(conf)) return true;
   const checks = r.policyChecks as Array<Record<string, unknown>> | undefined;
   if (Array.isArray(checks)) {
     return checks.some(
       (c) =>
         (c.metadata as Record<string, unknown> | undefined)?.confidential === true ||
-        (c.metadata as Record<string, unknown> | undefined)?.fheEvaluated === true,
+        (c.metadata as Record<string, unknown> | undefined)?.fheEvaluated === true ||
+        (c.metadata as Record<string, unknown> | undefined)?.teeEvaluated === true ||
+        (c.metadata as Record<string, unknown> | undefined)?.confidentialEvaluated === true,
     );
   }
   return false;
@@ -185,7 +193,8 @@ function getPolicyId(rawLog: unknown): string | null {
 }
 
 interface AnchoringData {
-  fhenixStatus: 'resolved' | 'pending' | null;
+  confidentialStatus: 'resolved' | 'pending' | null;
+  confidentialLabel: string;
   filecoinCid: string | null;
   filecoinTxHash: string | null;
   zeroGRootHash: string | null;
@@ -203,16 +212,26 @@ function getAnchoringData(rawLog: unknown): AnchoringData | null {
   const zeroGRootHash = (evidence?.zeroGRootHash as string) || null;
   const evidenceHash = (evidence?.hash as string) || null;
 
-  let fhenixStatus: 'resolved' | 'pending' | null = null;
-  if (conf) {
+  let confidentialStatus: 'resolved' | 'pending' | null = null;
+  let confidentialLabel = 'Confidential eval';
+  if (conf && isConfidentialEvidence(conf)) {
     const decisionIds = conf.decisionIds as string[] | undefined;
     if (decisionIds && decisionIds.length > 0) {
-      fhenixStatus = conf.resolved === true ? 'resolved' : 'pending';
+      confidentialStatus = conf.resolved === true ? 'resolved' : 'pending';
     }
+    const view = railViewFromEvidence(conf);
+    confidentialLabel = view.rail === 'flare' ? 'Flare TEE' : 'Fhenix CoFHE';
   }
 
-  if (!filecoinCid && !zeroGRootHash && !fhenixStatus && !evidenceHash) return null;
-  return { fhenixStatus, filecoinCid, filecoinTxHash, zeroGRootHash, evidenceHash };
+  if (!filecoinCid && !zeroGRootHash && !confidentialStatus && !evidenceHash) return null;
+  return {
+    confidentialStatus,
+    confidentialLabel,
+    filecoinCid,
+    filecoinTxHash,
+    zeroGRootHash,
+    evidenceHash,
+  };
 }
 
 interface SuspicionData {
@@ -550,48 +569,50 @@ function TimelineNode({
                 );
               })()}
 
-              {/* FHE detail */}
+              {/* Confidential evaluation detail */}
               {isFhe && (
                 <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-1.5">
-                  <div className="flex items-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-300">
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    Encrypted Policy Evaluation (Fhenix FHE)
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Spend limit evaluated via Fhenix FHE. Your policy thresholds were never exposed
-                    — not to the network, not to the evaluator.
-                  </p>
                   {(() => {
                     const raw = rawLog as Record<string, unknown>;
                     const conf = raw.confidential as Record<string, unknown> | undefined;
+                    const view = railViewFromEvidence(conf);
                     const ids = conf?.decisionIds as string[] | undefined;
-                    if (ids && ids.length > 0) {
-                      return (
-                        <a
-                          href={`https://explorer.fhenix.zone/tx/${ids[0]}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 hover:underline"
-                        >
-                          View Fhenix transaction →
-                        </a>
-                      );
-                    }
-                    return null;
+                    const href = confidentialExplorerHref(view, ids?.[0]);
+                    return (
+                      <>
+                        <div className="flex items-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          {view.evalTitle}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          {view.evalBody}
+                        </p>
+                        {href && (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 hover:underline"
+                          >
+                            {view.rail === 'flare' ? 'View on Coston2 →' : 'View on explorer →'}
+                          </a>
+                        )}
+                        {policyId && view.rail === 'fhenix' && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPermitOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors border border-amber-200 dark:border-amber-700"
+                          >
+                            <KeyRound className="h-3 w-3" />
+                            Request Auditor Permit
+                          </button>
+                        )}
+                      </>
+                    );
                   })()}
-                  {policyId && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPermitOpen(true);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors border border-amber-200 dark:border-amber-700"
-                    >
-                      <KeyRound className="h-3 w-3" />
-                      Request Auditor Permit
-                    </button>
-                  )}
                 </div>
               )}
 
@@ -635,17 +656,17 @@ function TimelineNode({
                     Cross-Chain Anchoring
                   </div>
                   <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-                    {anchoring.fhenixStatus && (
+                    {anchoring.confidentialStatus && (
                       <div className="flex items-center gap-2 text-[11px]">
                         <ShieldCheck
-                          className={`h-3 w-3 flex-shrink-0 ${anchoring.fhenixStatus === 'resolved' ? 'text-emerald-500' : 'text-amber-500'}`}
+                          className={`h-3 w-3 flex-shrink-0 ${anchoring.confidentialStatus === 'resolved' ? 'text-emerald-500' : 'text-amber-500'}`}
                         />
-                        <span className="text-muted-foreground">Fhenix CoFHE:</span>
+                        <span className="text-muted-foreground">{anchoring.confidentialLabel}:</span>
                         <Badge
-                          variant={anchoring.fhenixStatus === 'resolved' ? 'secondary' : 'outline'}
+                          variant={anchoring.confidentialStatus === 'resolved' ? 'secondary' : 'outline'}
                           className="text-[10px] capitalize"
                         >
-                          {anchoring.fhenixStatus}
+                          {anchoring.confidentialStatus}
                         </Badge>
                       </div>
                     )}
@@ -890,6 +911,7 @@ export function AuditPage() {
   const searchParams = useSearchParams();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: rawLogs, isLoading, error } = useAuditLogs();
+  const { view: rail } = useConfidentialRail();
   const [proofDetailsExpanded, setProofDetailsExpanded] = useState(false);
 
   // Keyboard shortcut: press "/" to focus the audit search input.
@@ -1496,8 +1518,8 @@ export function AuditPage() {
                   },
                   {
                     icon: Lock,
-                    label: 'Encryption',
-                    value: 'Fhenix FHE — encrypted eval live on Arbitrum Sepolia',
+                    label: 'Private budgets',
+                    value: rail.architectureLine,
                   },
                   { icon: Shield, label: 'Audit', value: 'Immutable on 0G + X Layer' },
                   { icon: Shield, label: 'Contract Audit', value: 'ChainGPT scan on recipients' },

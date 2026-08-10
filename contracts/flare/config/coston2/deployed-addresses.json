@@ -1,0 +1,34 @@
+{
+  "_comment": "Subset of flare-foundation/fce-extension-scaffold config/coston2/deployed-addresses.json. Both ITeeExtensionRegistry and ITeeMachineRegistry constructor args are the FlareTeeManager diamond.",
+  "network": "coston2",
+  "chainId": 114,
+  "rpc": "https://coston2-api.flare.network/ext/C/rpc",
+  "flareTeeManager": "0x1a9C4A0f9D76c0b1D91d22E24E573a9b377618aE",
+  "contracts": [
+    {
+      "name": "FlareTeeManagerInit",
+      "contractName": "FlareTeeManagerInit.sol",
+      "address": "0x8025F92764a9e5936A02570c0534F7B3dbFBDf20"
+    },
+    {
+      "name": "FlareTeeManager",
+      "contractName": "FlareTeeManager.sol",
+      "address": "0x1a9C4A0f9D76c0b1D91d22E24E573a9b377618aE"
+    },
+    {
+      "name": "Fdc2Hub",
+      "contractName": "Fdc2HubProxy.sol",
+      "address": "0x04dd3Ba33aC798d400bEc42A26F82f9812A421dc"
+    },
+    {
+      "name": "Fdc2Verification",
+      "contractName": "Fdc2VerificationProxy.sol",
+      "address": "0xA34Ff9be42b2C7782786270a51d33b1baC0462Cd"
+    },
+    {
+      "name": "TeePayments",
+      "contractName": "TeePaymentsProxy.sol",
+      "address": "0x86CB3e2dA1a4Ec30e2Ff2E5bA1A2D5ff9C9D44f4"
+    }
+  ]
+}

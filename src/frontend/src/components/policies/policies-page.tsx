@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { usePolicies, useAuditLogs } from "@/hooks/use-api";
+import { useConfidentialRail } from "@/hooks/use-confidential-rail";
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
 import { HelpIcon } from "@/components/ui/help-icon";
@@ -92,6 +93,7 @@ export function PoliciesPage() {
   const searchParams = useSearchParams();
   const { data: rawPolicies, isLoading, error } = usePolicies();
   const { data: auditLogs } = useAuditLogs();
+  const { view: rail } = useConfidentialRail();
   const [showCreate, setShowCreate] = useState(false);
   const [quickCreating, setQuickCreating] = useState<string | null>(null);
   const [historyPolicy, setHistoryPolicy] = useState<{
@@ -288,6 +290,15 @@ export function PoliciesPage() {
               Error
             </Badge>
           )}
+          {rail.rail === "flare" && (
+            <Button
+              variant="outline"
+              onClick={() => router.push("/governance/check?confidential=1")}
+              className="border-amber-300 text-amber-800 dark:border-amber-700 dark:text-amber-200"
+            >
+              <Lock className="h-4 w-4" /> Try confidential spend
+            </Button>
+          )}
           <Button onClick={() => setShowCreate(true)}>
             <PlusCircle className="h-4 w-4" /> Create policy
           </Button>
@@ -471,7 +482,7 @@ export function PoliciesPage() {
                       variant="outline"
                       className="text-[10px] border-amber-300 text-amber-600 dark:border-amber-700 dark:text-amber-400"
                     >
-                      FHE
+                      {rail.badge}
                     </Badge>
                   )}
                   <Badge
@@ -489,7 +500,7 @@ export function PoliciesPage() {
               {policy.confidential && (
                 <div className="flex items-center gap-2 mb-3 px-2 py-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30 text-xs text-amber-700 dark:text-amber-300">
                   <EyeOff className="h-3 w-3" />
-                  <span>Budget limits encrypted via Fhenix FHE — evaluated in ciphertext on Arbitrum Sepolia</span>
+                  <span>{rail.policyHint}</span>
                 </div>
               )}
               <div className="flex items-center justify-between">
@@ -693,6 +704,7 @@ function CreatePolicyForm({
     rules: { condition: string; action: string }[];
   };
 }) {
+  const { view: rail } = useConfidentialRail();
   const [name, setName] = useState(initialTemplate?.name ?? "");
   const [type, setType] = useState(initialTemplate?.type ?? "budget");
   const [description, setDescription] = useState(initialTemplate?.description ?? "");
@@ -752,7 +764,7 @@ function CreatePolicyForm({
               condition: "true",
               action: {
                 type: "block",
-                parameters: { reason: "FHE evaluation required" },
+                parameters: { reason: "Confidential evaluation required" },
               },
               metadata: { confidential: true },
             },
@@ -764,8 +776,9 @@ function CreatePolicyForm({
       const metadata = encrypted
         ? {
             confidential: true,
-            chain: "fhenix-arbitrum-sepolia",
-            fheProvider: "cofhe-sdk",
+            chain: rail.rail === "flare" ? "flare-coston2" : "fhenix-arbitrum-sepolia",
+            evaluator: rail.rail,
+            mechanism: rail.rail === "flare" ? "tee" : "fhe",
           }
         : undefined;
 
@@ -786,7 +799,7 @@ function CreatePolicyForm({
         // with no signal anything happened (audit's #1 dead end).
         toast.success(`Policy created: ${name.trim()}`, {
           description: encrypted
-            ? "Encrypted policy registered. Test it with an agent or create another."
+            ? "Private policy registered. Test it with an agent or create another."
             : "Policy is now active. Test it against a real spend or attach it to an agent.",
           action: {
             label: "Test it",
@@ -806,7 +819,7 @@ function CreatePolicyForm({
     } finally {
       setCreating(false);
     }
-  }, [name, type, description, encrypted, rules, onClose]);
+  }, [name, type, description, encrypted, rules, onClose, rail]);
 
   const selectedType = POLICY_TYPES.find((t) => t.id === type);
 
@@ -872,7 +885,7 @@ function CreatePolicyForm({
               onChange={(e) => setName(e.target.value)}
               placeholder={
                 encrypted
-                  ? "e.g. Encrypted DeFi Budget"
+                  ? "e.g. Private DeFi Budget"
                   : "e.g. Daily Spend Limit"
               }
             />
@@ -904,7 +917,7 @@ function CreatePolicyForm({
             onChange={(e) => setDescription(e.target.value)}
             placeholder={
               encrypted
-                ? "Encrypted budget enforced on-chain — agent cannot see limits"
+                ? "Private budget — agent cannot see limits"
                 : "What does this policy enforce?"
             }
           />
@@ -926,14 +939,12 @@ function CreatePolicyForm({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-medium">
-                Encrypt this policy (FHE)
+                {rail.encryptTitle}
               </span>
               <HelpIcon helpKey="policy:encrypt" />
             </div>
             <p className="text-xs text-muted-foreground">
-              {encrypted
-                ? "Budget limits encrypted on-chain — agent cannot see caps"
-                : "Enable to hide spending limits from agents using Fhenix FHE"}
+              {encrypted ? rail.encryptOnHint : rail.encryptOffHint}
             </p>
           </div>
           <div
@@ -948,37 +959,30 @@ function CreatePolicyForm({
         {encrypted ? (
           <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
             <p className="text-xs text-muted-foreground">
-              Budget limits are encrypted on-chain using Fully Homomorphic
-              Encryption. The agent cannot see its spending caps — evaluations
-              happen in ciphertext. Only designated auditors can decrypt limits
-              via CoFHE permits.
+              {rail.encryptDetail}
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">
-                  Daily limit (encrypted)
+                  Daily limit (private)
                 </label>
                 <div className="flex items-center gap-2">
-                  <Input disabled placeholder="Set on-chain" className="text-xs" />
+                  <Input disabled placeholder="Set on registration" className="text-xs" />
                   <EyeOff className="h-4 w-4 text-amber-500 shrink-0" />
                 </div>
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">
-                  Per-tx limit (encrypted)
+                  Per-tx limit (private)
                 </label>
                 <div className="flex items-center gap-2">
-                  <Input disabled placeholder="Set on-chain" className="text-xs" />
+                  <Input disabled placeholder="Set on registration" className="text-xs" />
                   <EyeOff className="h-4 w-4 text-amber-500 shrink-0" />
                 </div>
               </div>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Limits are set during contract registration via{" "}
-              <code className="px-1 py-0.5 rounded bg-stone-100 dark:bg-stone-800">
-                registerPolicy()
-              </code>{" "}
-              on ConfidentialSpendPolicy.sol
+              Limits register privately on evaluation — agents see approve, hold, or deny only.
             </p>
           </div>
         ) : (
@@ -1193,7 +1197,7 @@ function CreatePolicyForm({
             {creating
               ? "Creating..."
               : encrypted
-                ? "Create Encrypted Policy"
+                ? "Create Private Policy"
                 : "Create policy"}
           </Button>
         </div>

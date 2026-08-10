@@ -121,6 +121,8 @@ export interface CreArtifact {
     | 'spend_intent'
     | 'capital_attribution'
     | 'cleanverse_apass'
+    | 'flare.confidential'
+    | 'confidential_eval'
     | 'error';
   createdAt: string;
   data: unknown;

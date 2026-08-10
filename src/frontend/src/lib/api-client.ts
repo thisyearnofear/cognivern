@@ -754,6 +754,56 @@ class ApiClient {
     return this.fetch('/api/spend/status');
   }
 
+  async getFlareStatus(): Promise<
+    ApiResponse<{
+      evaluator: string;
+      enabled: boolean;
+      configured: boolean;
+      chainId: number;
+      contractAddress: string | null;
+      teeManager?: string | null;
+      extensionId?: string | null;
+      extProxyUrl?: string | null;
+      rpcUrl?: string;
+    }>
+  > {
+    return this.fetch('/api/flare/status');
+  }
+
+  /** Live confidential spend eval (Flare TEE or Fhenix, per FLARE_EVALUATOR). */
+  async evaluateConfidentialSpend(params: {
+    agentId: string;
+    policyId: string;
+    amountUsd: number;
+    vendorHash?: string;
+  }): Promise<
+    ApiResponse<{
+      decisionId: string;
+      outcome: string;
+      evaluator?: string;
+      note?: string;
+      fabricated?: boolean;
+      confidential?: {
+        confidentialEvaluated?: boolean;
+        fheEvaluated?: boolean;
+        teeEvaluated?: boolean;
+        evaluator?: string;
+        mechanism?: string;
+        chain?: string;
+        chainId?: number;
+        contractAddress?: string | null;
+        explorerBase?: string;
+        decisionIds?: string[];
+        resolved?: boolean;
+      };
+    }>
+  > {
+    return this.fetch('/api/spend/encrypted', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
   async getCleanverseDepositAddress(params: {
     address: string;
     chain?: string;

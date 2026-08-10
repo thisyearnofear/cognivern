@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Check, Terminal, Code2, Zap, ArrowRight, Shield, Key, Plus, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { HelpIcon } from "@/components/ui/help-icon";
 import { apiClient } from "@/lib/api-client";
+import { useConfidentialRail } from "@/hooks/use-confidential-rail";
 import type { ApiKeyCreateResponse } from "@/lib/api-client";
 
 const AVAILABLE_SCOPES = [
@@ -324,6 +325,7 @@ export function IntegratePage() {
   // canonical API origin. The dead api.cognivern.xyz hostname previously
   // lived here and broke every copied snippet.
   const baseUrl = "https://api.cognivern.persidian.com";
+  const { view: rail } = useConfidentialRail();
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -390,7 +392,7 @@ export function IntegratePage() {
             <Badge variant="outline" className="text-[10px]">Arbitrum</Badge>
             <Badge variant="outline" className="text-[10px]">Robinhood</Badge>
             <Badge variant="outline" className="text-[10px]">X Layer</Badge>
-            <span>· confidential eval via FHE (live on Arbitrum Sepolia) · sealed-bid procurement on Canton.</span>
+            <span>· {rail.integrateFragment} · sealed-bid procurement on Canton.</span>
           </div>
         </div>
       </details>

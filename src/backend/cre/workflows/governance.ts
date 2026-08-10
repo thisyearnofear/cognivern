@@ -19,6 +19,7 @@ import { AuditLogService } from "@backend/services/governance/AuditLogService.js
 import { getDb } from "@backend/db/index.js";
 import type { AgentAction } from "@backend/types/Agent.js";
 import type { PolicyCheck } from "@backend/types/Agent.js";
+import { buildConfidentialEvidenceMeta } from "@backend/services/blockchain/confidentialEvaluator.js";
 import logger from "@backend/utils/logger.js";
 
 export interface GovernanceWorkflowParams {
@@ -126,7 +127,28 @@ async function runAndPersist(
       : `Action approved under policy ${params.policyId}`;
     s2.end({
       ok: true,
-      summary: `FHE evaluation complete — outcome: ${outcomeLabel}`,
+      summary: `Confidential evaluation complete — outcome: ${outcomeLabel}`,
+    });
+    await creRunStore.replace(recorder.getRun());
+
+    const decisionIds = decision.policyChecks
+      .map((c) => c.metadata?.decisionId)
+      .filter((id): id is string => typeof id === "string");
+    const attestations = decision.policyChecks
+      .map((c) => c.metadata?.attestation)
+      .filter((a): a is string => typeof a === "string");
+    const confidentialMeta = buildConfidentialEvidenceMeta({
+      decisionIds,
+      attestations,
+      resolved: decision.allowed || decisionIds.length > 0,
+    });
+
+    await recorder.addArtifact({
+      type:
+        confidentialMeta.evaluator === "flare"
+          ? "flare.confidential"
+          : "confidential_eval",
+      data: confidentialMeta,
     });
     await creRunStore.replace(recorder.getRun());
 
@@ -180,16 +202,7 @@ async function runAndPersist(
       reason,
       reasoning: reason, // alias for frontend GovernanceEvaluation interface
       policyChecks: decision.policyChecks,
-      confidential: {
-        fheEvaluated: true,
-        chain:
-          process.env.FHENIX_CHAIN_ID === "84532"
-            ? "fhenix-base-sepolia"
-            : "fhenix-arbitrum-sepolia",
-        decisionIds: decision.policyChecks
-          .filter((c) => c.metadata?.decisionId)
-          .map((c) => c.metadata?.decisionId as string),
-      },
+      confidential: confidentialMeta,
       timestamp: new Date().toISOString(),
       auditLogId,
       suspicion: decision.suspicion ? {
@@ -213,10 +226,11 @@ async function runAndPersist(
     }
 
     await creRunStore.replace(run);
-    logger.info(`FHE governance evaluation complete`, {
+    logger.info(`Confidential governance evaluation complete`, {
       runId: run.runId,
       allowed: decision.allowed,
       policyId: params.policyId,
+      evaluator: confidentialMeta.evaluator,
     });
   } catch (error: any) {
     // ── Error ─────────────────────────────────────────────────────────

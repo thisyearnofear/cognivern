@@ -1,0 +1,28 @@
+http:
+  routers:
+    cognivern-flare-https:
+      rule: "Host(`flare-tee.persidian.com`)"
+      entryPoints:
+        - https
+      service: cognivern-flare-proxy
+      tls:
+        certResolver: letsencrypt
+    cognivern-flare-http:
+      rule: "Host(`flare-tee.persidian.com`)"
+      entryPoints:
+        - http
+      middlewares:
+        - cognivern-flare-https-redirect
+      service: cognivern-flare-proxy
+  middlewares:
+    cognivern-flare-https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
+  services:
+    cognivern-flare-proxy:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          # Exotic host port — see docs/OPS.md (gitignored). Maps to scaffold :6664.
+          - url: "http://host.docker.internal:7667"

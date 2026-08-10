@@ -35,10 +35,13 @@ import {
 } from "lucide-react";
 import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
 import { useAgents } from "@/hooks/use-api";
+import { useConfidentialRail } from "@/hooks/use-confidential-rail";
+import { isConfidentialEvidence, railViewFromEvidence } from "@/lib/confidential-rail";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { useFheProgress } from "@/hooks/use-fhe-progress";
 import { HelpIcon } from "@/components/ui/help-icon";
 import { GovernanceMoment } from "@/components/ui/governance-moment";
+import { ConfidentialSpendTry } from "@/components/governance/confidential-spend-try";
 
 function getSuggestion(reason: string): string {
   const lower = reason.toLowerCase();
@@ -157,6 +160,7 @@ export function GovernanceCheck() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: agents } = useAgents();
+  const { view: rail } = useConfidentialRail();
   // Pre-fill from URL params for both internal handoffs (agent detail page
   // → ?agent=<id>) and shareable result links (?type / ?amount / ?desc).
   // A shared link sent in Slack should land the recipient on the exact
@@ -473,6 +477,8 @@ export function GovernanceCheck() {
         </div>
       </div>
 
+      <ConfidentialSpendTry />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Input Panel */}
         <div className="space-y-4">
@@ -747,16 +753,15 @@ export function GovernanceCheck() {
             </div>
           )}
 
-          {/* FHE Progress Panel — shown during async confidential evaluation */}
+          {/* Confidential progress — shown during async evaluation */}
           {evaluating && fheRunId && (
             <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-card p-5 space-y-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
                   <Lock className="h-4 w-4" />
-                  FHE Confidential Evaluation
+                  {rail.progressTitle}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Policy thresholds are being evaluated in ciphertext on the
-                  Fhenix network. Your budget limits stay encrypted throughout.
+                  {rail.progressBody}
                 </p>
                 <div className="space-y-0.5">
                   {fheSteps.map((step) => (
@@ -988,29 +993,32 @@ export function GovernanceCheck() {
                 )}
 
                 {/* Evaluation Privacy indicator — always shown */}
-                {result.confidential?.fheEvaluated && (
+                {isConfidentialEvidence(result.confidential) && (
                   <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
                       <Lock className="h-4 w-4" />
-                      Encrypted Evaluation (Fhenix FHE)
+                      {railViewFromEvidence(result.confidential).evalTitle}
                     </div>
                     <div className="text-xs text-muted-foreground space-y-1">
-                      <div>Chain: {result.confidential.chain}</div>
-                      {result.confidential.decisionIds &&
+                      <div>
+                        {railViewFromEvidence(result.confidential).rail === "flare"
+                          ? "Flare Coston2"
+                          : `Chain: ${result.confidential?.chain}`}
+                      </div>
+                      {result.confidential?.decisionIds &&
                         result.confidential.decisionIds.length > 0 && (
                           <div className="font-mono break-all">
                             Decision: {result.confidential.decisionIds[0]}
                           </div>
                         )}
                       <div className="text-[11px] text-amber-600 dark:text-amber-400">
-                        Budget limits evaluated in ciphertext — values never
-                        revealed to agent
+                        {railViewFromEvidence(result.confidential).evalBody}
                       </div>
                     </div>
                   </div>
                 )}
 
-                {!result.confidential?.fheEvaluated && (
+                {!isConfidentialEvidence(result.confidential) && (
                   <div className="rounded-lg border border-border bg-muted/20 p-3">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Lock className="h-3.5 w-3.5" />
@@ -1042,8 +1050,8 @@ export function GovernanceCheck() {
                         "Idempotency verified",
                         "Policy evaluation completed",
                         "Audit trail stored",
-                        ...(result.confidential?.fheEvaluated
-                          ? ["FHE encrypted evaluation"]
+                        ...(isConfidentialEvidence(result.confidential)
+                          ? ["Confidential budget evaluation"]
                           : []),
                       ].length}{" "}
                       security layers
@@ -1060,8 +1068,8 @@ export function GovernanceCheck() {
                       "Idempotency verified",
                       "Policy evaluation completed",
                       "Audit trail stored",
-                      ...(result.confidential?.fheEvaluated
-                        ? ["FHE encrypted evaluation"]
+                      ...(isConfidentialEvidence(result.confidential)
+                        ? ["Confidential budget evaluation"]
                         : []),
                     ].map((layer) => (
                       <div

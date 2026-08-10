@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { sharedFhenixPolicyService } from "@backend/services/blockchain/FhenixPolicyService.js";
+import { sharedFlareConfidentialPolicyService } from "@backend/services/blockchain/FlareConfidentialPolicyService.js";
 import { Logger } from "@backend/shared/logging/Logger.js";
 
 const logger = new Logger("FhenixController");
@@ -48,10 +49,11 @@ export class FhenixController {
   }
 
   /**
-   * Get Fhenix network status
+   * Get Fhenix network status (plus Flare FCC status for Summer Signal).
    */
   async getStatus(req: Request, res: Response) {
     try {
+      const flare = sharedFlareConfidentialPolicyService.status();
       const provider = fhenixPolicyService.getProvider();
       const configuredChainId = process.env.FHENIX_CHAIN_ID || "421614";
       const chainName =
@@ -64,6 +66,7 @@ export class FhenixController {
             name: chainName,
             fhenixEnabled: false,
             reason: "CoFHE client not initialized (missing RPC or key)",
+            flare,
           },
         });
         return;
@@ -77,7 +80,24 @@ export class FhenixController {
           name: chainName,
           fhenixEnabled: true,
           contract: process.env.FHENIX_POLICY_CONTRACT || "not set",
+          flare,
         },
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+
+  /** Flare Confidential Compute status (Summer Signal). */
+  async getFlareStatus(_req: Request, res: Response) {
+    try {
+      res.json({
+        success: true,
+        data: sharedFlareConfidentialPolicyService.status(),
+        timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
       res.status(500).json({

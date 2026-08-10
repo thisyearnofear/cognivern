@@ -12,6 +12,10 @@ import { ethers } from 'ethers';
 import { owsLocalVaultService, OwsResolvedAccess } from './OwsLocalVaultService.js';
 import { ledgerSigningProvider } from '@backend/signing/LedgerSigningProvider.js';
 import { FhenixPolicyService, sharedFhenixPolicyService } from './FhenixPolicyService.js';
+import {
+  getConfidentialPolicyService,
+  type ConfidentialPolicyEvaluator,
+} from './confidentialEvaluator.js';
 import { OwsWalletPolicyEvaluator } from './OwsWalletPolicy.js';
 import { OwsWalletOnChainManager } from './OwsWalletOnChain.js';
 import { blockchainConfig, cleanverseConfig, keeperHubConfig } from '@backend/shared/config/index.js';
@@ -145,15 +149,17 @@ export class OwsWalletService {
   private policyService: PolicyService;
   private policyEnforcement: PolicyEnforcementService;
   private fhenixPolicyService: FhenixPolicyService;
+  private confidentialPolicyService: ConfidentialPolicyEvaluator;
   private policyEvaluator: OwsWalletPolicyEvaluator;
   onChainManager: OwsWalletOnChainManager;
 
   constructor(policyService?: PolicyService, fhenixPolicyService?: FhenixPolicyService) {
     this.policyService = policyService || sharedPolicyService;
     this.fhenixPolicyService = fhenixPolicyService || sharedFhenixPolicyService;
+    this.confidentialPolicyService = getConfidentialPolicyService();
     this.policyEnforcement = new PolicyEnforcementService(
       this.policyService,
-      this.fhenixPolicyService,
+      this.confidentialPolicyService,
     );
     this.policyEvaluator = new OwsWalletPolicyEvaluator();
     this.onChainManager = new OwsWalletOnChainManager();
@@ -350,7 +356,7 @@ export class OwsWalletService {
           activePolicy,
           context,
           this.policyEnforcement,
-          this.fhenixPolicyService,
+          this.confidentialPolicyService,
         );
         policyChecks = evaluated.policyChecks;
         policyDecision = evaluated.decision;
@@ -1751,7 +1757,7 @@ export class OwsWalletService {
           typeof intent.metadata?.vendorHash === 'string' ? intent.metadata.vendorHash : undefined,
       },
       this.policyEnforcement,
-      this.fhenixPolicyService,
+      this.confidentialPolicyService,
     );
     const policyResult =
       evaluated.decision ||

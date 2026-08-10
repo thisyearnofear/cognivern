@@ -28,9 +28,12 @@ export function createMiscRoutes(
     ingestController.listTokens(req, res),
   );
 
-  // Fhenix routes
+  // Fhenix / Flare confidential routes
   router.get("/fhenix/status", (req, res) =>
     fhenixController.getStatus(req, res),
+  );
+  router.get("/flare/status", (req, res) =>
+    fhenixController.getFlareStatus(req, res),
   );
   router.post("/fhenix/decrypt", (req, res) =>
     fhenixController.decrypt(req, res),

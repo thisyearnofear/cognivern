@@ -97,10 +97,19 @@ export interface SpendEntry {
 }
 
 export interface FhenixConfidential {
-  fheEvaluated: boolean;
+  /** Preferred gate for confidential evaluation (FHE or TEE). */
+  confidentialEvaluated?: boolean;
+  fheEvaluated?: boolean;
+  teeEvaluated?: boolean;
+  evaluator?: 'flare' | 'fhenix' | string;
+  mechanism?: 'tee' | 'fhe' | string;
   chain: string;
+  chainId?: number;
+  contractAddress?: string | null;
+  explorerBase?: string;
   decisionIds?: string[];
   attestations?: string[];
+  resolved?: boolean;
 }
 
 export interface GovernanceEvaluation {

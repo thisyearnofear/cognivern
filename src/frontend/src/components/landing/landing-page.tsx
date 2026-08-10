@@ -680,7 +680,7 @@ export function LandingPage() {
           </div>
 
           <p className="text-center text-sm text-muted-foreground mt-10">
-            Deployed across Arbitrum, X Layer, Filecoin, 0G, Fhenix, Canton, and more.{" "}
+            Deployed across Arbitrum, X Layer, Filecoin, 0G, Flare, Canton, and more.{" "}
             <a
               href="https://github.com/thisyearnofear/cognivern/blob/main/docs/DEV.md"
               target="_blank"
