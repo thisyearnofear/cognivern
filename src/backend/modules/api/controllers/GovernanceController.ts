@@ -216,7 +216,9 @@ export class GovernanceController {
 
       let suspicionResult: Record<string, unknown> | undefined;
       if (process.env.CONTROL_EVAL_MODE === "true") {
-        const agentHistory = await this.auditLogService.getAgentHistory(agentId).catch(() => []);
+        const agentHistory = await this.auditLogService
+          .getAgentHistory(workspaceId, agentId)
+          .catch(() => []);
         const scored = sharedControlEvaluationService.score({
           action: normalizedAction,
           policyChecks,
@@ -276,6 +278,7 @@ export class GovernanceController {
         policyChecks,
         allowed,
         {
+          projectId: workspaceId,
           suspicion: suspicionResult as Record<string, unknown> | undefined,
         },
       );

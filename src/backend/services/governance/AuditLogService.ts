@@ -205,6 +205,7 @@ export class AuditLogService {
     agentType: string;
     timestamp: Date;
     details: Record<string, any>;
+    projectId?: string;
   }): Promise<void> {
     const runId = crypto.randomUUID();
     const startedAt = eventData.timestamp.toISOString();
@@ -238,6 +239,7 @@ export class AuditLogService {
 
     const run: CreRun = {
       runId,
+      projectId: eventData.projectId || "unscoped",
       workflow: workflowType,
       mode: "cre",
       startedAt,
@@ -320,6 +322,7 @@ export class AuditLogService {
     policyChecks: PolicyCheck[],
     allowed: boolean,
     options?: {
+      projectId?: string;
       suspicion?: Record<string, unknown>;
       aiUsage?: {
         provider: string;
@@ -376,6 +379,7 @@ export class AuditLogService {
     policyChecks: PolicyCheck[],
     allowed: boolean,
     options?: {
+      projectId?: string;
       suspicion?: Record<string, unknown>;
       aiUsage?: {
         provider: string;
@@ -434,6 +438,7 @@ export class AuditLogService {
 
     const run: CreRun = {
       runId,
+      projectId: options?.projectId || (action.metadata?.workspaceId as string) || "unscoped",
       workflow: "governance",
       mode: "cre",
       startedAt: action.timestamp || now,
@@ -523,6 +528,7 @@ export class AuditLogService {
   }
 
   async getFilteredLogs(filters: {
+    workspaceId: string;
     startDate?: string;
     endDate?: string;
     agent?: string;
@@ -531,7 +537,9 @@ export class AuditLogService {
     severity?: string;
   }): Promise<AuditLog[]> {
     const runs = await this.creStore.list();
-    let logs = runs.map((r) => this.mapCreRunToAuditLog(r));
+    let logs = runs
+      .filter((r) => r.projectId === filters.workspaceId)
+      .map((r) => this.mapCreRunToAuditLog(r));
 
     if (filters.startDate) {
       const start = new Date(filters.startDate);
@@ -573,8 +581,11 @@ export class AuditLogService {
    * needed by ControlEvaluationService.scoreStatisticalAnomaly.
    * Returns up to 100 most recent actions from the last 30 days.
    */
-  async getAgentHistory(agentId: string): Promise<Array<{ amount: number; vendor?: string; timestamp: string }>> {
-    const logs = await this.getFilteredLogs({ agent: agentId });
+  async getAgentHistory(
+    workspaceId: string,
+    agentId: string,
+  ): Promise<Array<{ amount: number; vendor?: string; timestamp: string }>> {
+    const logs = await this.getFilteredLogs({ workspaceId, agent: agentId });
     const thirtyDaysAgo = Date.now() - 30 * 86_400_000;
     return logs
       .filter((log) => new Date(log.timestamp).getTime() >= thirtyDaysAgo)
@@ -586,20 +597,32 @@ export class AuditLogService {
       }));
   }
 
-  async getActionLogs(startTime: string, endTime: string): Promise<AuditLog[]> {
-    return this.getFilteredLogs({ startDate: startTime, endDate: endTime });
+  async getActionLogs(
+    workspaceId: string,
+    startTime: string,
+    endTime: string,
+  ): Promise<AuditLog[]> {
+    return this.getFilteredLogs({
+      workspaceId,
+      startDate: startTime,
+      endDate: endTime,
+    });
   }
 
-  async searchLogs(options: any): Promise<AuditLog[]> {
-    return this.getFilteredLogs(options);
+  async searchLogs(
+    workspaceId: string,
+    options: any,
+  ): Promise<AuditLog[]> {
+    return this.getFilteredLogs({ workspaceId, ...options });
   }
 
   async exportLogs(
+    workspaceId: string,
     startDate: string,
     endDate: string,
     format: "json" | "csv",
   ): Promise<any> {
-    const logs = await this.getFilteredLogs({ startDate, endDate });
+    const logs = await this.getFilteredLogs({ workspaceId, startDate, endDate });
     return { format, data: logs };
   }
 }

@@ -23,6 +23,7 @@ async function freshRecorder(params?: { signer?: ethers.Signer }) {
   return new CreRunRecorder({
     workflow: "spend",
     mode: "local",
+    projectId: "test-project",
     signer: params?.signer,
   });
 }

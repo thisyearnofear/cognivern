@@ -424,7 +424,28 @@ export function OnboardingWizard() {
 
       updatePreferences({ onboardingCompleted: true });
       if (isAppConnected && demoMode) {
-        exitDemoMode();
+        // Upgrade the workspace tier from demo to live on the backend,
+        // then exit demo mode on the frontend so the user sees real data.
+        // If upgrade fails, remain in demo mode and surface the error.
+        const upgradeRes = await apiClient.upgradeWorkspace();
+        if (upgradeRes.success && upgradeRes.data) {
+          const authStore = useAuthStore.getState();
+          authStore.setHasExitedSandbox(true);
+          if (upgradeRes.data.token) {
+            useAuthStore.setState({ token: upgradeRes.data.token });
+          }
+          if (upgradeRes.data.workspace) {
+            useAuthStore.setState({
+              workspace: upgradeRes.data.workspace,
+              workspaceMode: "production",
+            });
+          }
+          exitDemoMode();
+        } else {
+          setError("Failed to upgrade workspace. You remain in demo mode. Try again or contact support.");
+          setCreating(false);
+          return;
+        }
       } else if (!isAppConnected) {
         enableDemoMode();
       }
@@ -447,6 +468,20 @@ export function OnboardingWizard() {
   function handleSkip() {
     updatePreferences({ onboardingCompleted: true });
     if (isAppConnected && demoMode) {
+      // Still upgrade the workspace even on skip — the user has chosen to
+      // leave demo mode. Fire-and-forget; don't block navigation.
+      apiClient.upgradeWorkspace().then((res) => {
+        if (res.success && res.data) {
+          useAuthStore.getState().setHasExitedSandbox(true);
+          if (res.data.token) useAuthStore.setState({ token: res.data.token });
+          if (res.data.workspace) {
+            useAuthStore.setState({
+              workspace: res.data.workspace,
+              workspaceMode: "production",
+            });
+          }
+        }
+      }).catch(() => {});
       exitDemoMode();
     } else if (!isAppConnected) {
       enableDemoMode();

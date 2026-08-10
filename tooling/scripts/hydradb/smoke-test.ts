@@ -55,6 +55,7 @@ async function main() {
   console.log("\n[2/6] ingest sample CRE run...");
   const sampleRun: CreRun = {
     runId: `smoke-${Date.now()}`,
+    projectId: "smoke-test",
     workflow: "spend",
     mode: "cre",
     startedAt: new Date().toISOString(),

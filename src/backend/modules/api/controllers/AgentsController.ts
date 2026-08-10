@@ -149,6 +149,7 @@ export class AgentsController {
             address,
             riskLevel,
           },
+          projectId: (req as any).workspaceId,
         });
       } catch (logError) {
         logger.error(
@@ -188,7 +189,7 @@ export class AgentsController {
         id: agent.id,
         name: agent.name,
         type: agent.type,
-        status: agent.status === "active" ? "connected" : "disconnected",
+        status: (agent.status === "active" || agent.status === "connected") ? "connected" : agent.status === "registered" ? "registered" : "disconnected",
         lastSeen: agent.lastActivity,
         capabilities: agent.capabilities || [],
         policies: [], // Agent type doesn't have policies property
@@ -876,19 +877,32 @@ export class AgentsController {
 
   async getDashboardBundle(req: Request, res: Response): Promise<void> {
     try {
+      const workspaceId = req.workspaceId;
+      if (!workspaceId) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: "AUTH_REQUIRED",
+            message: "Workspace authentication is required to view the dashboard bundle.",
+          },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
       // Get all agents
-      const agents = await this.agentsModule.getAgents();
+      const agents = WorkspaceDataService.getAgents(workspaceId);
       const agentIds = agents.map((a) => a.id);
 
       // 1. Get agent comparison metrics (Consolidated via Aggregator)
       const bundle = await this.metricsAggregator.getDashboardBundle(agentIds);
 
       // 2. Get recent activity (Audit Logs)
-      const activityResult = await this.auditLogService.getFilteredLogs({});
+      const activityResult = await this.auditLogService.getFilteredLogs({ workspaceId });
       const activity = activityResult.slice(0, 10);
 
       // 3. Get policies
-      const policies = await this.policyService.listPolicies();
+      const policies = WorkspaceDataService.getPolicies(workspaceId);
 
       // 4. Get governance quests (Insights)
       const insights = await this.auditLogService.generateInsights();
@@ -920,6 +934,19 @@ export class AgentsController {
   }
 
   async streamDashboardEvents(req: Request, res: Response): Promise<void> {
+    const workspaceId = req.workspaceId;
+    if (!workspaceId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "AUTH_REQUIRED",
+          message: "Workspace authentication is required to stream dashboard events.",
+        },
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     const sinceQuery =
       typeof req.query.since === "string" ? req.query.since : undefined;
     const lastEventId = req.header("Last-Event-ID") || sinceQuery || "";
@@ -960,9 +987,11 @@ export class AgentsController {
 
     const sendNewEvents = async () => {
       const [auditLogs, runs] = await Promise.all([
-        this.auditLogService.getFilteredLogs({}),
+        this.auditLogService.getFilteredLogs({ workspaceId }),
         creRunStore.list(),
       ]);
+
+      const workspaceRuns = runs.filter((r) => r.projectId === workspaceId);
 
       const auditEvents = auditLogs.map((log) => ({
         eventName: "audit_log",
@@ -984,7 +1013,7 @@ export class AgentsController {
         },
       }));
 
-      const runEvents = runs.flatMap((run) =>
+      const runEvents = workspaceRuns.flatMap((run) =>
         (run.events || []).map((event) => ({
           eventName: "run_event",
           eventId: `${new Date(event.timestamp).getTime()}:run:${event.id}`,

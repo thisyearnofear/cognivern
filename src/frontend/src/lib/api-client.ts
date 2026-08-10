@@ -461,6 +461,11 @@ class ApiClient {
     }
   }
 
+  // Workspace
+  async upgradeWorkspace(): Promise<ApiResponse<{ token: string; workspace: Workspace }>> {
+    return this.fetch('/api/auth/workspace/upgrade', { method: 'PATCH' });
+  }
+
   // Audit Logs
   async getAuditLogs(): Promise<ApiResponse<AuditLog[]>> {
     return this.fetch('/api/audit/logs');
@@ -1221,7 +1226,7 @@ class ApiClient {
   // Agent status update
   async updateAgentStatus(
     agentId: string,
-    status: 'active' | 'paused' | 'inactive',
+    status: 'registered' | 'connected' | 'active' | 'paused' | 'inactive',
   ): Promise<ApiResponse<{ id: string; status: string }>> {
     return this.fetch(`/api/agents/${agentId}/status`, {
       method: 'PATCH',

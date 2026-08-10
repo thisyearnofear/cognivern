@@ -32,6 +32,9 @@ export function createAuthRoutes(authController: AuthController): Router {
   router.post("/auth/logout", authMiddleware, (req, res) =>
     authController.logout(req, res),
   );
+  router.patch("/auth/workspace/upgrade", authMiddleware, (req, res) =>
+    authController.upgradeWorkspace(req, res),
+  );
 
   return router;
 }

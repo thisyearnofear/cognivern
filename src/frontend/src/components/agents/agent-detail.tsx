@@ -328,7 +328,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
     if (!agent) return;
     setToggling(true);
     try {
-      const newStatus = agent.status === "active" ? "paused" : "active";
+      const newStatus = (agent.status === "active" || agent.status === "connected") ? "paused" : "connected";
       await apiClient.updateAgentStatus(agentId, newStatus);
       mutate(`/api/agents/${agentId}`);
       mutate("/api/agents");
@@ -378,7 +378,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
         <div className="flex items-center gap-3">
           <div
             className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              agent.status === "active"
+              agent.status === "active" || agent.status === "connected"
                 ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600"
                 : "bg-amber-100 dark:bg-amber-950 text-amber-600"
             }`}
@@ -408,12 +408,12 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
             <ShieldCheck className="h-4 w-4" /> View Policy
           </Button>
           <Button
-            variant={agent.status === "active" ? "outline" : "default"}
+            variant={(agent.status === "active" || agent.status === "connected") ? "outline" : "default"}
             size="sm"
             onClick={handleToggleStatus}
             disabled={toggling || agent.status === "inactive"}
           >
-            {agent.status === "active" ? (
+            {(agent.status === "active" || agent.status === "connected") ? (
               <>
                 <Pause className="h-4 w-4" />{" "}
                 {toggling ? "Pausing..." : "Pause"}

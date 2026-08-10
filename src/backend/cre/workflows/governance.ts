@@ -28,7 +28,7 @@ export interface GovernanceWorkflowParams {
   policyId: string;
   policyEnforcementService: PolicyEnforcementService;
   auditLogService: AuditLogService;
-  workspaceId?: string;
+  workspaceId: string;
 }
 
 export interface GovernanceWorkflowResult {
@@ -59,6 +59,7 @@ export async function startGovernanceEvaluation(
   const recorder = new CreRunRecorder({
     workflow: "governance",
     mode: "local",
+    projectId: params.workspaceId,
   });
 
   const initialRun = recorder.getRun();
@@ -96,7 +97,9 @@ async function runAndPersist(
       agentId: params.agentId,
       actionType: params.normalizedAction.type,
     });
-    const agentHistory = await params.auditLogService.getAgentHistory(params.agentId).catch(() => []);
+    const agentHistory = await params.auditLogService
+      .getAgentHistory(params.workspaceId, params.agentId)
+      .catch(() => []);
 
     // Read workspace-specific suspicion hold threshold if available
     let workspaceHoldThreshold: number | undefined;
@@ -174,6 +177,7 @@ async function runAndPersist(
       decision.policyChecks,
       decision.allowed,
       {
+        projectId: params.workspaceId,
         suspicion: decision.suspicion
           ? {
               composite: decision.suspicion.composite,

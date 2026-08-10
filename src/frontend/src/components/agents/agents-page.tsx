@@ -118,11 +118,13 @@ function AgentCard({
             className={`w-10 h-10 rounded-lg flex items-center justify-center ${
               isDemo
                 ? 'bg-violet-100 dark:bg-violet-950 text-violet-600'
-                : agent.status === 'active'
+                : agent.status === 'active' || agent.status === 'connected'
                   ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600'
-                  : agent.status === 'paused'
-                    ? 'bg-amber-100 dark:bg-amber-950 text-amber-600'
-                    : 'bg-stone-100 dark:bg-stone-800 text-stone-400'
+                  : agent.status === 'registered'
+                    ? 'bg-blue-100 dark:bg-blue-950 text-blue-600'
+                    : agent.status === 'paused'
+                      ? 'bg-amber-100 dark:bg-amber-950 text-amber-600'
+                      : 'bg-stone-100 dark:bg-stone-800 text-stone-400'
             }`}
           >
             {isDemo ? <Eye className="h-5 w-5" /> : <Key className="h-5 w-5" />}
@@ -140,17 +142,24 @@ function AgentCard({
             demo
           </Badge>
         ) : (
-          <Badge
-            variant={
-              agent.status === 'active'
-                ? 'secondary'
-                : agent.status === 'paused'
-                  ? 'outline'
-                  : 'outline'
-            }
-          >
-            {agent.status}
-          </Badge>
+          <>
+            <Badge
+              variant={
+                agent.status === 'active' || agent.status === 'connected'
+                  ? 'secondary'
+                  : agent.status === 'paused'
+                    ? 'outline'
+                    : 'outline'
+              }
+            >
+              {agent.status}
+            </Badge>
+            {agent.source === 'sample' && (
+              <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">
+                Sample
+              </Badge>
+            )}
+          </>
         )}
       </div>
       <div className="grid grid-cols-2 gap-3 text-sm">
@@ -263,9 +272,9 @@ export function AgentsPage() {
   const hasActionableAgents = agentList.some((a) => a.source !== 'demo');
   const revokeCount = selectedAgents.filter((a) => a.source !== 'demo').length;
   const canRevoke = selectedAgents.some((a) => a.source !== 'demo' && a.status !== 'inactive');
-  const canPause = selectedAgents.some((a) => a.source !== 'demo' && a.status === 'active');
+  const canPause = selectedAgents.some((a) => a.source !== 'demo' && (a.status === 'active' || a.status === 'connected'));
   const canResume = selectedAgents.some(
-    (a) => a.source !== 'demo' && a.status !== 'active' && a.status !== 'inactive',
+    (a) => a.source !== 'demo' && a.status !== 'active' && a.status !== 'connected' && a.status !== 'inactive',
   );
 
   return (

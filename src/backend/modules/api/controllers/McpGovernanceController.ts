@@ -259,6 +259,7 @@ export class McpGovernanceController {
           policyChecks,
           allowed,
           {
+            projectId: (req as any).workspaceId || "mcp-public",
             aiUsage: useTogetherAI
               ? {
                   provider,

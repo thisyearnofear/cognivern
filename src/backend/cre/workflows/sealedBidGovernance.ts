@@ -167,6 +167,7 @@ export function createSealedBidGovernance(store: SealedBidRunStore = creRunStore
       const startedAt = new Date().toISOString();
       const run: CreRun = {
         runId: crypto.randomUUID(),
+        projectId: `sealed-bid:${params.roundId}`,
         workflow: 'sealed_bid',
         mode: 'cre',
         startedAt,

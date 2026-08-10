@@ -48,7 +48,7 @@ export const WorkspaceDataService = {
       chain: string;
       walletAddress?: string;
       budget?: string;
-      source?: "managed" | "external";
+      source?: "managed" | "external" | "sample";
       webhookUrl?: string;
     },
   ): Agent {
@@ -59,7 +59,7 @@ export const WorkspaceDataService = {
 
     db.prepare(
       `INSERT INTO workspace_agents (id, workspace_id, name, role, status, chain, wallet_address, budget, trades, spend_history, source, webhook_url, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, 0, '[]', ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'registered', ?, ?, ?, 0, '[]', ?, ?, ?, ?)`,
     ).run(
       id,
       workspaceId,
@@ -78,7 +78,7 @@ export const WorkspaceDataService = {
       id,
       name: params.name,
       role: params.role,
-      status: "active",
+      status: "registered",
       chain: params.chain,
       budget: params.budget || "$0",
       trades: 0,
@@ -92,7 +92,7 @@ export const WorkspaceDataService = {
   updateAgentStatus(
     workspaceId: string,
     agentId: string,
-    status: "active" | "paused" | "inactive",
+    status: "registered" | "connected" | "active" | "paused" | "inactive",
   ): boolean {
     const db = getDb();
     const result = db
@@ -416,6 +416,18 @@ export const WorkspaceDataService = {
     const agentMissing = !agent;
     const agentSafe = agent || { id: params.agentId, name: "unknown", budget: "$0" };
 
+    // Auto-promote: first valid governed request marks the agent as connected.
+    if (agent) {
+      const currentStatus = (db
+        .prepare("SELECT status FROM workspace_agents WHERE id = ? AND workspace_id = ?")
+        .get(params.agentId, workspaceId) as { status: string } | undefined)?.status;
+      if (currentStatus === "registered") {
+        db.prepare(
+          "UPDATE workspace_agents SET status = 'connected', updated_at = ? WHERE id = ? AND workspace_id = ?",
+        ).run(now, params.agentId, workspaceId);
+      }
+    }
+
     // Load policies to evaluate against
     let policies: Row[];
     if (params.policyId) {
@@ -577,7 +589,7 @@ export const WorkspaceDataService = {
     const { creRunStore } = await import("@backend/cre/storage/CreRunStore.js");
     const creRuns = await creRunStore.list();
     const runs: Run[] = creRuns
-      .filter((r) => !r.projectId || r.projectId === workspaceId)
+      .filter((r) => r.projectId === workspaceId)
       .map(creRunToRun);
     if (runs.length > 0) return runs;
 
@@ -588,7 +600,7 @@ export const WorkspaceDataService = {
   async getRun(workspaceId: string, runId: string): Promise<Run | undefined> {
     const { creRunStore } = await import("@backend/cre/storage/CreRunStore.js");
     const creRun = await creRunStore.get(runId);
-    if (creRun && (!creRun.projectId || creRun.projectId === workspaceId)) {
+    if (creRun && creRun.projectId === workspaceId) {
       return creRunToRun(creRun);
     }
     const runs = deriveRunsFromAgents(workspaceId);
@@ -680,12 +692,12 @@ function rowToAgent(row: Row): Agent {
     id: row.id as string,
     name: row.name as string,
     role: row.role as string,
-    status: row.status as "active" | "paused" | "inactive",
+    status: row.status as Agent["status"],
     chain: row.chain as string,
     budget: (row.budget as string) || "$0",
     trades: (row.trades as number) || 0,
     spendHistory: JSON.parse((row.spend_history as string) || "[]"),
-    source: (row.source as "managed" | "external") || "managed",
+    source: (row.source as Agent["source"]) || "managed",
     walletAddress: (row.wallet_address as string) || undefined,
     webhookUrl: (row.webhook_url as string) || undefined,
   };

@@ -506,9 +506,10 @@ function IdentityCreatedSuccess({
 }) {
   const [copied, setCopied] = useState<"curl" | "js" | null>(null);
 
-  const curlSnippet = `curl -X POST https://api.cognivern.persidian.com/api/governance/evaluate \\
+  const curlSnippet = `# Replace with your API key from the Integrate page
+curl -X POST https://api.cognivern.persidian.com/api/governance/evaluate \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: YOUR_API_KEY_HERE" \\
+  -H "x-api-key: <your-api-key>" \\
   -d '{
     "agentId": "${createdId}",
     "action": {
@@ -519,11 +520,12 @@ function IdentityCreatedSuccess({
     }
   }'`;
 
-  const jsSnippet = `const res = await fetch('https://api.cognivern.persidian.com/api/governance/evaluate', {
+  const jsSnippet = `// Replace with your API key from the Integrate page
+const res = await fetch('https://api.cognivern.persidian.com/api/governance/evaluate', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'x-api-key': 'YOUR_API_KEY_HERE',
+    'x-api-key': '<your-api-key>',
   },
   body: JSON.stringify({
     agentId: '${createdId}',
@@ -559,8 +561,8 @@ console.log(result.data.allowed ? 'Approved' : 'Blocked', result.data.reasoning)
       <div className="rounded-xl border bg-muted/20 p-4">
         <div className="text-sm font-medium mb-2">Next steps</div>
         <ol className="list-decimal list-inside text-xs text-muted-foreground space-y-1">
-          <li>Get your API key from Settings</li>
-          <li>Give it to your external system (bot, script, Zapier, etc.)</li>
+          <li>Generate an API key from the <strong>Integrate</strong> page (button below)</li>
+          <li>Give the key to your external system (bot, script, Zapier, etc.)</li>
           <li>Your system calls Cognivern before every transaction</li>
           <li>Cognivern enforces your policies and logs all activity</li>
         </ol>
@@ -631,8 +633,8 @@ console.log(result.data.allowed ? 'Approved' : 'Blocked', result.data.reasoning)
         <Button variant="outline" onClick={() => router.push("/agents")}>
           All Identities
         </Button>
-        <Button variant="secondary" onClick={() => router.push("/settings")}>
-          Get API Key
+        <Button variant="secondary" onClick={() => router.push(`/integrate?agentId=${createdId}`)}>
+          Get API Key &amp; Integrate
         </Button>
       </div>
     </div>

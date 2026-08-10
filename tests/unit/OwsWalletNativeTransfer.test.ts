@@ -122,6 +122,7 @@ describe('OwsWalletService — native transfer on approve', () => {
       new (await import('@backend/cre/runRecorder.js')).CreRunRecorder({
         workflow: 'spend',
         mode: 'cre',
+        projectId: 'test-workspace',
       }),
       'policy-1',
       access,
@@ -163,7 +164,7 @@ describe('OwsWalletService — native transfer on approve', () => {
         reason: 'unverified receipt',
         timestamp: new Date().toISOString(),
       },
-      new CreRunRecorder({ workflow: 'spend', mode: 'cre' }),
+      new CreRunRecorder({ workflow: 'spend', mode: 'cre', projectId: 'test-workspace' }),
       'policy-1',
       access,
       token,
@@ -196,7 +197,7 @@ describe('OwsWalletService — native transfer on approve', () => {
     const { CreRunRecorder } = await import('../../src/backend/cre/runRecorder.js');
     const result = await (service as any).handleApprove(
       intent,
-      new CreRunRecorder({ workflow: 'spend', mode: 'cre' }),
+      new CreRunRecorder({ workflow: 'spend', mode: 'cre', projectId: 'test-workspace' }),
       'policy-1',
       access,
       token,
@@ -230,7 +231,7 @@ describe('OwsWalletService — native transfer on approve', () => {
     const { CreRunRecorder } = await import('../../src/backend/cre/runRecorder.js');
     const result = await (service as any).handleApprove(
       intent,
-      new CreRunRecorder({ workflow: 'spend', mode: 'cre' }),
+      new CreRunRecorder({ workflow: 'spend', mode: 'cre', projectId: 'test-workspace' }),
       'policy-1',
       access,
       token,
@@ -272,7 +273,7 @@ describe('OwsWalletService — resumeHeldSpend (operator approval)', () => {
     const { CreRunRecorder } = await import('../../src/backend/cre/runRecorder.js');
     // Persist a held run carrying the spend_intent + walletId. executeSpend
     // adds the spend_intent artifact before any handle* call, so mirror that.
-    const heldRecorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre' });
+    const heldRecorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre', projectId: 'test-workspace' });
     await heldRecorder.addArtifact({ type: 'spend_intent', data: intent });
     const held = await (service as any).handleHold(
       intent,
@@ -336,7 +337,7 @@ describe('OwsWalletService — resumeHeldSpend (operator approval)', () => {
     };
 
     const { CreRunRecorder } = await import('../../src/backend/cre/runRecorder.js');
-    const heldRecorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre' });
+    const heldRecorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre', projectId: 'test-workspace' });
     await heldRecorder.addArtifact({ type: 'spend_intent', data: intent });
     const held = await (service as any).handleHold(
       intent,
@@ -387,7 +388,7 @@ describe('OwsWalletService — resumeHeldSpend (operator approval)', () => {
     };
 
     const { CreRunRecorder } = await import('../../src/backend/cre/runRecorder.js');
-    const heldRecorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre' });
+    const heldRecorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre', projectId: 'test-workspace' });
     await heldRecorder.addArtifact({ type: 'spend_intent', data: intent });
     const held = await (service as any).handleHold(
       intent,
@@ -436,7 +437,7 @@ describe('OwsWalletService — resumeHeldSpend (operator approval)', () => {
     };
 
     const { CreRunRecorder } = await import('../../src/backend/cre/runRecorder.js');
-    const heldRecorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre' });
+    const heldRecorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre', projectId: 'test-workspace' });
     await heldRecorder.addArtifact({ type: 'spend_intent', data: intent });
     const held = await (service as any).handleHold(
       intent,

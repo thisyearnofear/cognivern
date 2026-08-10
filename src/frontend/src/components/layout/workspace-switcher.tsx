@@ -41,7 +41,7 @@ export function WorkspaceSwitcher() {
   const fetchedRef = useRef(false);
 
   const fetchWorkspaces = useCallback(async () => {
-    if (demoMode || !isAppConnected) return;
+    if (!isAppConnected) return;
     setLoading(true);
     try {
       const res = await apiClient.listWorkspaces();
@@ -51,7 +51,7 @@ export function WorkspaceSwitcher() {
     } finally {
       setLoading(false);
     }
-  }, [demoMode, isAppConnected, setWorkspaces]);
+  }, [isAppConnected, setWorkspaces]);
 
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
@@ -112,7 +112,7 @@ export function WorkspaceSwitcher() {
     }
   }, [newName, fetchWorkspaces]);
 
-  if (demoMode || !isAppConnected) return null;
+  if (!isAppConnected) return null;
 
   return (
     <>

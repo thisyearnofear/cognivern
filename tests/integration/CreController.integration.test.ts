@@ -78,7 +78,7 @@ class MockRes {
 function makeReq(overrides: Partial<MockReq> = {}): MockReq {
   const headers = overrides.headers || {};
   const emitter = new EventEmitter();
-  return {
+  const req = {
     params: overrides.params || {},
     query: overrides.query || {},
     body: overrides.body || {},
@@ -91,6 +91,11 @@ function makeReq(overrides: Partial<MockReq> = {}): MockReq {
       }
     },
   };
+  // Default workspaceId matches the default projectId in makeRun ("default")
+  // so ownership checks pass. Individual tests can override.
+  (req as any).workspaceId = (overrides as any).workspaceId ?? "default";
+  (req as any).userId = (overrides as any).userId ?? undefined;
+  return req;
 }
 
 function makeRun(
@@ -297,7 +302,7 @@ describe("CreController", () => {
       reason: "controller test",
       timestamp: new Date().toISOString(),
     };
-    const recorder = new CreRunRecorder({ workflow: "spend", mode: "cre" });
+    const recorder = new CreRunRecorder({ workflow: "spend", mode: "cre", projectId: "default" });
     await recorder.addArtifact({ type: "spend_intent", data: intent });
     const held = await (service as any).handleHold(
       intent,
@@ -371,7 +376,7 @@ describe("CreController", () => {
       reason: "controller failure test",
       timestamp: new Date().toISOString(),
     };
-    const recorder = new CreRunRecorder({ workflow: "spend", mode: "cre" });
+    const recorder = new CreRunRecorder({ workflow: "spend", mode: "cre", projectId: "default" });
     await recorder.addArtifact({ type: "spend_intent", data: intent });
     const held = await (service as any).handleHold(
       intent,
@@ -442,7 +447,7 @@ describe("CreController", () => {
       reason: "no-auth attempt",
       timestamp: new Date().toISOString(),
     };
-    const recorder = new CreRunRecorder({ workflow: "spend", mode: "cre" });
+    const recorder = new CreRunRecorder({ workflow: "spend", mode: "cre", projectId: "default" });
     await recorder.addArtifact({ type: "spend_intent", data: intent });
     const held = await (service as any).handleHold(
       intent,
@@ -790,7 +795,7 @@ describe("CreController", () => {
     const controller = new CreController();
     const cancelRes = new MockRes();
     await controller.cancelRun(
-      makeReq({ params: { runId: run.runId } }) as any,
+      makeReq({ params: { runId: run.runId }, workspaceId: "workspace-1" } as any) as any,
       cancelRes as any,
     );
     expect(cancelRes.statusCode).toBe(409);
@@ -798,7 +803,7 @@ describe("CreController", () => {
 
     const retryRes = new MockRes();
     await controller.retryRun(
-      makeReq({ params: { runId: run.runId }, body: {} }) as any,
+      makeReq({ params: { runId: run.runId }, body: {}, workspaceId: "workspace-1" } as any) as any,
       retryRes as any,
     );
     expect(retryRes.statusCode).toBe(409);
@@ -880,7 +885,8 @@ describe("CreController", () => {
             steps: [{ id: "p1", title: "retry", enabled: true }],
           },
         },
-      }) as any,
+        workspaceId: "workspace-1",
+      } as any) as any,
       planRes as any,
     );
     expect(planRes.statusCode).toBe(409);
@@ -890,7 +896,8 @@ describe("CreController", () => {
     const approvalReq = makeReq({
       params: { runId: run.runId },
       body: { approve: true },
-    }) as any;
+      workspaceId: "workspace-1",
+    } as any) as any;
     approvalReq.userId = "operator-1";
     await controller.submitApproval(approvalReq, approvalRes as any);
     expect(approvalRes.statusCode).toBe(409);

@@ -90,7 +90,8 @@ export function AppSidebar() {
           </TooltipProvider>
         </div>
 
-        {demoMode ? (
+        {isAppAuthenticated && <WorkspaceSwitcher />}
+        {demoMode && (
           <div className="relative flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-amber-100/0 via-amber-100/50 to-amber-100/0 dark:from-amber-900/0 dark:via-amber-900/30 dark:to-amber-900/0 animate-[pulse-bg_2s_ease-in-out_infinite]" />
             <div className="relative flex items-center gap-2">
@@ -107,9 +108,8 @@ export function AppSidebar() {
               </span>
             </div>
           </div>
-        ) : (
-          <WorkspaceSwitcher />
         )}
+        {!isAppAuthenticated && !demoMode && <WorkspaceSwitcher />}
       </SidebarHeader>
 
       <SidebarContent className="px-0 gap-0">
@@ -250,7 +250,7 @@ export function AppSidebar() {
         <SidebarSeparator className="my-2" />
 
         <div className="px-2 py-2">
-          {demoMode ? (
+          {demoMode && !isAppAuthenticated ? (
             <div className="space-y-2">
               <button
                 onClick={() => setShowAuthModal(true)}

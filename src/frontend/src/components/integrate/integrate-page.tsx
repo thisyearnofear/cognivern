@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -134,14 +135,25 @@ function ApiKeyGenerator() {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await apiClient.getAgents();
-      if (res.success) {
-        const count = (res.data || []).length;
+      // Use ONLY the generated API key — no session JWT — to prove the key
+      // itself works. This is the whole point of the verification step.
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const response = await fetch(`${baseUrl}/api/agents`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': createdKey.key,
+        },
+      });
+      if (response.ok) {
+        const body = await response.json();
+        const count = (body.data || []).length;
         setTestResult({ ok: true, agentCount: count });
       } else {
+        const errorBody = await response.text();
         setTestResult({
           ok: false,
-          message: res.error || "Request failed",
+          message: `Key test failed (${response.status}): ${errorBody.slice(0, 100)}`,
         });
       }
     } catch (err) {
@@ -326,6 +338,9 @@ export function IntegratePage() {
   // lived here and broke every copied snippet.
   const baseUrl = "https://api.cognivern.persidian.com";
   const { view: rail } = useConfidentialRail();
+  const searchParams = useSearchParams();
+  // Pre-fill the agent ID in snippets when arriving from the agent workshop.
+  const agentIdParam = searchParams.get("agentId") || "agent-YOUR-AGENT-ID";
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -421,7 +436,7 @@ export function IntegratePage() {
   -H "x-api-key: cvn_YOUR_KEY_HERE" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "agentId": "agent-YOUR-AGENT-ID",
+    "agentId": "${agentIdParam}",
     "action": {
       "type": "swap",
       "description": "Swap 1500 USDC for ETH on Uniswap",
@@ -693,7 +708,7 @@ export function IntegratePage() {
                 language="typescript"
                 code={`const COGNIVERN_API_KEY = process.env.COGNIVERN_API_KEY; // cvn_...
 const COGNIVERN_URL = "${baseUrl}";
-const AGENT_ID = "agent-YOUR-AGENT-ID";
+const AGENT_ID = "${agentIdParam}";
 
 async function checkGovernance(action: {
   type: string;
@@ -749,7 +764,7 @@ import os
 
 COGNIVERN_URL = "${baseUrl}"
 API_KEY = os.environ["COGNIVERN_API_KEY"]  # cvn_...
-AGENT_ID = "agent-YOUR-AGENT-ID"
+AGENT_ID = "${agentIdParam}"
 
 def check_governance(action_type: str, description: str, amount: float, currency: str = "USDC") -> bool:
     """Check if an action is allowed by workspace policies."""

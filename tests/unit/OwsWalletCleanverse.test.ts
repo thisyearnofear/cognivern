@@ -129,7 +129,7 @@ describe('OwsWalletService — Cleanverse CVI/CVA rail', () => {
         reason: 'Cleanverse deny path',
         timestamp: new Date().toISOString(),
       },
-      { apiKeyToken: token },
+      { apiKeyToken: token, workspaceId: 'test-workspace' },
     );
 
     expect(result.status).toBe('denied');
@@ -188,7 +188,7 @@ describe('OwsWalletService — Cleanverse CVI/CVA rail', () => {
           reason: 'Country rule deny path',
           timestamp: new Date().toISOString(),
         },
-        { apiKeyToken: token },
+        { apiKeyToken: token, workspaceId: 'test-workspace' },
       );
 
       expect(result.status).toBe('denied');
@@ -221,7 +221,7 @@ describe('OwsWalletService — Cleanverse CVI/CVA rail', () => {
     };
 
     const { CreRunRecorder } = await import('../../src/backend/cre/runRecorder.js');
-    const heldRecorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre' });
+    const heldRecorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre', projectId: 'test-workspace' });
     await heldRecorder.addArtifact({ type: 'spend_intent', data: intent });
     // Persist the screening verdict the way executeSpend does (cleanverse_apass
     // artifact carries policySignals; spend_intent is snapshotted pre-screen).
@@ -308,7 +308,7 @@ describe('OwsWalletService — Cleanverse CVI/CVA rail', () => {
 
     const result = await (service as any).handleApprove(
       intent,
-      new CreRunRecorder({ workflow: 'spend', mode: 'cre' }),
+      new CreRunRecorder({ workflow: 'spend', mode: 'cre', projectId: 'test-workspace' }),
       'policy-1',
       refreshed,
       token,

@@ -8,6 +8,7 @@ import { creRunStore } from '@backend/cre/storage/CreRunStore.js';
 import { creLedgerChain, hashRun } from '@backend/cre/persistence/CreLedgerChain.js';
 import { CreRun } from '@backend/cre/types.js';
 import { translateCreEventToAgUi } from '@backend/cre/agUiTranslation.js';
+import { WorkspaceDataService } from '@backend/services/WorkspaceDataService.js';
 import { owsWalletService } from '@backend/services/blockchain/OwsWalletService.js';
 import { keeperHubExecutionProvider } from '@backend/services/blockchain/KeeperHubExecutionProvider.js';
 import { zeroGStorageService } from '@backend/services/blockchain/ZeroGStorageService.js';
@@ -217,6 +218,28 @@ export class CreController {
     });
   }
 
+  /**
+   * Verify that a run belongs to the requesting workspace. Returns the run
+   * if it passes, or sends a 404 and returns null. Using 404 (not 403) to
+   * avoid disclosing the existence of foreign runs.
+   */
+  private async verifyRunOwnership(
+    req: Request,
+    res: Response,
+    runId: string,
+  ): Promise<import('@backend/cre/types.js').CreRun | null> {
+    if (!req.workspaceId) {
+      res.status(401).json({ success: false, error: 'Workspace authentication required' });
+      return null;
+    }
+    const run = await creRunStore.get(runId);
+    if (!run || run.projectId !== req.workspaceId) {
+      res.status(404).json({ success: false, error: 'Run not found' });
+      return null;
+    }
+    return run;
+  }
+
   private async verifyLocalTransfer(
     transactionHash: string,
     expectedSender?: string,
@@ -353,15 +376,19 @@ export class CreController {
 
   async listRuns(req: Request, res: Response) {
     try {
-      const projectIdRaw = (req.query.projectId as string) || 'default';
-      const projectId = projectIdRaw.slice(0, 120);
-      const runs = await creRunStore.list();
+      if (!req.workspaceId) {
+        res.status(401).json({
+          success: false,
+          error: 'Workspace authentication is required to list runs.',
+        });
+        return;
+      }
+      const projectId = req.workspaceId;
+      const runs = await WorkspaceDataService.getRuns(projectId);
       res.json({
         success: true,
         projectId,
-        runs: runs
-          .filter((r) => (r as unknown as Record<string, unknown>).projectId === projectId)
-          .map((r) => normalizeRun(r)),
+        runs,
       });
     } catch (err) {
       res.status(500).json({ success: false, error: 'Failed to list runs' });
@@ -495,11 +522,8 @@ export class CreController {
 
   async getRun(req: Request, res: Response) {
     try {
-      const run = await creRunStore.get(req.params.runId);
-      if (!run) {
-        res.status(404).json({ success: false, error: 'Run not found' });
-        return;
-      }
+      const run = await this.verifyRunOwnership(req, res, req.params.runId);
+      if (!run) return;
       const normalized = normalizeRun(run);
       normalized.events = (normalized.events || []).map(translateCreEventToAgUi);
       const detailData = {
@@ -811,11 +835,8 @@ export class CreController {
 
   async getRunEvents(req: Request, res: Response) {
     try {
-      const run = await creRunStore.get(req.params.runId);
-      if (!run) {
-        res.status(404).json({ success: false, error: 'Run not found' });
-        return;
-      }
+      const run = await this.verifyRunOwnership(req, res, req.params.runId);
+      if (!run) return;
       const sinceParsed = req.query.since ? Number(req.query.since) : undefined;
       const since =
         typeof sinceParsed === 'number' && !Number.isNaN(sinceParsed) ? sinceParsed : undefined;
@@ -841,11 +862,8 @@ export class CreController {
 
   async streamRunEvents(req: Request, res: Response) {
     const runId = req.params.runId;
-    const run = await creRunStore.get(runId);
-    if (!run) {
-      res.status(404).json({ success: false, error: 'Run not found' });
-      return;
-    }
+    const run = await this.verifyRunOwnership(req, res, runId);
+    if (!run) return;
 
     const sinceParsed = req.query.since ? Number(req.query.since) : undefined;
     const lastEventIdHeader = req.header('Last-Event-ID');
@@ -916,6 +934,14 @@ export class CreController {
   }
 
   async triggerForecast(req: Request, res: Response) {
+    if (!req.workspaceId) {
+      res.status(401).json({
+        success: false,
+        error: 'Workspace authentication is required to trigger forecasts.',
+      });
+      return;
+    }
+
     const parse = triggerForecastSchema.safeParse(req.body || {});
     if (!parse.success) {
       res.status(400).json({ success: false, error: 'Invalid trigger payload' });
@@ -935,6 +961,7 @@ export class CreController {
     try {
       const run = await runForecastingWorkflow({
         mode: 'local',
+        projectId: req.workspaceId,
         // If approval is required, hold before any attestation side effects.
         writeAttestation: requireApproval ? false : writeAttestation,
         arbitrumRpcUrl: process.env.ARBITRUM_RPC_URL,
@@ -993,11 +1020,8 @@ export class CreController {
     }
 
     try {
-      const run = await creRunStore.get(req.params.runId);
-      if (!run) {
-        res.status(404).json({ success: false, error: 'Run not found' });
-        return;
-      }
+      const run = await this.verifyRunOwnership(req, res, req.params.runId);
+      if (!run) return;
       const normalized = normalizeRun(run);
       if (hasExecutionUncertainty(run)) {
         res.status(409).json({
@@ -1066,11 +1090,8 @@ export class CreController {
     }
 
     try {
-      const run = await creRunStore.get(req.params.runId);
-      if (!run) {
-        res.status(404).json({ success: false, error: 'Run not found' });
-        return;
-      }
+      const run = await this.verifyRunOwnership(req, res, req.params.runId);
+      if (!run) return;
       if (hasExecutionUncertainty(run)) {
         res.status(409).json({
           success: false,
@@ -1089,6 +1110,7 @@ export class CreController {
       const newRun = normalizeRun(
         await runForecastingWorkflow({
           mode: 'local',
+          projectId: run.projectId ?? req.workspaceId ?? '',
           writeAttestation,
           arbitrumRpcUrl: process.env.ARBITRUM_RPC_URL,
           signer: getCreSigner(),
@@ -1151,11 +1173,8 @@ export class CreController {
     }
 
     try {
-      const run = await creRunStore.get(req.params.runId);
-      if (!run) {
-        res.status(404).json({ success: false, error: 'Run not found' });
-        return;
-      }
+      const run = await this.verifyRunOwnership(req, res, req.params.runId);
+      if (!run) return;
       if (hasExecutionUncertainty(run)) {
         res.status(409).json({
           success: false,
@@ -1348,11 +1367,8 @@ export class CreController {
     }
 
     try {
-      const run = await creRunStore.get(req.params.runId);
-      if (!run) {
-        res.status(404).json({ success: false, error: 'Run not found' });
-        return;
-      }
+      const run = await this.verifyRunOwnership(req, res, req.params.runId);
+      if (!run) return;
       if (hasExecutionUncertainty(run)) {
         res.status(409).json({
           success: false,

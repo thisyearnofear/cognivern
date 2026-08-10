@@ -367,7 +367,7 @@ export function Dashboard() {
     ? filteredActivity
     : filteredActivity.slice(0, ACTIVITY_PAGE_SIZE);
 
-  const activeCount = agentList.filter((a) => a.status === 'active').length;
+  const activeCount = agentList.filter((a) => a.status === 'active' || a.status === 'connected').length;
   const approvalRate =
     normalizedLogs.length > 0
       ? Math.round(
@@ -387,7 +387,10 @@ export function Dashboard() {
   // Keep the checklist mounted for completed workspaces too: its compact
   // success state is the small emotional payoff and a durable handoff into
   // integration, rather than a one-time onboarding screen.
-  const showSetup = isAuthenticated && workspaceMode === 'production' && !setupLoading;
+  // Show setup checklist for any authenticated user regardless of workspace
+  // mode/tier. New demo-tier users need this guidance the most — hiding it
+  // behind a mode transition they don't understand defeats its purpose.
+  const showSetup = isAuthenticated && !setupLoading;
 
   // Count decisions carrying a real on-chain governance-record tx (mirrors the
   // audit page's getOnChainTxHash: top-level or nested data.txHash). Real data
@@ -851,12 +854,12 @@ export function Dashboard() {
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
                               <div
-                                className={`w-2 h-2 rounded-full ${agent.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                                className={`w-2 h-2 rounded-full ${agent.status === 'active' || agent.status === 'connected' ? 'bg-emerald-500' : agent.status === 'registered' ? 'bg-blue-500' : 'bg-amber-500'}`}
                               />
                               <span className="font-medium text-sm">{agent.name}</span>
                             </div>
                             <Badge
-                              variant={agent.status === 'active' ? 'secondary' : 'outline'}
+                              variant={agent.status === 'active' || agent.status === 'connected' ? 'secondary' : 'outline'}
                               className="text-xs"
                             >
                               {agent.status}

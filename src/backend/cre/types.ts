@@ -139,7 +139,7 @@ export interface CreArtifact {
 
 export interface CreRun {
   runId: string;
-  projectId?: string;
+  projectId: string;
   workflow: 'forecasting' | 'governance' | 'registration' | 'spend' | 'sealed_bid' | 'generic';
   mode: 'local' | 'cre';
   startedAt: string;

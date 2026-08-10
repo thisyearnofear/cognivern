@@ -93,8 +93,11 @@ export const useAuthStore = create<AuthState>()(
         // land on production mode by default — they don't need the
         // orientation banner again. New users keep the persisted (or
         // default) sandbox mode so they get the banner once.
+        // hasExitedSandbox is now scoped per-user via localStorage key.
         const previous = useAuthStore.getState();
-        const nextWorkspaceMode = previous.hasExitedSandbox
+        const userSandboxKey = `civern-exited-sandbox:${authUser.id}`;
+        const userHasExited = localStorage.getItem(userSandboxKey) === "true";
+        const nextWorkspaceMode = userHasExited
           ? "production"
           : previous.workspaceMode;
         set({
@@ -104,17 +107,15 @@ export const useAuthStore = create<AuthState>()(
           workspace,
           token,
           workspaceMode: nextWorkspaceMode,
+          hasExitedSandbox: userHasExited,
         });
       },
       logout: () => {
-        // Preserve hasExitedSandbox across logout: it's a per-browser fact
-        // about whether the user has already gone through orientation,
-        // independent of any particular session. Clearing it would push
-        // a returning user back into the new-user sandbox onboarding.
-        const preservedExit = useAuthStore.getState().hasExitedSandbox;
+        // hasExitedSandbox is now persisted per-user via a dedicated
+        // localStorage key (civern-exited-sandbox:<userId>), so we no
+        // longer need to preserve it across logout in the store.
         set({
           ...defaultState,
-          hasExitedSandbox: preservedExit,
           hasHydrated: true,
         });
       },
@@ -131,7 +132,20 @@ export const useAuthStore = create<AuthState>()(
         set({ workspace, token });
       },
       setWorkspaceMode: (workspaceMode) => set({ workspaceMode }),
-      setHasExitedSandbox: (value) => set({ hasExitedSandbox: value }),
+      setHasExitedSandbox: (value) => {
+        // Persist per-user so different accounts on the same browser
+        // don't inherit each other's sandbox graduation state.
+        const userId = useAuthStore.getState().authUser?.id;
+        if (userId) {
+          const key = `civern-exited-sandbox:${userId}`;
+          if (value) {
+            localStorage.setItem(key, "true");
+          } else {
+            localStorage.removeItem(key);
+          }
+        }
+        set({ hasExitedSandbox: value });
+      },
       setHasHydrated: (hydrated) => set({ hasHydrated: hydrated }),
       requestSignIn: () =>
         set((state) => ({ signInRequestId: state.signInRequestId + 1 })),

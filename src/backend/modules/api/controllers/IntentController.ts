@@ -235,6 +235,7 @@ export class IntentController {
         agentType: "system",
         timestamp: new Date(),
         details: { query, intentType: classification.type },
+        projectId: (req as any).workspaceId || "intent-system",
       });
 
       this.cb.reset();
@@ -288,6 +289,7 @@ export class IntentController {
           intentType: classification.type,
           reason: "ai_provider_unavailable",
         },
+        projectId: (req as any).workspaceId || "intent-system",
       });
     } catch (e) {
       // Non-blocking
@@ -437,7 +439,7 @@ export class IntentController {
       case "forensic": {
         // Fetch recent audit logs so the forensic timeline has real data
         try {
-          const logs = await this.auditLogService.getFilteredLogs({});
+          const logs = await this.auditLogService.getFilteredLogs({ workspaceId });
           const recent = logs.slice(-10).map((l) => ({
             id: l.id,
             timestamp: l.timestamp,
@@ -464,7 +466,7 @@ export class IntentController {
       case "risk": {
         // Fetch real governance health data
         try {
-          const logs = await this.auditLogService.getFilteredLogs({});
+          const logs = await this.auditLogService.getFilteredLogs({ workspaceId });
           const total = logs.length;
           const approved = logs.filter((l) => l.outcome === "allowed").length;
           const denied = logs.filter((l) => l.outcome === "denied").length;
@@ -527,7 +529,7 @@ export class IntentController {
       case "stats": {
         // Fetch real metrics
         try {
-          const logs = await this.auditLogService.getFilteredLogs({});
+          const logs = await this.auditLogService.getFilteredLogs({ workspaceId });
           const agents = WorkspaceDataService.getAgents(workspaceId);
           const total = logs.length;
           const approved = logs.filter((l) => l.outcome === "allowed").length;
@@ -614,7 +616,7 @@ export class IntentController {
         case "governance":
         case "risk":
         case "stats": {
-          const logs = await this.auditLogService.getFilteredLogs({});
+          const logs = await this.auditLogService.getFilteredLogs({ workspaceId });
           const total = logs.length;
           const approved = logs.filter((l) => l.outcome === "allowed").length;
           const denied = logs.filter((l) => l.outcome === "denied").length;
@@ -647,7 +649,7 @@ export class IntentController {
           break;
         }
         case "forensic": {
-          const logs = await this.auditLogService.getFilteredLogs({});
+          const logs = await this.auditLogService.getFilteredLogs({ workspaceId });
           enriched.workspaceData = {
             recentAuditLogs: logs.slice(-10).map((l) => ({
               id: l.id,

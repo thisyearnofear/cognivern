@@ -28,10 +28,10 @@ async function hashPassword(password: string): Promise<string> {
 function seedDefaultWorkspaceData(workspaceId: string): void {
   try {
     WorkspaceDataService.createPolicy(workspaceId, {
-      name: "Default Spend Policy",
+      name: "[Sample] Default Spend Policy",
       type: "budget",
       description:
-        "Auto-created moderate policy: deny single transactions over $1,000, flag daily totals over $500. Adjust or replace this from the Policies page.",
+        "Sample policy created by Cognivern: deny single transactions over $1,000, flag daily totals over $500. Adjust, replace, or delete this from the Policies page.",
       rules: [
         { condition: "amount > 1000", action: "deny" },
         { condition: "daily_total > 500", action: "flag" },
@@ -45,11 +45,11 @@ function seedDefaultWorkspaceData(workspaceId: string): void {
   // without the tester needing to create an agent first.
   try {
     WorkspaceDataService.createAgent(workspaceId, {
-      name: "Test Agent",
+      name: "[Sample] Test Agent",
       role: "general",
       chain: "base",
       budget: "$5,000",
-      source: "managed",
+      source: "sample",
     });
   } catch {
     // Best-effort — never block workspace creation.
@@ -782,5 +782,115 @@ export class AuthController {
       success: true,
       message: "Password reset successfully",
     });
+  }
+
+  /**
+   * Upgrade a demo-tier workspace to live. Called after the onboarding wizard
+   * completes or when the user explicitly chooses "Set up my workspace".
+   * Only the workspace owner can upgrade. Returns the updated workspace object
+   * and a fresh JWT reflecting the new tier.
+   */
+  async upgradeWorkspace(req: Request, res: Response): Promise<void> {
+    const userId = req.userId;
+    const workspaceId = req.workspaceId;
+
+    if (!userId || !workspaceId) {
+      res.status(401).json({ success: false, error: "Not authenticated" });
+      return;
+    }
+
+    const db = getDb();
+    const workspace = db
+      .prepare(
+        "SELECT id, name, owner_id, tier, created_at, updated_at FROM workspaces WHERE id = ?",
+      )
+      .get(workspaceId) as
+      | {
+          id: string;
+          name: string;
+          owner_id: string;
+          tier: string;
+          created_at: string;
+          updated_at: string;
+        }
+      | undefined;
+
+    if (!workspace) {
+      res.status(404).json({ success: false, error: "Workspace not found" });
+      return;
+    }
+
+    if (workspace.owner_id !== userId) {
+      res
+        .status(403)
+        .json({ success: false, error: "Only the workspace owner can upgrade" });
+      return;
+    }
+
+    if (workspace.tier === "live") {
+      // Already upgraded — return current state with a fresh token.
+      const user = db
+        .prepare("SELECT wallet_address, email FROM users WHERE id = ?")
+        .get(userId) as { wallet_address: string | null; email: string | null } | undefined;
+      const token = await new SignJWT({
+        sub: userId,
+        ...(user?.wallet_address ? { walletAddress: user.wallet_address } : {}),
+        ...(user?.email ? { email: user.email } : {}),
+        workspaceId,
+      })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("7d")
+        .sign(JWT_SECRET);
+
+      res.json({
+        success: true,
+        data: {
+          token,
+          workspace: {
+            id: workspace.id,
+            name: workspace.name,
+            ownerId: workspace.owner_id,
+            tier: "live" as const,
+            createdAt: workspace.created_at,
+            updatedAt: workspace.updated_at,
+          },
+        },
+      });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    db.prepare("UPDATE workspaces SET tier = 'live', updated_at = ? WHERE id = ?").run(
+      now,
+      workspaceId,
+    );
+
+    const updatedWorkspace: Workspace = {
+      id: workspace.id,
+      name: workspace.name,
+      ownerId: workspace.owner_id,
+      tier: "live",
+      createdAt: workspace.created_at,
+      updatedAt: now,
+    };
+
+    // Issue a fresh token so the frontend can store the updated tier
+    const user = db
+      .prepare("SELECT wallet_address, email FROM users WHERE id = ?")
+      .get(userId) as { wallet_address: string | null; email: string | null } | undefined;
+
+    const token = await new SignJWT({
+      sub: userId,
+      ...(user?.wallet_address ? { walletAddress: user.wallet_address } : {}),
+      ...(user?.email ? { email: user.email } : {}),
+      workspaceId,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("7d")
+      .sign(JWT_SECRET);
+
+    res.json({ success: true, data: { token, workspace: updatedWorkspace } });
   }
 }

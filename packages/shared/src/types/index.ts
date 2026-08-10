@@ -79,12 +79,12 @@ export interface Agent {
   id: string;
   name: string;
   role: string;
-  status: "active" | "paused" | "inactive";
+  status: "registered" | "connected" | "active" | "paused" | "inactive";
   trades: number;
   budget: string;
   chain: string;
   spendHistory?: SpendEntry[];
-  source?: "managed" | "external" | "demo";
+  source?: "managed" | "external" | "sample" | "demo";
   walletAddress?: string;
   webhookUrl?: string;
 }

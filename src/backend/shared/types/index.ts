@@ -22,6 +22,8 @@ export type AgentType =
   | "custom";
 
 export type AgentStatus =
+  | "registered"
+  | "connected"
   | "active"
   | "inactive"
   | "pending"
