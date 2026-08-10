@@ -19,7 +19,6 @@ import {
   Building2,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
-import { useDemoStore } from "@/stores/demo-store";
 import { apiClient, type Workspace } from "@/lib/api-client";
 import { mutate } from "swr";
 
@@ -29,7 +28,6 @@ export function WorkspaceSwitcher() {
   const isAppConnected = useAuthStore((s) => s.isConnected);
   const setWorkspaces = useAuthStore((s) => s.setWorkspaces);
   const switchWorkspace = useAuthStore((s) => s.switchWorkspace);
-  const demoMode = useDemoStore((s) => s.demoMode);
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);

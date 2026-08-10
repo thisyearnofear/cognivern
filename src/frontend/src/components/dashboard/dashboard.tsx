@@ -295,7 +295,6 @@ export function Dashboard() {
   const workspace = useAuthStore((s) => s.workspace);
   const walletAddress = useAuthStore((s) => s.walletAddress);
   const isAuthenticated = useAuthStore((s) => s.isConnected);
-  const workspaceMode = useAuthStore((s) => s.workspaceMode);
   const [refreshing, setRefreshing] = useState(false);
   useNetworkStatus();
 
