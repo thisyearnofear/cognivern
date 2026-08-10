@@ -92,14 +92,43 @@ export const WorkspaceDataService = {
   updateAgentStatus(
     workspaceId: string,
     agentId: string,
-    status: "registered" | "connected" | "active" | "paused" | "inactive",
+    requestedStatus: "registered" | "connected" | "active" | "paused" | "inactive",
   ): boolean {
     const db = getDb();
+
+    // Resolve the current status to enforce valid transitions.
+    const current = db
+      .prepare("SELECT status FROM workspace_agents WHERE id = ? AND workspace_id = ?")
+      .get(agentId, workspaceId) as { status: string } | undefined;
+    if (!current) return false;
+
+    // Normalize: callers requesting 'active' get 'connected' (legacy compat).
+    const targetStatus = requestedStatus === "active" ? "connected" : requestedStatus;
+
+    // Valid state machine transitions:
+    //   registered → connected (auto on first eval, or explicit)
+    //   connected  → paused | inactive
+    //   active     → paused | inactive (legacy rows)
+    //   paused     → connected | inactive
+    //   inactive   → (terminal, no transitions out)
+    const VALID_TRANSITIONS: Record<string, Set<string>> = {
+      registered: new Set(["connected"]),
+      connected: new Set(["paused", "inactive"]),
+      active: new Set(["connected", "paused", "inactive"]),
+      paused: new Set(["connected", "inactive"]),
+      inactive: new Set(),
+    };
+
+    const allowed = VALID_TRANSITIONS[current.status];
+    if (!allowed || !allowed.has(targetStatus)) {
+      return false;
+    }
+
     const result = db
       .prepare(
         "UPDATE workspace_agents SET status = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
       )
-      .run(status, new Date().toISOString(), agentId, workspaceId);
+      .run(targetStatus, new Date().toISOString(), agentId, workspaceId);
     return result.changes > 0;
   },
 

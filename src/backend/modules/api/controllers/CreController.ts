@@ -194,7 +194,9 @@ export class CreController {
     if (!rawHeader) return null;
     const header = rawHeader.trim().slice(0, 120);
     if (!header) return null;
-    return `${scope}:${header}`;
+    // Include workspaceId to prevent cross-workspace cache collisions.
+    const wsPrefix = req.workspaceId || '_anonymous';
+    return `${wsPrefix}:${scope}:${header}`;
   }
 
   private async cleanupIdempotencyStore() {
@@ -1010,6 +1012,10 @@ export class CreController {
   }
 
   async cancelRun(req: Request, res: Response) {
+    // Ownership check BEFORE idempotency cache to prevent cross-workspace leaks.
+    const run = await this.verifyRunOwnership(req, res, req.params.runId);
+    if (!run) return;
+
     const idemKey = this.makeIdempotencyKey(req, `cre:cancelRun:${req.params.runId}`);
     if (idemKey) {
       const cached = await this.getCachedIdempotentResponse(idemKey);
@@ -1020,8 +1026,6 @@ export class CreController {
     }
 
     try {
-      const run = await this.verifyRunOwnership(req, res, req.params.runId);
-      if (!run) return;
       const normalized = normalizeRun(run);
       if (hasExecutionUncertainty(run)) {
         res.status(409).json({
@@ -1080,6 +1084,10 @@ export class CreController {
     }
     const { writeAttestation = false, fromStep = 0 } = parse.data;
 
+    // Ownership check BEFORE idempotency cache to prevent cross-workspace leaks.
+    const run = await this.verifyRunOwnership(req, res, req.params.runId);
+    if (!run) return;
+
     const idemKey = this.makeIdempotencyKey(req, `cre:retryRun:${req.params.runId}`);
     if (idemKey) {
       const cached = await this.getCachedIdempotentResponse(idemKey);
@@ -1090,8 +1098,6 @@ export class CreController {
     }
 
     try {
-      const run = await this.verifyRunOwnership(req, res, req.params.runId);
-      if (!run) return;
       if (hasExecutionUncertainty(run)) {
         res.status(409).json({
           success: false,
@@ -1163,6 +1169,10 @@ export class CreController {
     }
     const { approve, reason = '' } = parse.data;
 
+    // Ownership check BEFORE idempotency cache to prevent cross-workspace leaks.
+    const run = await this.verifyRunOwnership(req, res, req.params.runId);
+    if (!run) return;
+
     const idemKey = this.makeIdempotencyKey(req, `cre:submitApproval:${req.params.runId}`);
     if (idemKey) {
       const cached = await this.getCachedIdempotentResponse(idemKey);
@@ -1173,8 +1183,6 @@ export class CreController {
     }
 
     try {
-      const run = await this.verifyRunOwnership(req, res, req.params.runId);
-      if (!run) return;
       if (hasExecutionUncertainty(run)) {
         res.status(409).json({
           success: false,
@@ -1357,6 +1365,10 @@ export class CreController {
     }
     const { plan } = parse.data;
 
+    // Ownership check BEFORE idempotency cache to prevent cross-workspace leaks.
+    const run = await this.verifyRunOwnership(req, res, req.params.runId);
+    if (!run) return;
+
     const idemKey = this.makeIdempotencyKey(req, `cre:updateRunPlan:${req.params.runId}`);
     if (idemKey) {
       const cached = await this.getCachedIdempotentResponse(idemKey);
@@ -1367,8 +1379,6 @@ export class CreController {
     }
 
     try {
-      const run = await this.verifyRunOwnership(req, res, req.params.runId);
-      if (!run) return;
       if (hasExecutionUncertainty(run)) {
         res.status(409).json({
           success: false,

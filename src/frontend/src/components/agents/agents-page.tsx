@@ -225,7 +225,7 @@ export function AgentsPage() {
   // Batch status change: apply the target status to every selected identity.
   // Status is changed per agent (there is no multi-resource endpoint), so we
   // fan out and revalidate once at the end.
-  const runBatchStatus = async (target: 'active' | 'paused' | 'inactive') => {
+  const runBatchStatus = async (target: 'connected' | 'paused' | 'inactive') => {
     const actionable = selectedAgents.filter((a) => a.source !== 'demo' && a.status !== target);
     if (actionable.length === 0) return;
     setBatchBusy(true);
@@ -350,7 +350,7 @@ export function AgentsPage() {
               variant="outline"
               className="h-8 gap-1.5 text-xs"
               disabled={batchBusy || !canResume}
-              onClick={() => void runBatchStatus('active')}
+              onClick={() => void runBatchStatus('connected')}
             >
               <Play className="h-3.5 w-3.5" /> Resume
             </Button>

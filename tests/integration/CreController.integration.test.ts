@@ -1483,4 +1483,138 @@ describe("CreController", () => {
     expect(joined.includes(secondEventId)).toBeTruthy();
     expect(!joined.includes(run.events[0].id)).toBeTruthy();
   });
+
+  // ─── Cross-workspace isolation: table-driven regression tests ─────────────
+  // Proves workspace B cannot access workspace A's runs across all guarded
+  // handlers plus the idempotency cache scenario.
+  describe("cross-workspace isolation", () => {
+    const OWNER_WS = "workspace-owner";
+    const FOREIGN_WS = "workspace-foreign";
+
+    async function seedOwnerRun(status: "running" | "paused_for_approval" = "running") {
+      const run = makeRun(status);
+      (run as any).projectId = OWNER_WS;
+      await creRunStore.add(run as any);
+      return run;
+    }
+
+    function foreignReq(runId: string, extras: Record<string, any> = {}) {
+      const req = makeReq({
+        params: { runId },
+        body: extras.body || {},
+        ...extras,
+      } as any) as any;
+      req.workspaceId = FOREIGN_WS;
+      req.userId = "operator-foreign";
+      return req;
+    }
+
+    it("getRun: foreign workspace receives 404", async () => {
+      const run = await seedOwnerRun();
+      const controller = new CreController();
+      const res = new MockRes();
+      await controller.getRun(foreignReq(run.runId) as any, res as any);
+      expect(res.statusCode).toBe(404);
+      expect(res.payload?.error).toMatch(/not found/i);
+    });
+
+    it("getRunEvents: foreign workspace receives 404", async () => {
+      const run = await seedOwnerRun();
+      const controller = new CreController();
+      const res = new MockRes();
+      await controller.getRunEvents(foreignReq(run.runId) as any, res as any);
+      expect(res.statusCode).toBe(404);
+    });
+
+    it("streamRunEvents: foreign workspace receives 404", async () => {
+      const run = await seedOwnerRun();
+      const controller = new CreController();
+      const res = new MockRes();
+      await controller.streamRunEvents(foreignReq(run.runId) as any, res as any);
+      expect(res.statusCode).toBe(404);
+    });
+
+    it("cancelRun: foreign workspace receives 404", async () => {
+      const run = await seedOwnerRun();
+      const controller = new CreController();
+      const res = new MockRes();
+      await controller.cancelRun(foreignReq(run.runId) as any, res as any);
+      expect(res.statusCode).toBe(404);
+      // Verify run is unchanged
+      const persisted = await creRunStore.get(run.runId);
+      expect(persisted?.status).toBe("running");
+    });
+
+    it("retryRun: foreign workspace receives 404", async () => {
+      const run = await seedOwnerRun("paused_for_approval");
+      const controller = new CreController();
+      const res = new MockRes();
+      await controller.retryRun(
+        foreignReq(run.runId, { body: {} }) as any,
+        res as any,
+      );
+      expect(res.statusCode).toBe(404);
+    });
+
+    it("submitApproval: foreign workspace receives 404", async () => {
+      const run = await seedOwnerRun("paused_for_approval");
+      const controller = new CreController();
+      const res = new MockRes();
+      await controller.submitApproval(
+        foreignReq(run.runId, { body: { approve: true, reason: "steal" } }) as any,
+        res as any,
+      );
+      expect(res.statusCode).toBe(404);
+      // Run must remain paused — not approved by foreign workspace
+      const persisted = await creRunStore.get(run.runId);
+      expect(persisted?.status).toBe("paused_for_approval");
+    });
+
+    it("updateRunPlan: foreign workspace receives 404", async () => {
+      const run = await seedOwnerRun();
+      const controller = new CreController();
+      const res = new MockRes();
+      await controller.updateRunPlan(
+        foreignReq(run.runId, {
+          body: {
+            plan: { version: 99, summary: "hijack", steps: [{ id: "x", title: "x", enabled: true }] },
+          },
+        }) as any,
+        res as any,
+      );
+      expect(res.statusCode).toBe(404);
+    });
+
+    it("idempotency cache: foreign workspace cannot retrieve owner's cached response", async () => {
+      const run = await seedOwnerRun("paused_for_approval");
+      const controller = new CreController();
+      const idemHeader = "shared-idem-key-isolation-test";
+
+      // Owner workspace approves with idempotency key
+      const ownerReq = makeReq({
+        params: { runId: run.runId },
+        headers: { "Idempotency-Key": idemHeader },
+        body: { approve: true, reason: "legitimate" },
+      } as any) as any;
+      ownerReq.workspaceId = OWNER_WS;
+      ownerReq.userId = "operator-owner";
+      const ownerRes = new MockRes();
+      await controller.submitApproval(ownerReq, ownerRes as any);
+      expect(ownerRes.statusCode).toBe(200);
+      expect(ownerRes.payload?.run?.status).toBe("completed");
+
+      // Foreign workspace reuses the same idempotency key — must get 404, not the cached response
+      const foreignReqObj = makeReq({
+        params: { runId: run.runId },
+        headers: { "Idempotency-Key": idemHeader },
+        body: { approve: true, reason: "steal" },
+      } as any) as any;
+      foreignReqObj.workspaceId = FOREIGN_WS;
+      foreignReqObj.userId = "operator-foreign";
+      const foreignRes = new MockRes();
+      await controller.submitApproval(foreignReqObj, foreignRes as any);
+      expect(foreignRes.statusCode).toBe(404);
+      expect(foreignRes.payload?.error).toMatch(/not found/i);
+    });
+  });
 });
