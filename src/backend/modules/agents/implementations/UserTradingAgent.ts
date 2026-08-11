@@ -288,7 +288,7 @@ export class UserTradingAgent implements TradingAgent {
             rule: "governance-unreachable",
             severity: "critical" as const,
             message: `governance unreachable: ${error instanceof Error ? error.message : "unknown"}`,
-            suggestedAction: "verify Cognivern API is reachable and COGNIVERN_API_KEY is set",
+            suggestedAction: "verify Cognivern API is reachable and COGNIVERN_SERVICE_API_KEY is set",
           },
         ],
         warnings: [],

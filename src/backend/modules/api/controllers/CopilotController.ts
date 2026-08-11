@@ -167,7 +167,7 @@ async function executeRun(run: PersistedCopilotRun, previewOnly: boolean) {
   try {
     const result = await runAgent({
       goal: run.goal,
-      cognivernApiKey: process.env.COGNIVERN_API_KEY || "development-api-key",
+      cognivernApiKey: process.env.COGNIVERN_SERVICE_API_KEY || "development-api-key",
       cognivernBaseUrl:
         process.env.COGNIVERN_BASE_URL || "https://api.cognivern.persidian.com",
       mongodbUri: process.env.MONGODB_URI || "mongodb://localhost:27017",

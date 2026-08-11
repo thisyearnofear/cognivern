@@ -16,7 +16,6 @@ import rateLimit from 'express-rate-limit';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { createHash, timingSafeEqual } from 'crypto';
 import { BaseService } from '@backend/shared/services/BaseService.js';
 import { Logger } from '@backend/shared/logging/Logger.js';
 import { apiConfig, ServiceConfig, DependencyHealth } from '@backend/shared/index.js';
@@ -53,10 +52,7 @@ import { authMiddleware } from '@backend/middleware/authMiddleware.js';
 import { workspaceMiddleware } from '@backend/middleware/workspaceMiddleware.js';
 import { demoInterceptor } from '@backend/middleware/demoInterceptor.js';
 import { requestContextMiddleware } from '@backend/middleware/requestContext.js';
-import {
-  isPublicApiPath,
-  LEGACY_DEFAULT_WORKSPACE_ID,
-} from '@backend/middleware/publicEndpoints.js';
+import { isPublicApiPath } from '@backend/middleware/publicEndpoints.js';
 import { sharedSloMetrics } from '@backend/services/SloMetricsService.js';
 import { asyncHandler } from '@backend/shared/errors/ApiErrors.js';
 import type { Server } from 'node:http';
@@ -377,23 +373,25 @@ export class ApiModule extends BaseService {
       // that read workspaceId keep working.
       const headerApiKey = req.headers['x-api-key'] as string | undefined;
       if (headerApiKey) {
-        // Workspace-scoped cvn_ keys must go through resolveWorkspaceFromApiKey,
-        // NOT trySetLegacyWorkspaceId (which only handles the global legacy key
-        // and silently rejects all cvn_ keys on public paths).
-        if (headerApiKey.startsWith('cvn_')) {
-          const workspaceId = resolveWorkspaceFromApiKey(headerApiKey);
-          if (workspaceId) {
-            req.workspaceId = workspaceId;
-          } else {
-            res.status(401).json({
-              success: false,
-              error: 'Invalid or revoked API key',
-              timestamp: new Date().toISOString(),
-            });
-            return;
-          }
+        // Only workspace-scoped cvn_ keys are valid; the global legacy key
+        // path was retired (no more synthetic "default" workspace).
+        if (!headerApiKey.startsWith('cvn_')) {
+          res.status(401).json({
+            success: false,
+            error: 'Invalid API key',
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+        const workspaceId = resolveWorkspaceFromApiKey(headerApiKey);
+        if (workspaceId) {
+          req.workspaceId = workspaceId;
         } else {
-          this.trySetLegacyWorkspaceId(req, res, headerApiKey, next);
+          res.status(401).json({
+            success: false,
+            error: 'Invalid or revoked API key',
+            timestamp: new Date().toISOString(),
+          });
           return;
         }
       }
@@ -431,83 +429,22 @@ export class ApiModule extends BaseService {
       return;
     }
 
-    // Check workspace-scoped API keys (cvn_ prefix)
+    // Only workspace-scoped cvn_ keys are accepted; the global legacy key
+    // path was retired (it mapped every caller into a shared synthetic
+    // "default" workspace, which breaks tenant isolation).
     if (apiKey.startsWith('cvn_')) {
       const workspaceId = resolveWorkspaceFromApiKey(apiKey);
       if (workspaceId) {
         req.workspaceId = workspaceId;
         return next();
       }
-      res.status(401).json({
-        success: false,
-        error: 'Invalid or revoked API key',
-        timestamp: new Date().toISOString(),
-      });
-      return;
     }
-
-    // Legacy global API key check — timing-safe hash comparison.
-    // On success, set req.workspaceId so authMiddleware (which runs after
-    // this on /api/*) can see the request is already authenticated and
-    // skip the JWT check. Legacy keys are mapped to a synthetic
-    // "default" workspace; see publicEndpoints.ts for the rationale.
-    if (apiConfig.apiKey) {
-      const expected = Buffer.from(createHash('sha256').update(apiConfig.apiKey).digest());
-      const actual = Buffer.from(createHash('sha256').update(apiKey).digest());
-      if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
-        res.status(401).json({
-          success: false,
-          error: 'Invalid API key',
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-      req.workspaceId = LEGACY_DEFAULT_WORKSPACE_ID;
-    } else {
-      res.status(401).json({
-        success: false,
-        error: 'Invalid API key',
-        timestamp: new Date().toISOString(),
-      });
-      return;
-    }
-
-    next();
-  }
-
-  /**
-   * Optional legacy x-api-key validation used by the public-path branch.
-   * On valid key: sets req.workspaceId and calls next(). On invalid key:
-   * writes a 401 response (caller must NOT also respond). On missing
-   * apiConfig.apiKey: also writes 401 to avoid silent acceptance of an
-   * unknown key shape.
-   */
-  private trySetLegacyWorkspaceId(
-    req: express.Request,
-    res: express.Response,
-    apiKey: string,
-    next: express.NextFunction,
-  ): void {
-    if (!apiConfig.apiKey) {
-      res.status(401).json({
-        success: false,
-        error: 'Invalid API key',
-        timestamp: new Date().toISOString(),
-      });
-      return;
-    }
-    const expected = Buffer.from(createHash('sha256').update(apiConfig.apiKey).digest());
-    const actual = Buffer.from(createHash('sha256').update(apiKey).digest());
-    if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
-      res.status(401).json({
-        success: false,
-        error: 'Invalid API key',
-        timestamp: new Date().toISOString(),
-      });
-      return;
-    }
-    req.workspaceId = LEGACY_DEFAULT_WORKSPACE_ID;
-    next();
+    res.status(401).json({
+      success: false,
+      error: 'Invalid or revoked API key',
+      timestamp: new Date().toISOString(),
+    });
+    return;
   }
 
   private async setupControllers(): Promise<void> {

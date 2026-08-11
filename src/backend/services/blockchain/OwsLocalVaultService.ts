@@ -101,10 +101,13 @@ export class OwsLocalVaultService {
     this.vaultPath =
       process.env.OWS_VAULT_PATH ||
       path.join(process.cwd(), ".cognivern", "ows-vault.json");
+    // NOTE: the vault's encryption secret is independent of API auth. Older
+    // deployments derived it from COGNIVERN_API_KEY; that key was retired, so
+    // those deployments must set OWS_VAULT_SECRET to the old value (kept in
+    // the env file) or vault contents become undecryptable.
     this.encryptionSecret =
       process.env.OWS_VAULT_SECRET ||
       process.env.OWS_API_KEY ||
-      process.env.COGNIVERN_API_KEY ||
       "development-ows-vault-secret";
   }
 

@@ -32,12 +32,9 @@ afterEach(() => {
   vi.resetModules();
   process.env.DOTENV_CONFIG_PATH = emptyEnvPath;
   for (const flag of FLAGS) delete process.env[flag];
-  delete process.env.COGNIVERN_API_KEY;
 });
 
 function loadConfig() {
-  // COGNIVERN_API_KEY is required by the schema regardless of the flags under test.
-  process.env.COGNIVERN_API_KEY = "test";
   // Import fresh so the module re-reads the env.
   return import("../src/config.js");
 }

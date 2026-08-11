@@ -45,7 +45,7 @@ pnpm add -D tsx
 # Set env for Google Cloud Vertex AI auth
 export GOOGLE_CLOUD_PROJECT=cognivern
 export VERTEX_LOCATION=global
-export COGNIVERN_API_KEY=development-api-key        # or a real key
+export COGNIVERN_API_KEY=development-api-key        # or a real workspace cvn_ key (Settings → API keys)
 export COGNIVERN_BASE_URL=https://api.cognivern.persidian.com
 export MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net
 export MONGODB_DB_NAME=cognivern

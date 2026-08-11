@@ -80,7 +80,7 @@ tools:
           in: header
           name: x-api-key
           # The Agent Builder secret "cognivern-api-key" is created from
-          # the COGNIVERN_API_KEY env var on deploy.
+          # a workspace-scoped cvn_ key (Settings → API keys) on deploy.
           secret: cognivern-api-key
 
   # --- MongoDB MCP server -------------------------------------------------

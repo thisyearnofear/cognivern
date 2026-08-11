@@ -49,7 +49,9 @@ const envSchema = z.object({
   OWS_EXTERNAL_WALLET_PRIVATE_KEY: z.string().optional(),
 
   // API Security and Authentication
-  COGNIVERN_API_KEY: z.string().min(1),
+  // Scoped cvn_ key used by backend-internal HTTP callers (agents, copilot).
+  // The old global COGNIVERN_API_KEY was retired with workspace-scoped auth.
+  COGNIVERN_SERVICE_API_KEY: z.string().min(1).optional(),
 
   // Filecoin Configuration
   FILECOIN_ENABLED: strictBoolean.default(false),

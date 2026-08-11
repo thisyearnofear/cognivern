@@ -114,17 +114,6 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Default workspace identifier for legacy global x-api-key holders.
- *
- * The legacy COGNIVERN_API_KEY is a single global key without a workspace
- * binding. We map it to a synthetic "default" workspaceId so downstream
- * controllers that read `req.workspaceId` (governance, apikeys, audit) work
- * without changes. Data persisted under this id is intentionally shared
- * across all legacy-key callers.
- */
-export const LEGACY_DEFAULT_WORKSPACE_ID = 'default';
-
-/**
  * Returns true if the given request path is in the public list, or is under
  * a public prefix (e.g. /api/webhooks/*), or matches a parameterized public
  * path pattern (e.g. /vendor/sealed-bid/rounds/:roundId/bid).

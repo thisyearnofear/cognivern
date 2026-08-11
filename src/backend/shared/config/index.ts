@@ -41,7 +41,10 @@ const sapienceConfigSchema = z.object({
 
 // API configuration
 const apiConfigSchema = z.object({
-  COGNIVERN_API_KEY: z.string().min(1),
+  // Scoped cvn_ key used by backend-internal HTTP callers (agents, copilot)
+  // to authenticate against the public API. The old global COGNIVERN_API_KEY
+  // was retired: external callers use workspace keys, JWT, or per-resource auth.
+  COGNIVERN_SERVICE_API_KEY: z.string().min(1).optional(),
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000), // 15 minutes
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
@@ -151,7 +154,6 @@ export const config = parseConfig();
 // Modular access objects (keeping same structure for DRY but pointing to new variables)
 export const apiConfig = {
   port: config.PORT || 3000,
-  apiKey: config.COGNIVERN_API_KEY || "",
   corsOrigin: config.CORS_ORIGIN || "*",
   rateLimit: {
     windowMs: config.RATE_LIMIT_WINDOW_MS || 900000,

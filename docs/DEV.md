@@ -425,7 +425,7 @@ share one policy engine, one execution boundary, and one evidence trail.
 | Env var                        | Default                 | Purpose                                         |
 | ------------------------------ | ----------------------- | ----------------------------------------------- |
 | `COGNIVERN_SELF_BASE_URL`      | `http://localhost:3000` | URL agents use to call their own governance API |
-| `COGNIVERN_API_KEY`            | (required)              | API key for governance calls                    |
+| `COGNIVERN_SERVICE_API_KEY`    | unset                   | Scoped cvn_ key for agents' governance calls    |
 | `SAPIENCE_HUMAN_CONFIRM_TOKEN` | unset                   | Static token for trades ≥ 10 USDe               |
 | `SAPIENCE_ENABLED`             | `false`                 | Toggle Sapience agent registration on startup   |
 

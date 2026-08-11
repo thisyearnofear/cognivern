@@ -11,7 +11,6 @@ import { CircuitBreaker } from "@backend/shared/utils/circuitBreaker.js";
 import { MultiModelRouter } from "@backend/services/ai/MultiModelRouter.js";
 import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
-import { LEGACY_DEFAULT_WORKSPACE_ID } from "@backend/middleware/publicEndpoints.js";
 
 const logger = new Logger("IntentController");
 
@@ -432,8 +431,11 @@ export class IntentController {
     intentType: IntentType,
     context?: Record<string, any>,
   ): Promise<IntentResponse["component"] | undefined> {
-    const workspaceId =
-      (context?.workspaceId as string) || LEGACY_DEFAULT_WORKSPACE_ID;
+    const workspaceId = context?.workspaceId as string | undefined;
+    // Every component variant renders workspace-scoped data. Without a
+    // workspace there is nothing to show (the legacy global key's shared
+    // "default" bucket was retired).
+    if (!workspaceId) return undefined;
 
     switch (intentType) {
       case "forensic": {
@@ -591,9 +593,11 @@ export class IntentController {
     intentType: IntentType,
     context: Record<string, any>,
   ): Promise<Record<string, any>> {
-    const workspaceId =
-      (context.workspaceId as string) || LEGACY_DEFAULT_WORKSPACE_ID;
+    // Without a workspace there is no tenant data to enrich with (the legacy
+    // global key's shared "default" bucket was retired).
+    const workspaceId = context.workspaceId as string | undefined;
     const enriched = { ...context };
+    if (!workspaceId) return enriched;
 
     try {
       switch (intentType) {

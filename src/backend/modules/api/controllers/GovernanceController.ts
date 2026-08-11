@@ -9,7 +9,6 @@ import {
   PolicyService,
   sharedPolicyService,
 } from "@backend/services/governance/PolicyService.js";
-import { LEGACY_DEFAULT_WORKSPACE_ID } from "@backend/middleware/publicEndpoints.js";
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 import { sharedZeroGProofService } from "@backend/services/blockchain/ZeroGProofService.js";
 
@@ -377,9 +376,20 @@ export class GovernanceController {
   async getPolicies(req: Request, res: Response): Promise<void> {
     try {
       // /governance/policies is in PUBLIC_API_PATHS — public callers have no
-      // workspaceId. Fall back to the legacy default workspace so the endpoint
-      // returns data instead of 401.
-      const workspaceId = req.workspaceId || LEGACY_DEFAULT_WORKSPACE_ID;
+      // workspaceId. The legacy global key used to map them to a shared
+      // "default" workspace; that was retired. Policies are tenant config, so
+      // workspaceless callers get an empty list rather than another
+      // workspace's data.
+      const workspaceId = req.workspaceId;
+      if (!workspaceId) {
+        res.json({
+          success: true,
+          data: [],
+          source: "workspace",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
 
       const db = getDb();
       const rows = db

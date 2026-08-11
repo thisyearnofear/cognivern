@@ -104,13 +104,13 @@ export class GovernanceClient {
         process.env.COGNIVERN_SELF_BASE_URL ||
         process.env.COGNIVERN_BASE_URL ||
         "http://localhost:3000",
-      apiKey: config?.apiKey || process.env.COGNIVERN_API_KEY || "",
+      apiKey: config?.apiKey || process.env.COGNIVERN_SERVICE_API_KEY || "",
       fetchImpl: config?.fetchImpl,
       timeoutMs: config?.timeoutMs ?? 15_000,
     };
     if (!this.config.apiKey) {
       logger.warn(
-        "GovernanceClient initialized without API key — calls will fail. Set COGNIVERN_API_KEY in env.",
+        "GovernanceClient initialized without API key — calls will fail. Set COGNIVERN_SERVICE_API_KEY in env (scoped cvn_ key).",
       );
     }
   }
