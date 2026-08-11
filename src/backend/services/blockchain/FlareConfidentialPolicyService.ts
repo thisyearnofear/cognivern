@@ -44,8 +44,15 @@ const COSTON2 = {
 /** Instruction fee paid to TeeExtensionRegistry.sendInstructions (wei). */
 const INSTRUCTION_FEE_WEI = 1_000_000_000n;
 
+/** TEE-sealed policy limits, USD-ish integer units (strings to match message payloads). */
+export interface PolicyLimits {
+  dailyLimit: string;
+  perTxLimit: string;
+  approvalThreshold: string;
+}
+
 /** Demo-scale limits (USD-ish units) matching SpendController demo notes. */
-const DEFAULT_POLICY_LIMITS = {
+const DEFAULT_POLICY_LIMITS: PolicyLimits = {
   dailyLimit: '10000',
   perTxLimit: '2000',
   approvalThreshold: '500',
@@ -220,7 +227,7 @@ export class FlareConfidentialPolicyService {
     const vendorHash = toBytes32(input.vendorHash);
     const amount = amountForTee(input.amountWei);
 
-    await this.ensurePolicyRegistered(policyId, input.policyId, false);
+    await this.ensurePolicyRegistered(policyId, input.policyId, false, input.customLimits);
 
     const evalPayload = utf8ToHex(
       JSON.stringify({
@@ -297,10 +304,24 @@ export class FlareConfidentialPolicyService {
     };
   }
 
+  /**
+   * Register a policy with explicit TEE limits (key-bound mandates) and return
+   * the registration tx hash. Throws when the contract/wallet is unconfigured
+   * so callers can mark the mandate failed instead of silently skipping.
+   */
+  async registerPolicyWithLimits(policyIdRaw: string, limits: PolicyLimits): Promise<string> {
+    if (!this.walletClient || !this.publicClient || !this.config.contractAddress) {
+      throw new Error('Flare policy contract not configured');
+    }
+    const policyId = toBytes32(policyIdRaw);
+    return this.registerPolicyTx(policyId, policyIdRaw, { ...limits });
+  }
+
   private async ensurePolicyRegistered(
     policyId: Hex,
     policyIdRaw: string,
     force: boolean,
+    customLimits?: PolicyLimits,
   ): Promise<void> {
     if (!this.walletClient || !this.publicClient || !this.config.contractAddress) return;
 
@@ -317,29 +338,42 @@ export class FlareConfidentialPolicyService {
     // Seed TEE-private limits. Re-register when forced (TEE restart) or first use.
     if (!force && onChain && this.registeredPolicies.has(key)) return;
 
+    await this.registerPolicyTx(policyId, policyIdRaw, customLimits ?? DEFAULT_POLICY_LIMITS);
+  }
+
+  private async registerPolicyTx(
+    policyId: Hex,
+    policyIdRaw: string,
+    limits: PolicyLimits,
+  ): Promise<string> {
+    const key = policyId.toLowerCase();
+    const wallet = this.walletClient;
+    const pubClient = this.publicClient;
+    if (!wallet || !pubClient || !this.config.contractAddress) {
+      throw new Error('Flare policy contract not configured');
+    }
     const payload = utf8ToHex(
       JSON.stringify({
         policyId: policyIdRaw.startsWith('0x') ? policyIdRaw : `0x${policyIdRaw}`,
-        ...DEFAULT_POLICY_LIMITS,
+        ...limits,
       }),
     );
 
-    const hash = await this.walletClient.writeContract({
+    const hash = await wallet.writeContract({
       address: this.config.contractAddress as Hex,
       abi: ABI,
       functionName: 'registerPolicy',
       args: [policyId, payload],
       value: INSTRUCTION_FEE_WEI,
       chain: COSTON2,
-      account: this.walletClient.account!,
+      account: wallet.account!,
     });
 
-    await this.publicClient.waitForTransactionReceipt({ hash, timeout: 120_000 });
+    await pubClient.waitForTransactionReceipt({ hash, timeout: 120_000 });
     await this.sleep(4_000);
     this.registeredPolicies.add(key);
-    logger.info(
-      `Flare policy registered policyId=${policyId} onChainWas=${Boolean(onChain)} force=${force} tx=${hash}`,
-    );
+    logger.info(`Flare policy registered policyId=${policyId} tx=${hash}`);
+    return hash;
   }
 
   private parseSpendEvaluated(logs: readonly { data: Hex; topics: readonly Hex[] }[]): {

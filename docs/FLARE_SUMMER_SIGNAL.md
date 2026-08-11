@@ -150,6 +150,7 @@ Cognivern is the economic control plane for agentic work. It already ships **con
 | Backend | `FhenixPolicyService.ts`, `FheDecisionWatcher.ts` | `FlareConfidentialPolicyService` + `confidential.evaluator: "flare"` flag |
 | Chain | Fhenix-enabled Sepolia nets | **Coston2** (chain 114) |
 | UI/evidence | `/verified-capital` + Fhenix status | Flare status + `flare.confidential` CRE artifact |
+| **API keys** | Bearer credentials; scopes stored-but-unenforced | **Key = sealed mandate**: scopes enforced; optional per-key budget registered into the TEE (`REGISTER_POLICY` with key-derived policyId) — a leaked key cannot overspend its own mandate; BYO-credential import wraps existing key material with the same binding |
 
 ---
 

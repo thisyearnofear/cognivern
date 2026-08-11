@@ -33,6 +33,8 @@ declare global {
       userId?: string;
       walletAddress?: string;
       workspaceId?: string;
+      /** Set when the request authenticated with a workspace API key. */
+      apiKeyRecord?: { keyId: string; scopes: string[] };
     }
   }
 }

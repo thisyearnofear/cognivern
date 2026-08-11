@@ -10,6 +10,11 @@ import {
   getConfidentialPolicyService,
 } from '@backend/services/blockchain/confidentialEvaluator.js';
 import { isFlareEvaluatorEnabled } from '@backend/services/blockchain/FlareConfidentialPolicyService.js';
+import type { ConfidentialSpendInput } from '@backend/services/blockchain/FhenixPolicyService.js';
+import {
+  getKeyMandate,
+  mandateToPolicyLimits,
+} from '@backend/services/keys/KeyMandateService.js';
 import { getChainGPTAuditService, AuditResult } from '@backend/services/ai/ChainGPTAuditService.js';
 import crypto from 'node:crypto';
 import { Logger } from '@backend/shared/logging/Logger.js';
@@ -456,10 +461,35 @@ export class SpendController {
     payload: z.infer<typeof demoConfidentialSpendSchema>,
   ) {
     const agentId = payload.agentId;
-    const policyId = payload.policyId!;
+    let policyId = payload.policyId!;
     const amountUsd = payload.amountUsd!;
     const vendorHash =
       payload.vendorHash || '0x' + crypto.createHash('sha256').update('acme-corp').digest('hex');
+
+    // Key-bound mandate ("key = sealed mandate"): when a cvn_/imported key
+    // that carries a sealed TEE mandate makes the request, ITS policy is used
+    // — the caller's policyId is ignored, so the request can never evaluate
+    // against looser limits than the mandate sealed for this key.
+    let customLimits: ConfidentialSpendInput['customLimits'];
+    let mandateInfo: Record<string, unknown> | undefined;
+    const keyRec = req.apiKeyRecord;
+    if (keyRec) {
+      const mandate = getKeyMandate(keyRec.keyId);
+      if (mandate) {
+        mandateInfo = {
+          bound: true,
+          status: mandate.status,
+          policyId: mandate.policyId,
+          budgetUsd: mandate.dailyLimitUsd,
+          perTxUsd: mandate.perTxUsd,
+          approvalThresholdUsd: mandate.approvalThresholdUsd,
+        };
+        if (mandate.status === 'sealed') {
+          policyId = mandate.policyId;
+          customLimits = mandateToPolicyLimits(mandate);
+        }
+      }
+    }
 
     // Convert USD amount to Wei (1 USD = 10^18 wei for demo purposes)
     const amountWei = BigInt(Math.floor(amountUsd * 1e18));
@@ -471,6 +501,7 @@ export class SpendController {
         policyId,
         amountWei,
         vendorHash,
+        customLimits,
       });
 
       const outcomeMap: Record<string, string> = {
@@ -504,6 +535,7 @@ export class SpendController {
             resolved: decision.outcome !== 'hold',
           }),
           fabricated: decision.fabricated === true || undefined,
+          mandate: mandateInfo,
           note: decision.fabricated
             ? `${evaluator} unavailable — locally synthesized deny`
             : liveNote,

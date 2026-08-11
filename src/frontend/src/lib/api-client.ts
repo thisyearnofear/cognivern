@@ -855,8 +855,22 @@ class ApiClient {
   async createWorkspaceApiKey(params: {
     name: string;
     scopes: string[];
+    mandate?: { budgetUsd: number; perTxUsd: number; approvalThresholdUsd: number };
   }): Promise<ApiResponse<ApiKeyCreateResponse>> {
     return this.fetch('/api-keys', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  /** Bring-your-own-credential import: wrap existing key material (+ optional mandate). */
+  async importWorkspaceApiKey(params: {
+    name: string;
+    rawKey: string;
+    scopes: string[];
+    mandate?: { budgetUsd: number; perTxUsd: number; approvalThresholdUsd: number };
+  }): Promise<ApiResponse<ApiKeyCreateResponse>> {
+    return this.fetch('/api-keys/import', {
       method: 'POST',
       body: JSON.stringify(params),
     });

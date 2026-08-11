@@ -41,6 +41,16 @@ export interface ConfidentialSpendInput {
   policyId: string;
   amountWei: bigint;
   vendorHash: string;
+  /**
+   * Custom TEE limits for key-bound mandates. When set (and the active rail
+   * is Flare TEE), registration uses these instead of the demo defaults so a
+   * key's mandate keeps its own budget/threshold even after a TEE restart.
+   */
+  customLimits?: {
+    dailyLimit: string;
+    perTxLimit: string;
+    approvalThreshold: string;
+  };
 }
 
 export interface ConfidentialSpendDecision {

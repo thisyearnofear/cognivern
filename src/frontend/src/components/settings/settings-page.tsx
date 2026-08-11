@@ -37,6 +37,8 @@ import {
   AlertTriangle,
   Wallet,
   Shield,
+  Lock,
+  RefreshCw,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useWorkspaceMode } from "@/hooks/use-workspace-mode";
@@ -675,6 +677,61 @@ function SuspicionThresholdCard({ workspaceId }: { workspaceId?: string }) {
   );
 }
 
+/** Shared mandate controls — used by Create-key and Import-credential forms. */
+function MandateControls(props: {
+  enabled: boolean;
+  onEnabledChange: (v: boolean) => void;
+  budget: string;
+  onBudgetChange: (v: string) => void;
+  perTx: string;
+  onPerTxChange: (v: string) => void;
+  threshold: string;
+  onThresholdChange: (v: string) => void;
+}) {
+  return (
+    <div className="rounded-lg border border-purple-200 dark:border-purple-900 bg-purple-50/40 dark:bg-purple-950/20 p-3 space-y-2">
+      <label className="flex items-start gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={props.enabled}
+          onChange={(e) => props.onEnabledChange(e.target.checked)}
+          className="mt-0.5 accent-purple-500"
+        />
+        <span>
+          <span className="text-xs font-medium flex items-center gap-1.5">
+            <Lock className="h-3 w-3 text-purple-500" />
+            Seal a spend mandate in TEE
+          </span>
+          <span className="text-[11px] text-muted-foreground block mt-0.5">
+            The enclave — not the key — enforces the budget. Even a leaked key
+            cannot overspend its mandate.
+          </span>
+        </span>
+      </label>
+      {props.enabled && (
+        <div className="grid grid-cols-3 gap-2 pt-1">
+          {([
+            { label: "Daily budget ($)", value: props.budget, onChange: props.onBudgetChange },
+            { label: "Per-tx cap ($)", value: props.perTx, onChange: props.onPerTxChange },
+            { label: "Review above ($)", value: props.threshold, onChange: props.onThresholdChange },
+          ] as const).map((f) => (
+            <div key={f.label}>
+              <div className="text-[10px] text-muted-foreground mb-0.5">{f.label}</div>
+              <Input
+                type="number"
+                min={1}
+                value={f.value}
+                onChange={(e) => f.onChange(e.target.value)}
+                className="h-7 text-xs"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ApiKeysCard() {
   const { data, isLoading } = useSWR("api-keys", () => apiClient.getApiKeys());
   const [newKeyName, setNewKeyName] = useState("");
@@ -689,30 +746,135 @@ function ApiKeysCard() {
     null,
   );
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message?: string; agentCount?: number } | null>(null);
 
+  // TEE-sealed mandate ("key = sealed mandate") — presets mirror the live
+  // demo policy on Coston2 so the three trial amounts behave identically.
+  const [mandateEnabled, setMandateEnabled] = useState(false);
+  const [mandateBudget, setMandateBudget] = useState("5000");
+  const [mandatePerTx, setMandatePerTx] = useState("2000");
+  const [mandateThreshold, setMandateThreshold] = useState("500");
+  const [trialing, setTrialing] = useState(false);
+  const [trials, setTrials] = useState<
+    Array<{ amountUsd: number; outcome?: string; policyId?: string; error?: string }>
+  >([]);
+
+  // Bring your own credential
+  const [importOpen, setImportOpen] = useState(false);
+  const [importName, setImportName] = useState("");
+  const [importRawKey, setImportRawKey] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
   const keys: ApiKey[] = data?.data || [];
   const activeKeys = keys.filter((k) => !k.revokedAt);
+
+  const mandatePayload = useCallback(
+    () =>
+      mandateEnabled
+        ? {
+            budgetUsd: Number(mandateBudget),
+            perTxUsd: Number(mandatePerTx),
+            approvalThresholdUsd: Number(mandateThreshold),
+          }
+        : undefined,
+    [mandateEnabled, mandateBudget, mandatePerTx, mandateThreshold],
+  );
 
   const handleCreate = useCallback(async () => {
     if (!newKeyName.trim()) return;
     setCreating(true);
+    setCreateError(null);
     try {
       const res = await apiClient.createWorkspaceApiKey({
         name: newKeyName.trim(),
         scopes: selectedScopes,
+        mandate: mandatePayload(),
       });
       if (res.success && res.data) {
         setCreatedKey(res.data);
+        setTrials([]);
         setNewKeyName("");
         mutate("api-keys");
+      } else {
+        setCreateError(res.error || "Failed to create key");
       }
     } finally {
       setCreating(false);
     }
-  }, [newKeyName, selectedScopes]);
+  }, [newKeyName, selectedScopes, mandatePayload]);
+
+  const handleImport = useCallback(async () => {
+    if (!importName.trim() || !importRawKey.trim()) return;
+    setImporting(true);
+    setImportError(null);
+    try {
+      const res = await apiClient.importWorkspaceApiKey({
+        name: importName.trim(),
+        rawKey: importRawKey.trim(),
+        scopes: selectedScopes,
+        mandate: mandatePayload(),
+      });
+      if (res.success && res.data) {
+        setImportName("");
+        setImportRawKey("");
+        setImportOpen(false);
+        mutate("api-keys");
+        toast.success(`Credential "${res.data.name}" wrapped into this workspace`);
+      } else {
+        setImportError(res.error || "Import failed");
+      }
+    } finally {
+      setImporting(false);
+    }
+  }, [importName, importRawKey, selectedScopes, mandatePayload]);
+
+  const handleRefreshMandate = useCallback(async () => {
+    if (!createdKey) return;
+    const res = await apiClient.getApiKeys();
+    const fresh = res.data?.find((k) => k.id === createdKey.id);
+    if (fresh) setCreatedKey({ ...createdKey, mandate: fresh.mandate, scopes: fresh.scopes });
+  }, [createdKey]);
+
+  const handleMandateTrials = useCallback(async () => {
+    if (!createdKey?.key) return;
+    setTrialing(true);
+    setTrials([]);
+    // Same three amounts as the public demo — but routed through THIS key,
+    // so the enclave evaluates against the key's own sealed mandate.
+    for (const amountUsd of [25, 750, 2500]) {
+      try {
+        const response = await fetch(`/api/spend/encrypted`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": createdKey.key,
+          },
+          body: JSON.stringify({
+            agentId: "0xaa",
+            policyId: "0x01",
+            amountUsd,
+            vendorHash: "0xbb",
+          }),
+        });
+        const body = await response.json();
+        const outcome = body.data?.outcome ?? (response.ok ? "unknown" : `HTTP ${response.status}`);
+        setTrials((prev) => [
+          ...prev,
+          { amountUsd, outcome, policyId: body.data?.mandate?.policyId },
+        ]);
+      } catch (err) {
+        setTrials((prev) => [
+          ...prev,
+          { amountUsd, error: err instanceof Error ? err.message : "request failed" },
+        ]);
+      }
+    }
+    setTrialing(false);
+  }, [createdKey]);
 
   const handleRevoke = useCallback(
     async (key: ApiKey) => {
@@ -829,6 +991,74 @@ function ApiKeysCard() {
               </button>
             ))}
           </div>
+
+          <MandateControls
+            enabled={mandateEnabled}
+            onEnabledChange={setMandateEnabled}
+            budget={mandateBudget}
+            onBudgetChange={setMandateBudget}
+            perTx={mandatePerTx}
+            onPerTxChange={setMandatePerTx}
+            threshold={mandateThreshold}
+            onThresholdChange={setMandateThreshold}
+          />
+          {createError && (
+            <p className="flex items-center gap-1.5 text-xs text-destructive">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {createError}
+            </p>
+          )}
+        </div>
+
+        {/* Bring your own credential */}
+        <div className="space-y-2 rounded-lg border p-4">
+          <button
+            onClick={() => setImportOpen((v) => !v)}
+            className="text-sm font-medium flex items-center gap-2 hover:text-primary transition-colors"
+          >
+            <Key className="h-3.5 w-3.5 text-muted-foreground" />
+            Bring your own credential
+            <span className="text-muted-foreground">{importOpen ? "−" : "+"}</span>
+          </button>
+          <p className="text-[11px] text-muted-foreground">
+            Already manage a key somewhere else (an agent runtime, an existing
+            integration)? Paste it here — we wrap your own material with this
+            workspace&apos;s scopes and, optionally, a TEE-sealed mandate. Hashed
+            on arrival, never shown back.
+          </p>
+          {importOpen && (
+            <div className="space-y-2 pt-1">
+              <Input
+                placeholder="Label (e.g. Existing agent key)"
+                value={importName}
+                onChange={(e) => setImportName(e.target.value)}
+              />
+              <Input
+                placeholder="Existing key material (32+ chars)"
+                value={importRawKey}
+                onChange={(e) => setImportRawKey(e.target.value)}
+                className="font-mono text-xs"
+                type="password"
+                autoComplete="off"
+              />
+              {importError && (
+                <p className="flex items-center gap-1.5 text-xs text-destructive">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {importError}
+                </p>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleImport}
+                disabled={importing || !importName.trim() || importRawKey.trim().length < 32}
+                className="gap-1.5"
+              >
+                {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                {importing ? "Wrapping…" : "Wrap credential"}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Show newly created key */}
@@ -897,10 +1127,89 @@ function ApiKeysCard() {
               )}
             </div>
 
+            {/* Mandate trials — only when this key carries a sealed mandate */}
+            {createdKey.mandate && (
+              <div className="pt-1 border-t border-amber-200/60 dark:border-amber-800/40 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-3.5 w-3.5 text-purple-500" />
+                  <span className="text-xs font-semibold">
+                    Mandate: ${createdKey.mandate.budgetUsd} budget · ${createdKey.mandate.perTxUsd} per-tx · ${createdKey.mandate.approvalThresholdUsd} review floor
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className={
+                      createdKey.mandate.status === "sealed"
+                        ? "text-emerald-600 border-emerald-300"
+                        : createdKey.mandate.status === "failed" || createdKey.mandate.status === "unsupported"
+                          ? "text-red-600 border-red-300"
+                          : "text-amber-600 border-amber-300"
+                    }
+                  >
+                    {createdKey.mandate.status === "sealed" ? "sealed in TEE" : createdKey.mandate.status}
+                  </Badge>
+                </div>
+                {createdKey.mandate.status === "sealed" ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleMandateTrials}
+                    disabled={trialing}
+                    className="h-7 gap-1.5 text-xs"
+                  >
+                    {trialing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
+                    {trialing ? "Evaluating in TEE…" : "Run trials against this key&apos;s mandate"}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleRefreshMandate}
+                    className="h-7 gap-1.5 text-xs"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Refresh seal status
+                  </Button>
+                )}
+                {trials.length > 0 && (
+                  <div className="space-y-1">
+                    {trials.map((t) => (
+                      <div key={t.amountUsd} className="flex items-center gap-2 text-xs">
+                        <span className="w-14 font-mono">${t.amountUsd}</span>
+                        {t.error ? (
+                          <span className="text-red-500">{t.error}</span>
+                        ) : (
+                          <span
+                            className={
+                              t.outcome === "approve"
+                                ? "text-emerald-600"
+                                : t.outcome === "hold"
+                                  ? "text-amber-600"
+                                  : "text-red-500"
+                            }
+                          >
+                            → {t.outcome}
+                          </span>
+                        )}
+                        {t.policyId && (
+                          <code className="text-[10px] text-muted-foreground font-mono">
+                            policy {t.policyId.slice(0, 10)}…
+                          </code>
+                        )}
+                      </div>
+                    ))}
+                    <p className="text-[10px] text-muted-foreground pt-0.5">
+                      The request&apos;s policyId is ignored — the enclave evaluated
+                      against the mandate sealed to this key.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => { setCreatedKey(null); setTestResult(null); }}
+              onClick={() => { setCreatedKey(null); setTestResult(null); setTrials([]); }}
               className="text-xs"
             >
               Dismiss
@@ -935,6 +1244,22 @@ function ApiKeysCard() {
                         {key.scopes.length} scope
                         {key.scopes.length !== 1 ? "s" : ""}
                       </span>
+                      {key.mandate && (
+                        <>
+                          <span>·</span>
+                          <span
+                            className={`inline-flex items-center gap-1 ${
+                              key.mandate.status === "sealed"
+                                ? "text-purple-600 dark:text-purple-400"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            <Lock className="h-3 w-3" />
+                            ${key.mandate.budgetUsd} TEE mandate
+                            {key.mandate.status !== "sealed" && ` (${key.mandate.status})`}
+                          </span>
+                        </>
+                      )}
                       {key.lastUsedAt && (
                         <>
                           <span>·</span>

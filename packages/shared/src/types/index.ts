@@ -313,6 +313,16 @@ export type ApiKeyScope =
   | "audit:read"
   | "spend:execute";
 
+/** TEE-sealed spend mandate attached to an API key ("key = sealed mandate"). */
+export interface ApiKeyMandate {
+  status: "pending" | "sealed" | "failed" | "unsupported";
+  policyId: string;
+  budgetUsd: string;
+  perTxUsd: string;
+  approvalThresholdUsd: string;
+  sealedTxHash?: string | null;
+}
+
 export interface ApiKey {
   id: string;
   name: string;
@@ -321,13 +331,17 @@ export interface ApiKey {
   lastUsedAt: string | null;
   createdAt: string;
   revokedAt: string | null;
+  mandate?: ApiKeyMandate | null;
 }
 
 export interface ApiKeyCreateResponse {
   id: string;
   name: string;
-  key: string;
+  /** Only present on mint; BYO import never returns the material back. */
+  key?: string;
   keyPrefix: string;
   scopes: ApiKeyScope[];
   createdAt: string;
+  imported?: boolean;
+  mandate?: ApiKeyMandate | null;
 }

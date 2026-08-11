@@ -47,7 +47,8 @@ import { EventsController } from './controllers/EventsController.js';
 import { ObservabilityController } from './controllers/ObservabilityController.js';
 import { MandateController } from './controllers/MandateController.js';
 import { OutcomeObservationController } from './controllers/OutcomeObservationController.js';
-import { ApiKeyController, resolveWorkspaceFromApiKey } from './controllers/ApiKeyController.js';
+import { ApiKeyController, resolveApiKeyRecord } from './controllers/ApiKeyController.js';
+import { isKeyManagementPath, requiredScopeForRoute } from './keyScopes.js';
 import { authMiddleware } from '@backend/middleware/authMiddleware.js';
 import { workspaceMiddleware } from '@backend/middleware/workspaceMiddleware.js';
 import { demoInterceptor } from '@backend/middleware/demoInterceptor.js';
@@ -373,20 +374,12 @@ export class ApiModule extends BaseService {
       // that read workspaceId keep working.
       const headerApiKey = req.headers['x-api-key'] as string | undefined;
       if (headerApiKey) {
-        // Only workspace-scoped cvn_ keys are valid; the global legacy key
-        // path was retired (no more synthetic "default" workspace).
-        if (!headerApiKey.startsWith('cvn_')) {
-          res.status(401).json({
-            success: false,
-            error: 'Invalid API key',
-            timestamp: new Date().toISOString(),
-          });
-          return;
-        }
-        const workspaceId = resolveWorkspaceFromApiKey(headerApiKey);
-        if (workspaceId) {
-          req.workspaceId = workspaceId;
-        } else {
+        const record = resolveApiKeyRecord(headerApiKey);
+        if (record) {
+          req.workspaceId = record.workspaceId;
+          req.apiKeyRecord = { keyId: record.keyId, scopes: record.scopes };
+        } else if (headerApiKey.startsWith('cvn_')) {
+          // Our minted format but unknown/revoked → surface a real failure.
           res.status(401).json({
             success: false,
             error: 'Invalid or revoked API key',
@@ -394,6 +387,8 @@ export class ApiModule extends BaseService {
           });
           return;
         }
+        // Unknown non-cvn_ material on a public path is ignored — the path
+        // is public either way, and BYO imports may use foreign prefixes.
       }
       return next();
     }
@@ -429,22 +424,45 @@ export class ApiModule extends BaseService {
       return;
     }
 
-    // Only workspace-scoped cvn_ keys are accepted; the global legacy key
-    // path was retired (it mapped every caller into a shared synthetic
-    // "default" workspace, which breaks tenant isolation).
-    if (apiKey.startsWith('cvn_')) {
-      const workspaceId = resolveWorkspaceFromApiKey(apiKey);
-      if (workspaceId) {
-        req.workspaceId = workspaceId;
-        return next();
-      }
+    // Only workspace-scoped keys are accepted (cvn_ minted here, or imported
+    // BYO material); the global legacy key path was retired.
+    const record = resolveApiKeyRecord(apiKey);
+    if (!record) {
+      res.status(401).json({
+        success: false,
+        error: 'Invalid or revoked API key',
+        timestamp: new Date().toISOString(),
+      });
+      return;
     }
-    res.status(401).json({
-      success: false,
-      error: 'Invalid or revoked API key',
-      timestamp: new Date().toISOString(),
-    });
-    return;
+
+    // An API key must never manage API keys — no privilege self-escalation
+    // through a leaked credential. Key management needs a dashboard session.
+    if (isKeyManagementPath(req.path)) {
+      res.status(403).json({
+        success: false,
+        error: 'API keys cannot manage API keys. Use a dashboard session.',
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    // Scopes are enforced, finally: they were stored at creation but never
+    // consulted, making every key implicitly full-access.
+    const required = requiredScopeForRoute(req.method, req.path);
+    if (required && !record.scopes.includes(required)) {
+      res.status(403).json({
+        success: false,
+        error: `Insufficient scope: this key requires "${required}"`,
+        required,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    req.workspaceId = record.workspaceId;
+    req.apiKeyRecord = { keyId: record.keyId, scopes: record.scopes };
+    return next();
   }
 
   private async setupControllers(): Promise<void> {

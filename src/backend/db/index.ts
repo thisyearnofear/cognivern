@@ -115,7 +115,28 @@ function migrate(db: Database.Database): void {
       last_used_at TEXT,
       created_at TEXT NOT NULL,
       revoked_at TEXT,
+      imported INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (workspace_id) REFERENCES workspaces(id)
+    );
+
+    -- TEE-sealed spend mandates bound to API keys: the key cannot overspend
+    -- its mandate because evaluation runs in the enclave (Flare FCC), not in
+    -- this database. policy_id is derived from the key id, never chosen by
+    -- callers, so demo/user policy ids can never collide with mandates.
+    CREATE TABLE IF NOT EXISTS key_mandates (
+      id TEXT PRIMARY KEY,
+      api_key_id TEXT NOT NULL UNIQUE,
+      workspace_id TEXT NOT NULL,
+      policy_id TEXT NOT NULL,
+      daily_limit_usd TEXT NOT NULL,
+      per_tx_usd TEXT NOT NULL,
+      approval_threshold_usd TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      sealed_tx_hash TEXT,
+      error TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (api_key_id) REFERENCES api_keys(id)
     );
 
     CREATE TABLE IF NOT EXISTS workspace_agents (
@@ -217,6 +238,13 @@ function migrate(db: Database.Database): void {
 
   // Compatibility guard for databases that were created by an older partial
   // bootstrap before outcome observations were introduced. The normal CREATE
+  // Existing DBs: api_keys predates the imported flag (BYO credentials) and
+  // key_mandates — CREATE TABLE IF NOT EXISTS never alters, so migrate
+  // idempotently here (key_mandates is created fresh by the template above).
+  if (!columnExists(db, "api_keys", "imported")) {
+    db.exec("ALTER TABLE api_keys ADD COLUMN imported INTEGER NOT NULL DEFAULT 0");
+  }
+
   // TABLE path above handles new databases; these targeted ALTERs keep an
   // existing table from silently missing fields used by the service.
   const outcomeColumns = [

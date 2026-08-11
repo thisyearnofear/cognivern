@@ -11,6 +11,9 @@ export function createApiKeyRoutes(apiKeyController: ApiKeyController): Router {
   router.post("/api-keys", authMiddleware, (req, res) =>
     apiKeyController.createKey(req, res),
   );
+  router.post("/api-keys/import", authMiddleware, (req, res) =>
+    apiKeyController.importKey(req, res),
+  );
   router.delete("/api-keys/:keyId", authMiddleware, (req, res) =>
     apiKeyController.revokeKey(req, res),
   );
