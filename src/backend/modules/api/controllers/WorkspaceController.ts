@@ -84,6 +84,16 @@ export class WorkspaceController {
       return;
     }
 
+    // Tier changes are a privileged operation — they control whether real
+    // funds can move. Use PATCH /auth/workspace/upgrade (owner-gated,
+    // returns a fresh JWT) instead. Silently ignore `tier` here so existing
+    // callers don't break, but log a deprecation warning.
+    if (tier) {
+      console.warn(
+        `[WorkspaceController] PUT /workspace with tier="${tier}" ignored for workspace ${workspaceId}. Use PATCH /auth/workspace/upgrade.`,
+      );
+    }
+
     const db = getDb();
     const now = new Date().toISOString();
 
@@ -91,12 +101,6 @@ export class WorkspaceController {
       db.prepare(
         "UPDATE workspaces SET name = ?, updated_at = ? WHERE id = ?",
       ).run(name, now, workspaceId);
-    }
-
-    if (tier && (tier === "demo" || tier === "live")) {
-      db.prepare(
-        "UPDATE workspaces SET tier = ?, updated_at = ? WHERE id = ?",
-      ).run(tier, now, workspaceId);
     }
 
     if (suspicionHoldThreshold !== undefined) {

@@ -35,8 +35,7 @@ export async function applyWorkspaceMode(
     if (next === "production") {
       // `upgradeWorkspace` (PATCH /auth/workspace/upgrade) is the
       // owner-gated, idempotent path and returns a fresh JWT reflecting the
-      // new tier. Plain PUT /workspace also flips the tier but skips the
-      // owner check and the token refresh.
+      // new tier.
       const res = await apiClient.upgradeWorkspace();
       if (!res.success || !res.data) {
         return { ok: false, error: res.error || "Workspace upgrade failed" };
@@ -49,11 +48,18 @@ export async function applyWorkspaceMode(
       }
       demo.exitDemoMode();
     } else {
-      const res = await apiClient.updateWorkspace({ tier: "demo" });
+      // `downgradeWorkspace` (PATCH /auth/workspace/downgrade) is the
+      // symmetric owner-gated path. PUT /workspace no longer accepts `tier`.
+      const res = await apiClient.downgradeWorkspace();
       if (!res.success || !res.data) {
         return { ok: false, error: res.error || "Could not enter sandbox" };
       }
-      auth.setWorkspace(res.data);
+      if (res.data.token) {
+        useAuthStore.setState({ token: res.data.token });
+      }
+      if (res.data.workspace) {
+        auth.setWorkspace(res.data.workspace);
+      }
       demo.enableDemoMode();
     }
 

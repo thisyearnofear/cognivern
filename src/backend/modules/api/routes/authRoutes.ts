@@ -35,6 +35,9 @@ export function createAuthRoutes(authController: AuthController): Router {
   router.patch("/auth/workspace/upgrade", authMiddleware, (req, res) =>
     authController.upgradeWorkspace(req, res),
   );
+  router.patch("/auth/workspace/downgrade", authMiddleware, (req, res) =>
+    authController.downgradeWorkspace(req, res),
+  );
 
   return router;
 }

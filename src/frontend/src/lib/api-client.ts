@@ -470,6 +470,10 @@ class ApiClient {
     return this.fetch('/auth/workspace/upgrade', { method: 'PATCH' });
   }
 
+  async downgradeWorkspace(): Promise<ApiResponse<{ token: string; workspace: Workspace }>> {
+    return this.fetch('/auth/workspace/downgrade', { method: 'PATCH' });
+  }
+
   // Audit Logs
   async getAuditLogs(): Promise<ApiResponse<AuditLog[]>> {
     return this.fetch('/api/audit/logs');
