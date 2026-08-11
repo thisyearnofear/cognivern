@@ -34,7 +34,7 @@ export function ApprovalSparkline({ logs }: ApprovalSparklineProps) {
   });
 
   return (
-    <div className="h-8 w-24">
+    <div className="h-8 w-24 flex-shrink-0 overflow-hidden">
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={24}>
         <LineChart
           data={data}

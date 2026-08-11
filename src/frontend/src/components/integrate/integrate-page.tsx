@@ -137,8 +137,10 @@ function ApiKeyGenerator() {
     try {
       // Use ONLY the generated API key — no session JWT — to prove the key
       // itself works. This is the whole point of the verification step.
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-      const response = await fetch(`${baseUrl}/api/agents`, {
+      // Always use a relative path so the request goes through the Next
+      // rewrite proxy — NEXT_PUBLIC_API_URL points at the backend directly
+      // and is blocked by the frontend's own CSP when called cross-origin.
+      const response = await fetch(`/api/agents`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
