@@ -30,6 +30,10 @@ import {
   Plus,
   Rocket,
   Check,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Zap,
   AlertTriangle,
   Wallet,
   Shield,
@@ -686,6 +690,8 @@ function ApiKeysCard() {
   );
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message?: string; agentCount?: number } | null>(null);
 
   const keys: ApiKey[] = data?.data || [];
   const activeKeys = keys.filter((k) => !k.revokedAt);
@@ -730,7 +736,46 @@ function ApiKeysCard() {
     }
   }, [createdKey]);
 
-  return (      <div className="rounded-xl border bg-card p-5 space-y-4">
+  const handleTestKey = useCallback(async () => {
+    if (!createdKey?.key) return;
+    setTesting(true);
+    setTestResult(null);
+    try {
+      // Use ONLY the generated API key — no session JWT — to prove the key
+      // itself works. This is the whole point of the verification step.
+      // Always use a relative path so the request goes through the Next
+      // rewrite proxy — NEXT_PUBLIC_API_URL points at the backend directly
+      // and is blocked by the frontend's own CSP when called cross-origin.
+      const response = await fetch(`/api/agents`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": createdKey.key,
+        },
+      });
+      if (response.ok) {
+        const body = await response.json();
+        const count = (body.data || []).length;
+        setTestResult({ ok: true, agentCount: count });
+      } else {
+        const errorBody = await response.text();
+        setTestResult({
+          ok: false,
+          message: `${response.status}: ${errorBody.slice(0, 120)}`,
+        });
+      }
+    } catch (err) {
+      setTestResult({
+        ok: false,
+        message: err instanceof Error ? err.message : "Request failed",
+      });
+    } finally {
+      setTesting(false);
+    }
+  }, [createdKey]);
+
+  return (
+    <div className="rounded-xl border bg-card p-5 space-y-4">
       <div>
         <h2 className="font-semibold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>
             <Key className="h-4 w-4 text-amber-500" />
@@ -811,10 +856,51 @@ function ApiKeysCard() {
                 {copied ? "Copied" : "Copy"}
               </Button>
             </div>
+
+            {/* Test the key */}
+            <div className="pt-1 border-t border-amber-200/60 dark:border-amber-800/40 space-y-2">
+              <div className="flex items-center gap-2">
+                <Zap className="h-3.5 w-3.5 text-amber-500" />
+                <span className="text-xs font-semibold">Test your key</span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleTestKey}
+                disabled={testing}
+                className="h-7 gap-1.5 text-xs"
+              >
+                {testing ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Zap className="h-3 w-3" />
+                )}
+                {testing ? "Testing…" : "Verify key works"}
+              </Button>
+              {testResult && (
+                <div className={`flex items-start gap-2 p-2 rounded-lg text-xs ${
+                  testResult.ok
+                    ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900"
+                    : "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900"
+                }`}>
+                  {testResult.ok ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  ) : (
+                    <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
+                  )}
+                  <span className="text-muted-foreground">
+                    {testResult.ok
+                      ? `Key works — found ${testResult.agentCount} agent${testResult.agentCount === 1 ? "" : "s"} in your workspace.`
+                      : `Key test failed: ${testResult.message}`}
+                  </span>
+                </div>
+              )}
+            </div>
+
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => setCreatedKey(null)}
+              onClick={() => { setCreatedKey(null); setTestResult(null); }}
               className="text-xs"
             >
               Dismiss
