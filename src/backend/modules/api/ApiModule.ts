@@ -377,8 +377,25 @@ export class ApiModule extends BaseService {
       // that read workspaceId keep working.
       const headerApiKey = req.headers['x-api-key'] as string | undefined;
       if (headerApiKey) {
-        this.trySetLegacyWorkspaceId(req, res, headerApiKey, next);
-        return;
+        // Workspace-scoped cvn_ keys must go through resolveWorkspaceFromApiKey,
+        // NOT trySetLegacyWorkspaceId (which only handles the global legacy key
+        // and silently rejects all cvn_ keys on public paths).
+        if (headerApiKey.startsWith('cvn_')) {
+          const workspaceId = resolveWorkspaceFromApiKey(headerApiKey);
+          if (workspaceId) {
+            req.workspaceId = workspaceId;
+          } else {
+            res.status(401).json({
+              success: false,
+              error: 'Invalid or revoked API key',
+              timestamp: new Date().toISOString(),
+            });
+            return;
+          }
+        } else {
+          this.trySetLegacyWorkspaceId(req, res, headerApiKey, next);
+          return;
+        }
       }
       return next();
     }
