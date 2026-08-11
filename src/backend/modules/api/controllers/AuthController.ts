@@ -3,7 +3,22 @@ import { SiweMessage, generateNonce } from "siwe";
 import { SignJWT } from "jose";
 import { randomUUID } from "node:crypto";
 import { createHash, randomBytes } from "node:crypto";
-import { JsonRpcProvider } from "ethers";
+import {
+  createPublicClient,
+  http,
+  type Chain,
+  type PublicClient,
+  type Transport,
+} from "viem";
+import {
+  mainnet,
+  base,
+  baseSepolia,
+  optimism,
+  arbitrum,
+  arbitrumSepolia,
+  sepolia,
+} from "viem/chains";
 import type { AuthUser, Workspace } from "@cognivern/shared";
 import { getDb } from "@backend/db/index.js";
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
@@ -91,35 +106,91 @@ function getJwtSecret(): Uint8Array {
 const JWT_SECRET = getJwtSecret();
 
 /**
- * Resolve an ethers JsonRpcProvider for a given chain ID. Used by the SIWE
- * verify step so that EIP-1271 (contract wallet / smart wallet) signatures
- * can be validated on-chain. Without this, Coinbase Smart Wallet and other
- * contract-based wallets fail because `ecrecover` returns a different address
- * and the library's `checkContractWalletSignature` needs to call
- * `isValidSignature` on the contract.
+ * Chain config for viem public clients used during SIWE signature verification.
+ * Coinbase Smart Wallet produces ERC-6492 wrapped signatures that require
+ * an on-chain call to the Universal Signature Verifier. viem's
+ * `publicClient.verifyMessage` handles this natively — unlike siwe@3's
+ * `checkContractWalletSignature` which only handles plain EIP-1271.
  */
-const RPC_BY_CHAIN: Record<number, string> = {
-  1: process.env.ETH_RPC_URL || "https://eth.drpc.org",
-  8453: process.env.BASE_RPC_URL || "https://mainnet.base.org",
-  84532: process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org",
-  10: process.env.OPTIMISM_RPC_URL || "https://mainnet.optimism.io",
-  42161: process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc",
-  421614: process.env.ARBITRUM_SEPOLIA_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
-  11155111: process.env.SEPOLIA_RPC_URL || "https://ethereum-sepolia.publicnode.com",
+const CHAIN_CONFIG: Record<number, { chain: Chain; rpc: string }> = {
+  1: { chain: mainnet, rpc: process.env.ETH_RPC_URL || "https://eth.drpc.org" },
+  8453: { chain: base, rpc: process.env.BASE_RPC_URL || "https://mainnet.base.org" },
+  84532: { chain: baseSepolia, rpc: process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org" },
+  10: { chain: optimism, rpc: process.env.OPTIMISM_RPC_URL || "https://mainnet.optimism.io" },
+  42161: { chain: arbitrum, rpc: process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc" },
+  421614: { chain: arbitrumSepolia, rpc: process.env.ARBITRUM_SEPOLIA_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc" },
+  11155111: { chain: sepolia, rpc: process.env.SEPOLIA_RPC_URL || "https://ethereum-sepolia.publicnode.com" },
 };
 
-// Cache providers to avoid creating a new connection per request.
-const providerCache = new Map<number, JsonRpcProvider>();
+const viemClientCache = new Map<number, PublicClient<Transport, Chain>>();
 
-function getProviderForChain(chainId: number): JsonRpcProvider | undefined {
-  const rpc = RPC_BY_CHAIN[chainId];
-  if (!rpc) return undefined;
-  let provider = providerCache.get(chainId);
-  if (!provider) {
-    provider = new JsonRpcProvider(rpc, chainId, { staticNetwork: true });
-    providerCache.set(chainId, provider);
+function getViemClient(chainId: number): PublicClient<Transport, Chain> | undefined {
+  const cfg = CHAIN_CONFIG[chainId];
+  if (!cfg) return undefined;
+  let client = viemClientCache.get(chainId);
+  if (!client) {
+    client = createPublicClient({
+      chain: cfg.chain,
+      transport: http(cfg.rpc),
+    }) as PublicClient<Transport, Chain>;
+    viemClientCache.set(chainId, client);
   }
-  return provider;
+  return client;
+}
+
+/**
+ * Verify a SIWE signature, supporting:
+ *  - EOA signatures (standard ecrecover)
+ *  - EIP-1271 contract wallet signatures (on-chain isValidSignature)
+ *  - ERC-6492 wrapped signatures (Coinbase Smart Wallet / undeployed contracts)
+ *
+ * Strategy: try siwe's native verify first (fast path for EOAs). If it throws
+ * due to an invalid signature length (ERC-6492 produces long ABI-encoded
+ * payloads that ethers can't parse as r/s/v), fall back to viem's
+ * `publicClient.verifyMessage` which handles all three cases via the
+ * Universal Signature Verifier contract.
+ */
+async function verifySiweSignature(
+  siweMessage: SiweMessage,
+  signature: string,
+): Promise<boolean> {
+  // Fast path: standard EOA signature (65 bytes = 0x + 130 hex chars)
+  if (signature.length === 132) {
+    try {
+      const result = await siweMessage.verify({ signature });
+      if (result.success) return true;
+    } catch {
+      // Fall through to viem-based verification
+    }
+  }
+
+  // Slow path: ERC-6492 / EIP-1271 via viem's on-chain verification.
+  // This handles Coinbase Smart Wallet's Multicall3-wrapped passkey signatures,
+  // Safe multisig signatures, and any other contract wallet.
+  const chainId = siweMessage.chainId ?? 1;
+  const client = getViemClient(chainId);
+  if (!client) {
+    // Unknown chain — can't verify on-chain. Try siwe as a last resort.
+    try {
+      const result = await siweMessage.verify({ signature });
+      return result.success;
+    } catch {
+      return false;
+    }
+  }
+
+  try {
+    const messageText = siweMessage.prepareMessage();
+    const valid = await client.verifyMessage({
+      address: siweMessage.address as `0x${string}`,
+      message: messageText,
+      signature: signature as `0x${string}`,
+    });
+    return valid;
+  } catch (err) {
+    console.error("[SIWE] viem verifyMessage failed:", err);
+    return false;
+  }
 }
 
 export class AuthController {
@@ -182,17 +253,10 @@ export class AuthController {
     db.prepare("DELETE FROM nonces WHERE nonce = ?").run(siweMessage.nonce);
 
     try {
-      // Pass an RPC provider so EIP-1271 contract wallet signatures
-      // (Coinbase Smart Wallet, Safe, etc.) can be validated on-chain.
-      // Without this, ecrecover fails for contract wallets and the library
-      // returns INVALID_SIGNATURE because `checkContractWalletSignature`
-      // short-circuits when provider is undefined.
-      const provider = getProviderForChain(siweMessage.chainId ?? 1);
-      const result = await siweMessage.verify(
-        { signature },
-        { provider, suppressExceptions: false },
-      );
-      if (!result.success) {
+      // Supports EOA, EIP-1271 (contract wallets), and ERC-6492
+      // (Coinbase Smart Wallet wrapped passkey signatures).
+      const valid = await verifySiweSignature(siweMessage, signature);
+      if (!valid) {
         res
           .status(401)
           .json({ success: false, error: "Signature verification failed" });
