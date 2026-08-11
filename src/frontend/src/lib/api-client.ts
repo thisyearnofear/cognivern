@@ -462,8 +462,12 @@ class ApiClient {
   }
 
   // Workspace
+  // NOTE: the backend mounts the auth router at the root, not under `/api`
+  // (`ApiModule`: `this.app.use(authRoutes)`), so this must not be prefixed.
+  // `/api/auth/workspace/upgrade` reached `apiRouter`, matched nothing there
+  // and 404'd — which is what made "Go Live" and the onboarding upgrade fail.
   async upgradeWorkspace(): Promise<ApiResponse<{ token: string; workspace: Workspace }>> {
-    return this.fetch('/api/auth/workspace/upgrade', { method: 'PATCH' });
+    return this.fetch('/auth/workspace/upgrade', { method: 'PATCH' });
   }
 
   // Audit Logs

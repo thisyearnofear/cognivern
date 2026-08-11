@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { apiClient, type Workspace } from "@/lib/api-client";
+import { workspaceLabel } from "@/lib/workspace-label";
 import { mutate } from "swr";
 
 export function WorkspaceSwitcher() {
@@ -121,10 +122,12 @@ export function WorkspaceSwitcher() {
         <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="text-xs font-medium truncate">
-            {currentWorkspace?.name || "Select workspace"}
+            {workspaceLabel(currentWorkspace)}
           </div>
           <div className="text-[10px] text-muted-foreground">
-            {currentWorkspace?.tier === "live" ? "Production" : "Sandbox"}
+            {workspaces.length > 1
+              ? `${workspaces.length} workspaces`
+              : "Switch or create"}
           </div>
         </div>
         <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -180,7 +183,7 @@ export function WorkspaceSwitcher() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">
-                        {ws.name}
+                        {workspaceLabel(ws)}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         <Badge
@@ -189,7 +192,7 @@ export function WorkspaceSwitcher() {
                           }
                           className="text-[10px]"
                         >
-                          {ws.tier}
+                          {ws.tier === "live" ? "Production" : "Sandbox"}
                         </Badge>
                         {ws.role && (
                           <span className="text-[10px] text-muted-foreground">

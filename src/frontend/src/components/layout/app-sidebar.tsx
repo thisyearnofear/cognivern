@@ -33,23 +33,42 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { mutate } from "swr";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDemoStore, startDemoTour } from "@/stores/demo-store";
 import { useAuth } from "@/hooks/use-auth";
 import { WorkspaceSwitcher } from "./workspace-switcher";
+import { ModeSwitch } from "./mode-switch";
+import { shortAddress } from "@/lib/workspace-label";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { NAV_GROUPS, DEMO_NAV_ITEMS } from "@/lib/nav-items";
+
+/**
+ * Identity lines for the sidebar footer.
+ *
+ * RainbowKit's `displayName` is either a resolved ENS name or the truncated
+ * address itself, so printing the address underneath it unconditionally would
+ * duplicate it. The second line used to hold the workspace name — but the
+ * backend derives that from the same wallet ("0x1e17...5D40's Workspace"), so
+ * the footer, the workspace switcher directly above it, and the dashboard
+ * subtitle were each rendering the same truncated address at the same time.
+ * The workspace name now appears only in the switcher.
+ */
+function footerIdentity(
+  displayName: string | undefined,
+  address: string | null,
+): { primary: string; secondary: string | null } {
+  const short = shortAddress(address);
+  const primary = displayName || short || "User";
+  // No ENS: `displayName` already *is* the address — don't repeat it.
+  const nameIsAddress = !displayName || displayName.startsWith("0x");
+  return { primary, secondary: nameIsAddress ? null : short || null };
+}
 
 export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const isAppAuthenticated = useAuthStore((s) => s.isConnected);
   const walletAddress = useAuthStore((s) => s.walletAddress);
-  const workspaceName = useAuthStore((s) => s.workspace?.name);
-  const workspaceMode = useAuthStore((s) => s.workspaceMode);
-  const setWorkspaceMode = useAuthStore((s) => s.setWorkspaceMode);
-  const setHasExitedSandbox = useAuthStore((s) => s.setHasExitedSandbox);
   const { demoMode, exitDemoMode } = useDemoStore();
   const { logout, signIn, loading: signingIn } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -90,8 +109,17 @@ export function AppSidebar() {
           </TooltipProvider>
         </div>
 
-        {isAppAuthenticated && <WorkspaceSwitcher />}
-        {demoMode && (
+        {/* Authenticated users get the real Sandbox ⇄ Production control.
+            The old read-only "Demo Mode / Sample data" chip is kept only for
+            the unauthenticated demo tour, where there is no workspace to
+            switch. The chip also keyed off `demoMode` while the banner keyed
+            off `workspaceMode`, so the two could contradict each other. */}
+        {isAppAuthenticated ? (
+          <>
+            <WorkspaceSwitcher />
+            <ModeSwitch />
+          </>
+        ) : demoMode ? (
           <div className="relative flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-amber-100/0 via-amber-100/50 to-amber-100/0 dark:from-amber-900/0 dark:via-amber-900/30 dark:to-amber-900/0 animate-[pulse-bg_2s_ease-in-out_infinite]" />
             <div className="relative flex items-center gap-2">
@@ -108,8 +136,9 @@ export function AppSidebar() {
               </span>
             </div>
           </div>
+        ) : (
+          <WorkspaceSwitcher />
         )}
-        {!isAppAuthenticated && !demoMode && <WorkspaceSwitcher />}
       </SidebarHeader>
 
       <SidebarContent className="px-0 gap-0">
@@ -209,12 +238,13 @@ export function AppSidebar() {
               <span>Help</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {/* Three branches:
+          {/* Two branches:
               - Unauth + no demo tour → "Try Demo" (landing-page-style preview)
-              - Signed-in + production → "View sandbox demo" (the deliberate
-                way for graduated users to reach the populated dashboard)
-              - Signed-in + sandbox → no entry (banner already exits)
-          */}
+              - Signed-in → nothing here; the sidebar's ModeSwitch is the one
+                place that changes mode. The old "View sandbox demo" entry
+                flipped `workspaceMode` without downgrading the workspace tier,
+                so the header said sandbox while the server kept serving live
+                data. */}
           {!isAppAuthenticated && !demoMode && (
             <SidebarMenuItem>
               <SidebarMenuButton
@@ -223,25 +253,6 @@ export function AppSidebar() {
               >
                 <PlayCircle className="h-[18px] w-[18px]" />
                 <span>Try Demo</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
-          {isAppAuthenticated && workspaceMode === "production" && (
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={async () => {
-                  setWorkspaceMode("sandbox");
-                  setHasExitedSandbox(true);
-                  // Nuke the SWR cache so the dashboard re-fetches against
-                  // the new X-Workspace-Mode header instead of showing
-                  // stale production data while in sandbox mode.
-                  await mutate(() => true, undefined, { revalidate: true });
-                  router.push("/dashboard");
-                }}
-                className="h-9 rounded-lg px-3 text-muted-foreground"
-              >
-                <PlayCircle className="h-[18px] w-[18px]" />
-                <span>View sandbox demo</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
@@ -296,7 +307,7 @@ export function AppSidebar() {
                 }
 
                 if (!isAppAuthenticated) {
-                  const shortAddress = account?.displayName ?? "Unknown";
+                  const shortLabel = account?.displayName ?? "Unknown";
                   return (
                     <div className="space-y-2">
                       <button
@@ -316,12 +327,17 @@ export function AppSidebar() {
                         className="w-full text-center py-1 rounded-md hover:bg-muted transition-colors"
                       >
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                          Wallet connected · {shortAddress}
+                          Wallet connected · {shortLabel}
                         </span>
                       </button>
                     </div>
                   );
                 }
+
+                const identity = footerIdentity(
+                  account?.displayName,
+                  walletAddress ?? account?.address ?? null,
+                );
 
                 return (
                   <div className="flex items-center justify-between group/user">
@@ -336,11 +352,13 @@ export function AppSidebar() {
                       </Avatar>
                       <div className="flex flex-col min-w-0">
                         <span className="text-sm font-semibold truncate">
-                          {account?.displayName ?? "User"}
+                          {identity.primary}
                         </span>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-tight font-medium">
-                          {workspaceName ?? "Workspace"}
-                        </span>
+                        {identity.secondary && (
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {identity.secondary}
+                          </span>
+                        )}
                       </div>
                     </button>
                     <button

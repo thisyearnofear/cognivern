@@ -293,7 +293,6 @@ export function Dashboard() {
   const router = useRouter();
   const demoMode = useDemoStore((s) => s.demoMode);
   const workspace = useAuthStore((s) => s.workspace);
-  const walletAddress = useAuthStore((s) => s.walletAddress);
   const isAuthenticated = useAuthStore((s) => s.isConnected);
   const [refreshing, setRefreshing] = useState(false);
   useNetworkStatus();
@@ -441,20 +440,7 @@ export function Dashboard() {
           {demoMode && workspace && (
             <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
               <Sparkles className="h-3 w-3" />
-              <span>
-                Exploring <span className="font-medium">{workspace.name}</span> — sample data
-              </span>
-            </div>
-          )}
-          {!demoMode && workspace && walletAddress && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>
-                Connected as{' '}
-                <span className="font-mono">
-                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-                </span>
-              </span>
+              <span>Sample data — explore freely, nothing here is real</span>
             </div>
           )}
         </div>

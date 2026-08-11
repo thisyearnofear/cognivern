@@ -26,6 +26,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useDemoStore } from "@/stores/demo-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useAuth } from "@/hooks/use-auth";
+import { applyWorkspaceMode } from "@/hooks/use-workspace-mode";
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
 import { AuthModal } from "@/components/auth/auth-modal";
@@ -362,7 +363,6 @@ export function OnboardingWizard() {
   const router = useRouter();
   const updatePreferences = usePreferencesStore((s) => s.updatePreferences);
   const enableDemoMode = useDemoStore((s) => s.enableDemoMode);
-  const exitDemoMode = useDemoStore((s) => s.exitDemoMode);
   const demoMode = useDemoStore((s) => s.demoMode);
   const { isConnected: wagmiConnected, address } = useAccount();
   const { signIn } = useAuth();
@@ -424,25 +424,14 @@ export function OnboardingWizard() {
 
       updatePreferences({ onboardingCompleted: true });
       if (isAppConnected && demoMode) {
-        // Upgrade the workspace tier from demo to live on the backend,
-        // then exit demo mode on the frontend so the user sees real data.
-        // If upgrade fails, remain in demo mode and surface the error.
-        const upgradeRes = await apiClient.upgradeWorkspace();
-        if (upgradeRes.success && upgradeRes.data) {
-          const authStore = useAuthStore.getState();
-          authStore.setHasExitedSandbox(true);
-          if (upgradeRes.data.token) {
-            useAuthStore.setState({ token: upgradeRes.data.token });
-          }
-          if (upgradeRes.data.workspace) {
-            useAuthStore.setState({
-              workspace: upgradeRes.data.workspace,
-              workspaceMode: "production",
-            });
-          }
-          exitDemoMode();
-        } else {
-          setError("Failed to upgrade workspace. You remain in demo mode. Try again or contact support.");
+        // Upgrade the workspace tier from demo to live on the backend and
+        // flip the header mode + demo store in one step. If it fails, remain
+        // in demo mode and surface the reason.
+        const result = await applyWorkspaceMode("production");
+        if (!result.ok) {
+          setError(
+            `Failed to upgrade workspace (${result.error}). You remain in demo mode — try again or contact support.`,
+          );
           setCreating(false);
           return;
         }
@@ -460,7 +449,6 @@ export function OnboardingWizard() {
     selectedPolicy,
     agentName,
     updatePreferences,
-    exitDemoMode,
     enableDemoMode,
     router,
   ]);
@@ -469,22 +457,14 @@ export function OnboardingWizard() {
     if (isAppConnected && demoMode) {
       // Await the upgrade just like handleFinish — don't navigate until
       // the backend state is consistent. If upgrade fails, stay in demo.
-      const upgradeRes = await apiClient.upgradeWorkspace();
-      if (upgradeRes.success && upgradeRes.data) {
-        useAuthStore.getState().setHasExitedSandbox(true);
-        if (upgradeRes.data.token) useAuthStore.setState({ token: upgradeRes.data.token });
-        if (upgradeRes.data.workspace) {
-          useAuthStore.setState({
-            workspace: upgradeRes.data.workspace,
-            workspaceMode: "production",
-          });
-        }
-        updatePreferences({ onboardingCompleted: true });
-        exitDemoMode();
-      } else {
-        setError("Failed to upgrade workspace. You remain in demo mode.");
+      const result = await applyWorkspaceMode("production");
+      if (!result.ok) {
+        setError(
+          `Failed to upgrade workspace (${result.error}). You remain in demo mode.`,
+        );
         return;
       }
+      updatePreferences({ onboardingCompleted: true });
     } else if (!isAppConnected) {
       updatePreferences({ onboardingCompleted: true });
       enableDemoMode();

@@ -39,6 +39,12 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_ORIGIN;
+    // The backend mounts most feature routers under `/api`, but auth,
+    // workspace and api-key routers are mounted at the root (see
+    // `ApiModule.setupRoutes`). Anything the browser calls has to have a
+    // matching entry here or it never leaves the Next server — a request to
+    // `/workspace` was being answered by Next itself with a 404, which is why
+    // "Switch to Production" always failed.
     return [
       {
         source: "/api/:path*",
@@ -47,6 +53,26 @@ const nextConfig: NextConfig = {
       {
         source: "/auth/:path*",
         destination: `${apiUrl}/auth/:path*`,
+      },
+      {
+        source: "/workspace",
+        destination: `${apiUrl}/workspace`,
+      },
+      {
+        source: "/workspaces/:path*",
+        destination: `${apiUrl}/workspaces/:path*`,
+      },
+      {
+        source: "/workspaces",
+        destination: `${apiUrl}/workspaces`,
+      },
+      {
+        source: "/api-keys/:path*",
+        destination: `${apiUrl}/api-keys/:path*`,
+      },
+      {
+        source: "/api-keys",
+        destination: `${apiUrl}/api-keys`,
       },
     ];
   },

@@ -2,102 +2,44 @@
 
 import { useCallback, useState } from "react";
 import { Sparkles, ArrowRight, Zap, FlaskConical } from "lucide-react";
-import { mutate } from "swr";
-import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDemoStore } from "@/stores/demo-store";
-import { apiClient } from "@/lib/api-client";
+import { useWorkspaceMode } from "@/hooks/use-workspace-mode";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
 
 /**
- * Three modes the banner needs to communicate, in order of priority:
+ * Status bar above the dashboard content. It reports which mode you're in and
+ * offers a switch; it is no longer the *only* switch — `ModeSwitch` in the
+ * sidebar is always visible. All mode changes go through `useWorkspaceMode`
+ * so the workspace tier, the `X-Workspace-Mode` header and the demo store
+ * stay in sync (they didn't before, which is why "switched to production"
+ * could still show sample data).
  *
- *   1. Unauthenticated landing-page demo tour (`useDemoStore.demoMode`):
- *      gradient banner urging sign-in. Shown until dismissed.
- *
- *   2. Signed-in but sandbox workspace mode (`workspaceMode === "sandbox"`):
- *      this is the case the user flagged ("first login, populated dashboard,
- *      what is this?"). Without this banner the user couldn't tell that the
- *      demoInterceptor was swapping every API response for seed data. Amber
- *      bar with a one-click "Switch to Production" that flips workspaceMode
- *      AND nukes the SWR cache so the dashboard immediately refetches with
- *      the user's real (empty) workspace data.
- *
- *   3. Signed-in production mode: emerald confirmation bar so the user
- *      knows the dashboard is showing their actual workspace.
+ * Three states, in priority order:
+ *   1. Unauthenticated demo tour (`useDemoStore.demoMode`) — gradient banner
+ *      urging sign-in.
+ *   2. Signed-in sandbox — amber bar. Full orientation copy on the first
+ *      visit, slim bar once `hasExitedSandbox` is set.
+ *   3. Signed-in production — emerald confirmation bar.
  */
 export function DemoBanner() {
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [switching, setSwitching] = useState(false);
   const isConnected = useAuthStore((s) => s.isConnected);
-  const workspaceMode = useAuthStore((s) => s.workspaceMode);
   const hasExitedSandbox = useAuthStore((s) => s.hasExitedSandbox);
-  const setWorkspaceMode = useAuthStore((s) => s.setWorkspaceMode);
   const setHasExitedSandbox = useAuthStore((s) => s.setHasExitedSandbox);
-  const setWorkspace = useAuthStore((s) => s.setWorkspace);
-  const workspace = useAuthStore((s) => s.workspace);
   const demoMode = useDemoStore((s) => s.demoMode);
+  const { mode, switching, switchMode } = useWorkspaceMode();
 
-  // Flip mode + nuke the SWR cache so every fetch re-runs against the new
-  // X-Workspace-Mode header. Without the revalidate the dashboard would keep
-  // showing the old sandbox data until you hard-refreshed. Also marks the
-  // user as having graduated from new-user orientation — they won't see the
-  // full amber bar again on future sign-ins.
-  const switchToProduction = useCallback(async () => {
-    setSwitching(true);
-    try {
-      await apiClient.updateWorkspace({ tier: "live" });
-      if (workspace) {
-        setWorkspace({ ...workspace, tier: "live" });
-      }
-      useDemoStore.getState().exitDemoMode();
-      setWorkspaceMode("production");
-      setHasExitedSandbox(true);
-      await mutate(() => true, undefined, { revalidate: true });
-      toast.success("Switched to Production mode", {
-        description:
-          "Your real workspace is empty until you create an agent and policy. Want to start now?",
-        action: {
-          label: "Create an API identity",
-          onClick: () => {
-            if (typeof window !== "undefined") {
-              window.location.href = "/agents/workshop";
-            }
-          },
-        },
-      });
-    } catch {
-      toast.error("Failed to switch to Production mode");
-    }
-    setSwitching(false);
-  }, [setWorkspaceMode, setHasExitedSandbox, setWorkspace, workspace]);
+  const switchingLabel = switching !== null;
 
-  const switchToSandbox = useCallback(async () => {
-    setSwitching(true);
-    try {
-      await apiClient.updateWorkspace({ tier: "demo" });
-      if (workspace) {
-        setWorkspace({ ...workspace, tier: "demo" });
-      }
-      useDemoStore.getState().enableDemoMode();
-      setWorkspaceMode("sandbox");
-      setHasExitedSandbox(true);
-      await mutate(() => true, undefined, { revalidate: true });
-    } catch {
-      toast.error("Failed to switch to Sandbox mode");
-    }
-    setSwitching(false);
-  }, [setWorkspaceMode, setHasExitedSandbox, setWorkspace, workspace]);
-
-  /** Dismiss without switching modes — user understands they're in sandbox
-   *  but doesn't want the full orientation bar. They get the slim "Sandbox
-   *  (demo)" header from here on. */
+  /** Dismiss without switching modes. The sidebar ModeSwitch remains, so
+   *  this only hides the orientation copy — it no longer buries the switch. */
   const dismissOrientation = useCallback(() => {
     setHasExitedSandbox(true);
   }, [setHasExitedSandbox]);
 
-  // 1. Unauthenticated landing-page demo tour. Keep the existing gradient.
+  // 1. Unauthenticated landing-page demo tour.
   if (demoMode && !isConnected) {
     return (
       <>
@@ -132,10 +74,8 @@ export function DemoBanner() {
     );
   }
 
-  // 2a. New-user sandbox orientation. Full amber bar with explanation +
-  //     one-click Switch to Production. Only shows ONCE per browser (the
-  //     hasExitedSandbox flag is sticky across logout).
-  if (isConnected && workspaceMode === "sandbox" && !hasExitedSandbox) {
+  // 2a. New-user sandbox orientation.
+  if (isConnected && mode === "sandbox" && !hasExitedSandbox) {
     return (
       <div
         role="status"
@@ -148,7 +88,8 @@ export function DemoBanner() {
           <div className="min-w-0">
             <div className="font-bold text-sm">You&apos;re in Sandbox Mode</div>
             <div className="text-xs opacity-90 truncate">
-              Safe sample workspace — nothing persists and no real funds can move.
+              Safe sample workspace — nothing persists and no real funds can
+              move. Switch any time from the sidebar.
             </div>
           </div>
         </div>
@@ -156,11 +97,11 @@ export function DemoBanner() {
           <Button
             variant="default"
             size="sm"
-            disabled={switching}
-            onClick={switchToProduction}
+            disabled={switchingLabel}
+            onClick={() => switchMode("production")}
             className="bg-amber-600 hover:bg-amber-700 text-white border-0 h-8"
           >
-            {switching ? "Switching…" : "Switch to Production"}
+            {switching === "production" ? "Switching…" : "Switch to Production"}
             <ArrowRight size={14} />
           </Button>
           <button
@@ -176,49 +117,51 @@ export function DemoBanner() {
     );
   }
 
-  // 2b. Returning sandbox visit. User has been here before — they came
-  //     back deliberately (via "View sandbox demo" or by clicking "Back
-  //     to Sandbox"). Slim header, no orientation copy, one-click exit.
-  if (isConnected && workspaceMode === "sandbox" && hasExitedSandbox) {
+  // 2b. Returning sandbox visit. Slim bar, but the switch stays a real
+  //     button — it used to shrink to a 10px muted "Exit demo" link, which is
+  //     what made production feel unreachable after one dismissal.
+  if (isConnected && mode === "sandbox" && hasExitedSandbox) {
     return (
       <div className="flex items-center gap-2 px-6 py-1.5 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900 text-xs flex-shrink-0">
         <FlaskConical className="h-3 w-3 text-amber-500" />
         <span className="font-medium text-amber-700 dark:text-amber-300">
-          Sandbox demo
-        </span>          <span className="text-muted-foreground hidden sm:inline">
+          Sandbox
+        </span>
+        <span className="text-muted-foreground hidden sm:inline">
           — sample data, no real funds
         </span>
-
-        <button
-          type="button"
-          onClick={switchToProduction}
-          disabled={switching}
-          className="ml-auto text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => switchMode("production")}
+          disabled={switchingLabel}
+          className="ml-auto h-6 px-2 text-[11px] gap-1"
         >
-          {switching ? "Exiting…" : "Exit demo"}
-        </button>
+          {switching === "production" ? "Switching…" : "Switch to Production"}
+          <ArrowRight size={12} />
+        </Button>
       </div>
     );
   }
 
-  // 3. Signed-in production mode. Confirmation bar so the user knows the
-  //    dashboard is showing their real workspace (and can flip back if they
-  //    want to compare with sandbox).
-  if (isConnected && workspaceMode === "production") {
+  // 3. Signed-in production mode.
+  if (isConnected && mode === "production") {
     return (
       <div className="flex items-center gap-2 px-6 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 border-b border-emerald-200 dark:border-emerald-900 text-xs flex-shrink-0">
         <Zap className="h-3 w-3 text-emerald-500" />
         <span className="font-medium text-emerald-700 dark:text-emerald-300">
           Production
         </span>
-        <span className="text-muted-foreground">— real workspace; actions may move funds</span>
+        <span className="text-muted-foreground">
+          — real workspace; actions may move funds
+        </span>
         <button
           type="button"
-          onClick={switchToSandbox}
-          disabled={switching}
+          onClick={() => switchMode("sandbox")}
+          disabled={switchingLabel}
           className="ml-auto text-[10px] text-muted-foreground hover:text-foreground transition-colors"
         >
-          {switching ? "Switching…" : "Back to Sandbox"}
+          {switching === "sandbox" ? "Switching…" : "Back to Sandbox"}
         </button>
       </div>
     );

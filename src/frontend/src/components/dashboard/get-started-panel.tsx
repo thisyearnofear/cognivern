@@ -2,10 +2,9 @@
 
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { mutate } from "swr";
 import { Users, ShieldCheck, ArrowRight, PlayCircle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuthStore } from "@/stores/auth-store";
+import { useWorkspaceMode } from "@/hooks/use-workspace-mode";
 import { QuickCheck } from "@/components/dashboard/quick-check";
 
 /**
@@ -21,14 +20,14 @@ import { QuickCheck } from "@/components/dashboard/quick-check";
  */
 export function GetStartedPanel() {
   const router = useRouter();
-  const setWorkspaceMode = useAuthStore((s) => s.setWorkspaceMode);
-  const setHasExitedSandbox = useAuthStore((s) => s.setHasExitedSandbox);
+  const { switching, switchMode } = useWorkspaceMode();
 
-  const peekSandbox = useCallback(async () => {
-    setWorkspaceMode("sandbox");
-    setHasExitedSandbox(true);
-    await mutate(() => true, undefined, { revalidate: true });
-  }, [setWorkspaceMode, setHasExitedSandbox]);
+  // Goes through the shared switcher so the workspace tier is downgraded too.
+  // Setting only `workspaceMode` used to leave a live-tier workspace serving
+  // real data while the UI claimed sandbox.
+  const peekSandbox = useCallback(() => {
+    void switchMode("sandbox");
+  }, [switchMode]);
 
   return (
     <div className="rounded-xl border bg-card p-6 sm:p-8">
@@ -110,10 +109,11 @@ export function GetStartedPanel() {
             variant="outline"
             size="sm"
             onClick={peekSandbox}
+            disabled={switching !== null}
             className="h-7 gap-1.5"
           >
             <PlayCircle className="h-3.5 w-3.5" />
-            Peek at sandbox demo
+            {switching === "sandbox" ? "Switching…" : "Peek at sandbox demo"}
           </Button>
         </div>
       </div>
