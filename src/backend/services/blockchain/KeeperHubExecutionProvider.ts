@@ -511,7 +511,12 @@ export class KeeperHubExecutionProvider {
 
   private sameTransferAmount(actual: string, expectedEth: string): boolean {
     try {
-      return ethers.parseEther(actual) === ethers.parseEther(expectedEth);
+      const expectedWei = ethers.parseEther(expectedEth);
+      // KeeperHub may return either ETH ("0.00001") or integer wei ("10000000000000").
+      if (/^\d+$/.test(actual.trim())) {
+        return BigInt(actual.trim()) === expectedWei;
+      }
+      return ethers.parseEther(actual) === expectedWei;
     } catch {
       return actual === expectedEth;
     }

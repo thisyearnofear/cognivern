@@ -39,7 +39,7 @@ A fresh OWS wallet has been bootstrapped for KeeperHub testing:
 | Address                           | `0x22496706CBAB7c5A08C4D3377EEef06ef190BbAE` |
 | Chain id                          | `421614` (Arbitrum Sepolia)                  |
 | `metadata.executionProvider`      | `keeperhub`                                  |
-| `metadata.keeperHubWalletAddress` | pending — set via Settings → Wallets         |
+| `metadata.keeperHubWalletAddress` | `0x12bF701781cbA77daDa2Ccf6DA07e7D357AFE141` |
 
 The address above is the OWS controller signer. The KeeperHub execution wallet
 is the dedicated Turnkey EOA in the `cognivern` organization:
@@ -442,22 +442,27 @@ KeeperHub surface through .mcp.json → https://app.keeperhub.com/mcp
 ## What is real vs. what is pending
 
 - **Real (live now):**
-  - Code on `main`, deployed to `api.cognivern.persidian.com` (PM2 #75).
-  - `KEEPERHUB_API_KEY` set in `/opt/cognivern/shared/.env` and loaded
-    at runtime by dotenv (`keeperHubConfig.enabled === true`).
-  - Test OWS wallet `ab1af94a-65a2-4bdd-a830-9439f2dea763` bootstrapped
-    on Arbitrum Sepolia (`chainId: 421614`), with provider metadata
-    preset to `keeperhub`.
-  - Local round-trip test (`tooling/scripts/demo/test-keeperhub-rebalance.ts`)
-    passes all three checks against the mock; the OTel span and metric
-    are confirmed wired through.
-  - UI surfaces (Settings → Wallets + Observability) are live and
-    make the optionality visible end-to-end.
-- **Pending before the first write:**
-  - Create a new API key while the dedicated `cognivern` organization is active and store it locally under the runtime secret name. The previously stored key was verified as valid but resolved to a different KeeperHub organization/wallet and must not be used for Cognivern.
-  - Set `keeperHubWalletAddress` on the test wallet via Settings → Wallets to `0x12bF701781cbA77daDa2Ccf6DA07e7D357AFE141`.
-  - Run the two read-only checks in the setup section. Only after the returned wallet matches should the wallet receive a minimal Arbitrum Sepolia test amount and the one-transfer proof be attempted.
-  - After a verified transfer, `transferTxHash` and KeeperHub's receipt evidence are captured in `.artifacts/keeperhub-rebalance.json` alongside `transferExecutionId`, chain ID, and explorer link.
+  - Code on `main`, deployed to `api.cognivern.persidian.com`.
+  - Cognivern-org `KEEPERHUB_API_KEY` set in `/opt/cognivern/shared/.env`
+    (`keeperHubConfig.enabled === true`). Read-only checks pass:
+    `GET /api/keys` (keys named `cognivern`) and `GET /api/user/wallet`
+    → `0x12bF701781cbA77daDa2Ccf6DA07e7D357AFE141`.
+  - Test OWS wallet `ab1af94a-65a2-4bdd-a830-9439f2dea763` on Arbitrum
+    Sepolia with `executionProvider: keeperhub` and
+    `keeperHubWalletAddress: 0x12bF7017…E141`.
+  - Proof transfer captured in `.artifacts/keeperhub-rebalance.json`:
+    - `transferTxHash`: `0xc0edc09d1d3f8f7c0b8abf29f10af8003e2955693ace42f7124c66a9d38c967f`
+    - `transferExecutionId`: `xq65c4bkaqoue6ybzm83f`
+    - Explorer: https://sepolia.arbiscan.io/tx/0xc0edc09d1d3f8f7c0b8abf29f10af8003e2955693ace42f7124c66a9d38c967f
+    - Sponsored KeeperHub execution; receipt verified success on chain 421614.
+  - Local round-trip test and UI surfaces remain live.
+- **Follow-ups (not blocking the DoraHacks tx link):**
+  - Redeploy the `sameTransferAmount` fix so simulation `value` returned as
+    wei is accepted (ETH or wei). Without it, `KeeperHubExecutionProvider`
+    falsely rejects a successful simulation.
+  - Soften / retarget the OWS spend policy for the KeeperHub dust path
+    (`sapience-trading-policy` / `policy-1781185670152` currently deny
+    the rebalance intent before broadcast).
 
 ---
 
