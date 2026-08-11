@@ -146,7 +146,7 @@ export class ObservabilityController {
     const status: ObservabilityStatus = {
       enabled: OTEL_ENABLED,
       reachable,
-      queryConfigured: !!(process.env.SIGNOZ_CLOUD_URL || '').trim() && !!(process.env.SIGNOZ_API_KEY || '').trim(),
+      queryConfigured: this.queryAuthConfigured(),
       endpoint: this.maskEndpoint(endpoint),
       serviceName: process.env.OTEL_SERVICE_NAME || "cognivern-backend",
       ingestionKeyConfigured: !!(process.env.SIGNOZ_INGESTION_KEY || "").trim(),
@@ -212,12 +212,12 @@ export class ObservabilityController {
       : "24h";
     const workspaceId = typeof req.query.workspaceId === "string" ? req.query.workspaceId.trim() : undefined;
     const cloudUrl = process.env.SIGNOZ_CLOUD_URL?.trim();
-    const apiKey = process.env.SIGNOZ_API_KEY?.trim();
+    const apiKey = process.env.SIGNOZ_API_KEY?.trim() ?? "";
 
-    if (!cloudUrl || !apiKey) {
+    if (!cloudUrl || !this.queryAuthConfigured()) {
       const empty = this.buildEmptyMetrics(range);
       empty.message =
-        "SigNoz query API is not configured. Set SIGNOZ_CLOUD_URL and SIGNOZ_API_KEY to enable live charts.";
+        "SigNoz query API is not configured. Set SIGNOZ_CLOUD_URL plus SIGNOZ_API_KEY (SigNoz Cloud) or SIGNOZ_USER_EMAIL/SIGNOZ_USER_PASSWORD/SIGNOZ_ORG_ID (self-hosted without an enterprise license).";
       res.json({ success: true, data: empty });
       return;
     }
@@ -406,6 +406,88 @@ export class ObservabilityController {
     return nanos.map((p) => ({ timestamp: p.timestamp, value: p.value / 1_000_000 }));
   }
 
+  /**
+   * Self-hosted session auth for the query API.
+   *
+   * OSS self-hosted SigNoz without an enterprise license cannot authorize
+   * service-account API keys for builder queries (authz_forbidden on
+   * builder_query/* — the fine-grained RBAC layer is license-gated). On such
+   * instances the only working programmatic auth is a USER session. We log in
+   * via /api/v2/sessions/email_password (SIGNOZ_USER_EMAIL /
+   * SIGNOZ_USER_PASSWORD / SIGNOZ_ORG_ID), cache the JWT until its exp, and
+   * re-login once on 401.
+   *
+   * Identity note: on unlicensed OSS, only the seeded install admin's session
+   * passes builder-query authz — role-granted accounts (viewer or admin
+   * bindings on a metastore-created user) still get authz_forbidden.
+   * SIGNOZ_USER_EMAIL should therefore be that admin user. SigNoz Cloud is
+   * unaffected — when no user creds are set we send SIGNOZ-API-KEY as before.
+   */
+  private sessionToken: { token: string; expiresAtMs: number } | null = null;
+
+  private queryAuthConfigured(): boolean {
+    const cloudUrl = (process.env.SIGNOZ_CLOUD_URL || "").trim();
+    const apiKey = (process.env.SIGNOZ_API_KEY || "").trim();
+    return !!cloudUrl && (!!apiKey || this.useSessionAuth());
+  }
+
+  private useSessionAuth(): boolean {
+    return (
+      !!(process.env.SIGNOZ_USER_EMAIL || "").trim() &&
+      !!(process.env.SIGNOZ_USER_PASSWORD || "")
+    );
+  }
+
+  private async signozLogin(): Promise<string> {
+    const cloudUrl = (process.env.SIGNOZ_CLOUD_URL || "").trim().replace(/\/+$/, "");
+    const response = await fetch(`${cloudUrl}/api/v2/sessions/email_password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: (process.env.SIGNOZ_USER_EMAIL || "").trim(),
+        password: process.env.SIGNOZ_USER_PASSWORD,
+        orgId: (process.env.SIGNOZ_ORG_ID || "").trim(),
+      }),
+    });
+    if (!response.ok) {
+      const text = await response.text().catch(() => "unknown");
+      throw new Error(`SigNoz session login failed: ${response.status} ${text.slice(0, 200)}`);
+    }
+    const json = (await response.json()) as { data?: { accessToken?: string } };
+    const token = json.data?.accessToken;
+    if (!token) throw new Error("SigNoz session login returned no accessToken");
+
+    // Cache until the JWT's own exp (decoding the payload without verifying
+    // is fine — we only ever send the token back to its issuer).
+    let expiresAtMs = Date.now() + 30 * 60_000; // conservative fallback
+    try {
+      const payload = JSON.parse(
+        Buffer.from(token.split(".")[1] || "", "base64url").toString("utf8"),
+      ) as { exp?: number };
+      if (typeof payload.exp === "number") expiresAtMs = payload.exp * 1000 - 60_000;
+    } catch {
+      // keep fallback TTL
+    }
+    this.sessionToken = { token, expiresAtMs };
+    return token;
+  }
+
+  private async signozAuthHeaders(
+    apiKey: string,
+    forceRefresh: boolean,
+  ): Promise<Record<string, string>> {
+    if (!this.useSessionAuth()) return { "SIGNOZ-API-KEY": apiKey };
+    if (
+      !forceRefresh &&
+      this.sessionToken &&
+      this.sessionToken.expiresAtMs > Date.now()
+    ) {
+      return { Authorization: `Bearer ${this.sessionToken.token}` };
+    }
+    const token = await this.signozLogin();
+    return { Authorization: `Bearer ${token}` };
+  }
+
   private async executeSigNozQuery(
     cloudUrl: string,
     apiKey: string,
@@ -416,17 +498,21 @@ export class ObservabilityController {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
-
-    try {
-      const response = await fetch(url, {
+    const doFetch = (headers: Record<string, string>) =>
+      fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "SIGNOZ-API-KEY": apiKey,
-        },
+        headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify(body),
         signal: controller.signal,
       });
+
+    try {
+      let response = await doFetch(await this.signozAuthHeaders(apiKey, false));
+      if (response.status === 401 && this.useSessionAuth()) {
+        // Token expired or revoked earlier than exp claimed — force one
+        // re-login and replay the query.
+        response = await doFetch(await this.signozAuthHeaders(apiKey, true));
+      }
 
       if (!response.ok) {
         const text = await response.text().catch(() => "unknown");
