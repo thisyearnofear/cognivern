@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { DemoBanner } from "@/components/layout/demo-banner";
+import { SignInPrompt } from "@/components/layout/sign-in-prompt";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { AnimatePresence } from "motion/react";
@@ -39,6 +40,7 @@ export default function DashboardLayout({
             className={isOsPage ? "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800" : ""}
           />
         </header>
+        {isOsPage ? null : <SignInPrompt />}
         {isOsPage ? null : <DemoBanner />}
         {isOsPage ? null : <DemoSimulator />}
         <main

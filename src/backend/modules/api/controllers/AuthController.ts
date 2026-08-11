@@ -3,6 +3,7 @@ import { SiweMessage, generateNonce } from "siwe";
 import { SignJWT } from "jose";
 import { randomUUID } from "node:crypto";
 import { createHash, randomBytes } from "node:crypto";
+import { JsonRpcProvider } from "ethers";
 import type { AuthUser, Workspace } from "@cognivern/shared";
 import { getDb } from "@backend/db/index.js";
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
@@ -89,6 +90,38 @@ function getJwtSecret(): Uint8Array {
 
 const JWT_SECRET = getJwtSecret();
 
+/**
+ * Resolve an ethers JsonRpcProvider for a given chain ID. Used by the SIWE
+ * verify step so that EIP-1271 (contract wallet / smart wallet) signatures
+ * can be validated on-chain. Without this, Coinbase Smart Wallet and other
+ * contract-based wallets fail because `ecrecover` returns a different address
+ * and the library's `checkContractWalletSignature` needs to call
+ * `isValidSignature` on the contract.
+ */
+const RPC_BY_CHAIN: Record<number, string> = {
+  1: process.env.ETH_RPC_URL || "https://eth.drpc.org",
+  8453: process.env.BASE_RPC_URL || "https://mainnet.base.org",
+  84532: process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org",
+  10: process.env.OPTIMISM_RPC_URL || "https://mainnet.optimism.io",
+  42161: process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc",
+  421614: process.env.ARBITRUM_SEPOLIA_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
+  11155111: process.env.SEPOLIA_RPC_URL || "https://ethereum-sepolia.publicnode.com",
+};
+
+// Cache providers to avoid creating a new connection per request.
+const providerCache = new Map<number, JsonRpcProvider>();
+
+function getProviderForChain(chainId: number): JsonRpcProvider | undefined {
+  const rpc = RPC_BY_CHAIN[chainId];
+  if (!rpc) return undefined;
+  let provider = providerCache.get(chainId);
+  if (!provider) {
+    provider = new JsonRpcProvider(rpc, chainId, { staticNetwork: true });
+    providerCache.set(chainId, provider);
+  }
+  return provider;
+}
+
 export class AuthController {
   async getNonce(_req: Request, res: Response): Promise<void> {
     const db = getDb();
@@ -149,7 +182,16 @@ export class AuthController {
     db.prepare("DELETE FROM nonces WHERE nonce = ?").run(siweMessage.nonce);
 
     try {
-      const result = await siweMessage.verify({ signature });
+      // Pass an RPC provider so EIP-1271 contract wallet signatures
+      // (Coinbase Smart Wallet, Safe, etc.) can be validated on-chain.
+      // Without this, ecrecover fails for contract wallets and the library
+      // returns INVALID_SIGNATURE because `checkContractWalletSignature`
+      // short-circuits when provider is undefined.
+      const provider = getProviderForChain(siweMessage.chainId ?? 1);
+      const result = await siweMessage.verify(
+        { signature },
+        { provider, suppressExceptions: false },
+      );
       if (!result.success) {
         res
           .status(401)

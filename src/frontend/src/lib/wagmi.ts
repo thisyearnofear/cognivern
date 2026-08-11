@@ -3,7 +3,7 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { defineChain } from "viem";
 import { http, fallback } from "wagmi";
-import { mainnet, sepolia, arbitrumSepolia } from "wagmi/chains";
+import { mainnet, sepolia, arbitrumSepolia, base, baseSepolia } from "wagmi/chains";
 
 export const xLayerTestnet = defineChain({
   // testrpc.xlayer.tech returns chainId 1952 (the previous value 195 was
@@ -56,6 +56,8 @@ export const config = getDefaultConfig({
     process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "cognivern-dev",
   chains: [
     mainnet,
+    base,
+    baseSepolia,
     sepolia,
     arbitrumSepolia,
     robinhoodChainTestnet,
@@ -69,6 +71,13 @@ export const config = getDefaultConfig({
       http("https://1rpc.io/eth"),
       http(process.env.NEXT_PUBLIC_RPC_MAINNET || "https://rpc.mevblocker.io"),
     ]),
+    [base.id]: fallback([
+      http(process.env.NEXT_PUBLIC_RPC_BASE || "https://mainnet.base.org"),
+      http("https://base.drpc.org"),
+    ]),
+    [baseSepolia.id]: http(
+      process.env.NEXT_PUBLIC_RPC_BASE_SEPOLIA || "https://sepolia.base.org",
+    ),
     [sepolia.id]: fallback([
       http(process.env.NEXT_PUBLIC_RPC_SEPOLIA || "https://ethereum-sepolia.publicnode.com"),
     ]),
