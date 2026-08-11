@@ -460,7 +460,7 @@ All file-backed stores use a common `BaseStore` abstract class. To swap to Redis
 | Layer          | Protection                                                               |
 | -------------- | ------------------------------------------------------------------------ |
 | Auth           | SIWE + JWT with nonce replay protection                                  |
-| API Keys       | scrypt hashed, workspace-scoped permissions                              |
+| API Keys       | scrypt hashed, workspace-scoped, **enforced scopes** (route map in `keyScopes.ts`; key management is session-only) — optional **TEE-sealed spend mandate** per key |
 | Rate Limiting  | 3 layers (global, workspace, per-endpoint)                               |
 | Encryption     | Fhenix FHE on-chain evaluation (confidential policies)                   |
 | Audit          | Immutable records on 0G Chain (Galileo Testnet) + Filecoin (dual-anchor) |

@@ -323,11 +323,13 @@ function ApiKeyGenerator() {
       <div className="text-xs text-muted-foreground/60 flex items-center gap-2">
         <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
         Keys start with <code className="font-mono text-[10px] px-1 py-0.5 rounded bg-muted">cvn_</code>
-        and are scoped to this workspace. Manage keys anytime in{" "}
+        and are scoped to this workspace — scopes are enforced on every call.
+        In{" "}
         <a href="/settings" className="text-primary hover:underline">
           Settings
         </a>
-        .
+        {" "}you can also seal a TEE spend mandate onto a key (enforced by the
+        enclave, not the API) or wrap an existing credential you already own.
       </div>
     </div>
   );
