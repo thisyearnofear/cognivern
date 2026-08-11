@@ -12,6 +12,7 @@ import {
 
 export type ForecastingWorkflowParams = {
   mode: CreRun["mode"]; // local now; cre later
+  projectId: string;
   sapienceGraphqlEndpoint?: string;
   arbitrumRpcUrl?: string;
   chainlinkFeeds?: Array<{ name: string; address: `0x${string}` }>;
@@ -50,6 +51,7 @@ export async function runForecastingWorkflow(
   const recorder = new CreRunRecorder({
     workflow: "forecasting",
     mode: params.mode,
+    projectId: params.projectId,
     signer: params.signer,
   });
 

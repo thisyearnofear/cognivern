@@ -31,6 +31,7 @@ export class CreRunRecorder {
   constructor(params: {
     workflow: CreRun["workflow"];
     mode: CreRun["mode"];
+    projectId: string;
     signer?: ethers.Signer;
   }) {
     this.signer = params.signer ?? getDefaultEvidenceSigner();
@@ -38,6 +39,7 @@ export class CreRunRecorder {
       runId: crypto.randomUUID(),
       workflow: params.workflow,
       mode: params.mode,
+      projectId: params.projectId,
       startedAt: nowIso(),
       ok: false,
       status: "running",

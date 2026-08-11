@@ -194,12 +194,19 @@ export class OwsWalletService {
         error: 'Mandate is not valid for the current workspace',
       };
     }
+    if (!context.workspaceId) {
+      return {
+        intentId: intent.id,
+        status: 'denied',
+        error: 'Workspace context is required to execute a spend.',
+      };
+    }
     const access = await this.resolveAccess(intent, context);
     const recorder = new CreRunRecorder({
       workflow: 'spend',
       mode: access ? 'cre' : 'local',
+      projectId: context.workspaceId,
     });
-    recorder.getRun().projectId = context.workspaceId;
 
     try {
       logger.info(`SpendOS: Evaluating intent ${intent.id} from agent ${intent.agentId}`);
@@ -1095,9 +1102,15 @@ export class OwsWalletService {
     };
     await creRunStore.replace(claimed);
 
-    const recorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre' });
+    if (!heldRun.projectId) {
+      throw new Error('Cannot resume held spend: missing projectId on original run');
+    }
+    const recorder = new CreRunRecorder({
+      workflow: 'spend',
+      mode: 'cre',
+      projectId: heldRun.projectId,
+    });
     recorder.getRun().parentRunId = runId;
-    recorder.getRun().projectId = heldRun.projectId;
     await recorder.addArtifact({ type: 'spend_intent', data: intent });
     const s = recorder.startStep('evm_write', 'wallet_sign_and_broadcast', {
       resumedFrom: runId,

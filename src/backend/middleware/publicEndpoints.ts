@@ -14,8 +14,9 @@
  *
  *   Endpoints in this list are the per-resource kind: the controller (or a
  *   service it calls) is responsible for the actual auth. For /api/spend that
- *   is the OWS scoped key in `x-ows-scoped-access`. For /api/audit/logs and
- *   /api/agents etc. the data is intentionally public (landing pages).
+ *   is the OWS scoped key in `x-ows-scoped-access`. /api/agents etc. remain
+ *   intentionally public (landing pages); tenant data like /api/audit/logs is
+ *   NOT public and requires a workspace key or JWT.
  *
  *   Anything NOT in this list still requires either:
  *     - a valid `x-api-key` (validated by apiKeyMiddleware) which sets
@@ -39,8 +40,11 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   '/agents/portfolio/decisions',
   '/agents/sapience/status',
   '/agents/sapience/decisions',
-  '/audit/logs',
-  '/audit/insights',
+  // Tenant audit and insights data must be authenticated and scoped to a
+  // workspace. They are intentionally NOT public — unauthenticated or
+  // invalid-token requests must not fall through to global CRE data.
+  // '/audit/logs',
+  // '/audit/insights',
   '/governance/policies',
   '/governance/proof-info',
   '/spendos/status',
@@ -49,10 +53,11 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   '/metrics/ux-events',
   '/observability/status',
   '/observability/metrics',
-  '/cre/runs',
+  // Tenant CRE run data must be authenticated and scoped to a workspace.
+  // '/cre/runs',
   '/cre/projects',
-  '/cre/forecast',
-  '/cre/runs/:runId/retry',
+  // '/cre/forecast',
+  // '/cre/runs/:runId/retry',
   // Read-only execution reconciliation still requires the operator JWT; it
   // is intentionally not public because it exposes provider execution data.
   // NOTE: /cre/runs/:runId/approval is NOT in this list. Held spend runs are

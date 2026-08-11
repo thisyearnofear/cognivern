@@ -19,10 +19,23 @@ export class AuditLogController {
 
   async getLogs(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.workspaceId) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: 'AUTH_REQUIRED',
+            message: 'Workspace authentication is required to view audit logs.',
+          },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
       const { startDate, endDate, agent, actionType, complianceStatus, severity } = req.query;
 
       // Get audit logs with filters (now backed by CRE storage)
       const logs = await this.auditLogService.getFilteredLogs({
+        workspaceId: req.workspaceId,
         startDate: startDate as string,
         endDate: endDate as string,
         agent: agent as string,
@@ -67,6 +80,18 @@ export class AuditLogController {
   }
 
   async getInsights(req: Request, res: Response): Promise<void> {
+    if (!req.workspaceId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: 'AUTH_REQUIRED',
+          message: 'Workspace authentication is required to view audit insights.',
+        },
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     const dimension = req.query.dimension as string | undefined;
 
     if (dimension === 'ai_spend') {
@@ -97,9 +122,9 @@ export class AuditLogController {
     }
   }
 
-  async getAiSpendInsights(_req: Request, res: Response): Promise<void> {
+  async getAiSpendInsights(req: Request, res: Response): Promise<void> {
     try {
-      const logs = await this.auditLogService.getFilteredLogs({});
+      const logs = await this.auditLogService.getFilteredLogs({ workspaceId: req.workspaceId! });
       const aiEntries: Array<{
         provider: string;
         model: string;
@@ -241,10 +266,22 @@ export class AuditLogController {
   }
 
   async getTimeline(req: Request, res: Response): Promise<void> {
+    if (!req.workspaceId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: 'AUTH_REQUIRED',
+          message: 'Workspace authentication is required to view audit timelines.',
+        },
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     const { id } = req.params;
 
     try {
-      const logs = await this.auditLogService.getFilteredLogs({});
+      const logs = await this.auditLogService.getFilteredLogs({ workspaceId: req.workspaceId });
       const log = logs.find((l) => l.id === id);
       if (!log) {
         res.status(404).json({
@@ -389,9 +426,9 @@ export class AuditLogController {
     }
   }
 
-  async getSuspicionInsights(_req: Request, res: Response): Promise<void> {
+  async getSuspicionInsights(req: Request, res: Response): Promise<void> {
     try {
-      const logs = await this.auditLogService.getFilteredLogs({});
+      const logs = await this.auditLogService.getFilteredLogs({ workspaceId: req.workspaceId! });
       const scored: Array<{
         runId: string;
         agentId: string;
