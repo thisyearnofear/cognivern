@@ -38,7 +38,7 @@ function syncJobLabel(status: 'queued' | 'processing' | 'failed' | 'completed' |
   if (status === 'processing') return 'Working';
   if (status === 'queued') return 'Queued';
   if (status === 'failed') return 'Needs retry';
-  if (status === 'completed') return 'Recovered';
+  if (status === 'completed') return 'Completed';
   return 'Idle';
 }
 
@@ -84,7 +84,7 @@ export function MandateContextPanel({
                 {syncJob && syncJob.status !== 'completed' && <Badge variant={syncJob.status === 'failed' ? 'destructive' : 'secondary'}>Recovery {syncJobLabel(syncJob.status)}</Badge>}
               </div>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-                Connect the mandate to its governed runs, spend, outcomes, and receipts before making the next allocation decision.
+                Cited decision history for this mandate: governed runs, spend, outcomes, and receipts. Review it before considering another allocation.
               </p>
             </div>
           </div>
@@ -110,15 +110,15 @@ export function MandateContextPanel({
           <div className="flex items-start gap-3">
             <FileSearch className="mt-0.5 h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-sm font-medium">No evidence context built yet</p>
+              <p className="text-sm font-medium">No cited decision history yet</p>
               <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-                Build a workspace-isolated retrieval view from the current Cognivern ledger. It is advisory and never authorizes spend.
+                Build a workspace-isolated view of what happened, what was measured, and which receipts support this mandate. It is advisory and never authorizes spend.
               </p>
             </div>
           </div>
           <Button size="sm" onClick={onBuild}>
             <FileSearch className="h-3.5 w-3.5" />
-            Build evidence context
+            Build cited history
           </Button>
         </motion.div>
       )}
@@ -302,11 +302,11 @@ export function MandateContextPanel({
               </motion.details>
               );
             })}
-            {context.chunks.length === 0 && <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">The graph is synced, but no matching source text was returned yet. Refresh after indexing completes.</p>}
+            {context.chunks.length === 0 && <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">The evidence index is ready, but no matching source text was returned yet. Refresh after indexing completes, then review the authoritative ledger if the result remains empty.</p>}
           </div>
 
           <details className="mt-4 text-xs text-muted-foreground">
-            <summary className="cursor-pointer font-medium">Retrieval details</summary>
+            <summary className="cursor-pointer font-medium">Advanced evidence details</summary>
             <div className="mt-2 rounded-lg bg-muted/40 p-3 font-mono leading-5">
               <div>mode: {context.metrics.mode}</div>
               <div>reason: {context.metrics.routingReason}</div>

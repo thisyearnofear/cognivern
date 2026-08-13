@@ -19,6 +19,76 @@ function formatAmount(value: string) {
   }
 }
 
+type ReviewAction = 'select' | 'context' | 'recommendation' | 'statement' | 'publish' | 'done';
+
+interface ReviewProgress {
+  activeStep: number;
+  title: string;
+  description: string;
+  action: ReviewAction;
+  actionLabel?: string;
+}
+
+function getReviewProgress(
+  selectedMandateId: string,
+  context: MandateContext | null,
+  recommendation: AllocationRecommendation | null,
+  statement: FundedMandateStatement | null,
+  published: PublishedMandateStatementSummary[] | null,
+): ReviewProgress {
+  if (!selectedMandateId) {
+    return {
+      activeStep: 0,
+      title: 'Choose a mandate to begin',
+      description: 'Select a funded mandate to see its governed spend, cited decision history, and next allocation review.',
+      action: 'select',
+      actionLabel: 'Choose a mandate',
+    };
+  }
+  if (!context) {
+    return {
+      activeStep: 1,
+      title: 'Build the cited decision history',
+      description: 'Connect this mandate to its runs, receipts, outcomes, and policy-linked records. This is advisory and never authorizes spend.',
+      action: 'context',
+      actionLabel: 'Build cited history',
+    };
+  }
+  if (!recommendation) {
+    return {
+      activeStep: 2,
+      title: 'Review the next allocation',
+      description: 'Use the cited evidence to generate a bounded recommendation. An operator and the existing policy gate remain required.',
+      action: 'recommendation',
+      actionLabel: 'Review recommendation',
+    };
+  }
+  if (!statement) {
+    return {
+      activeStep: 3,
+      title: 'Preview the review report',
+      description: 'Inspect the read-only capital report before freezing a versioned snapshot for your team.',
+      action: 'statement',
+      actionLabel: 'Preview review report',
+    };
+  }
+  if (!published || published.length === 0) {
+    return {
+      activeStep: 3,
+      title: 'Freeze the review snapshot',
+      description: 'Publish an immutable, hashed version of this report for review. Publishing does not authorize or execute spend.',
+      action: 'publish',
+      actionLabel: 'Publish review snapshot',
+    };
+  }
+  return {
+    activeStep: 4,
+    title: 'Review complete',
+    description: 'A versioned snapshot is published. Revisit this flow when new governed spend or measured outcomes change the evidence.',
+    action: 'done',
+  };
+}
+
 export function CapitalPage() {
   const router = useRouter();
   const isConnected = useAuthStore((state) => state.isConnected);
@@ -219,6 +289,23 @@ export function CapitalPage() {
   }
 
   const selectedMandate = mandates.find((mandate) => mandate.id === selectedMandateId);
+  const review = getReviewProgress(selectedMandateId, context, recommendation, statement, published);
+  const reviewStages = ['Choose mandate', 'Build evidence', 'Review recommendation', 'Publish snapshot'];
+  const reviewBusy = (review.action === 'context' && contextLoading) || (review.action === 'recommendation' && recommendationLoading) || (review.action === 'statement' && statementLoading) || (review.action === 'publish' && publishing);
+
+  function runReviewAction() {
+    if (review.action === 'select') {
+      document.getElementById('capital-mandate-select')?.focus();
+    } else if (review.action === 'context') {
+      void loadContext();
+    } else if (review.action === 'recommendation') {
+      void loadRecommendation();
+    } else if (review.action === 'statement') {
+      void loadStatement();
+    } else if (review.action === 'publish') {
+      void publishStatement();
+    }
+  }
 
   if (error || !report) {
     return <PageState variant="error" title="Could not load attribution" message={error || 'The attribution report is unavailable.'} action={{ label: 'Retry', onClick: () => window.location.reload() }} />;
@@ -237,12 +324,13 @@ export function CapitalPage() {
       <section className="rounded-xl border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-semibold">Mandate review</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Select a mandate to inspect governed spend, evidence, and the next allocation decision.</p>
+            <h2 className="font-semibold">Review a mandate</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Follow the review path from governed spend to cited evidence and an operator-approved decision.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {selectedMandateId && <Button variant="outline" size="sm" onClick={loadStatement} disabled={statementLoading}><FileText className="h-3.5 w-3.5" />{statementLoading ? 'Generating…' : 'Preview statement'}</Button>}
             <select
+            id="capital-mandate-select"
             aria-label="Filter by funded mandate"
             className="rounded-md border bg-background px-3 py-2 text-sm"
             value={selectedMandateId}
@@ -271,6 +359,41 @@ export function CapitalPage() {
             <span className="ml-2 text-muted-foreground">{selectedMandate.objective}</span>
           </div>
         )}
+      </section>
+
+      <section aria-label="Guided mandate review" className="rounded-xl border border-primary/20 bg-primary/[.025] p-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-semibold">Guided review</h2>
+              <Badge variant="secondary">{review.activeStep === 4 ? 'Complete' : `Step ${review.activeStep + 1} of 4`}</Badge>
+            </div>
+            <p className="mt-2 text-sm font-medium">{review.title}</p>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{review.description}</p>
+          </div>
+          {review.action !== 'done' && (
+            <Button size="sm" variant={review.action === 'select' ? 'outline' : 'default'} onClick={runReviewAction} disabled={reviewBusy}>
+              {reviewBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {review.action === 'context' && !reviewBusy && <FileText className="h-3.5 w-3.5" />}
+              {review.action === 'recommendation' && !reviewBusy && <ShieldCheck className="h-3.5 w-3.5" />}
+              {review.action === 'statement' && !reviewBusy && <FileText className="h-3.5 w-3.5" />}
+              {review.action === 'publish' && !reviewBusy && <FileCheck className="h-3.5 w-3.5" />}
+              {reviewBusy ? `${review.action === 'context' ? 'Building' : review.action === 'recommendation' ? 'Reviewing' : review.action === 'statement' ? 'Generating' : 'Publishing'}…` : review.actionLabel}
+            </Button>
+          )}
+        </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-4">
+          {reviewStages.map((stage, index) => {
+            const complete = index < review.activeStep;
+            const active = index === review.activeStep && review.activeStep < 4;
+            return (
+              <div key={stage} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${active ? 'border-primary/40 bg-background font-medium text-foreground' : complete ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300' : 'border-transparent bg-background/50 text-muted-foreground'}`}>
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px]">{complete ? '✓' : index + 1}</span>
+                <span>{stage}</span>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       {syncHealth && (
@@ -347,7 +470,7 @@ export function CapitalPage() {
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{Math.round(recommendation.evidenceCompleteness.score * 100)}%</div><div className="text-xs text-muted-foreground">Evidence completeness</div></div>
-            <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{recommendation.evidenceCompleteness.verifiedOutcomeCount}</div><div className="text-xs text-muted-foreground">Verified outcomes</div></div>
+            <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{recommendation.evidenceCompleteness.verifiedOutcomeCount}</div><div className="text-xs text-muted-foreground">Measured results</div></div>
             <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{recommendation.evidenceCompleteness.verifiedSpendRecordCount}</div><div className="text-xs text-muted-foreground">Receipt-backed spends</div></div>
             <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{Object.entries(recommendation.operationalMetrics.costPerObservedOutcomeByAsset).map(([asset, cost]) => `${asset}: ${formatAmount(cost)}`).join(' · ') || '—'}</div><div className="text-xs text-muted-foreground">Cost per verified outcome (base units, mandate-wide)</div></div>
           </div>
@@ -377,8 +500,8 @@ export function CapitalPage() {
         <section id="statement" className="rounded-xl border bg-card p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="font-semibold">Statement candidate</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Read-only snapshot for review. It is hashed for integrity, not published or treated as ROI.</p>
+              <h2 className="font-semibold">Review report</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Read-only statement candidate for review. It is hashed for integrity, not published or treated as ROI.</p>
             </div>
             <code className="max-w-full truncate rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground" title={statement.contentHash}>sha256:{statement.contentHash}</code>
           </div>
@@ -396,15 +519,15 @@ export function CapitalPage() {
         <section className="rounded-xl border bg-card p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="font-semibold">Published statements</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Immutable versioned snapshots. Exports are redacted: internal sources, notes, and evidence references are stripped while capital, mandate framing, and hashes are preserved.</p>
+              <h2 className="font-semibold">Review snapshots</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Freeze a versioned review report. Exports are redacted; publishing does not authorize or execute spend.</p>
             </div>
             <Button variant="outline" size="sm" onClick={publishStatement} disabled={publishing}><FileCheck className="h-3.5 w-3.5" />{publishing ? 'Publishing…' : 'Publish snapshot'}</Button>
           </div>
           {published === null ? (
             <p className="mt-4 text-sm text-muted-foreground">Loading published snapshots…</p>
           ) : published.length === 0 ? (
-            <p className="mt-4 py-4 text-sm text-muted-foreground">No snapshots published yet. Publish a snapshot to freeze a versioned, hashed statement for review.</p>
+            <p className="mt-4 py-4 text-sm text-muted-foreground">No review snapshots yet. Publish one to freeze a versioned, hashed report for your team.</p>
           ) : (
             <div className="mt-4 divide-y">
               {published.map((item) => (
@@ -434,8 +557,8 @@ export function CapitalPage() {
 
       {selectedMandateId && (
         <section id="outcomes" className="rounded-xl border bg-card p-5">
-          <h2 className="font-semibold">Observed outcomes</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Recorded observations are evidence for review, not causal ROI claims.</p>
+          <h2 className="font-semibold">Measured results</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Recorded outcomes support review; they are evidence, not causal ROI claims.</p>
           <div className="mt-4 divide-y">
             {observations.map((observation) => (
               <div key={observation.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
