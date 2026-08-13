@@ -18,7 +18,8 @@ The frontend deploys to Vercel automatically on push to `main`. The Express back
 
 ### Artifact Deploy (Recommended)
 
-Builds locally, ships a tarball to the server, restarts PM2:
+Builds locally, ships a versioned tarball to the server, and activates it through
+an atomic release switch:
 
 ```bash
 pnpm deploy:hetzner
@@ -27,9 +28,46 @@ pnpm deploy:hetzner
 This runs two scripts:
 
 1. `tooling/scripts/deploy/build-backend-artifact.sh` — compiles backend, bundles `dist/` + `config/` + `package.json` into a `.tgz`
-2. `tooling/scripts/deploy/deploy-backend-artifact-hetzner.sh` — SCPs tarball, extracts, installs prod deps, restarts PM2, runs health check
+2. `tooling/scripts/deploy/deploy-backend-artifact-hetzner.sh` — uploads the tarball to an immutable SHA-named release, installs production dependencies, validates the candidate, atomically switches `/opt/cognivern/app`, restarts PM2, and verifies liveness/readiness
 
-No build happens on the server — it just extracts and restarts.
+No build happens on the server — it only installs and validates the uploaded
+artifact. The active app path remains stable for PM2 and nginx, while the
+release directory is immutable.
+
+Persistent state is kept outside releases:
+
+```text
+/opt/cognivern/shared/.env
+/opt/cognivern/shared/data
+/opt/cognivern/shared/logs
+```
+
+The first atomic deployment migrates a legacy `/opt/cognivern/app` directory
+into `/opt/cognivern/releases/legacy-<timestamp>` after candidate validation,
+so it remains available as a rollback target.
+
+### Inspect and roll back releases
+
+```bash
+# Show the active release and retained rollback targets
+pnpm deploy:releases
+
+# Roll back to the newest non-active release
+pnpm deploy:rollback
+
+# Or select a named release shown by deploy:releases
+pnpm deploy:rollback -- cognivern-backend-<timestamp>-<sha>
+```
+
+Rollback switches the stable app symlink atomically, restarts the single PM2
+process, requires both `/health` and `/health/ready` to pass, and persists the
+PM2 process list. Failed candidate health checks automatically restore the
+previous target when one is available. Deployments retain the active release,
+the immediate previous target, and a bounded history (five by default).
+
+No database or ledger data is stored in release directories, and rollback does
+not rewind SQLite, Canton, or any external transaction state; it only restores
+application code and dependencies.
 
 ### Quick Restart
 
@@ -136,10 +174,16 @@ A port mismatch between `$PORT` and nginx makes every public endpoint return 502
 ## Health Checks
 
 ```bash
-curl http://127.0.0.1:<PORT>/health           # from server
-curl https://<your-domain>/health?deep=true    # from outside
-curl -s https://<your-domain>/health/slo     # public SLO metrics (application-rate-limited)
+curl http://127.0.0.1:<PORT>/health           # liveness from server
+curl http://127.0.0.1:<PORT>/health/ready      # readiness from server
+curl https://<your-domain>/health?deep=true    # dependency health from outside
+curl -s https://<your-domain>/health/slo       # public SLO metrics (application-rate-limited)
 ```
+
+The deploy gate uses the lightweight `/health` and `/health/ready` endpoints so
+optional integrations cannot block a release. Deep health is for diagnosis and
+may report degraded optional services such as 0G or Filecoin without making the
+core API unready.
 
 ## SQLite Tables
 

@@ -28,6 +28,8 @@
     "start:agents": "node dist/backend/modules/agents/index.js",
     "start:server": "./tooling/scripts/dev/start-server.sh",
     "deploy:hetzner": "./tooling/scripts/deploy/deploy-latest-hetzner.sh",
+    "deploy:releases": "./tooling/scripts/deploy/list-releases-hetzner.sh",
+    "deploy:rollback": "./tooling/scripts/deploy/rollback-hetzner.sh",
     "dev:local": "./tooling/scripts/dev/local-dev.sh",
     "dev": "tsx watch src/index.ts",
     "dev:api": "tsx watch src/backend/modules/api/index.ts",
