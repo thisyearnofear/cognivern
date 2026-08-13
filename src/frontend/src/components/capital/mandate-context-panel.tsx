@@ -34,6 +34,14 @@ function relativeTime(iso: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+function syncJobLabel(status: 'queued' | 'processing' | 'failed' | 'completed' | undefined): string {
+  if (status === 'processing') return 'Working';
+  if (status === 'queued') return 'Queued';
+  if (status === 'failed') return 'Needs retry';
+  if (status === 'completed') return 'Recovered';
+  return 'Idle';
+}
+
 function sourceCounts(context: MandateContext): Array<[string, number]> {
   const counts = new Map<string, number>();
   for (const chunk of context.chunks) {
@@ -58,6 +66,7 @@ export function MandateContextPanel({
   const graphRelationCount = context
     ? (context.graphContext?.query_paths?.length ?? 0) + (context.graphContext?.chunk_relations?.length ?? 0)
     : 0;
+  const syncJob = context?.syncJob;
 
   return (
     <section className="overflow-hidden rounded-xl border bg-card">
@@ -72,6 +81,7 @@ export function MandateContextPanel({
                 <h2 className="font-semibold">Evidence context</h2>
                 {context?.enabled && <Badge variant="secondary">Derived review layer</Badge>}
                 {context && <Badge variant={context.syncStatus === 'failed' ? 'destructive' : 'outline'}>{context.syncStatus === 'synced' ? 'Up to date' : context.syncStatus === 'pending' ? 'Indexing' : context.syncStatus}</Badge>}
+                {syncJob && syncJob.status !== 'completed' && <Badge variant={syncJob.status === 'failed' ? 'destructive' : 'secondary'}>Recovery {syncJobLabel(syncJob.status)}</Badge>}
               </div>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Connect the mandate to its governed runs, spend, outcomes, and receipts before making the next allocation decision.
@@ -158,7 +168,7 @@ export function MandateContextPanel({
           transition={{ duration: 0.3 }}
           className="p-5"
         >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <motion.div
               initial={reduceMotion ? false : { opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -205,6 +215,16 @@ export function MandateContextPanel({
               transition={{ delay: 0.25, duration: 0.22 }}
               className="rounded-lg border bg-background/60 p-3 transition-colors hover:border-primary/30 hover:bg-primary/[.025]"
             >
+              <div className="flex items-center gap-2 text-xs text-muted-foreground"><RefreshCw className="h-3.5 w-3.5" /> Sync recovery</div>
+              <div className="mt-2 text-sm font-semibold tracking-tight">{syncJobLabel(syncJob?.status)}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{syncJob ? `${syncJob.attempts} attempt${syncJob.attempts === 1 ? '' : 's'} · durable queue` : 'No recovery job recorded'}</div>
+            </motion.div>
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.22 }}
+              className="rounded-lg border bg-background/60 p-3 transition-colors hover:border-primary/30 hover:bg-primary/[.025]"
+            >
               <div className="flex items-center gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5" /> Boundary</div>
               <div className="mt-2 text-sm font-semibold tracking-tight">Advisory only</div>
               <div className="mt-1 text-xs text-muted-foreground">Operator review and policy gate still required</div>
@@ -214,6 +234,11 @@ export function MandateContextPanel({
           {context.warning && context.syncStatus === 'pending' && (
             <div className="mt-4 rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 p-3 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">Context is still indexing.</span> {context.warning}
+            </div>
+          )}
+          {syncJob?.status === 'failed' && (
+            <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">Recovery needs attention.</span> The durable sync has exhausted its attempts. {syncJob.lastError || 'Refresh the context to retry.'}
             </div>
           )}
 

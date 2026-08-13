@@ -137,10 +137,11 @@ statement ──evidences──> run / transaction
 ```
 
 The returned context includes retrieved chunks, source provenance, graph paths,
-latency, retrieval mode, sync status, and ingestion counts. Provenance links go
-back to Cognivern records; raw outcome notes and external evidence references are
-intentionally omitted from the derived index. The Capital UI shows the context
-as advisory and links it to the existing statement/recommendation review flow:
+latency, retrieval mode, sync status, durable recovery-job status, and ingestion
+counts. Provenance links go back to Cognivern records; raw outcome notes and
+external evidence references are intentionally omitted from the derived index.
+The Capital UI surfaces the context as advisory, shows indexing/recovery progress,
+and links it to the existing statement/recommendation review flow:
 
 ```text
 HydraDB context → cited evidence → statement → bounded recommendation

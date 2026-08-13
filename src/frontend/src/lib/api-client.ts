@@ -229,6 +229,15 @@ export interface MandateStatementExport {
 
 export type MandateContextSyncStatus = 'disabled' | 'queued' | 'pending' | 'synced' | 'failed';
 
+export interface MandateContextSyncJobStatus {
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  attempts: number;
+  nextAttemptAt: string;
+  lastError?: string;
+  lastSyncedAt?: string;
+  updatedAt: string;
+}
+
 export interface MandateEvidenceProvenance {
   recordId?: string;
   kind: string;
@@ -247,6 +256,7 @@ export interface MandateContext {
   lastSyncedAt?: string;
   syncStatus: MandateContextSyncStatus;
   syncTrigger?: 'manual' | 'mandate_created' | 'mandate_updated' | 'outcome_created';
+  syncJob?: MandateContextSyncJobStatus;
   query: string;
   ingested: {
     mandate: number;

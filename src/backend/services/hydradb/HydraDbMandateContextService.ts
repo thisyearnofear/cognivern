@@ -41,6 +41,7 @@ export interface MandateContextSyncResult {
     runs: number;
   };
   warning?: string;
+  syncJob?: MandateContextSyncJobStatus;
 }
 
 export interface MandateEvidenceProvenance {
@@ -53,6 +54,15 @@ export interface MandateEvidenceProvenance {
   mandateId: string;
 }
 
+export interface MandateContextSyncJobStatus {
+  status: "queued" | "processing" | "completed" | "failed";
+  attempts: number;
+  nextAttemptAt: string;
+  lastError?: string;
+  lastSyncedAt?: string;
+  updatedAt: string;
+}
+
 interface HydraContextSyncJobRow {
   id: string;
   workspace_id: string;
@@ -62,6 +72,7 @@ interface HydraContextSyncJobRow {
   attempts: number;
   next_attempt_at: string;
   last_error: string | null;
+  last_synced_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -81,6 +92,29 @@ function mandateRuns(workspaceId: string, mandateId: string, runs: CreRun[]): Cr
     const attribution = getRunSpendAttribution(run);
     return attribution?.workspaceId === workspaceId && attribution.mandateId === mandateId;
   });
+}
+
+function syncJobStatus(workspaceId: string, mandateId: string): MandateContextSyncJobStatus | undefined {
+  try {
+    const row = getDb().prepare(
+      `SELECT status, attempts, next_attempt_at, last_error, last_synced_at, updated_at
+       FROM hydra_context_sync_jobs
+       WHERE workspace_id = ? AND mandate_id = ?
+       ORDER BY updated_at DESC LIMIT 1`,
+    ).get(workspaceId, mandateId) as Pick<HydraContextSyncJobRow, "status" | "attempts" | "next_attempt_at" | "last_error" | "last_synced_at" | "updated_at"> | undefined;
+    if (!row) return undefined;
+    return {
+      status: row.status,
+      attempts: row.attempts,
+      nextAttemptAt: row.next_attempt_at,
+      ...(row.last_error ? { lastError: row.last_error } : {}),
+      ...(row.last_synced_at ? { lastSyncedAt: row.last_synced_at } : {}),
+      updatedAt: row.updated_at,
+    };
+  } catch (error) {
+    logger.debug(`[hydradb] sync job status unavailable: ${error}`);
+    return undefined;
+  }
 }
 
 function emptyMetrics(reason: string): RetrievalMetrics {
@@ -503,10 +537,12 @@ export class HydraDbMandateContextService {
     if (!mandate) throw new Error("Mandate not found");
 
     const sync = await this.syncMandate(workspaceId, mandateId, "manual");
+    const job = syncJobStatus(workspaceId, mandateId);
     const query = `What evidence explains the current capital and governance state of funded mandate ${mandate.name} (mandate id ${mandate.id})? Include authorized objective, policy, agent runs, governed spend, vendors, outcomes, transactions, known unknowns, and what changed over time.`;
     if (!sync.enabled || sync.syncStatus === "failed") {
       return {
         ...sync,
+        ...(job ? { syncJob: job } : {}),
         query,
         chunks: [],
         sources: [],
@@ -532,6 +568,7 @@ export class HydraDbMandateContextService {
     const sources = (outcome.raw.sources ?? []).filter((source) => retainedIds.has(source.id));
     return {
       ...sync,
+      ...(job ? { syncJob: job } : {}),
       query,
       chunks,
       sources,
