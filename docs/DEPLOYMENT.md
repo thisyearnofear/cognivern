@@ -208,6 +208,23 @@ use a staging wallet. Do not run it with the production `.env` or production
 wallet. A passing staging round-trip is required before promoting Turbo to
 production; the core ledger remains fail-open if 0G Storage is unavailable.
 
+### 0G rollout boundary
+
+The SDK migration and the production endpoint promotion are separate releases.
+Deploying the SDK does **not** authorize changing the production indexer URL.
+Until the staging round-trip passes:
+
+- keep the production `ZEROG_INDEXER_URL` unchanged;
+- treat a degraded 0G Storage deep-health result as optional and non-blocking;
+- do not use the production wallet with `pnpm zerog:roundtrip`;
+- keep 0G on-chain governance proofs separate from Storage availability.
+
+After a staging pass, promote the indexer URL through the secure VPS environment
+workflow, restart PM2 with `--update-env`, and verify `/health`,
+`/health/ready`, and deep health before considering the Storage rail restored.
+A code rollback does not rewind Storage uploads, proof transactions, or other
+external ledger state.
+
 ## SQLite Tables
 
 Auto-created on first boot via idempotent `CREATE TABLE IF NOT EXISTS`:
