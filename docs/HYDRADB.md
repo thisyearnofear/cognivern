@@ -1,15 +1,18 @@
 # HydraDB — Agentic Memory & Cross-Source Retrieval
 
 HydraDB is an agentic-memory / retrieval substrate that cognivern uses as an
-**optional, toggleable** layer for cross-source retrieval over its audit and
-run-ledger data. When enabled, cognivern's spend-governance decisions, agent
-runs, and surrounding SaaS context (GitHub, Linear, Attio) are mirrored into HydraDB
+**optional, toggleable** layer for cross-source retrieval over its audit,
+run-ledger, and funded-mandate evidence. When enabled, cognivern's spend-
+governance decisions, mandates, agent runs, outcome observations, statements,
+and surrounding SaaS context (GitHub, Linear, Attio) are mirrored into HydraDB
 as `app_knowledge` records, and a fast/thinking-routed query layer answers
 multi-hop questions across all of them.
 
 This integration was built for the [HydraDB cross-source retrieval
 challenge](https://docs.hydradb.com) and is the retrieval substrate behind
-cognivern's agent-memory queries.
+cognivern's agent-memory queries. Its product-facing slice is the **Mandate
+Evidence Graph**: context for accountable capital decisions, not an
+independent authorization system.
 
 - **Docs**: https://docs.hydradb.com (v2 API)
 - **MCP**: https://github.com/usecortex/hydradb-mcp
@@ -59,11 +62,8 @@ Each CRE run becomes one `app_knowledge` record with:
   `policy_id`, `tx_hash`, `reason`, `ok`, `latency_ms`, `decision`,
   `workflow`, `chain`, `ts` (YYYY-MM-DD for temporal filters).
 - **`relations.ids`**: `cognivern_agent_<agentId>`, `cognivern_vendor_<vendor>`,
-  `cognivern_policy_<policyId>` — forceful relations that `mode: "thinking"`
-  traverses for multi-hop queries.
-- **`relations.ids`**: `cognivern_agent_<agentId>`, `cognivern_vendor_<vendor>`,
-  `cognivern_policy_<policyId>` — forceful relations that `mode: "thinking"`
-  traverses for multi-hop queries.
+  `cognivern_policy_<policyId>`, and `cognivern_mandate_<mandateId>` — HydraDB
+  forceful source links used by thinking-mode retrieval.
 
 External connectors (GitHub, Linear, **Attio**) push records with the **same
 `agent_id` / `vendor`** in `additional_metadata` so HydraDB's graph deduplicates
@@ -93,6 +93,101 @@ Every query records `RetrievalMetrics` — `mode`, `latencyMs`, `hydraDbCalls`,
 `resultCount`, `topScore`, `routingReason`, `estimatedCostUsd` — so the
 benchmark table is produced from real runs.
 
+## Mandate Evidence Graph
+
+The strategic product integration is the **Mandate Evidence Graph**. The
+Cognivern ledger and policy engine remain authoritative; HydraDB is a derived,
+workspace-isolated context index used to explain allocation decisions.
+
+The Capital page exposes **Evidence context** for a selected mandate. The
+endpoint first upserts the mandate, its outcomes, a read-only statement candidate,
+the bounded allocation recommendation, and mandate-linked spend runs, then runs
+a thinking-mode query over the graph:
+
+```text
+GET  /api/mandates/:mandateId/context
+POST /api/mandates/:mandateId/context/sync
+```
+
+Each workspace receives a dedicated HydraDB collection named
+`cognivern_workspace_<safeWorkspaceId>_<sha256-prefix>`. The digest prevents
+normalization collisions such as `team/a` and `team_a` from sharing a tenant.
+Records carry both `workspace_id` and `mandate_id` metadata. The workspace
+collection is the hard tenant boundary. For mandate context, the query includes
+the exact mandate identity and the service filters returned chunks and graph
+groups by `mandate_id` before exposing them; this preserves HydraDB graph context,
+which is currently omitted by HydraDB when nested `additional_metadata` filters
+are sent on the same query.
+
+```text
+collection = collectionForWorkspace(workspaceId)
+query = ... exact mandate name + mandate ID ...
+server-side result filter: additional_metadata.mandate_id === mandateId
+```
+
+Relations include:
+
+```text
+mandate ──authorizes──> agent
+mandate ──uses─────────> policy
+agent ────produced─────> run
+run ──────created──────> spend attribution
+run ──────supports─────> outcome observation
+statement ──evidences──> run / transaction
+```
+
+The returned context includes retrieved chunks, source provenance, graph paths,
+latency, retrieval mode, sync status, and ingestion counts. Provenance links go
+back to Cognivern records; raw outcome notes and external evidence references are
+intentionally omitted from the derived index. The Capital UI shows the context
+as advisory and links it to the existing statement/recommendation review flow:
+
+```text
+HydraDB context → cited evidence → statement → bounded recommendation
+→ explicit operator review → existing policy gate
+```
+
+HydraDB never authorizes spend, replaces the CRE ledger, mutates statements, or
+turns an observed outcome into a causal ROI claim. The enforced boundary is:
+
+```text
+HydraDB context → cited evidence → Cognivern statement
+→ bounded recommendation → explicit operator review → policy gate
+```
+
+Mandate creation/update and outcome creation enqueue best-effort syncs serially
+per workspace/mandate. Mutation responses never wait for HydraDB, and failures
+are visible only as derived context status. Spend execution, statement
+publication, and policy evaluation remain available when HydraDB is disabled,
+slow, or unavailable.
+
+### Sync and freshness contract
+
+- **Automatic:** API mandate create/update and outcome creation enqueue a
+  workspace-scoped sync.
+- **Manual:** `GET /api/mandates/:mandateId/context` builds the current derived
+  context; `POST /api/mandates/:mandateId/context/sync` explicitly refreshes it.
+- **Serialized:** updates for the same workspace/mandate are processed in order
+  so rapid edits converge instead of racing.
+- **Retrying:** detached best-effort syncs retry failed writes twice with small
+  bounded backoff; they never hold the mutation response open.
+- **Durable recovery:** queued sync jobs are persisted in SQLite and a worker
+  started with the API reclaims due or stale jobs after a process restart. The
+  queue is a recovery mechanism only; it does not authorize or execute spend.
+- **Freshness:** context responses include the current sync attempt (`syncedAt`)
+  and, when available, the last searchable sync (`lastSyncedAt`).
+- **Fail-open:** a failed or disabled sync returns structured status (`disabled`,
+  `queued`, `pending`, `synced`, or `failed`) and never blocks the authoritative
+  mutation.
+- **Derived-only:** HydraDB records may be rebuilt or discarded; Cognivern's
+  SQLite/MongoDB/CRE records, statements, recommendations, and policy decisions
+  remain the source of truth.
+
+The Capital page uses graph/thinking retrieval for evidence review because the
+review questions are multi-hop and provenance-sensitive. Simple factual lookups
+should use the fast path; the seeded evaluation measured the tradeoff below.
+
+
 ## Setup
 
 ### 1. Get a free HydraDB account
@@ -121,11 +216,59 @@ HYDRADB_ENABLED=true HYDRADB_API_KEY=... pnpm hydradb:smoke
 
 # Ingest the real cognivern audit ledger.
 HYDRADB_ENABLED=true HYDRADB_API_KEY=... pnpm hydradb:ingest-ledger
+
+# Seed an additive local mandate/workspace with spend + verified outcome evidence.
+pnpm hydradb:seed-mandate-eval
+
+# Compare 16 held-out mandate questions with graph vs no-graph retrieval.
+MANDATE_EVAL_WORKSPACE_ID=... MANDATE_EVAL_MANDATE_ID=... \
+  HYDRADB_ENABLED=true HYDRADB_API_KEY=... pnpm hydradb:mandate-eval
+
+# Additive local cohort: evidence-backed, evidence-gap, and early/no-spend states.
+pnpm hydradb:seed-mandate-eval-cohort
+MANDATE_EVAL_WORKSPACE_ID=hydra-eval-workspace \
+MANDATE_EVAL_MANDATE_IDS=hydra-eval-mandate,hydra-eval-mandate-hold,hydra-eval-mandate-early \
+HYDRADB_ENABLED=true HYDRADB_API_KEY=... pnpm hydradb:mandate-eval
 ```
 
 The smoke test exercises the full lifecycle (ensureDatabase → ingest →
 waitForIndexing → fast retrieve → thinking retrieve → multi-hop) and prints
 metrics for each. Exit 0 on success.
+
+The mandate evaluation writes `docs/hydradb-mandate-evaluation.json` and reports
+answer correctness, provenance correctness, graph-path usage, latency, and
+accuracy lift over the same scoped no-graph baseline. Its answer key is derived
+from Cognivern's authoritative records at run time, while the question wording
+is held out from the retrieval implementation. The evaluation is intentionally
+not an LLM-judge score: a trial passes only when expected answer fragments,
+expected object types, and (for graph questions) graph context are all present.
+
+Latest local seeded run (2026-08-13, workspace `hydra-eval-workspace`, mandate
+`hydra-eval-mandate`): graph retrieval passed **16/16 (100%)** and the no-graph
+baseline also passed **16/16 (100%)**, for **0 percentage points** of accuracy
+lift in this run. Graph path usage was **100%** on graph-required questions and
+both trials had **100%** provenance accuracy. Graph retrieval averaged **4.78s**
+versus **0.55s** for the baseline.
+
+This result is useful precisely because it limits the claim: graph mode did not
+improve answer accuracy on this small seeded scenario, but it did return the
+relationship context required by the graph questions and supports explainable
+review paths. Use graph mode for allocation review where relationship evidence
+matters, fast mode for simple lookups, and rerun the evaluation against
+representative mandates before changing routing defaults.
+
+Latest local cohort run (2026-08-13, three additive states, 48 questions): graph
+retrieval passed **48/48 (100%)** versus **47/48 (98%)** for the no-graph
+baseline, a **2 percentage-point lift**. Graph provenance and graph-path usage
+were both **100%**. Average latency was **5.03s** graph versus **0.69s**
+no-graph. The cohort artifact is
+`docs/hydradb-mandate-evaluation-cohort.json`; it is a local regression fixture,
+not production data.
+
+The detailed artifacts record every question, matched fragments, object types,
+latency, and top source title:
+`docs/hydradb-mandate-evaluation.json` (single mandate) and
+`docs/hydradb-mandate-evaluation-cohort.json` (multiple mandates).
 
 ## API
 
@@ -151,8 +294,7 @@ await hydraDbIngestion.ingestAppRecord({
   timestamp: iso,
   content: { text: '...' },
   tenant_metadata: {}, // empty (no schema on free tier)
-  additional_metadata: { agent_id, vendor, origin: 'slack', workflow, chain, ts },
-  additional_metadata: { author, channel, workspace },
+  additional_metadata: { author, channel, workspace, agent_id, vendor, origin: 'slack', workflow, chain, ts },
   relations: { ids: [`cognivern_agent_${agentId}`] },
 });
 
@@ -253,10 +395,13 @@ HydraDB does **not** pull from connectors itself — you extract and push via
 
 ## Difficult retrieval questions (challenge: category coverage)
 
-The question set lives in `tooling/scripts/hydradb/questions.ts` (to be added) and
-exercises every category the challenge names. Each is tagged with its
-retrieval category and expected answer, run against the ingested ledger +
-connectors:
+The general HydraDB challenge question set lives in
+`tooling/scripts/hydradb/questions.ts` and exercises every category the
+challenge names. The separate mandate evaluation lives in
+`tooling/scripts/hydradb/mandate-evaluation.ts`; it generates 16 questions from
+one authoritative mandate at runtime and compares graph retrieval with a
+no-graph baseline. Each set is tagged with its retrieval category and expected
+answer:
 
 | #   | Question                                                                                 | Category                   | Expected mode |
 | --- | ---------------------------------------------------------------------------------------- | -------------------------- | ------------- |
@@ -342,17 +487,42 @@ ways to verify:
 | `src/backend/services/hydradb/HydraDbClient.ts`           | HTTP client (v2 API, retry, envelope unwrap)                      |
 | `src/backend/services/hydradb/HydraDbIngestionService.ts` | CRE run → app_knowledge mapper + ingest                           |
 | `src/backend/services/hydradb/HydraDbRetrievalService.ts` | fast/thinking router + multi-hop + metrics                        |
+| `src/backend/services/hydradb/HydraDbMandateContextRecords.ts` | mandate/outcome/statement graph record mappers               |
+| `src/backend/services/hydradb/HydraDbMandateContextService.ts` | workspace sync, durable recovery worker, mandate context |
 | `src/backend/services/hydradb/index.ts`                   | barrel export + singletons                                        |
 | `tooling/scripts/hydradb/smoke-test.ts`                   | end-to-end lifecycle smoke test                                   |
+| `tooling/scripts/hydradb/mandate-evaluation.ts`           | single/cohort graph-vs-no-graph mandate evaluation                |
+| `tooling/scripts/hydradb/seed-mandate-evaluation.ts`      | additive local single-mandate evaluation seed                     |
+| `tooling/scripts/hydradb/seed-mandate-evaluation-cohort.ts` | additive local representative mandate cohort seed              |
 | `tooling/scripts/hydradb/ingest-cre-ledger.ts`            | ingest `data/cre-runs.jsonl` → HydraDB                            |
 | `tooling/scripts/hydradb/connectors/github.ts`            | GitHub issues/PRs/commits → HydraDB                               |
 | `tooling/scripts/hydradb/connectors/linear.ts`            | Linear issues → HydraDB                                           |
 | `tooling/scripts/hydradb/connectors/attio.ts`             | Attio people/companies → HydraDB                                  |
 | `src/config.ts`                                           | `HYDRADB_*` env schema (all optional, gated by `HYDRADB_ENABLED`) |
 
+## Production checklist
+
+Before treating mandate context as production-ready in a deployment, verify:
+
+- the real workspace collection contains only records for that workspace;
+- every returned chunk has the requested `mandate_id` and Cognivern provenance;
+- outcome notes and raw external references are absent from the derived index;
+- a disabled/unavailable HydraDB leaves spend, statements, recommendations, and
+  policy gates operational;
+- a representative held-out evaluation is run after schema, retrieval, or
+  routing changes;
+- graph latency is acceptable for the review surface, with a visible fallback
+  when indexing is pending or the service is unavailable;
+- the SQLite-backed sync job worker is running with the API, and stale jobs can
+  be inspected/retried without affecting authoritative spend records.
+
+The evaluation artifact is a useful regression signal, not a substitute for
+these tenancy and fail-open checks. Do not use the seeded IDs as production
+identifiers.
+
 ## Toggle / disable
 
 Set `HYDRADB_ENABLED=false` (or unset). All services return null/empty, make
 no network calls, and cognivern operates identically to pre-integration. No
 data is lost — the cognivern audit ledger (`data/cre-runs.jsonl` + MongoDB)
-remains the source of truth; HydraDB is a read-only mirror for retrieval.
+remains the source of truth; HydraDB is a derived context mirror for retrieval.

@@ -8,6 +8,8 @@ export function createMandateRoutes(controller: MandateController): Router {
   router.get("/mandates/:mandateId", (req, res) => controller.get(req, res));
   router.get("/mandates/:mandateId/statement", (req, res) => controller.getStatement(req, res));
   router.get("/mandates/:mandateId/recommendation", (req, res) => controller.getRecommendation(req, res));
+  router.get("/mandates/:mandateId/context", (req, res) => controller.getContext(req, res));
+  router.post("/mandates/:mandateId/context/sync", (req, res) => controller.syncContext(req, res));
   router.post("/mandates/:mandateId/statements", (req, res) => controller.publishStatement(req, res));
   router.get("/mandates/:mandateId/statements", (req, res) => controller.listStatements(req, res));
   router.get("/mandates/:mandateId/statements/:statementId", (req, res) => controller.getPublishedStatement(req, res));

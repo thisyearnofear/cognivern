@@ -13,7 +13,7 @@
  */
 
 import logger from "@backend/utils/logger.js";
-import { config } from "@/config.js";
+import { config } from "../../../config.js";
 import { HydraDbClient, type HydraDbQueryResult, type HydraDbChunk } from "./HydraDbClient.js";
 
 export type RetrievalMode = "fast" | "thinking";
@@ -30,6 +30,10 @@ export interface RetrievalRequest {
   additionalContext?: string;
   /** App-aware retrieval lane (for app-source records). */
   queryApps?: boolean;
+  /** Override graph traversal for evaluation baselines. */
+  graphContext?: boolean;
+  /** Override forceful relation traversal for evaluation baselines. */
+  queryForcefulRelations?: boolean;
 }
 
 export interface RetrievalMetrics {
@@ -192,8 +196,8 @@ export class HydraDbRetrievalService {
         queryBy: "hybrid",
         mode,
         maxResults: req.maxResults ?? 10,
-        graphContext: mode === "thinking",
-        queryForcefulRelations: mode === "thinking",
+        graphContext: req.graphContext ?? mode === "thinking",
+        queryForcefulRelations: req.queryForcefulRelations ?? mode === "thinking",
         additionalContext: req.additionalContext,
         metadataFilters: req.metadataFilters,
         queryApps: req.queryApps,

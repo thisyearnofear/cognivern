@@ -27,6 +27,25 @@ export {
 export type { AppKnowledgeRecord } from "./HydraDbIngestionService.js";
 
 export {
+  HydraDbMandateContextService,
+  hydraDbMandateContext,
+  mandateToHydraRecord,
+  outcomeToHydraRecord,
+  recommendationToHydraRecord,
+  statementToHydraRecord,
+  collectionForWorkspace,
+  chunkBelongsToMandate,
+  scopeGraphContext,
+} from "./HydraDbMandateContextService.js";
+export type {
+  MandateContextResult,
+  MandateContextSyncResult,
+  MandateContextSyncStatus,
+  MandateContextSyncTrigger,
+  MandateEvidenceProvenance,
+} from "./HydraDbMandateContextService.js";
+
+export {
   HydraDbRetrievalService,
   hydraDbRetrieval,
   classifyQuery,

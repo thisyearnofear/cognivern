@@ -1,0 +1,2814 @@
+{
+  "workspaceId": "hydra-eval-workspace",
+  "mandateIds": [
+    "hydra-eval-mandate",
+    "hydra-eval-mandate-hold",
+    "hydra-eval-mandate-early"
+  ],
+  "questionCount": 48,
+  "graphPassed": 48,
+  "noGraphPassed": 47,
+  "graphAccuracy": 1,
+  "noGraphAccuracy": 0.9791666666666666,
+  "accuracyLift": 0.020833333333333332,
+  "graphProvenanceAccuracy": 1,
+  "noGraphProvenanceAccuracy": 1,
+  "graphPathUsage": 1,
+  "graphAvgLatencyMs": 5026,
+  "noGraphAvgLatencyMs": 686,
+  "mandates": [
+    {
+      "workspaceId": "hydra-eval-workspace",
+      "mandateId": "hydra-eval-mandate",
+      "collection": "cognivern_workspace_hydra-eval-workspace_ad9764e345212944",
+      "questionCount": 16,
+      "graphPassed": 16,
+      "noGraphPassed": 15,
+      "graphAccuracy": 1,
+      "noGraphAccuracy": 0.9375,
+      "accuracyLift": 0.0625,
+      "graphProvenanceAccuracy": 1,
+      "noGraphProvenanceAccuracy": 1,
+      "graphPathUsage": 1,
+      "graphAvgLatencyMs": 5031,
+      "noGraphAvgLatencyMs": 691,
+      "results": [
+        {
+          "question": {
+            "id": "mandate_objective",
+            "category": "mandate_facts",
+            "question": "What is the authorized objective of funded mandate HydraDB mandate evaluation?",
+            "expectedAnswer": [
+              "Acquire qualified customers with accountable agent spend"
+            ],
+            "expectedObjectTypes": [
+              "mandate"
+            ],
+            "requiresGraphPath": false
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4012,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Acquire qualified customers with accountable agent spend"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "outcome",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB mandate evaluation"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 668,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Acquire qualified customers with accountable agent spend"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "outcome",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB mandate evaluation"
+          }
+        },
+        {
+          "question": {
+            "id": "mandate_budget",
+            "category": "mandate_facts",
+            "question": "What is the current USDC authorization and mandate status for HydraDB mandate evaluation?",
+            "expectedAnswer": [
+              "USDC",
+              "1000",
+              "active"
+            ],
+            "expectedObjectTypes": [
+              "mandate"
+            ],
+            "requiresGraphPath": false
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4495,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "USDC",
+              "1000",
+              "active"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation",
+              "outcome",
+              "run"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB mandate evaluation"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 766,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "USDC",
+              "1000",
+              "active"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation",
+              "run"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB mandate evaluation"
+          }
+        },
+        {
+          "question": {
+            "id": "authorized_agents",
+            "category": "ontology",
+            "question": "Which agents are authorized by this mandate, and which policies govern them?",
+            "expectedAnswer": [
+              "hydra-eval-agent",
+              "hydra-eval-policy"
+            ],
+            "expectedObjectTypes": [
+              "mandate"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 6437,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "hydra-eval-agent",
+              "hydra-eval-policy"
+            ],
+            "objectTypesFound": [
+              "run",
+              "custom",
+              "mandate_statement",
+              "outcome",
+              "mandate_recommendation",
+              "mandate"
+            ],
+            "topChunkTitle": "Spend run hydra-eval-run-001 — hydra-eval-agent → growth-analytics-vendor"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 648,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "hydra-eval-agent",
+              "hydra-eval-policy"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "run",
+              "outcome",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB mandate evaluation"
+          }
+        },
+        {
+          "question": {
+            "id": "spend_run_count",
+            "category": "temporal_state",
+            "question": "How many governed spend records contributed to this mandate's current statement?",
+            "expectedAnswer": [
+              "spend records: 1"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": false
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 8096,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spend records: 1"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "run",
+              "outcome",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB mandate evaluation"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 604,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spend records: 1"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate",
+              "run",
+              "outcome"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB mandate evaluation"
+          }
+        },
+        {
+          "question": {
+            "id": "contributing_runs",
+            "category": "multi_hop",
+            "question": "Which agent runs contributed governed spend to this mandate?",
+            "expectedAnswer": [
+              "hydra-eval-run-001"
+            ],
+            "expectedObjectTypes": [
+              "run"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4567,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "hydra-eval-run-001"
+            ],
+            "objectTypesFound": [
+              "run",
+              "custom",
+              "mandate_statement",
+              "mandate",
+              "mandate_recommendation",
+              "outcome"
+            ],
+            "topChunkTitle": "Spend run hydra-eval-run-001 — hydra-eval-agent → growth-analytics-vendor"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 606,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "hydra-eval-run-001"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate",
+              "run",
+              "outcome",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB mandate evaluation"
+          }
+        },
+        {
+          "question": {
+            "id": "spend_vendors",
+            "category": "multi_hop",
+            "question": "Which vendors or recipients received governed spend under this mandate?",
+            "expectedAnswer": [
+              "growth-analytics-vendor"
+            ],
+            "expectedObjectTypes": [
+              "run"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5672,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "growth-analytics-vendor"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "run",
+              "mandate",
+              "mandate_recommendation",
+              "outcome"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB mandate evaluation"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 623,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "growth-analytics-vendor"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "run",
+              "mandate",
+              "outcome",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB mandate evaluation"
+          }
+        },
+        {
+          "question": {
+            "id": "receipt_evidence",
+            "category": "provenance",
+            "question": "Which consumed spends have receipt-backed transaction evidence?",
+            "expectedAnswer": [
+              "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ],
+            "expectedObjectTypes": [
+              "run"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5141,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "outcome",
+              "mandate_recommendation",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB mandate evaluation"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 688,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "outcome",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Allocation review — consider_next_allocation"
+          }
+        },
+        {
+          "question": {
+            "id": "outcome_values",
+            "category": "outcomes",
+            "question": "What outcome values have been observed for this mandate?",
+            "expectedAnswer": [
+              "12",
+              "leads"
+            ],
+            "expectedObjectTypes": [
+              "outcome"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5589,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "12",
+              "leads"
+            ],
+            "objectTypesFound": [
+              "outcome",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation",
+              "mandate",
+              "run"
+            ],
+            "topChunkTitle": "Outcome observation — 12 leads"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 705,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "12",
+              "leads"
+            ],
+            "objectTypesFound": [
+              "outcome",
+              "custom",
+              "mandate_statement",
+              "mandate",
+              "mandate_recommendation",
+              "run"
+            ],
+            "topChunkTitle": "Outcome observation — 12 leads"
+          }
+        },
+        {
+          "question": {
+            "id": "outcome_provenance",
+            "category": "outcomes",
+            "question": "Which sources and confidence levels support the observed outcomes?",
+            "expectedAnswer": [
+              "CRM verification",
+              "independently_verified"
+            ],
+            "expectedObjectTypes": [
+              "outcome"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4307,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "CRM verification",
+              "independently_verified"
+            ],
+            "objectTypesFound": [
+              "outcome",
+              "custom",
+              "mandate_statement",
+              "run",
+              "mandate_recommendation",
+              "mandate"
+            ],
+            "topChunkTitle": "Outcome observation — 12 leads"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 726,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "CRM verification",
+              "independently_verified"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "outcome",
+              "mandate_recommendation",
+              "mandate",
+              "run"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB mandate evaluation"
+          }
+        },
+        {
+          "question": {
+            "id": "latest_mandate_change",
+            "category": "temporal_reasoning",
+            "question": "What changed most recently in the mandate context?",
+            "expectedAnswer": [
+              "2026-08-13"
+            ],
+            "expectedObjectTypes": [
+              "mandate"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4813,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "2026-08-13"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "outcome",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB mandate evaluation"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 803,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "2026-08-13"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "outcome",
+              "run",
+              "mandate_recommendation",
+              "mandate_statement"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB mandate evaluation"
+          }
+        },
+        {
+          "question": {
+            "id": "recommendation_stance",
+            "category": "decision_boundary",
+            "question": "What is Cognivern's current bounded allocation recommendation for this mandate?",
+            "expectedAnswer": [
+              "consider_next_allocation",
+              "ready"
+            ],
+            "expectedObjectTypes": [
+              "mandate_recommendation"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4496,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "consider_next_allocation",
+              "ready"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "outcome",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Allocation review — consider_next_allocation"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 746,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "consider_next_allocation",
+              "ready"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "outcome",
+              "mandate",
+              "mandate_statement"
+            ],
+            "topChunkTitle": "Allocation review — consider_next_allocation"
+          }
+        },
+        {
+          "question": {
+            "id": "recommendation_reason",
+            "category": "decision_boundary",
+            "question": "Why is the current allocation recommendation bounded this way?",
+            "expectedAnswer": [
+              "Verified outcomes were observed alongside receipt-backed spend within the measurement window."
+            ],
+            "expectedObjectTypes": [
+              "mandate_recommendation"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4257,
+            "hydraDbCalls": 1,
+            "resultCount": 13,
+            "matchedExpected": [
+              "Verified outcomes were observed alongside receipt-backed spend within the measurement window."
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "outcome",
+              "mandate",
+              "run"
+            ],
+            "topChunkTitle": "Allocation review — consider_next_allocation"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 652,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Verified outcomes were observed alongside receipt-backed spend within the measurement window."
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "outcome",
+              "mandate",
+              "run",
+              "mandate_statement"
+            ],
+            "topChunkTitle": "Allocation review — consider_next_allocation"
+          }
+        },
+        {
+          "question": {
+            "id": "known_unknown",
+            "category": "decision_boundary",
+            "question": "What known unknown must an operator review before allocating more capital?",
+            "expectedAnswer": [
+              "Known unknowns: none"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5686,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Known unknowns: none"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "outcome",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Allocation review — consider_next_allocation"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 747,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Known unknowns: none"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "mandate",
+              "outcome",
+              "run"
+            ],
+            "topChunkTitle": "Allocation review — consider_next_allocation"
+          }
+        },
+        {
+          "question": {
+            "id": "evidence_integrity",
+            "category": "provenance",
+            "question": "Which evidence objects and integrity hashes support the mandate statement?",
+            "expectedAnswer": [
+              "3ee0ee2f51991f52a8efb8e486cb6392e6a3fd7411e78d1dbcaee42b1282910a",
+              "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4425,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "3ee0ee2f51991f52a8efb8e486cb6392e6a3fd7411e78d1dbcaee42b1282910a",
+              "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "outcome",
+              "mandate_recommendation",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB mandate evaluation"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": false,
+            "answerCorrect": false,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 632,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "3ee0ee2f51991f52a8efb8e486cb6392e6a3fd7411e78d1dbcaee42b1282910a"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "outcome",
+              "mandate",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB mandate evaluation"
+          }
+        },
+        {
+          "question": {
+            "id": "outcome_timeline",
+            "category": "temporal_reasoning",
+            "question": "When were the mandate outcomes observed, and what changed over time?",
+            "expectedAnswer": [
+              "2026-08-13"
+            ],
+            "expectedObjectTypes": [
+              "outcome"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4155,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "2026-08-13"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "outcome",
+              "mandate_recommendation",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB mandate evaluation"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 723,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "2026-08-13"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "mandate",
+              "outcome"
+            ],
+            "topChunkTitle": "Allocation review — consider_next_allocation"
+          }
+        },
+        {
+          "question": {
+            "id": "governance_boundary",
+            "category": "decision_boundary",
+            "question": "Can the retrieved context authorize a new spend, and what remains required?",
+            "expectedAnswer": [
+              "explicit operator approval",
+              "governance boundary"
+            ],
+            "expectedObjectTypes": [
+              "mandate_recommendation"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4348,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "explicit operator approval",
+              "governance boundary"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "run",
+              "outcome",
+              "mandate"
+            ],
+            "topChunkTitle": "Allocation review — consider_next_allocation"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 718,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "explicit operator approval",
+              "governance boundary"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_recommendation",
+              "run",
+              "outcome",
+              "mandate_statement"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB mandate evaluation"
+          }
+        }
+      ],
+      "generatedAt": "2026-08-13T17:17:54.435Z"
+    },
+    {
+      "workspaceId": "hydra-eval-workspace",
+      "mandateId": "hydra-eval-mandate-hold",
+      "collection": "cognivern_workspace_hydra-eval-workspace_ad9764e345212944",
+      "questionCount": 16,
+      "graphPassed": 16,
+      "noGraphPassed": 16,
+      "graphAccuracy": 1,
+      "noGraphAccuracy": 1,
+      "accuracyLift": 0,
+      "graphProvenanceAccuracy": 1,
+      "noGraphProvenanceAccuracy": 1,
+      "graphPathUsage": 1,
+      "graphAvgLatencyMs": 4704,
+      "noGraphAvgLatencyMs": 660,
+      "results": [
+        {
+          "question": {
+            "id": "mandate_objective",
+            "category": "mandate_facts",
+            "question": "What is the authorized objective of funded mandate HydraDB evidence gap review?",
+            "expectedAnswer": [
+              "Test spend reconciliation before the next allocation"
+            ],
+            "expectedObjectTypes": [
+              "mandate"
+            ],
+            "requiresGraphPath": false
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5667,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Test spend reconciliation before the next allocation"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation",
+              "run"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB evidence gap review"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 715,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Test spend reconciliation before the next allocation"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation",
+              "run"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB evidence gap review"
+          }
+        },
+        {
+          "question": {
+            "id": "mandate_budget",
+            "category": "mandate_facts",
+            "question": "What is the current USDC authorization and mandate status for HydraDB evidence gap review?",
+            "expectedAnswer": [
+              "USDC",
+              "500",
+              "active"
+            ],
+            "expectedObjectTypes": [
+              "mandate"
+            ],
+            "requiresGraphPath": false
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 3972,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "USDC",
+              "500",
+              "active"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation",
+              "run"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB evidence gap review"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 465,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "USDC",
+              "500",
+              "active"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation",
+              "run"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB evidence gap review"
+          }
+        },
+        {
+          "question": {
+            "id": "authorized_agents",
+            "category": "ontology",
+            "question": "Which agents are authorized by this mandate, and which policies govern them?",
+            "expectedAnswer": [
+              "hydra-eval-agent",
+              "hydra-eval-policy"
+            ],
+            "expectedObjectTypes": [
+              "mandate"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4224,
+            "hydraDbCalls": 1,
+            "resultCount": 13,
+            "matchedExpected": [
+              "hydra-eval-agent",
+              "hydra-eval-policy"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "run",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB evidence gap review"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 645,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "hydra-eval-agent",
+              "hydra-eval-policy"
+            ],
+            "objectTypesFound": [
+              "run",
+              "custom",
+              "mandate",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Spend run hydra-eval-run-hold-001 — hydra-eval-agent → growth-analytics-vendor"
+          }
+        },
+        {
+          "question": {
+            "id": "spend_run_count",
+            "category": "temporal_state",
+            "question": "How many governed spend records contributed to this mandate's current statement?",
+            "expectedAnswer": [
+              "spend records: 1"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": false
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4918,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spend records: 1"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB evidence gap review"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 653,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spend records: 1"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB evidence gap review"
+          }
+        },
+        {
+          "question": {
+            "id": "contributing_runs",
+            "category": "multi_hop",
+            "question": "Which agent runs contributed governed spend to this mandate?",
+            "expectedAnswer": [
+              "hydra-eval-run-hold-001"
+            ],
+            "expectedObjectTypes": [
+              "run"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4511,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "hydra-eval-run-hold-001"
+            ],
+            "objectTypesFound": [
+              "run",
+              "custom",
+              "mandate",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Spend run hydra-eval-run-hold-001 — hydra-eval-agent → growth-analytics-vendor"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 638,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "hydra-eval-run-hold-001"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "run",
+              "mandate",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB evidence gap review"
+          }
+        },
+        {
+          "question": {
+            "id": "spend_vendors",
+            "category": "multi_hop",
+            "question": "Which vendors or recipients received governed spend under this mandate?",
+            "expectedAnswer": [
+              "growth-analytics-vendor"
+            ],
+            "expectedObjectTypes": [
+              "run"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4908,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "growth-analytics-vendor"
+            ],
+            "objectTypesFound": [
+              "run",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation",
+              "mandate"
+            ],
+            "topChunkTitle": "Spend run hydra-eval-run-hold-001 — hydra-eval-agent → growth-analytics-vendor"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 676,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "growth-analytics-vendor"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "run",
+              "mandate",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB evidence gap review"
+          }
+        },
+        {
+          "question": {
+            "id": "receipt_evidence",
+            "category": "provenance",
+            "question": "Which consumed spends have receipt-backed transaction evidence?",
+            "expectedAnswer": [
+              "spendRecordsWithTransactionEvidence"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5563,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spendRecordsWithTransactionEvidence"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB evidence gap review"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 644,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spendRecordsWithTransactionEvidence"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          }
+        },
+        {
+          "question": {
+            "id": "outcome_values",
+            "category": "outcomes",
+            "question": "What outcome values have been observed for this mandate?",
+            "expectedAnswer": [
+              "Outcomes: 0"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 3383,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Outcomes: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 794,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Outcomes: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB evidence gap review"
+          }
+        },
+        {
+          "question": {
+            "id": "outcome_provenance",
+            "category": "outcomes",
+            "question": "Which sources and confidence levels support the observed outcomes?",
+            "expectedAnswer": [
+              "Outcomes: 0"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5316,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Outcomes: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB evidence gap review"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 694,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Outcomes: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "run",
+              "mandate_recommendation",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB evidence gap review"
+          }
+        },
+        {
+          "question": {
+            "id": "latest_mandate_change",
+            "category": "temporal_reasoning",
+            "question": "What changed most recently in the mandate context?",
+            "expectedAnswer": [
+              "2026-08-12"
+            ],
+            "expectedObjectTypes": [
+              "mandate"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 3835,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "2026-08-12"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation",
+              "run"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB evidence gap review"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 488,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "2026-08-12"
+            ],
+            "objectTypesFound": [
+              "run",
+              "custom",
+              "mandate_recommendation",
+              "mandate_statement",
+              "mandate"
+            ],
+            "topChunkTitle": "Spend run hydra-eval-run-hold-001 — hydra-eval-agent → growth-analytics-vendor"
+          }
+        },
+        {
+          "question": {
+            "id": "recommendation_stance",
+            "category": "decision_boundary",
+            "question": "What is Cognivern's current bounded allocation recommendation for this mandate?",
+            "expectedAnswer": [
+              "hold",
+              "insufficient_evidence"
+            ],
+            "expectedObjectTypes": [
+              "mandate_recommendation"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4192,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "hold",
+              "insufficient_evidence"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "mandate",
+              "run"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 703,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "hold",
+              "insufficient_evidence"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "mandate",
+              "run"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          }
+        },
+        {
+          "question": {
+            "id": "recommendation_reason",
+            "category": "decision_boundary",
+            "question": "Why is the current allocation recommendation bounded this way?",
+            "expectedAnswer": [
+              "Known unknowns remain; the statement does not yet present a complete evidence package."
+            ],
+            "expectedObjectTypes": [
+              "mandate_recommendation"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4328,
+            "hydraDbCalls": 1,
+            "resultCount": 13,
+            "matchedExpected": [
+              "Known unknowns remain; the statement does not yet present a complete evidence package."
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "mandate",
+              "run"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 675,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Known unknowns remain; the statement does not yet present a complete evidence package."
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          }
+        },
+        {
+          "question": {
+            "id": "known_unknown",
+            "category": "decision_boundary",
+            "question": "What known unknown must an operator review before allocating more capital?",
+            "expectedAnswer": [
+              "No outcome observations were recorded in the mandate measurement window."
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5502,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "No outcome observations were recorded in the mandate measurement window."
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "mandate",
+              "run"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 622,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "No outcome observations were recorded in the mandate measurement window."
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "mandate",
+              "run"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB evidence gap review"
+          }
+        },
+        {
+          "question": {
+            "id": "evidence_integrity",
+            "category": "provenance",
+            "question": "Which evidence objects and integrity hashes support the mandate statement?",
+            "expectedAnswer": [
+              "fc975e8bc0801ffb8136e37c2d2a349f5459576296e84f920ebd11c9b41ac535"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5931,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "fc975e8bc0801ffb8136e37c2d2a349f5459576296e84f920ebd11c9b41ac535"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB evidence gap review"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 668,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "fc975e8bc0801ffb8136e37c2d2a349f5459576296e84f920ebd11c9b41ac535"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "mandate",
+              "run"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB evidence gap review"
+          }
+        },
+        {
+          "question": {
+            "id": "outcome_timeline",
+            "category": "temporal_reasoning",
+            "question": "When were the mandate outcomes observed, and what changed over time?",
+            "expectedAnswer": [
+              "Outcomes: 0"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4255,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Outcomes: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB evidence gap review"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 715,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Outcomes: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "run",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB evidence gap review"
+          }
+        },
+        {
+          "question": {
+            "id": "governance_boundary",
+            "category": "decision_boundary",
+            "question": "Can the retrieved context authorize a new spend, and what remains required?",
+            "expectedAnswer": [
+              "explicit operator approval",
+              "governance boundary"
+            ],
+            "expectedObjectTypes": [
+              "mandate_recommendation"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4761,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "explicit operator approval",
+              "governance boundary"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "mandate",
+              "run"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 770,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "explicit operator approval",
+              "governance boundary"
+            ],
+            "objectTypesFound": [
+              "run",
+              "custom",
+              "mandate_recommendation",
+              "mandate_statement",
+              "mandate"
+            ],
+            "topChunkTitle": "Spend run hydra-eval-run-hold-001 — hydra-eval-agent → growth-analytics-vendor"
+          }
+        }
+      ],
+      "generatedAt": "2026-08-13T17:19:20.295Z"
+    },
+    {
+      "workspaceId": "hydra-eval-workspace",
+      "mandateId": "hydra-eval-mandate-early",
+      "collection": "cognivern_workspace_hydra-eval-workspace_ad9764e345212944",
+      "questionCount": 16,
+      "graphPassed": 16,
+      "noGraphPassed": 16,
+      "graphAccuracy": 1,
+      "noGraphAccuracy": 1,
+      "accuracyLift": 0,
+      "graphProvenanceAccuracy": 1,
+      "noGraphProvenanceAccuracy": 1,
+      "graphPathUsage": 1,
+      "graphAvgLatencyMs": 5342,
+      "noGraphAvgLatencyMs": 705,
+      "results": [
+        {
+          "question": {
+            "id": "mandate_objective",
+            "category": "mandate_facts",
+            "question": "What is the authorized objective of funded mandate HydraDB early mandate?",
+            "expectedAnswer": [
+              "Validate a new agent workflow before funding expansion"
+            ],
+            "expectedObjectTypes": [
+              "mandate"
+            ],
+            "requiresGraphPath": false
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5509,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Validate a new agent workflow before funding expansion"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 623,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Validate a new agent workflow before funding expansion"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB early mandate"
+          }
+        },
+        {
+          "question": {
+            "id": "mandate_budget",
+            "category": "mandate_facts",
+            "question": "What is the current USDC authorization and mandate status for HydraDB early mandate?",
+            "expectedAnswer": [
+              "USDC",
+              "750",
+              "draft"
+            ],
+            "expectedObjectTypes": [
+              "mandate"
+            ],
+            "requiresGraphPath": false
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5210,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "USDC",
+              "750",
+              "draft"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 749,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "USDC",
+              "750",
+              "draft"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB early mandate"
+          }
+        },
+        {
+          "question": {
+            "id": "authorized_agents",
+            "category": "ontology",
+            "question": "Which agents are authorized by this mandate, and which policies govern them?",
+            "expectedAnswer": [
+              "hydra-eval-agent",
+              "hydra-eval-policy"
+            ],
+            "expectedObjectTypes": [
+              "mandate"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 3859,
+            "hydraDbCalls": 1,
+            "resultCount": 13,
+            "matchedExpected": [
+              "hydra-eval-agent",
+              "hydra-eval-policy"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 529,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "hydra-eval-agent",
+              "hydra-eval-policy"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB early mandate"
+          }
+        },
+        {
+          "question": {
+            "id": "spend_run_count",
+            "category": "temporal_state",
+            "question": "How many governed spend records contributed to this mandate's current statement?",
+            "expectedAnswer": [
+              "spend records: 0"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": false
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5887,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spend records: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 734,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spend records: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          }
+        },
+        {
+          "question": {
+            "id": "contributing_runs",
+            "category": "multi_hop",
+            "question": "Which agent runs contributed governed spend to this mandate?",
+            "expectedAnswer": [
+              "spend records: 0"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4555,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spend records: 0"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 806,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spend records: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          }
+        },
+        {
+          "question": {
+            "id": "spend_vendors",
+            "category": "multi_hop",
+            "question": "Which vendors or recipients received governed spend under this mandate?",
+            "expectedAnswer": [
+              "spend records: 0"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5407,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spend records: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 602,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spend records: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          }
+        },
+        {
+          "question": {
+            "id": "receipt_evidence",
+            "category": "provenance",
+            "question": "Which consumed spends have receipt-backed transaction evidence?",
+            "expectedAnswer": [
+              "spendRecordsWithTransactionEvidence"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 6380,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spendRecordsWithTransactionEvidence"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 812,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "spendRecordsWithTransactionEvidence"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "mandate"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          }
+        },
+        {
+          "question": {
+            "id": "outcome_values",
+            "category": "outcomes",
+            "question": "What outcome values have been observed for this mandate?",
+            "expectedAnswer": [
+              "Outcomes: 0"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4698,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Outcomes: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 854,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Outcomes: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          }
+        },
+        {
+          "question": {
+            "id": "outcome_provenance",
+            "category": "outcomes",
+            "question": "Which sources and confidence levels support the observed outcomes?",
+            "expectedAnswer": [
+              "Outcomes: 0"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5324,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Outcomes: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 704,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Outcomes: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          }
+        },
+        {
+          "question": {
+            "id": "latest_mandate_change",
+            "category": "temporal_reasoning",
+            "question": "What changed most recently in the mandate context?",
+            "expectedAnswer": [
+              "2026-08-11"
+            ],
+            "expectedObjectTypes": [
+              "mandate"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 7009,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "2026-08-11"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 609,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "2026-08-11"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB early mandate"
+          }
+        },
+        {
+          "question": {
+            "id": "recommendation_stance",
+            "category": "decision_boundary",
+            "question": "What is Cognivern's current bounded allocation recommendation for this mandate?",
+            "expectedAnswer": [
+              "hold",
+              "insufficient_evidence"
+            ],
+            "expectedObjectTypes": [
+              "mandate_recommendation"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4801,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "hold",
+              "insufficient_evidence"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "mandate"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 779,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "hold",
+              "insufficient_evidence"
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate",
+              "mandate_statement"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          }
+        },
+        {
+          "question": {
+            "id": "recommendation_reason",
+            "category": "decision_boundary",
+            "question": "Why is the current allocation recommendation bounded this way?",
+            "expectedAnswer": [
+              "Mandate status is \"draft\"; next-allocation reviews apply only to active mandates."
+            ],
+            "expectedObjectTypes": [
+              "mandate_recommendation"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 5960,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Mandate status is \"draft\"; next-allocation reviews apply only to active mandates."
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "mandate"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 738,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Mandate status is \"draft\"; next-allocation reviews apply only to active mandates."
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate",
+              "mandate_statement"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          }
+        },
+        {
+          "question": {
+            "id": "known_unknown",
+            "category": "decision_boundary",
+            "question": "What known unknown must an operator review before allocating more capital?",
+            "expectedAnswer": [
+              "No governed spend attribution records were found in the mandate measurement window."
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4147,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "No governed spend attribution records were found in the mandate measurement window."
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 640,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "No governed spend attribution records were found in the mandate measurement window."
+            ],
+            "objectTypesFound": [
+              "mandate_recommendation",
+              "custom",
+              "mandate_statement",
+              "mandate"
+            ],
+            "topChunkTitle": "Allocation review — hold"
+          }
+        },
+        {
+          "question": {
+            "id": "evidence_integrity",
+            "category": "provenance",
+            "question": "Which evidence objects and integrity hashes support the mandate statement?",
+            "expectedAnswer": [
+              "73a17b8fe724305fa9c7888d1ea78853a394a6856609a403a39345aa8aff9db3"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4197,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "73a17b8fe724305fa9c7888d1ea78853a394a6856609a403a39345aa8aff9db3"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 702,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "73a17b8fe724305fa9c7888d1ea78853a394a6856609a403a39345aa8aff9db3"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate_recommendation",
+              "mandate"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          }
+        },
+        {
+          "question": {
+            "id": "outcome_timeline",
+            "category": "temporal_reasoning",
+            "question": "When were the mandate outcomes observed, and what changed over time?",
+            "expectedAnswer": [
+              "Outcomes: 0"
+            ],
+            "expectedObjectTypes": [
+              "mandate_statement"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 7896,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Outcomes: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 703,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "Outcomes: 0"
+            ],
+            "objectTypesFound": [
+              "mandate_statement",
+              "custom",
+              "mandate",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Mandate statement — HydraDB early mandate"
+          }
+        },
+        {
+          "question": {
+            "id": "governance_boundary",
+            "category": "decision_boundary",
+            "question": "Can the retrieved context authorize a new spend, and what remains required?",
+            "expectedAnswer": [
+              "explicit operator approval",
+              "governance boundary"
+            ],
+            "expectedObjectTypes": [
+              "mandate_recommendation"
+            ],
+            "requiresGraphPath": true
+          },
+          "graph": {
+            "mode": "graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": true,
+            "latencyMs": 4626,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "explicit operator approval",
+              "governance boundary"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB early mandate"
+          },
+          "noGraph": {
+            "mode": "no_graph",
+            "passed": true,
+            "answerCorrect": true,
+            "provenanceCorrect": true,
+            "graphPathUsed": false,
+            "latencyMs": 703,
+            "hydraDbCalls": 1,
+            "resultCount": 12,
+            "matchedExpected": [
+              "explicit operator approval",
+              "governance boundary"
+            ],
+            "objectTypesFound": [
+              "mandate",
+              "custom",
+              "mandate_statement",
+              "mandate_recommendation"
+            ],
+            "topChunkTitle": "Funded mandate — HydraDB early mandate"
+          }
+        }
+      ],
+      "generatedAt": "2026-08-13T17:20:57.067Z"
+    }
+  ],
+  "generatedAt": "2026-08-13T17:20:57.080Z"
+}

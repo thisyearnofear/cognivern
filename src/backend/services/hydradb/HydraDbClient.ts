@@ -14,7 +14,7 @@
  */
 
 import logger from "@backend/utils/logger.js";
-import { config } from "@/config.js";
+import { config } from "../../../config.js";
 
 export interface HydraDbEnvelope<T = unknown> {
   success: boolean;

@@ -4,6 +4,7 @@ import {
   OutcomeObservationService,
   type CreateOutcomeObservationInput,
 } from "@backend/services/governance/OutcomeObservationService.js";
+import { hydraDbMandateContext } from "@backend/services/hydradb/HydraDbMandateContextService.js";
 
 const evidenceSchema = z.object({
   type: z.enum(["url", "artifact", "run", "transaction", "external_record"]),
@@ -81,6 +82,13 @@ export class OutcomeObservationController {
         parsed.data as CreateOutcomeObservationInput,
         idempotencyKey,
       );
+      if (!result.replayed) {
+        void hydraDbMandateContext.syncMandateBestEffort(
+          workspaceId,
+          req.params.mandateId,
+          "outcome_created",
+        );
+      }
       res.status(result.replayed ? 200 : 201).json({
         success: true,
         data: result.observation,

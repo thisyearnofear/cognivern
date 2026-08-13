@@ -167,7 +167,6 @@ async function main() {
     },
     relations: {
       ids: [`cognivern_run_${sampleRun.runId}`, "cognivern_agent_smoke-test-agent"],
-      properties: { relation: "same_agent" },
     },
   };
   const slackId = await hydraDbIngestion.ingestAppRecord(slackRecord);

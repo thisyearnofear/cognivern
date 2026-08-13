@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageState } from '@/components/ui/error-state';
-import { apiClient, type AllocationRecommendation, type FundedMandate, type FundedMandateStatement, type MandateStatementExport, type OutcomeObservation, type PublishedMandateStatementSummary, type SpendAttributionReport } from '@/lib/api-client';
+import { MandateContextPanel } from '@/components/capital/mandate-context-panel';
+import { apiClient, type AllocationRecommendation, type FundedMandate, type FundedMandateStatement, type MandateContext, type MandateStatementExport, type OutcomeObservation, type PublishedMandateStatementSummary, type SpendAttributionReport } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 
 function formatAmount(value: string) {
@@ -31,6 +32,9 @@ export function CapitalPage() {
   const [recommendation, setRecommendation] = useState<AllocationRecommendation | null>(null);
   const [recommendationLoading, setRecommendationLoading] = useState(false);
   const [recommendationError, setRecommendationError] = useState<string | null>(null);
+  const [context, setContext] = useState<MandateContext | null>(null);
+  const [contextLoading, setContextLoading] = useState(false);
+  const [contextError, setContextError] = useState<string | null>(null);
   const [published, setPublished] = useState<PublishedMandateStatementSummary[] | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [publishedError, setPublishedError] = useState<string | null>(null);
@@ -141,6 +145,21 @@ export function CapitalPage() {
     }
   }
 
+  async function loadContext() {
+    if (!selectedMandateId) return;
+    setContextLoading(true);
+    setContextError(null);
+    try {
+      const response = await apiClient.getMandateContext(selectedMandateId);
+      if (!response.success || !response.data) throw new Error(response.error || 'Could not build mandate context');
+      setContext(response.data);
+    } catch (reason) {
+      setContextError(reason instanceof Error ? reason.message : 'Could not build mandate context');
+    } finally {
+      setContextLoading(false);
+    }
+  }
+
   if (error || !report) {
     return <PageState variant="error" title="Could not load attribution" message={error || 'The attribution report is unavailable.'} action={{ label: 'Retry', onClick: () => window.location.reload() }} />;
   }
@@ -158,12 +177,11 @@ export function CapitalPage() {
       <section className="rounded-xl border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-semibold">Funded mandate context</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Filter governed spend without turning observations into causal ROI claims.</p>
+            <h2 className="font-semibold">Mandate review</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Select a mandate to inspect governed spend, evidence, and the next allocation decision.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {selectedMandateId && <Button variant="outline" size="sm" onClick={loadStatement} disabled={statementLoading}><FileText className="h-3.5 w-3.5" />{statementLoading ? 'Generating…' : 'Preview statement'}</Button>}
-            {selectedMandateId && <Button variant="outline" size="sm" onClick={loadRecommendation} disabled={recommendationLoading}><ShieldCheck className="h-3.5 w-3.5" />{recommendationLoading ? 'Reviewing…' : 'Review next allocation'}</Button>}
             <select
             aria-label="Filter by funded mandate"
             className="rounded-md border bg-background px-3 py-2 text-sm"
@@ -174,6 +192,8 @@ export function CapitalPage() {
               setStatementError(null);
               setRecommendation(null);
               setRecommendationError(null);
+              setContext(null);
+              setContextError(null);
               setPublished(null);
               setPublishedError(null);
               setExported(null);
@@ -205,6 +225,12 @@ export function CapitalPage() {
         </section>
       )}
 
+      {contextError && (
+        <section className="rounded-xl border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
+          {contextError}
+        </section>
+      )}
+
       {publishedError && (
         <section className="rounded-xl border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
           {publishedError}
@@ -212,7 +238,7 @@ export function CapitalPage() {
       )}
 
       {recommendation && (
-        <section className="rounded-xl border bg-card p-5">
+        <section id="recommendation" className="rounded-xl border bg-card p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="font-semibold">Next allocation review</h2>
@@ -238,8 +264,18 @@ export function CapitalPage() {
         </section>
       )}
 
+      {selectedMandateId && (
+        <MandateContextPanel
+          context={context}
+          loading={contextLoading}
+          onBuild={loadContext}
+          onReviewAllocation={loadRecommendation}
+          recommendationLoading={recommendationLoading}
+        />
+      )}
+
       {statement && (
-        <section className="rounded-xl border bg-card p-5">
+        <section id="statement" className="rounded-xl border bg-card p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="font-semibold">Statement candidate</h2>
@@ -298,7 +334,7 @@ export function CapitalPage() {
       )}
 
       {selectedMandateId && (
-        <section className="rounded-xl border bg-card p-5">
+        <section id="outcomes" className="rounded-xl border bg-card p-5">
           <h2 className="font-semibold">Observed outcomes</h2>
           <p className="mt-1 text-sm text-muted-foreground">Recorded observations are evidence for review, not causal ROI claims.</p>
           <div className="mt-4 divide-y">

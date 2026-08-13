@@ -207,7 +207,6 @@ function issueToRecord(issue: LinearIssue): AppKnowledgeRecord {
         referencedAgent ? `cognivern_agent_${referencedAgent}` : undefined,
         vendor !== "unknown" ? `cognivern_vendor_${vendor}` : undefined,
       ].filter((x): x is string => Boolean(x)),
-      properties: { relation: "same_actor" },
     },
   };
 }

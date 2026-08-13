@@ -148,7 +148,6 @@ function commitToRecord(commit: GitHubCommit): AppKnowledgeRecord {
     },
     relations: {
       ids: [`cognivern_agent_${author}`].filter(Boolean),
-      properties: { relation: "same_actor" },
     },
   };
 }
@@ -206,7 +205,6 @@ function issueToRecord(issue: GitHubIssue): AppKnowledgeRecord {
     relations: {
       // Link to the cognivern agent entity (same actor across sources).
       ids: [`cognivern_agent_${author}`].filter(Boolean),
-      properties: { relation: "same_actor" },
     },
   };
 }

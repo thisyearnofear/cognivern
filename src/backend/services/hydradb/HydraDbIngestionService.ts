@@ -14,7 +14,7 @@
  */
 
 import logger from "@backend/utils/logger.js";
-import { config } from "@/config.js";
+import { config } from "../../../config.js";
 import { HydraDbClient } from "./HydraDbClient.js";
 import type { CreRun } from "@backend/cre/types.js";
 
@@ -36,12 +36,15 @@ export interface AppKnowledgeRecord {
   collection?: string;
   title: string;
   type: string; // "audit" | "run" | "slack" | "github" | "linear" | ...
+  /** HydraDB app-source shape; custom records use kind=custom and fields.body. */
+  kind?: string;
+  fields?: Record<string, unknown>;
   url?: string;
   timestamp: string;
   content: { text: string; markdown?: string };
   tenant_metadata: Record<string, string>;
   additional_metadata: Record<string, unknown>;
-  relations?: { ids: string[]; properties?: Record<string, unknown> };
+  relations?: { ids: string[]; cortex_source_ids?: string[] };
 }
 
 export class HydraDbIngestionService {
@@ -115,45 +118,46 @@ export class HydraDbIngestionService {
    * Ingest a CRE run as app-knowledge. Extracts the spend intent + attestation
    * into a searchable record keyed on agentId + vendor + runId.
    */
-  async ingestCreRun(run: CreRun): Promise<string | null> {
+  async ingestCreRun(run: CreRun, collection = this.collection): Promise<string | null> {
     const client = this.getClient();
     if (!client) return null;
 
     const intent = this.extractSpendIntent(run);
-    if (!intent) {
-      // Non-spend runs (forecasting, registration) — still ingest as a run record.
-      const record = this.runToRecord(run, null);
-      return this.ingestRecords([record]);
-    }
-
-    const record = this.runToRecord(run, intent);
-    return this.ingestRecords([record]);
+    const record = this.runToRecord(run, intent, collection);
+    const ids = await this.ingestRecords([record], collection);
+    return ids?.[0] ?? null;
   }
 
   /** Ingest many CRE runs at once (batch). */
-  async ingestCreRuns(runs: CreRun[]): Promise<string[] | null> {
+  async ingestCreRuns(runs: CreRun[], collection = this.collection): Promise<string[] | null> {
     const client = this.getClient();
     if (!client) return null;
 
     const records: AppKnowledgeRecord[] = [];
     for (const run of runs) {
       const intent = this.extractSpendIntent(run);
-      records.push(this.runToRecord(run, intent));
+      records.push(this.runToRecord(run, intent, collection));
     }
-    const id = await this.ingestRecords(records);
-    return id ? [id] : null;
+    return this.ingestRecords(records, collection);
   }
 
   /**
    * Ingest an arbitrary app-knowledge record (Slack message, GitHub issue,
    * Linear ticket, etc.). This is the generic connector entry point.
    */
-  async ingestAppRecord(record: AppKnowledgeRecord): Promise<string | null> {
-    return this.ingestRecords([record]);
+  async ingestAppRecord(record: AppKnowledgeRecord, collection = this.collection): Promise<string | null> {
+    const ids = await this.ingestRecords([record], collection);
+    return ids?.[0] ?? null;
   }
 
-  async ingestAppRecords(records: AppKnowledgeRecord[]): Promise<string | null> {
-    return this.ingestRecords(records);
+  async ingestAppRecords(records: AppKnowledgeRecord[], collection = this.collection): Promise<string | null> {
+    const ids = await this.ingestRecords(records, collection);
+    return ids?.[0] ?? null;
+  }
+
+  /** Return every provider ingest id so callers can wait for all records in a batch. */
+  async ingestAppRecordIds(records: AppKnowledgeRecord[], collection = this.collection): Promise<string[] | null> {
+    return this.ingestRecords(records, collection);
   }
 
   /** Ingest a memory (user/agent-scoped preference or decision context). */
@@ -165,7 +169,7 @@ export class HydraDbIngestionService {
     infer?: boolean;
     userName?: string;
     additionalMetadata?: Record<string, unknown>;
-    relations?: { ids: string[] };
+    relations?: { ids: string[]; cortex_source_ids?: string[] };
   }): Promise<string | null> {
     const client = this.getClient();
     if (!client) return null;
@@ -213,30 +217,48 @@ export class HydraDbIngestionService {
   private runToRecord(
     run: CreRun,
     intent: Record<string, unknown> | null,
+    collection = this.collection,
   ): AppKnowledgeRecord {
-    const agentId = (intent?.agentId as string) ?? "unknown-agent";
+    const attribution = run.artifacts?.find((a) => a.type === "capital_attribution")?.data as
+      | Record<string, unknown>
+      | undefined;
+    const intentMetadata = intent?.metadata as Record<string, unknown> | undefined;
+    const agentId =
+      (intent?.agentId as string) ??
+      (attribution?.agentId as string) ??
+      "unknown-agent";
     const vendor =
-      ((intent?.metadata as Record<string, unknown>)?.vendor as string) ??
+      (intentMetadata?.vendor as string) ??
       (intent?.recipient as string) ??
+      (attribution?.vendor as string) ??
       "unknown-vendor";
-    const amount = intent?.amount as string | undefined;
-    const asset = intent?.asset as string | undefined;
-    const chain = ((intent?.metadata as Record<string, unknown>)?.chain as string) ?? undefined;
-    const reason = intent?.reason as string | undefined;
-    const policyId = ((intent?.metadata as Record<string, unknown>)?.policyId as string) ?? undefined;
-    const txHash = (run.artifacts?.find((a) => a.type === "attestation_result")?.data as
-      | { txHash?: string }
-      | undefined)?.txHash;
-    const status = (run.artifacts?.find((a) => a.type === "attestation_result")?.data as
-      | { status?: string }
-      | undefined)?.status;
+    const amount = (intent?.amount as string | undefined) ?? (attribution?.requestedAmount as string | undefined);
+    const asset = (intent?.asset as string | undefined) ?? (attribution?.asset as string | undefined);
+    const chain = (intentMetadata?.chain as string) ?? (attribution?.chain as string | undefined);
+    const reason = (intent?.reason as string | undefined) ?? (attribution?.reason as string | undefined);
+    const policyId = (intentMetadata?.policyId as string) ?? (attribution?.policyId as string | undefined);
+    const mandateId =
+      (intent?.mandateId as string) ??
+      (intentMetadata?.mandateId as string) ??
+      (attribution?.mandateId as string | undefined);
+    const txHash =
+      (attribution?.transactionHash as string | undefined) ??
+      (run.artifacts?.find((a) => a.type === "attestation_result")?.data as
+        | { txHash?: string }
+        | undefined)?.txHash;
+    const status =
+      (attribution?.status as string | undefined) ??
+      (run.artifacts?.find((a) => a.type === "attestation_result")?.data as
+        | { status?: string }
+        | undefined)?.status;
     const ts = run.startedAt;
 
     const text = [
       `Spend run ${run.runId} (${run.workflow}/${run.status ?? "unknown"})`,
-      intent
+      intent || attribution
         ? `Agent ${agentId} spent ${amount ?? "?"} ${asset ?? ""} to vendor ${vendor}${chain ? ` on ${chain}` : ""}.`
         : `Run ${run.runId} (${run.workflow}) ${run.status ?? "completed"}.`,
+      mandateId ? `This spend run was produced by agent ${agentId} under mandate ${mandateId} and policy ${policyId ?? "unknown"}.` : "",
       reason ? `Reason: ${reason}` : "",
       policyId ? `Policy: ${policyId}` : "",
       txHash ? `Tx: ${txHash}` : "",
@@ -249,7 +271,7 @@ export class HydraDbIngestionService {
     return {
       id: `cognivern_run_${run.runId}`,
       database: this.database,
-      collection: this.collection,
+      collection,
       title: `Spend run ${run.runId} — ${agentId} → ${vendor}`,
       type: "audit",
       url: `https://cognivern.persidian.com/os/runs/${run.runId}`,
@@ -259,10 +281,12 @@ export class HydraDbIngestionService {
       // additional_metadata (queryable via metadata_filters.additional_metadata).
       tenant_metadata: {},
       additional_metadata: {
+        workspace_id: run.projectId,
         run_id: run.runId,
         amount,
         asset,
         policy_id: policyId,
+        mandate_id: mandateId,
         tx_hash: txHash,
         reason,
         ok: run.ok,
@@ -276,33 +300,57 @@ export class HydraDbIngestionService {
         agent_id: agentId,
         vendor,
         origin: "cognivern_audit",
+        object_type: "run",
+        record_id: run.runId,
+        canonical_url: `/os/runs/${encodeURIComponent(run.runId)}`,
       },
       relations: {
         ids: [
           `cognivern_agent_${agentId}`,
           vendor ? `cognivern_vendor_${vendor}` : undefined,
           policyId ? `cognivern_policy_${policyId}` : undefined,
+          mandateId ? `cognivern_mandate_${mandateId}` : undefined,
         ].filter((x): x is string => Boolean(x)),
-        properties: { relation: "same_run" },
       },
     };
   }
 
-  private async ingestRecords(records: AppKnowledgeRecord[]): Promise<string | null> {
+  private async ingestRecords(records: AppKnowledgeRecord[], collection = this.collection): Promise<string[] | null> {
     const client = this.getClient();
     if (!client || records.length === 0) return null;
 
     try {
+      // HydraDB's app-aware lane expects tenant/sub-tenant identifiers and
+      // typed fields. Keep Cognivern's legacy content payload too, but provide
+      // the canonical shape so query_apps and relation traversal can inspect
+      // these records as app sources rather than generic documents.
+      const appKnowledge = records.map((record) => ({
+        ...record,
+        tenant_id: this.database,
+        sub_tenant_id: collection,
+        kind: record.kind ?? "custom",
+        fields: record.fields ?? { body: record.content.text },
+        ...(record.relations
+          ? {
+              relations: {
+                ...record.relations,
+                cortex_source_ids: record.relations.cortex_source_ids ?? record.relations.ids,
+              },
+            }
+          : {}),
+      }));
       const result = await client.ingest({
         type: "knowledge",
         database: this.database,
-        collection: this.collection,
-        appKnowledge: records,
+        collection,
+        appKnowledge,
         upsert: true,
       });
-      const id = result.results?.[0]?.id;
-      logger.info(`[hydradb] ingested ${records.length} record(s); ingest id=${id}`);
-      return id ?? null;
+      const ids = (result.results ?? [])
+        .map((item) => item.id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+      logger.info(`[hydradb] ingested ${records.length} record(s); ingest ids=${ids.join(",")}`);
+      return ids.length > 0 ? ids : null;
     } catch (err) {
       logger.warn(`[hydradb] app-knowledge ingest failed: ${err}`);
       return null;
@@ -314,7 +362,7 @@ export class HydraDbIngestionService {
    * Returns when status is graph_creation or completed (searchable),
    * or throws on errored/failed.
    */
-  async waitForIndexing(ids: string[], timeoutMs = 120_000): Promise<boolean> {
+  async waitForIndexing(ids: string[], timeoutMs = 120_000, collection = this.collection): Promise<boolean> {
     const client = this.getClient();
     if (!client) return false;
 
@@ -323,7 +371,7 @@ export class HydraDbIngestionService {
       try {
         const res = await client.getContextStatus({
           database: this.database,
-          collection: this.collection,
+          collection,
           ids,
         });
         const statuses = res.statuses ?? [];

@@ -227,6 +227,66 @@ export interface MandateStatementExport {
   payload: FundedMandateStatement;
 }
 
+export type MandateContextSyncStatus = 'disabled' | 'queued' | 'pending' | 'synced' | 'failed';
+
+export interface MandateEvidenceProvenance {
+  recordId?: string;
+  kind: string;
+  label: string;
+  url?: string;
+  timestamp?: string;
+  workspaceId: string;
+  mandateId: string;
+}
+
+export interface MandateContext {
+  enabled: boolean;
+  mandateId: string;
+  collection: string;
+  syncedAt: string;
+  lastSyncedAt?: string;
+  syncStatus: MandateContextSyncStatus;
+  syncTrigger?: 'manual' | 'mandate_created' | 'mandate_updated' | 'outcome_created';
+  query: string;
+  ingested: {
+    mandate: number;
+    outcomes: number;
+    statements: number;
+    recommendations: number;
+    runs: number;
+  };
+  chunks: Array<{
+    chunk_uuid?: string;
+    id?: string;
+    chunk_content?: string;
+    source_title?: string;
+    source_type?: string;
+    relevancy_score?: number;
+    additional_metadata?: Record<string, unknown>;
+  }>;
+  sources: Array<{
+    id: string;
+    title?: string;
+    type?: string;
+    url?: string;
+    timestamp?: string;
+  }>;
+  provenance: MandateEvidenceProvenance[];
+  graphContext?: {
+    query_paths?: unknown[];
+    chunk_relations?: unknown[];
+  };
+  metrics: {
+    mode: 'fast' | 'thinking';
+    latencyMs: number;
+    hydraDbCalls: number;
+    resultCount: number;
+    routingReason: string;
+    estimatedCostUsd: number;
+  };
+  warning?: string;
+}
+
 export interface AllocationRecommendation {
   version: 1;
   mandateId: string;
@@ -525,6 +585,14 @@ class ApiClient {
 
   async getMandateRecommendation(mandateId: string): Promise<ApiResponse<AllocationRecommendation>> {
     return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}/recommendation`);
+  }
+
+  async getMandateContext(mandateId: string): Promise<ApiResponse<MandateContext>> {
+    return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}/context`);
+  }
+
+  async syncMandateContext(mandateId: string): Promise<ApiResponse<Pick<MandateContext, 'enabled' | 'mandateId' | 'collection' | 'syncedAt' | 'lastSyncedAt' | 'syncStatus' | 'syncTrigger' | 'ingested' | 'warning'>>> {
+    return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}/context/sync`, { method: 'POST' });
   }
 
   async publishMandateStatement(mandateId: string): Promise<ApiResponse<PublishedMandateStatement>> {

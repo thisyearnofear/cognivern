@@ -47,6 +47,7 @@ import { EventsController } from './controllers/EventsController.js';
 import { ObservabilityController } from './controllers/ObservabilityController.js';
 import { MandateController } from './controllers/MandateController.js';
 import { OutcomeObservationController } from './controllers/OutcomeObservationController.js';
+import { hydraDbMandateContext } from '@backend/services/hydradb/HydraDbMandateContextService.js';
 import { ApiKeyController, resolveApiKeyRecord } from './controllers/ApiKeyController.js';
 import { isKeyManagementPath, requiredScopeForRoute } from './keyScopes.js';
 import { authMiddleware } from '@backend/middleware/authMiddleware.js';
@@ -147,6 +148,7 @@ export class ApiModule extends BaseService {
   }
 
   protected async onShutdown(): Promise<void> {
+    hydraDbMandateContext.stopBackgroundSyncWorker();
     if (this.server) {
       await new Promise<void>((resolve) => {
         this.server!.close(() => {
@@ -535,6 +537,10 @@ export class ApiModule extends BaseService {
         this.logger.debug(`${name} controller initialized`);
       }
     }
+
+    // HydraDB is an optional derived layer. Start its durable recovery worker
+    // only when enabled; it never participates in API request critical paths.
+    hydraDbMandateContext.startBackgroundSyncWorker();
   }
 
   private async setupRoutes(): Promise<void> {

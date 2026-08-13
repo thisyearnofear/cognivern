@@ -233,7 +233,6 @@ function personToRecord(rec: AttioRecord): AppKnowledgeRecord {
     },
     relations: {
       ids: relationIds,
-      properties: { relation: "same_actor" },
     },
   };
 }
@@ -276,7 +275,6 @@ function companyToRecord(rec: AttioRecord): AppKnowledgeRecord {
     },
     relations: {
       ids: [`cognivern_vendor_${vendor}`],
-      properties: { relation: "same_vendor" },
     },
   };
 }

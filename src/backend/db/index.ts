@@ -185,6 +185,26 @@ function migrate(db: Database.Database): void {
       FOREIGN KEY (workspace_id) REFERENCES workspaces(id)
     );
 
+    CREATE TABLE IF NOT EXISTS hydra_context_sync_jobs (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      mandate_id TEXT NOT NULL,
+      trigger TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'queued',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      next_attempt_at TEXT NOT NULL,
+      last_error TEXT,
+      last_synced_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (workspace_id) REFERENCES workspaces(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_hydra_context_sync_jobs_due
+      ON hydra_context_sync_jobs(status, next_attempt_at);
+    CREATE INDEX IF NOT EXISTS idx_hydra_context_sync_jobs_scope
+      ON hydra_context_sync_jobs(workspace_id, mandate_id, status);
+
     CREATE TABLE IF NOT EXISTS outcome_observations (
       id TEXT PRIMARY KEY,
       mandate_id TEXT NOT NULL,
@@ -243,6 +263,9 @@ function migrate(db: Database.Database): void {
   // idempotently here (key_mandates is created fresh by the template above).
   if (!columnExists(db, "api_keys", "imported")) {
     db.exec("ALTER TABLE api_keys ADD COLUMN imported INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!columnExists(db, "hydra_context_sync_jobs", "last_synced_at")) {
+    db.exec("ALTER TABLE hydra_context_sync_jobs ADD COLUMN last_synced_at TEXT");
   }
 
   // TABLE path above handles new databases; these targeted ALTERs keep an

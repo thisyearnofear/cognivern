@@ -9,6 +9,7 @@ import {
 import { AllocationRecommendationService } from "@backend/services/governance/AllocationRecommendationService.js";
 import { PublishedStatementService } from "@backend/services/governance/PublishedStatementService.js";
 import { StatementService } from "@backend/services/governance/StatementService.js";
+import { hydraDbMandateContext } from "@backend/services/hydradb/HydraDbMandateContextService.js";
 
 const metricSchema = z.object({
   id: z.string().min(1).max(120),
@@ -112,6 +113,30 @@ export class MandateController {
     }
   }
 
+  async getContext(req: Request, res: Response): Promise<void> {
+    const id = workspaceId(req, res);
+    if (!id) return;
+    try {
+      const context = await hydraDbMandateContext.getContext(id, req.params.mandateId);
+      res.json({ success: true, data: context });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to build mandate context";
+      res.status(/not found/i.test(message) ? 404 : 500).json({ success: false, error: message });
+    }
+  }
+
+  async syncContext(req: Request, res: Response): Promise<void> {
+    const id = workspaceId(req, res);
+    if (!id) return;
+    try {
+      const sync = await hydraDbMandateContext.syncMandate(id, req.params.mandateId);
+      res.json({ success: true, data: sync });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to sync mandate context";
+      res.status(/not found/i.test(message) ? 404 : 500).json({ success: false, error: message });
+    }
+  }
+
   async publishStatement(req: Request, res: Response): Promise<void> {
     const id = workspaceId(req, res);
     if (!id || !req.userId) return;
@@ -176,6 +201,7 @@ export class MandateController {
     }
     try {
       const mandate = FundedMandateService.create(id, parsed.data as CreateFundedMandateInput);
+      void hydraDbMandateContext.syncMandateBestEffort(id, mandate.id, "mandate_created");
       const body = { success: true, data: mandate } as Record<string, unknown>;
       if (idemKey) {
         await idempotencyStore.setRecord(idemKey, { statusCode: 201, body, createdAtMs: Date.now() });
@@ -209,6 +235,7 @@ export class MandateController {
         res.status(404).json({ success: false, error: "Mandate not found" });
         return;
       }
+      void hydraDbMandateContext.syncMandateBestEffort(id, mandate.id, "mandate_updated");
       const body = { success: true, data: mandate } as Record<string, unknown>;
       if (idemKey) {
         await idempotencyStore.setRecord(idemKey, { statusCode: 200, body, createdAtMs: Date.now() });
