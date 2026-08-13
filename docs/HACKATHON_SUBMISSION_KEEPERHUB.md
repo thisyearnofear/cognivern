@@ -2,10 +2,12 @@
 
 **Hackathon:** KeeperHub — Agents Onchain (DoraHacks)
 **Host:** KeeperHub
-**Window:** 2026-07-27 → 2026-08-13 submission deadline
+**Window:** 2026-07-27 → 2026-08-13 submission deadline (12:00 UTC+2)
 **Team:** thisyearnofear
 **Repository:** [github.com/thisyearnofear/cognivern](https://github.com/thisyearnofear/cognivern)
 **Live product:** [cognivern.vercel.app](https://cognivern.vercel.app) · [cognivern.persidian.com](https://cognivern.persidian.com) · API: `api.cognivern.persidian.com`
+**Demo video:** [youtu.be/G3Iaku3MjR0](https://youtu.be/G3Iaku3MjR0) (60s — Cognivern × KeeperHub)
+**Proof tx:** [Arbiscan](https://sepolia.arbiscan.io/tx/0xc0edc09d1d3f8f7c0b8abf29f10af8003e2955693ace42f7124c66a9d38c967f) · executionId `xq65c4bkaqoue6ybzm83f`
 
 ---
 
@@ -171,13 +173,13 @@ agent.sapience.keeperhub_rebalance
 
 ### 4. Live evidence
 
-The submission artifacts that satisfy the "link to a transaction your
-agent executed via KeeperHub" requirement are written by
-`tooling/scripts/demo/run-keeperhub-rebalance.ts` to:
+The submission artifacts that satisfy DoraHacks "How to submit" are:
 
+- **Demo video (60s):** https://youtu.be/G3Iaku3MjR0 — Cognivern × KeeperHub
+  (source: `cognivern-keeperhub-demo` HyperFrames render)
+- **Transaction via KeeperHub:** https://sepolia.arbiscan.io/tx/0xc0edc09d1d3f8f7c0b8abf29f10af8003e2955693ace42f7124c66a9d38c967f
 - `.artifacts/keeperhub-rebalance.json` — `{ intentId, runId, transferTxHash, transferExecutionId, transferFrom, txHash, traceId, chainId, explorerUrl, receiptVerification, executedAt }`
-- A demo video captured by `tooling/scripts/demo/capture-demo-screenshots.ts`
-  showing the policy approval + KeeperHub execution + SigNoz trace.
+  (written by `tooling/scripts/demo/run-keeperhub-rebalance.ts`)
 
 The rebalance script prints the policy verdict, the OTel `traceId`,
 the KeeperHub execution id, and the onchain `txHash` once the
