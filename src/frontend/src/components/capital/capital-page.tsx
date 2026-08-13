@@ -19,6 +19,12 @@ function formatAmount(value: string) {
   }
 }
 
+function formatDuration(value?: number): string {
+  if (value == null || !Number.isFinite(value)) return '—';
+  if (value < 1000) return `${Math.round(value)}ms`;
+  return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)}s`;
+}
+
 type ReviewAction = 'select' | 'context' | 'recommendation' | 'statement' | 'publish' | 'done';
 
 interface ReviewProgress {
@@ -170,6 +176,10 @@ export function CapitalPage() {
   const [syncHealth, setSyncHealth] = useState<MandateContextSyncHealth | null>(null);
   const [syncHealthLoading, setSyncHealthLoading] = useState(false);
   const [selectedMandateId, setSelectedMandateId] = useState('');
+  const [newMandateName, setNewMandateName] = useState('');
+  const [newMandateObjective, setNewMandateObjective] = useState('');
+  const [creatingMandate, setCreatingMandate] = useState(false);
+  const [createMandateError, setCreateMandateError] = useState<string | null>(null);
   const [observations, setObservations] = useState<OutcomeObservation[]>([]);
   const [statement, setStatement] = useState<FundedMandateStatement | null>(null);
   const [statementLoading, setStatementLoading] = useState(false);
@@ -262,6 +272,29 @@ export function CapitalPage() {
   if (loading) {
     return <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading attribution ledger…</div>;
   }
+  async function createMandate() {
+    const name = newMandateName.trim();
+    const objective = newMandateObjective.trim();
+    if (!name || !objective) {
+      setCreateMandateError('Add a name and objective so the mandate has a clear decision boundary.');
+      return;
+    }
+    setCreatingMandate(true);
+    setCreateMandateError(null);
+    try {
+      const response = await apiClient.createMandate({ name, objective, status: 'active' });
+      if (!response.success || !response.data) throw new Error(response.error || 'Could not create mandate');
+      setMandates((current) => [response.data!, ...current]);
+      setSelectedMandateId(response.data.id);
+      setNewMandateName('');
+      setNewMandateObjective('');
+    } catch (reason) {
+      setCreateMandateError(reason instanceof Error ? reason.message : 'Could not create mandate');
+    } finally {
+      setCreatingMandate(false);
+    }
+  }
+
   async function refreshSyncHealth() {
     setSyncHealthLoading(true);
     try {
@@ -435,6 +468,36 @@ export function CapitalPage() {
         )}
       </section>
 
+      {mandates.length === 0 && (
+        <section aria-label="Create spending mandate" className="rounded-xl border border-primary/25 bg-primary/[.035] p-5">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><ShieldCheck className="h-4 w-4" /></div>
+            <div className="min-w-0">
+              <h2 className="font-semibold">Create your first spending mandate</h2>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Give the work a name and objective first. You can add agents, budgets, policies, and success measures after the review loop is established.</p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="space-y-1.5 text-sm">
+              <span className="font-medium">Mandate name</span>
+              <input className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="e.g. Acquire qualified customers" value={newMandateName} onChange={(event) => setNewMandateName(event.target.value)} />
+            </label>
+            <label className="space-y-1.5 text-sm sm:col-span-2">
+              <span className="font-medium">Objective</span>
+              <textarea className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="What should governed agent spend accomplish?" value={newMandateObjective} onChange={(event) => setNewMandateObjective(event.target.value)} />
+            </label>
+          </div>
+          {createMandateError && <p className="mt-3 text-sm text-destructive">{createMandateError}</p>}
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <Button onClick={() => void createMandate()} disabled={creatingMandate}>
+              {creatingMandate ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileCheck className="h-3.5 w-3.5" />}
+              {creatingMandate ? 'Creating…' : 'Create mandate'}
+            </Button>
+            <span className="text-xs text-muted-foreground">Creation does not move funds; it establishes the review boundary.</span>
+          </div>
+        </section>
+      )}
+
       {selectedMandate && (
         <section aria-label="Selected mandate summary" className="rounded-xl border bg-card p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -527,17 +590,19 @@ export function CapitalPage() {
                 <RefreshCw className={syncHealthLoading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
                 Refresh
               </Button>
-              <Badge variant={!syncHealth.enabled ? 'outline' : syncHealth.failed > 0 ? 'destructive' : syncHealth.queued + syncHealth.processing > 0 ? 'secondary' : 'outline'}>
-                {!syncHealth.enabled ? 'HydraDB disabled' : syncHealth.failed > 0 ? `${syncHealth.failed} needs attention` : syncHealth.queued + syncHealth.processing > 0 ? 'Recovery active' : syncHealth.totalJobs === 0 ? 'No queued work' : 'Queue healthy'}
+              <Badge variant={!syncHealth.enabled ? 'outline' : syncHealth.failed > 0 ? 'destructive' : syncHealth.needsAttention ? 'secondary' : syncHealth.queued + syncHealth.processing > 0 ? 'secondary' : 'outline'}>
+                {!syncHealth.enabled ? 'HydraDB disabled' : syncHealth.failed > 0 ? `${syncHealth.failed} needs attention` : syncHealth.needsAttention ? 'Recovery is getting stale' : syncHealth.queued + syncHealth.processing > 0 ? 'Recovery active' : syncHealth.totalJobs === 0 ? 'No queued work' : 'Queue healthy'}
               </Badge>
             </div>
           </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-4">
+          <div className="mt-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
             {([
-              ['Queued', syncHealth.queued],
-              ['Processing', syncHealth.processing],
-              ['Completed', syncHealth.completed],
-              ['Failed', syncHealth.failed],
+              ['Queued', String(syncHealth.queued)],
+              ['Processing', String(syncHealth.processing)],
+              ['Completed', String(syncHealth.completed)],
+              ['Failed', String(syncHealth.failed)],
+              ['Retries', String(syncHealth.retryCount)],
+              ['Last sync', formatDuration(syncHealth.lastSyncLatencyMs)],
             ] as const).map(([label, value]) => (
               <div key={label} className="rounded-lg bg-muted/40 px-3 py-2">
                 <div className="text-lg font-semibold">{value}</div>
@@ -545,8 +610,8 @@ export function CapitalPage() {
               </div>
             ))}
           </div>
-          {syncHealth.oldestPendingAt && <p className="mt-3 text-xs text-muted-foreground">Oldest active recovery: {new Date(syncHealth.oldestPendingAt).toLocaleString()}</p>}
-          {syncHealth.failed > 0 && <p className="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-muted-foreground">Some derived context jobs need attention. The authoritative ledger and policy path remain operational; open the selected mandate to inspect its recovery details.</p>}
+          {syncHealth.oldestPendingAt && <p className="mt-3 text-xs text-muted-foreground">Oldest active recovery: {new Date(syncHealth.oldestPendingAt).toLocaleString()} · age {formatDuration(syncHealth.oldestPendingAgeMs)} · attention threshold {formatDuration(syncHealth.pendingAgeAlertMs)}</p>}
+          {syncHealth.needsAttention && <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-muted-foreground">Derived evidence recovery needs attention. The authoritative ledger and policy path remain operational; inspect the selected mandate or retry after HydraDB recovers.</p>}
         </section>
       )}
 

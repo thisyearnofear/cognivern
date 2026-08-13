@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import logger from "@backend/utils/logger.js";
+import { meter } from "@backend/observability/otel.js";
 import { getDb } from "@backend/db/index.js";
 import type { HydraDbChunk, HydraDbGraphContext, HydraDbSource } from "./HydraDbClient.js";
 import { hydraDbIngestion } from "./HydraDbIngestionService.js";
@@ -51,8 +52,13 @@ export interface MandateContextSyncHealth {
   processing: number;
   completed: number;
   failed: number;
+  retryCount: number;
   oldestPendingAt?: string;
+  oldestPendingAgeMs?: number;
   latestUpdatedAt?: string;
+  lastSyncLatencyMs?: number;
+  pendingAgeAlertMs: number;
+  needsAttention: boolean;
 }
 
 export interface MandateEvidenceProvenance {
@@ -73,6 +79,23 @@ export interface MandateContextSyncJobStatus {
   lastSyncedAt?: string;
   updatedAt: string;
 }
+
+const DEFAULT_PENDING_AGE_ALERT_MS = 5 * 60 * 1000;
+
+function pendingAgeAlertMs(): number {
+  const configured = Number(process.env.HYDRADB_SYNC_PENDING_AGE_MS);
+  return Number.isFinite(configured) && configured >= 30_000 ? configured : DEFAULT_PENDING_AGE_ALERT_MS;
+}
+
+const hydraSyncCounter = meter.createCounter("cognivern.hydradb.sync.jobs.total", {
+  description: "Mandate evidence sync jobs completed or failed",
+});
+const hydraSyncRetryCounter = meter.createCounter("cognivern.hydradb.sync.retries.total", {
+  description: "Mandate evidence sync retry attempts",
+});
+const hydraSyncLatency = meter.createHistogram("cognivern.hydradb.sync.duration.ms", {
+  description: "Mandate evidence sync duration in milliseconds",
+});
 
 interface HydraContextSyncJobRow {
   id: string;
@@ -318,11 +341,15 @@ export class HydraDbMandateContextService {
     mandateId: string,
     syncTrigger: MandateContextSyncTrigger,
   ): Promise<MandateContextSyncResult | undefined> {
+    const startedAt = Date.now();
     const job = this.claimSyncJob(jobId);
     if (!job) return undefined;
+    if (job.attempts > 1) hydraSyncRetryCounter.add(1, { trigger: syncTrigger });
     try {
       const result = await this.syncWithRetry(workspaceId, mandateId, syncTrigger);
       this.finishSyncJob(job, result);
+      hydraSyncCounter.add(1, { trigger: syncTrigger, outcome: result.syncStatus });
+      hydraSyncLatency.record(Date.now() - startedAt, { trigger: syncTrigger, outcome: result.syncStatus });
       return result;
     } catch (error) {
       const result: MandateContextSyncResult = {
@@ -336,6 +363,8 @@ export class HydraDbMandateContextService {
         warning: error instanceof Error ? error.message : "Durable HydraDB sync failed",
       };
       this.finishSyncJob(job, result);
+      hydraSyncCounter.add(1, { trigger: syncTrigger, outcome: result.syncStatus });
+      hydraSyncLatency.record(Date.now() - startedAt, { trigger: syncTrigger, outcome: result.syncStatus });
       return result;
     }
   }
@@ -373,35 +402,76 @@ export class HydraDbMandateContextService {
   }
 
   getSyncHealth(workspaceId: string): MandateContextSyncHealth {
+    const ageAlertMs = pendingAgeAlertMs();
     if (!this.ingestion.isEnabled()) {
-      return { enabled: false, totalJobs: 0, queued: 0, processing: 0, completed: 0, failed: 0 };
+      return {
+        enabled: false,
+        totalJobs: 0,
+        queued: 0,
+        processing: 0,
+        completed: 0,
+        failed: 0,
+        retryCount: 0,
+        pendingAgeAlertMs: ageAlertMs,
+        needsAttention: false,
+      };
     }
     try {
-      const row = getDb().prepare(
+      const db = getDb();
+      const row = db.prepare(
         `SELECT
            COUNT(*) AS total_jobs,
            SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END) AS queued,
            SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) AS processing,
            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed,
            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed,
+           SUM(CASE WHEN attempts > 1 THEN attempts - 1 ELSE 0 END) AS retry_count,
            MIN(CASE WHEN status IN ('queued', 'processing') THEN updated_at END) AS oldest_pending_at,
            MAX(updated_at) AS latest_updated_at
          FROM hydra_context_sync_jobs
          WHERE workspace_id = ?`,
       ).get(workspaceId) as Record<string, unknown>;
+      const latestCompleted = db.prepare(
+        `SELECT created_at, last_synced_at
+         FROM hydra_context_sync_jobs
+         WHERE workspace_id = ? AND status = 'completed' AND last_synced_at IS NOT NULL
+         ORDER BY last_synced_at DESC LIMIT 1`,
+      ).get(workspaceId) as { created_at?: string; last_synced_at?: string } | undefined;
+      const oldestPendingAt = typeof row.oldest_pending_at === "string" ? row.oldest_pending_at : undefined;
+      const oldestPendingAge = oldestPendingAt ? Math.max(0, Date.now() - new Date(oldestPendingAt).getTime()) : undefined;
+      const lastSyncLatency = latestCompleted?.created_at && latestCompleted.last_synced_at
+        ? Math.max(0, new Date(latestCompleted.last_synced_at).getTime() - new Date(latestCompleted.created_at).getTime())
+        : undefined;
+      const failed = Number(row.failed ?? 0);
+      const needsAttention = failed > 0 || (oldestPendingAge !== undefined && oldestPendingAge >= ageAlertMs);
       return {
         enabled: true,
         totalJobs: Number(row.total_jobs ?? 0),
         queued: Number(row.queued ?? 0),
         processing: Number(row.processing ?? 0),
         completed: Number(row.completed ?? 0),
-        failed: Number(row.failed ?? 0),
-        ...(typeof row.oldest_pending_at === "string" ? { oldestPendingAt: row.oldest_pending_at } : {}),
+        failed,
+        retryCount: Number(row.retry_count ?? 0),
+        ...(oldestPendingAt ? { oldestPendingAt } : {}),
+        ...(oldestPendingAge !== undefined ? { oldestPendingAgeMs: oldestPendingAge } : {}),
         ...(typeof row.latest_updated_at === "string" ? { latestUpdatedAt: row.latest_updated_at } : {}),
+        ...(lastSyncLatency !== undefined ? { lastSyncLatencyMs: lastSyncLatency } : {}),
+        pendingAgeAlertMs: ageAlertMs,
+        needsAttention,
       };
     } catch (error) {
       logger.debug(`[hydradb] sync health unavailable: ${error}`);
-      return { enabled: true, totalJobs: 0, queued: 0, processing: 0, completed: 0, failed: 0 };
+      return {
+        enabled: true,
+        totalJobs: 0,
+        queued: 0,
+        processing: 0,
+        completed: 0,
+        failed: 0,
+        retryCount: 0,
+        pendingAgeAlertMs: ageAlertMs,
+        needsAttention: false,
+      };
     }
   }
 

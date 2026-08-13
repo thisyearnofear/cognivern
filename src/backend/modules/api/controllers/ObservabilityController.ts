@@ -194,6 +194,9 @@ export class ObservabilityController {
         { name: "cognivern.http.request.duration.ms", source: "SloMetricsService", status: "live" },
         { name: "cognivern.agent.cycles.total", source: "SapienceTradingAgent", status: "live" },
         { name: "cognivern.agent.actions.total", source: "MetricsService", status: "live" },
+        { name: "cognivern.hydradb.sync.jobs.total", source: "HydraDbMandateContextService", status: "live" },
+        { name: "cognivern.hydradb.sync.retries.total", source: "HydraDbMandateContextService", status: "live" },
+        { name: "cognivern.hydradb.sync.duration.ms", source: "HydraDbMandateContextService", status: "live" },
       ],
     };
 

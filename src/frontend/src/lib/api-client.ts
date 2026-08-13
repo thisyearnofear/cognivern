@@ -236,8 +236,13 @@ export interface MandateContextSyncHealth {
   processing: number;
   completed: number;
   failed: number;
+  retryCount: number;
   oldestPendingAt?: string;
+  oldestPendingAgeMs?: number;
   latestUpdatedAt?: string;
+  lastSyncLatencyMs?: number;
+  pendingAgeAlertMs: number;
+  needsAttention: boolean;
 }
 
 export interface MandateContextSyncJobStatus {

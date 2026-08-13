@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import {
   apiClient,
+  type FundedMandate,
   type SealedBidRound,
   type SealedBidRoundSummary,
   type GovernanceTimeline,
@@ -164,6 +165,16 @@ export function useAgent(agentId: string) {
     agentId ? `/api/agents/${agentId}` : null,
     async () => (await apiClient.getAgent(agentId)).data as Agent,
     demoData,
+  );
+}
+
+/* ── Funded mandates ── */
+
+export function useMandates() {
+  return useApiWithDemo<FundedMandate[]>(
+    "/api/mandates",
+    async () => ((await apiClient.getMandates()).data || []) as FundedMandate[],
+    [],
   );
 }
 

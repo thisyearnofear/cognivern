@@ -28,7 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PageState } from '@/components/ui/error-state';
 import { AttentionSummary } from '@/components/ui/attention-summary';
 import { useRouter } from 'next/navigation';
-import { useAgents, useAuditLogs, usePolicies, useNetworkStatus } from '@/hooks/use-api';
+import { useAgents, useAuditLogs, useMandates, usePolicies, useNetworkStatus } from '@/hooks/use-api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useDemoStore } from '@/stores/demo-store';
 import dynamic from 'next/dynamic';
@@ -63,6 +63,7 @@ import { formatBudget } from '@/lib/budget-format';
 import { normalizeAuditLogs, computeAverageLatency } from '@/lib/normalizers';
 import { authFetch } from '@/lib/auth-fetch';
 import { AttributionCard } from './attribution-card';
+import { WorkspaceNextAction } from './workspace-next-action';
 
 /* ─── Animated counter hook ────────────────────────────────── */
 
@@ -305,6 +306,7 @@ export function Dashboard() {
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
   const { data: logs, isLoading: logsLoading, error: logsError } = useAuditLogs();
   const { data: policies, isLoading: policiesLoading } = usePolicies();
+  const { data: mandates, isLoading: mandatesLoading } = useMandates();
   const { data: apiKeysResponse, isLoading: apiKeysLoading } = useSWR(
     isAuthenticated ? 'dashboard-api-keys' : null,
     () => apiClient.getApiKeys(),
@@ -382,6 +384,7 @@ export function Dashboard() {
   const hasActiveAgent = agentList.some((agent) => agent.status !== 'inactive');
   const hasApiKey = (apiKeysResponse?.data || []).some((key) => !key.revokedAt);
   const setupLoading = agentsLoading || policiesLoading || logsLoading || apiKeysLoading;
+  const nextActionLoading = setupLoading || mandatesLoading;
   // Keep the checklist mounted for completed workspaces too: its compact
   // success state is the small emotional payoff and a durable handoff into
   // integration, rather than a one-time onboarding screen.
@@ -470,6 +473,18 @@ export function Dashboard() {
           hasAgent={hasActiveAgent}
           hasApiKey={hasApiKey}
           hasGovernedRequest={normalizedLogs.length > 0}
+        />
+      )}
+
+      {!nextActionLoading && (
+        <WorkspaceNextAction
+          demoMode={demoMode}
+          hasPolicy={hasActivePolicy}
+          hasAgent={hasActiveAgent}
+          hasApiKey={hasApiKey}
+          hasGovernedRequest={normalizedLogs.length > 0}
+          mandates={mandates || []}
+          attentionCount={attentionCount}
         />
       )}
 

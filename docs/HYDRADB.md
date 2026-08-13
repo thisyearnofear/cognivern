@@ -112,7 +112,20 @@ POST /api/mandates/:mandateId/context/sync
 
 The workspace health endpoint is intentionally aggregate-only: it reports queued,
 processing, completed, and failed derived-context jobs without exposing another
-workspace's records or any HydraDB credentials.
+workspace's records or any HydraDB credentials. It also reports retry count,
+last completed sync latency, oldest pending age, and a configurable stale-queue
+threshold (`HYDRADB_SYNC_PENDING_AGE_MS`, default 5 minutes). The Capital page
+uses those fields to distinguish healthy recovery from work that needs attention.
+
+Sync telemetry is emitted through the existing OpenTelemetry meter:
+
+- `cognivern.hydradb.sync.jobs.total` — completed/pending/failed job outcomes,
+  tagged by trigger and outcome;
+- `cognivern.hydradb.sync.retries.total` — durable recovery attempts;
+- `cognivern.hydradb.sync.duration.ms` — detached sync duration.
+
+These metrics are operational signals only. They do not participate in policy
+evaluation, authorization, signing, or execution.
 
 Each workspace receives a dedicated HydraDB collection named
 `cognivern_workspace_<safeWorkspaceId>_<sha256-prefix>`. The digest prevents
@@ -212,6 +225,7 @@ HYDRADB_API_KEY=your_key_here
 HYDRADB_DATABASE=cognivern          # default
 HYDRADB_COLLECTION=default          # logical partition; use agent_id for per-agent memory
 HYDRADB_DEFAULT_MODE=auto           # auto | fast | thinking
+HYDRADB_SYNC_PENDING_AGE_MS=300000  # optional stale-queue attention threshold
 ```
 
 ### 3. Verify the integration
@@ -234,6 +248,13 @@ MANDATE_EVAL_WORKSPACE_ID=... MANDATE_EVAL_MANDATE_ID=... \
 pnpm hydradb:seed-mandate-eval-cohort
 MANDATE_EVAL_WORKSPACE_ID=hydra-eval-workspace \
 MANDATE_EVAL_MANDATE_IDS=hydra-eval-mandate,hydra-eval-mandate-hold,hydra-eval-mandate-early \
+HYDRADB_ENABLED=true HYDRADB_API_KEY=... pnpm hydradb:mandate-eval
+
+# Confirmed disposable staging workspace (never production): write outside git.
+MANDATE_EVAL_WORKSPACE_ID=staging-workspace-id \
+MANDATE_EVAL_MANDATE_IDS=staging-mandate-a,staging-mandate-b \
+MANDATE_EVAL_CONFIRM_NONPROD=staging \
+MANDATE_EVAL_OUTPUT_PATH=.artifacts/hydradb/staging-evaluation.json \
 HYDRADB_ENABLED=true HYDRADB_API_KEY=... pnpm hydradb:mandate-eval
 ```
 
@@ -274,7 +295,33 @@ not production data.
 The detailed artifacts record every question, matched fragments, object types,
 latency, and top source title:
 `docs/hydradb-mandate-evaluation.json` (single mandate) and
-`docs/hydradb-mandate-evaluation-cohort.json` (multiple mandates).
+`docs/hydradb-mandate-evaluation-cohort.json` (multiple mandates). For staging,
+set `MANDATE_EVAL_OUTPUT_PATH` to an ignored `.artifacts/` path. Non-local
+workspace IDs are rejected unless `MANDATE_EVAL_CONFIRM_NONPROD=staging` is set
+explicitly.
+
+### Staging dogfood checklist
+
+Use a disposable staging workspace with representative mandates only. Do not
+create probe rounds, use production credentials, or evaluate a live workspace.
+Before running the evaluator:
+
+1. Confirm the workspace and mandate IDs belong to staging and contain no real
+   funds or production secrets.
+2. Confirm HydraDB is enabled for that staging API process and that its
+   collection is the expected workspace-scoped collection.
+3. Run the cohort with the explicit non-production confirmation and ignored
+   output path above.
+4. Record graph/no-graph accuracy, provenance, graph-path usage, p50/p95
+   latency, sync pending age, retry count, and terminal failures.
+5. In the UI, create/update a mandate and record an outcome; confirm the
+   Capital page moves from queued/processing to completed without blocking the
+   authoritative ledger. Disable HydraDB and repeat the core spend/review
+   path to verify fail-open behavior.
+
+The evaluator reads authoritative records but only performs retrieval; it does
+not authorize spend or create transactions. The UI dogfood step should remain
+manual and low-volume; no background polling or browser automation is required.
 
 ## API
 
@@ -522,7 +569,11 @@ Before treating mandate context as production-ready in a deployment, verify:
 - the SQLite-backed sync job worker is running with the API, and stale jobs can
   be inspected/retried without affecting authoritative spend records;
 - `/api/mandates/context/sync-health` is visible to operators and its failed-job
-  count is monitored before enabling production alerting.
+  count, retry count, stale pending age, and sync latency are monitored before
+  enabling production alerting;
+- OpenTelemetry exports `cognivern.hydradb.sync.jobs.total`,
+  `cognivern.hydradb.sync.retries.total`, and
+  `cognivern.hydradb.sync.duration.ms` when tracing is enabled.
 
 The evaluation artifact is a useful regression signal, not a substitute for
 these tenancy and fail-open checks. Do not use the seeded IDs as production

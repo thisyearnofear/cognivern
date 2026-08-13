@@ -15,6 +15,10 @@
  * Run a comma-separated cohort; this writes docs/hydradb-mandate-evaluation-cohort.json:
  *   MANDATE_EVAL_WORKSPACE_ID=... MANDATE_EVAL_MANDATE_IDS=id-a,id-b \
  *   HYDRADB_ENABLED=true HYDRADB_API_KEY=... pnpm hydradb:mandate-eval
+ *
+ * Non-local workspaces require MANDATE_EVAL_CONFIRM_NONPROD=staging and should
+ * write to an ignored artifact path with MANDATE_EVAL_OUTPUT_PATH. This keeps
+ * accidental production evaluation and tracked-artifact overwrites explicit.
  */
 
 import fs from "node:fs";
@@ -327,14 +331,20 @@ async function main() {
   const mandateIds = [...new Set((rawMandateIds ?? "").split(",").map((id) => id.trim()).filter(Boolean))];
   if (!workspaceId || mandateIds.length === 0) throw new Error("MANDATE_EVAL_WORKSPACE_ID and MANDATE_EVAL_MANDATE_ID(S) are required");
 
+  const localEvaluation = workspaceId.startsWith("hydra-eval-");
+  if (!localEvaluation && process.env.MANDATE_EVAL_CONFIRM_NONPROD !== "staging") {
+    throw new Error("Refusing a non-local mandate evaluation. Set MANDATE_EVAL_CONFIRM_NONPROD=staging only for a confirmed disposable staging workspace; never use production data.");
+  }
+
   const summaries: EvaluationSummary[] = [];
   for (const mandateId of mandateIds) {
     summaries.push(await evaluateMandate(workspaceId, mandateId));
   }
 
-  const output = path.resolve(process.cwd(), summaries.length === 1
+  const defaultOutput = summaries.length === 1
     ? "docs/hydradb-mandate-evaluation.json"
-    : "docs/hydradb-mandate-evaluation-cohort.json");
+    : "docs/hydradb-mandate-evaluation-cohort.json";
+  const output = path.resolve(process.cwd(), process.env.MANDATE_EVAL_OUTPUT_PATH?.trim() || defaultOutput);
   const report = summaries.length === 1 ? summaries[0] : aggregateSummaries(summaries);
   fs.writeFileSync(output, JSON.stringify(report, null, 2));
   const aggregate = summaries.length === 1 ? summaries[0]! : aggregateSummaries(summaries);
