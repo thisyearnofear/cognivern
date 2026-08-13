@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Activity, ArrowLeft, Download, ExternalLink, FileCheck, FileText, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Activity, ArrowLeft, CalendarClock, CheckCircle2, CircleAlert, Download, ExternalLink, FileCheck, FileText, History, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -87,6 +87,79 @@ function getReviewProgress(
     description: 'A versioned snapshot is published. Revisit this flow when new governed spend or measured outcomes change the evidence.',
     action: 'done',
   };
+}
+
+interface MandateActivity {
+  id: string;
+  title: string;
+  detail: string;
+  timestamp: string;
+  status: 'success' | 'pending' | 'info';
+  runHref?: string;
+  transactionHref?: string;
+}
+
+function buildMandateActivity(
+  selectedMandateId: string,
+  report: SpendAttributionReport,
+  observations: OutcomeObservation[],
+  context: MandateContext | null,
+  statement: FundedMandateStatement | null,
+  published: PublishedMandateStatementSummary[] | null,
+): MandateActivity[] {
+  const events: MandateActivity[] = report.records
+    .filter((record) => !selectedMandateId || record.mandateId === selectedMandateId)
+    .map((record) => ({
+      id: `run-${record.runId}-${record.allocationId}`,
+      title: record.status === 'consumed' ? 'Governed spend completed' : `Spend ${record.status}`,
+      detail: `${record.agentId} · ${record.asset} · ${formatAmount(record.consumedAmount)} consumed${record.outcome ? ` · ${record.outcome}` : ''}`,
+      timestamp: record.recordedAt,
+      status: record.status === 'consumed' ? 'success' : record.status === 'held' || record.status === 'uncertain' ? 'pending' : 'info',
+      runHref: `/runs/${encodeURIComponent(record.runId)}`,
+      ...(record.transactionLink ? { transactionHref: record.transactionLink } : {}),
+    }));
+
+  events.push(...observations.map((observation) => ({
+    id: `outcome-${observation.id}`,
+    title: observation.confidence === 'independently_verified' ? 'Measured result independently verified' : 'Measured result recorded',
+    detail: `${observation.value} ${observation.unit} · ${observation.source}`,
+    timestamp: observation.observedAt,
+    status: observation.confidence === 'independently_verified' ? ('success' as const) : ('info' as const),
+  })));
+
+  if (context) {
+    events.push({
+      id: `context-${context.syncedAt}`,
+      title: context.syncStatus === 'synced' ? 'Cited history refreshed' : 'Cited history accepted for indexing',
+      detail: `${context.metrics.resultCount} relevant sources · ${context.metrics.latencyMs}ms retrieval`,
+      timestamp: context.lastSyncedAt || context.syncedAt,
+      status: context.syncStatus === 'synced' ? 'success' : 'pending',
+    });
+  }
+
+  if (statement) {
+    events.push({
+      id: `statement-${statement.statementId}`,
+      title: 'Review report generated',
+      detail: `${statement.performance.evidenceCompleteness.spendRecordCount} spend records · ${statement.performance.evidenceCompleteness.outcomeCount} measured results`,
+      timestamp: statement.generatedAt,
+      status: 'info',
+    });
+  }
+
+  if (published) {
+    events.push(...published.map((snapshot) => ({
+      id: `snapshot-${snapshot.id}`,
+      title: `Review snapshot v${snapshot.version} published`,
+      detail: 'Immutable, hashed report available for review',
+      timestamp: snapshot.publishedAt,
+      status: 'success' as const,
+    })));
+  }
+
+  return events
+    .filter((event) => Number.isFinite(new Date(event.timestamp).getTime()))
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
 export function CapitalPage() {
@@ -292,7 +365,6 @@ export function CapitalPage() {
   const review = getReviewProgress(selectedMandateId, context, recommendation, statement, published);
   const reviewStages = ['Choose mandate', 'Build evidence', 'Review recommendation', 'Publish snapshot'];
   const reviewBusy = (review.action === 'context' && contextLoading) || (review.action === 'recommendation' && recommendationLoading) || (review.action === 'statement' && statementLoading) || (review.action === 'publish' && publishing);
-
   function runReviewAction() {
     if (review.action === 'select') {
       document.getElementById('capital-mandate-select')?.focus();
@@ -310,6 +382,8 @@ export function CapitalPage() {
   if (error || !report) {
     return <PageState variant="error" title="Could not load attribution" message={error || 'The attribution report is unavailable.'} action={{ label: 'Retry', onClick: () => window.location.reload() }} />;
   }
+
+  const activity = buildMandateActivity(selectedMandateId, report, observations, context, statement, published);
 
   return (
     <div className="space-y-6">
@@ -360,6 +434,47 @@ export function CapitalPage() {
           </div>
         )}
       </section>
+
+      {selectedMandate && (
+        <section aria-label="Selected mandate summary" className="rounded-xl border bg-card p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="truncate text-lg font-semibold">{selectedMandate.name}</h2>
+                <Badge variant={selectedMandate.status === 'active' ? 'secondary' : 'outline'}>{selectedMandate.status}</Badge>
+              </div>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{selectedMandate.objective}</p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <CalendarClock className="h-3.5 w-3.5" /> Updated {new Date(selectedMandate.updatedAt).toLocaleDateString()}
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg bg-muted/40 p-3">
+              <div className="text-xs text-muted-foreground">Budget position</div>
+              <div className="mt-2 space-y-1 text-sm">
+                {Object.entries(selectedMandate.budget.byAsset).map(([asset, budget]) => (
+                  <div key={asset} className="flex items-center justify-between gap-3">
+                    <span className="font-medium">{asset}</span>
+                    <span className="text-muted-foreground">{formatAmount(budget.consumedAmount)} / {formatAmount(budget.authorizedAmount)} used</span>
+                  </div>
+                ))}
+                {Object.keys(selectedMandate.budget.byAsset).length === 0 && <span className="text-muted-foreground">No budget recorded</span>}
+              </div>
+            </div>
+            <div className="rounded-lg bg-muted/40 p-3">
+              <div className="text-xs text-muted-foreground">Agents covered</div>
+              <div className="mt-2 text-xl font-semibold">{selectedMandate.agentIds.length}</div>
+              <div className="mt-1 text-xs text-muted-foreground">authorized identities for this mandate</div>
+            </div>
+            <div className="rounded-lg bg-muted/40 p-3">
+              <div className="text-xs text-muted-foreground">Success measures</div>
+              <div className="mt-2 text-xl font-semibold">{selectedMandate.successMetrics.length}</div>
+              <div className="mt-1 text-xs text-muted-foreground">results this review should track</div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section aria-label="Guided mandate review" className="rounded-xl border border-primary/20 bg-primary/[.025] p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -494,6 +609,56 @@ export function CapitalPage() {
           onReviewAllocation={loadRecommendation}
           recommendationLoading={recommendationLoading}
         />
+      )}
+
+      {selectedMandateId && (
+        <section aria-label="Mandate activity" className="rounded-xl border bg-card p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary"><History className="h-4 w-4" /></div>
+              <div>
+                <h2 className="font-semibold">What changed</h2>
+                <p className="mt-1 text-sm text-muted-foreground">A single view of governed spend, measured results, evidence refreshes, and review snapshots.</p>
+              </div>
+            </div>
+            <Badge variant="outline">{activity.length} event{activity.length === 1 ? '' : 's'}</Badge>
+          </div>
+          {activity.length === 0 ? (
+            <div className="mt-4 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No activity has been recorded for this mandate yet. Start with a governed spend or build its cited history.</div>
+          ) : (
+            <ol className="mt-5 space-y-4">
+              {activity.slice(0, 10).map((event, index) => {
+                const EventIcon = event.status === 'success' ? CheckCircle2 : event.status === 'pending' ? CircleAlert : History;
+                return (
+                  <li key={event.id} className="relative pl-8">
+                    {index < Math.min(activity.length, 10) - 1 && <span className="absolute left-[0.9rem] top-7 h-[calc(100%+1rem)] w-px bg-border" aria-hidden="true" />}
+                    <span className={`absolute left-0 top-0 flex h-7 w-7 items-center justify-center rounded-full border bg-background ${event.status === 'success' ? 'border-emerald-500/30 text-emerald-600' : event.status === 'pending' ? 'border-amber-500/30 text-amber-600' : 'border-border text-muted-foreground'}`}>
+                      <EventIcon className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="rounded-lg border bg-background/50 p-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <div className="text-sm font-medium">{event.title}</div>
+                          <div className="mt-1 text-sm text-muted-foreground">{event.detail}</div>
+                        </div>
+                        <time className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground" dateTime={event.timestamp} title={new Date(event.timestamp).toLocaleString()}>
+                          <CalendarClock className="h-3 w-3" /> {new Date(event.timestamp).toLocaleDateString()}
+                        </time>
+                      </div>
+                      {(event.runHref || event.transactionHref) && (
+                        <div className="mt-3 flex flex-wrap gap-3 border-t pt-2 text-xs">
+                          {event.runHref && <a className="inline-flex items-center gap-1 text-primary underline" href={event.runHref}>Open governed run <ExternalLink className="h-3 w-3" /></a>}
+                          {event.transactionHref && <a className="inline-flex items-center gap-1 text-primary underline" href={event.transactionHref} target="_blank" rel="noreferrer">Open receipt <ExternalLink className="h-3 w-3" /></a>}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+          {activity.length > 10 && <p className="mt-4 text-xs text-muted-foreground">Showing the 10 most recent events. Use the Runs and Audit pages for the complete record.</p>}
+        </section>
       )}
 
       {statement && (
