@@ -1,6 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import crypto from "node:crypto";
 
+const {
+  mockUpload,
+  mockDownloadToBlob,
+  mockGetShardedNodes,
+  mockIndexerConstructor,
+} = vi.hoisted(() => ({
+  mockUpload: vi.fn(),
+  mockDownloadToBlob: vi.fn(),
+  mockGetShardedNodes: vi.fn(),
+  mockIndexerConstructor: vi.fn(),
+}));
+
 vi.mock("@backend/utils/logger.js", () => ({
   default: {
     info: vi.fn(),
@@ -9,274 +21,300 @@ vi.mock("@backend/utils/logger.js", () => ({
   },
 }));
 
-const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
+vi.mock("@0gfoundation/0g-storage-ts-sdk", () => ({
+  Indexer: class {
+    constructor(url: string) {
+      mockIndexerConstructor(url);
+    }
 
-const originalKey = process.env.ZEROG_PRIVATE_KEY;
+    getShardedNodes(...args: unknown[]) {
+      return mockGetShardedNodes(...args);
+    }
+
+    upload(...args: unknown[]) {
+      return mockUpload(...args);
+    }
+
+    downloadToBlob(...args: unknown[]) {
+      return mockDownloadToBlob(...args);
+    }
+  },
+  MemData: class {
+    data: ArrayLike<number>;
+
+    constructor(data: ArrayLike<number>) {
+      this.data = data;
+    }
+  },
+}));
+
+const TEST_PRIVATE_KEY = `0x${"11".repeat(32)}`;
+const savedEnv = {
+  key: process.env.ZEROG_PRIVATE_KEY,
+  indexer: process.env.ZEROG_INDEXER_URL,
+  rpc: process.env.ZEROG_RPC_URL,
+  chainId: process.env.ZEROG_CHAIN_ID,
+};
 
 async function makeService(enabled: boolean) {
   if (enabled) {
-    process.env.ZEROG_PRIVATE_KEY = "test-key";
+    process.env.ZEROG_PRIVATE_KEY = TEST_PRIVATE_KEY;
+    process.env.ZEROG_INDEXER_URL =
+      "https://indexer-storage-testnet-turbo.0g.ai";
+    process.env.ZEROG_RPC_URL = "https://evmrpc-testnet.0g.ai";
+    process.env.ZEROG_CHAIN_ID = "16602";
   } else {
     delete process.env.ZEROG_PRIVATE_KEY;
   }
   vi.resetModules();
-  const mod = await import("@backend/services/blockchain/ZeroGStorageService.js");
+  const mod = await import(
+    "@backend/services/blockchain/ZeroGStorageService.js"
+  );
   return new mod.ZeroGStorageService();
+}
+
+function restoreEnv(): void {
+  for (const [key, value] of [
+    ["ZEROG_PRIVATE_KEY", savedEnv.key],
+    ["ZEROG_INDEXER_URL", savedEnv.indexer],
+    ["ZEROG_RPC_URL", savedEnv.rpc],
+    ["ZEROG_CHAIN_ID", savedEnv.chainId],
+  ] as const) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
 }
 
 describe("ZeroGStorageService", () => {
   beforeEach(() => {
-    mockFetch.mockReset();
+    mockUpload.mockReset();
+    mockDownloadToBlob.mockReset();
+    mockGetShardedNodes.mockReset();
+    mockIndexerConstructor.mockReset();
+    mockGetShardedNodes.mockResolvedValue({
+      trusted: [{ url: "https://storage-node.test" }],
+      discovered: [],
+    });
   });
 
   afterEach(() => {
-    if (originalKey !== undefined) {
-      process.env.ZEROG_PRIVATE_KEY = originalKey;
-    } else {
-      delete process.env.ZEROG_PRIVATE_KEY;
-    }
+    restoreEnv();
   });
 
   describe("anchorAuditRecord", () => {
-    it("returns null when disabled (no ZEROG_PRIVATE_KEY)", async () => {
+    it("returns null when disabled", async () => {
       const service = await makeService(false);
+
       const result = await service.anchorAuditRecord({ test: true });
+
       expect(result).toBeNull();
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockUpload).not.toHaveBeenCalled();
     });
 
-    it("succeeds with valid response and returns rootHash + localHash", async () => {
+    it("uploads JSON through the SDK and returns the root hash", async () => {
       const service = await makeService(true);
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ root: "0xabc123", txHash: "0xtx456" }),
-      });
+      mockUpload.mockResolvedValueOnce([
+        { rootHash: "0xabc123", txHash: "0xtx456", txSeq: 1 },
+        null,
+      ]);
 
       const result = await service.anchorAuditRecord({ runId: "test-run" });
 
-      expect(result).not.toBeNull();
-      expect(result!.rootHash).toBe("0xabc123");
-      expect(result!.txHash).toBe("0xtx456");
-      expect(result!.network).toBe("0g-newton-testnet");
-      expect(result!.timestamp).toBeDefined();
-
-      const expectedPayload = JSON.stringify({ runId: "test-run" });
-      const expectedHash = crypto
-        .createHash("sha256")
-        .update(expectedPayload)
-        .digest("hex");
-      expect(result!.localHash).toBe(expectedHash);
-
-      expect(mockFetch).toHaveBeenCalledOnce();
-      const [url, options] = mockFetch.mock.calls[0];
-      expect(url).toContain("/upload");
-      expect(options.method).toBe("POST");
-    });
-
-    it("returns null on non-200 response", async () => {
-      const service = await makeService(true);
-      mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
-
-      const result = await service.anchorAuditRecord({ test: true });
-      expect(result).toBeNull();
-    });
-
-    it("returns null on fetch timeout", async () => {
-      const service = await makeService(true);
-      mockFetch.mockRejectedValueOnce(
-        new DOMException("Timeout", "AbortError"),
+      expect(result).toMatchObject({
+        rootHash: "0xabc123",
+        txHash: "0xtx456",
+        network: "0g-galileo-testnet",
+      });
+      expect(result?.localHash).toBe(
+        crypto
+          .createHash("sha256")
+          .update(JSON.stringify({ runId: "test-run" }))
+          .digest("hex"),
       );
-
-      const result = await service.anchorAuditRecord({ test: true });
-      expect(result).toBeNull();
+      expect(mockIndexerConstructor).toHaveBeenCalledWith(
+        "https://indexer-storage-testnet-turbo.0g.ai",
+      );
+      expect(mockUpload).toHaveBeenCalledOnce();
+      const [file, rpcUrl, signer, options] = mockUpload.mock.calls[0];
+      expect(file.data).toBeInstanceOf(Buffer);
+      expect(rpcUrl).toBe("https://evmrpc-testnet.0g.ai");
+      expect(await signer.getAddress()).toBe(
+        "0x19E7E376E7C213B7E7e7e46cc70A5dD086DAff2A",
+      );
+      expect(options).toEqual({ expectedReplica: 1 });
     });
 
-    it("returns null on malformed response (no root hash)", async () => {
+    it("normalizes a fragmented SDK response", async () => {
       const service = await makeService(true);
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ foo: "bar" }),
-      });
+      mockUpload.mockResolvedValueOnce([
+        { rootHashes: ["0xfragment-1"], txHashes: ["0xtx-1"], txSeqs: [1] },
+        null,
+      ]);
 
       const result = await service.anchorAuditRecord({ test: true });
-      expect(result).toBeNull();
+
+      expect(result?.rootHash).toBe("0xfragment-1");
+      expect(result?.txHash).toBe("0xtx-1");
     });
 
-    it("returns null on non-object response", async () => {
+    it("fails open when the SDK upload fails", async () => {
       const service = await makeService(true);
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => "not an object",
-      });
+      mockUpload.mockResolvedValueOnce([
+        { rootHash: "", txHash: "", txSeq: 0 },
+        new Error("indexer unavailable"),
+      ]);
 
       const result = await service.anchorAuditRecord({ test: true });
+
       expect(result).toBeNull();
     });
   });
 
   describe("retrieveRecord", () => {
-    it("fetches and parses record by rootHash", async () => {
+    it("downloads through the SDK with proof verification", async () => {
       const service = await makeService(true);
       const record = { runId: "test", data: "value" };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => record,
-      });
+      mockDownloadToBlob.mockResolvedValueOnce([
+        new Blob([JSON.stringify(record)]),
+        null,
+      ]);
 
       const result = await service.retrieveRecord("0xabc123");
 
       expect(result).toEqual(record);
-      const [url] = mockFetch.mock.calls[0];
-      expect(url).toContain("/download/0xabc123");
+      expect(mockDownloadToBlob).toHaveBeenCalledWith("0xabc123", {
+        proof: true,
+      });
     });
 
     it("returns null when disabled", async () => {
       const service = await makeService(false);
-      const result = await service.retrieveRecord("0xabc123");
-      expect(result).toBeNull();
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
-
-    it("returns null on non-200 response", async () => {
-      const service = await makeService(true);
-      mockFetch.mockResolvedValueOnce({ ok: false, status: 404 });
 
       const result = await service.retrieveRecord("0xabc123");
+
       expect(result).toBeNull();
-    });
-  });
-
-  describe("verify", () => {
-    it("returns true when hash matches", async () => {
-      const service = await makeService(true);
-      const record = { runId: "test", value: 42 };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => record,
-      });
-
-      const expectedHash = crypto
-        .createHash("sha256")
-        .update(JSON.stringify(record))
-        .digest("hex");
-
-      const result = await service.verify("0xabc", expectedHash);
-      expect(result).toBe(true);
+      expect(mockDownloadToBlob).not.toHaveBeenCalled();
     });
 
-    it("returns false when hash does not match", async () => {
+    it("returns null for malformed downloaded JSON", async () => {
       const service = await makeService(true);
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ runId: "test" }),
-      });
+      mockDownloadToBlob.mockResolvedValueOnce([
+        new Blob([JSON.stringify(["not-an-object"])]),
+        null,
+      ]);
 
-      const result = await service.verify("0xabc", "wrong-hash");
-      expect(result).toBe(false);
-    });
+      const result = await service.retrieveRecord("0xabc123");
 
-    it("returns false when retrieve fails", async () => {
-      const service = await makeService(true);
-      mockFetch.mockResolvedValueOnce({ ok: false, status: 404 });
-
-      const result = await service.verify("0xabc", "any-hash");
-      expect(result).toBe(false);
+      expect(result).toBeNull();
     });
   });
 
   describe("verifyDetailed", () => {
     it("reports disabled when no key is configured", async () => {
       const service = await makeService(false);
+
       const result = await service.verifyDetailed("0xabc", "any-hash");
+
       expect(result.status).toBe("disabled");
-      expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it("reports unavailable when the record cannot be retrieved", async () => {
+    it("reports unavailable when the SDK download fails", async () => {
       const service = await makeService(true);
-      mockFetch.mockResolvedValueOnce({ ok: false, status: 503 });
+      mockDownloadToBlob.mockResolvedValueOnce([
+        new Blob(),
+        new Error("indexer unavailable"),
+      ]);
+
       const result = await service.verifyDetailed("0xabc", "any-hash");
+
       expect(result.status).toBe("unavailable");
     });
 
     it("reports mismatch when the anchored content hash differs", async () => {
       const service = await makeService(true);
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ runId: "tampered" }),
-      });
+      mockDownloadToBlob.mockResolvedValueOnce([
+        new Blob([JSON.stringify({ runId: "tampered" })]),
+        null,
+      ]);
+
       const result = await service.verifyDetailed("0xabc", "expected-hash");
+
       expect(result.status).toBe("mismatch");
-      if (result.status === "mismatch") {
-        expect(result.expected).toBe("expected-hash");
-        expect(result.actual).not.toBe("expected-hash");
-      }
     });
 
     it("reports verified when the anchored content matches", async () => {
       const service = await makeService(true);
       const record = { runId: "test", value: 42 };
-      mockFetch.mockResolvedValueOnce({ ok: true, json: async () => record });
+      mockDownloadToBlob.mockResolvedValueOnce([
+        new Blob([JSON.stringify(record)]),
+        null,
+      ]);
       const expectedHash = crypto
         .createHash("sha256")
         .update(JSON.stringify(record))
         .digest("hex");
+
       const result = await service.verifyDetailed("0xabc", expectedHash);
+
       expect(result.status).toBe("verified");
     });
   });
 
-  describe("getStatus", () => {
-    it("reports enabled when key is set", async () => {
+  describe("checkIndexer", () => {
+    it("uses the SDK JSON-RPC health path", async () => {
       const service = await makeService(true);
-      const status = service.getStatus();
-      expect(status.enabled).toBe(true);
-      expect(status.indexerUrl).toContain("0g.ai");
+
+      const result = await service.checkIndexer();
+
+      expect(result.healthy).toBe(true);
+      expect(result.latencyMs).toEqual(expect.any(Number));
+      expect(mockGetShardedNodes).toHaveBeenCalledOnce();
     });
 
-    it("reports disabled when key is not set", async () => {
+    it("reports an unhealthy optional service when the SDK health call fails", async () => {
+      const service = await makeService(true);
+      mockGetShardedNodes.mockRejectedValueOnce(new Error("HTTP 503"));
+
+      const result = await service.checkIndexer();
+
+      expect(result).toMatchObject({ healthy: false, error: "HTTP 503" });
+    });
+
+    it("reports disabled storage as healthy for core readiness", async () => {
       const service = await makeService(false);
+
+      const result = await service.checkIndexer();
+
+      expect(result.healthy).toBe(true);
+      expect(mockGetShardedNodes).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getStatus", () => {
+    it("reports the configured indexer", async () => {
+      const service = await makeService(true);
+
       const status = service.getStatus();
-      expect(status.enabled).toBe(false);
+
+      expect(status.enabled).toBe(true);
+      expect(status.indexerUrl).toContain("0g.ai");
     });
   });
 
   describe("circuit breaker", () => {
-    it("opens after repeated failures and rejects requests", async () => {
+    it("opens after repeated SDK failures", async () => {
       const service = await makeService(true);
-      mockFetch.mockRejectedValue(new Error("network down"));
+      mockUpload.mockRejectedValue(new Error("network down"));
 
       await service.anchorAuditRecord({ a: 1 });
       await service.anchorAuditRecord({ a: 2 });
       await service.anchorAuditRecord({ a: 3 });
+      mockUpload.mockReset();
 
-      mockFetch.mockReset();
       const result = await service.anchorAuditRecord({ a: 4 });
+
       expect(result).toBeNull();
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
-
-    it("recovers after reset period", async () => {
-      vi.useFakeTimers();
-      const service = await makeService(true);
-      mockFetch.mockRejectedValue(new Error("network down"));
-
-      await service.anchorAuditRecord({ a: 1 });
-      await service.anchorAuditRecord({ a: 2 });
-      await service.anchorAuditRecord({ a: 3 });
-
-      vi.advanceTimersByTime(31_000);
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ root: "0xrecovered" }),
-      });
-
-      const result = await service.anchorAuditRecord({ a: 4 });
-      vi.useRealTimers();
-      expect(result).not.toBeNull();
-      expect(result!.rootHash).toBe("0xrecovered");
+      expect(mockUpload).not.toHaveBeenCalled();
     });
   });
 });

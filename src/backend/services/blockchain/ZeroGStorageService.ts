@@ -1,27 +1,35 @@
 import crypto from "node:crypto";
 import logger from "@backend/utils/logger.js";
 import { CircuitBreaker } from "@backend/shared/utils/circuitBreaker.js";
+import { Indexer, MemData } from "@0gfoundation/0g-storage-ts-sdk";
+import { ethers } from "ethers";
 
 /**
  * ZeroGStorageService — anchors audit log records to 0G decentralized storage.
  *
- * Uses the 0G Storage HTTP API (no native SDK dependency required) to upload
- * JSON-encoded audit records and return a root hash as a permanent CID-equivalent.
+ * Uses the official 0G Storage TypeScript SDK for Galileo testnet. Uploads are
+ * signed with the configured testnet wallet; downloads use the SDK's proof
+ * capable path. Storage is optional and always fails open for Cognivern's
+ * authoritative ledger and policy/execution paths.
  *
- * Network: 0G Galileo Testnet
+ * Network: 0G Galileo Testnet (chain 16602)
  * RPC:     https://evmrpc-testnet.0g.ai
- * Indexer: https://indexer-storage-testnet-standard.0g.ai
+ * Indexer: https://indexer-storage-testnet-standard.0g.ai by default; set
+ *          ZEROG_INDEXER_URL to the active Turbo endpoint for staging.
  */
 
 const ZEROG_INDEXER_URL =
   process.env.ZEROG_INDEXER_URL ||
   "https://indexer-storage-testnet-standard.0g.ai";
+const ZEROG_RPC_URL =
+  process.env.ZEROG_RPC_URL || "https://evmrpc-testnet.0g.ai";
+const ZEROG_CHAIN_ID = Number(process.env.ZEROG_CHAIN_ID || "16602");
 
 export interface ZeroGUploadResult {
   rootHash: string;
   localHash: string;
   txHash?: string;
-  network: "0g-newton-testnet";
+  network: "0g-galileo-testnet";
   timestamp: string;
 }
 
@@ -37,6 +45,12 @@ export type AnchorVerification =
   | { status: "unavailable" }
   | { status: "disabled" };
 
+export interface ZeroGIndexerHealth {
+  healthy: boolean;
+  latencyMs: number;
+  error?: string;
+}
+
 /**
  * Contract for 0G decentralized storage operations.
  * Enables mocking in tests and swapping implementations (e.g. mainnet).
@@ -50,27 +64,29 @@ export interface IZeroGStorage {
     expectedHash: string,
   ): Promise<AnchorVerification>;
   getStatus(): { enabled: boolean; indexerUrl: string };
+  checkIndexer(): Promise<ZeroGIndexerHealth>;
 }
 
-interface UploadResponseShape {
-  root?: string;
+function hashPayload(payload: string): string {
+  return crypto.createHash("sha256").update(payload).digest("hex");
+}
+
+function getUploadResult(result: {
   rootHash?: string;
   txHash?: string;
-}
+  rootHashes?: string[];
+  txHashes?: string[];
+}): { rootHash: string; txHash?: string } {
+  if (typeof result.rootHash === "string" && result.rootHash.length > 0) {
+    return { rootHash: result.rootHash, txHash: result.txHash };
+  }
 
-function parseUploadResponse(data: unknown): UploadResponseShape {
-  if (typeof data !== "object" || data === null) {
-    throw new Error("Invalid response: not an object");
+  const rootHash = result.rootHashes?.[0];
+  if (typeof rootHash === "string" && rootHash.length > 0) {
+    return { rootHash, txHash: result.txHashes?.[0] };
   }
-  const obj = data as Record<string, unknown>;
-  if (typeof obj.root !== "string" && typeof obj.rootHash !== "string") {
-    throw new Error("Missing root hash in response");
-  }
-  const result: UploadResponseShape = {};
-  if (typeof obj.root === "string") result.root = obj.root;
-  if (typeof obj.rootHash === "string") result.rootHash = obj.rootHash;
-  if (typeof obj.txHash === "string") result.txHash = obj.txHash;
-  return result;
+
+  throw new Error("0G SDK upload response did not contain a root hash");
 }
 
 export class ZeroGStorageService implements IZeroGStorage {
@@ -79,11 +95,17 @@ export class ZeroGStorageService implements IZeroGStorage {
     threshold: 3,
     resetAfterMs: 30000,
   });
+  private healthCircuit = new CircuitBreaker("ZeroGIndexerHealth", {
+    threshold: 3,
+    resetAfterMs: 30000,
+  });
+  private indexer?: Indexer;
+  private signer?: ethers.Wallet;
 
   constructor() {
     this.enabled = !!process.env.ZEROG_PRIVATE_KEY;
     if (this.enabled) {
-      logger.info("ZeroGStorageService initialized (0G Galileo Testnet)");
+      logger.info("ZeroGStorageService initialized (0G Galileo Testnet SDK)");
     } else {
       logger.info(
         "ZeroGStorageService: ZEROG_PRIVATE_KEY not set — running in log-only mode",
@@ -95,6 +117,29 @@ export class ZeroGStorageService implements IZeroGStorage {
     return { enabled: this.enabled, indexerUrl: ZEROG_INDEXER_URL };
   }
 
+  async checkIndexer(): Promise<ZeroGIndexerHealth> {
+    const start = Date.now();
+    if (!this.enabled) {
+      return { healthy: true, latencyMs: Date.now() - start };
+    }
+
+    try {
+      const nodes = await this.healthCircuit.execute(() =>
+        this.getIndexer().getShardedNodes(),
+      );
+      if (!Array.isArray(nodes.trusted) || nodes.trusted.length === 0) {
+        throw new Error("0G indexer returned no trusted storage nodes");
+      }
+      return { healthy: true, latencyMs: Date.now() - start };
+    } catch (err) {
+      return {
+        healthy: false,
+        latencyMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
   async anchorAuditRecord(
     record: Record<string, unknown>,
   ): Promise<ZeroGUploadResult | null> {
@@ -104,44 +149,29 @@ export class ZeroGStorageService implements IZeroGStorage {
       return await this.circuit.execute(async () => {
         const payload = JSON.stringify(record);
         const bytes = Buffer.from(payload, "utf-8");
-        const localHash = crypto
-          .createHash("sha256")
-          .update(payload)
-          .digest("hex");
+        const localHash = hashPayload(payload);
+        const file = new MemData(bytes);
 
-        const formData = new FormData();
-        formData.append(
-          "file",
-          new Blob([bytes], { type: "application/json" }),
-          "audit.json",
+        const [rawResult, uploadError] = await this.getIndexer().upload(
+          file,
+          ZEROG_RPC_URL,
+          this.getSigner() as unknown as Parameters<Indexer["upload"]>[2],
+          { expectedReplica: 1 },
         );
-
-        const response = await fetch(`${ZEROG_INDEXER_URL}/upload`, {
-          method: "POST",
-          body: formData,
-          signal: AbortSignal.timeout(15_000),
-        });
-
-        if (!response.ok) {
-          logger.warn(
-            `ZeroGStorageService: upload returned ${response.status} — skipping anchor`,
-          );
-          return null;
+        if (uploadError) {
+          throw uploadError;
         }
 
-        const raw = await response.json();
-        const result = parseUploadResponse(raw);
-        const rootHash = result.root || result.rootHash || "pending";
-
+        const result = getUploadResult(rawResult);
         logger.info(
-          `ZeroGStorageService: anchored audit record — root=${rootHash}`,
+          `ZeroGStorageService: anchored audit record — root=${result.rootHash}`,
         );
 
         return {
-          rootHash,
+          rootHash: result.rootHash,
           localHash,
           txHash: result.txHash,
-          network: "0g-newton-testnet",
+          network: "0g-galileo-testnet",
           timestamp: new Date().toISOString(),
         };
       });
@@ -160,19 +190,20 @@ export class ZeroGStorageService implements IZeroGStorage {
 
     try {
       return await this.circuit.execute(async () => {
-        const response = await fetch(
-          `${ZEROG_INDEXER_URL}/download/${rootHash}`,
-          { signal: AbortSignal.timeout(15_000) },
+        const [blob, downloadError] = await this.getIndexer().downloadToBlob(
+          rootHash,
+          { proof: true },
         );
-
-        if (!response.ok) {
-          logger.warn(
-            `ZeroGStorageService: retrieve returned ${response.status}`,
-          );
-          return null;
+        if (downloadError) {
+          throw downloadError;
         }
 
-        return (await response.json()) as Record<string, unknown>;
+        const raw = await blob.arrayBuffer();
+        const parsed: unknown = JSON.parse(Buffer.from(raw).toString("utf-8"));
+        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+          throw new Error("0G download did not contain a JSON object");
+        }
+        return parsed as Record<string, unknown>;
       });
     } catch (err) {
       logger.warn(
@@ -191,12 +222,7 @@ export class ZeroGStorageService implements IZeroGStorage {
     const record = await this.retrieveRecord(rootHash);
     if (!record) return { status: "unavailable" };
 
-    const serialized = JSON.stringify(record);
-    const actualHash = crypto
-      .createHash("sha256")
-      .update(serialized)
-      .digest("hex");
-
+    const actualHash = hashPayload(JSON.stringify(record));
     if (actualHash === expectedHash) {
       return { status: "verified", actual: actualHash };
     }
@@ -206,6 +232,21 @@ export class ZeroGStorageService implements IZeroGStorage {
   async verify(rootHash: string, expectedHash: string): Promise<boolean> {
     const result = await this.verifyDetailed(rootHash, expectedHash);
     return result.status === "verified";
+  }
+
+  private getIndexer(): Indexer {
+    return (this.indexer ??= new Indexer(ZEROG_INDEXER_URL));
+  }
+
+  private getSigner(): ethers.Wallet {
+    const privateKey = process.env.ZEROG_PRIVATE_KEY;
+    if (!privateKey) {
+      throw new Error("ZEROG_PRIVATE_KEY is required for 0G storage uploads");
+    }
+    return (this.signer ??= new ethers.Wallet(
+      privateKey,
+      new ethers.JsonRpcProvider(ZEROG_RPC_URL, ZEROG_CHAIN_ID),
+    ));
   }
 }
 

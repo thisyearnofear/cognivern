@@ -185,6 +185,29 @@ optional integrations cannot block a release. Deep health is for diagnosis and
 may report degraded optional services such as 0G or Filecoin without making the
 core API unready.
 
+## 0G Storage staging round-trip
+
+The optional 0G Storage adapter uses the official TypeScript SDK. Validate it
+against the Galileo **Turbo** testnet before changing any production
+`ZEROG_INDEXER_URL` value:
+
+```bash
+NODE_ENV=staging \
+ZEROG_ROUNDTRIP_CONFIRM=staging \
+ZEROG_PRIVATE_KEY=<staging-galileo-key> \
+ZEROG_INDEXER_URL=https://indexer-storage-testnet-turbo.0g.ai \
+ZEROG_RPC_URL=https://evmrpc-testnet.0g.ai \
+ZEROG_CHAIN_ID=16602 \
+pnpm zerog:roundtrip
+```
+
+The harness uploads a disposable JSON payload, downloads it with proof
+verification, and compares SHA-256 hashes. It refuses production mode,
+non-Galileo URLs, and non-16602 chain IDs. It spends testnet gas and must only
+use a staging wallet. Do not run it with the production `.env` or production
+wallet. A passing staging round-trip is required before promoting Turbo to
+production; the core ledger remains fail-open if 0G Storage is unavailable.
+
 ## SQLite Tables
 
 Auto-created on first boot via idempotent `CREATE TABLE IF NOT EXISTS`:

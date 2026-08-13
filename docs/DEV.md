@@ -179,8 +179,8 @@ Cognivern Audit + Run Ledger
   │     add/replace is hash-linked; verify() detects edited runs + broken links
   ├── [optional] Suspicion evidence persisted to CreRun.evidence.suspicion
   ├── [optional] Filecoin evidence anchoring via FilecoinStorageService (FVM AIGovernanceStorage)
-  ├── [optional] 0G Storage evidence anchoring via ZeroGStorageService (indexer
-  │     upload, gated by ZEROG_PRIVATE_KEY; deep-verify re-fetches + hash-compares)
+  ├── [optional] 0G Storage evidence anchoring via ZeroGStorageService (official
+  │     TypeScript SDK; gated by ZEROG_PRIVATE_KEY; proof download re-fetches + hash-compares)
   ├── [optional] 0G on-chain decision proof via ZeroGProofService (GovernanceProof
   │     contract — GovernanceDecision events on Galileo, verifiable on ChainScan)
   └── [optional] X Layer execution dispatch via Hyperlane
@@ -250,7 +250,7 @@ Implementation files:
 | **Fhenix**     | Confidential policy evaluation via FHE. Budgets, limits, and spend counters remain encrypted.                                                                                                                                                                                                                              | Live (Arbitrum Sepolia)              |
 | **X Layer**    | Governed execution dispatch path. Approved spends dispatched here for execution and public anchoring.                                                                                                                                                                                                                      | Testnet (chainId 1952)               |
 | **Filecoin**   | Durable evidence anchoring for audit logs via `FilecoinStorageService` → FVM.                                                                                                                                                                                                                                              | Live (Calibration testnet)           |
-| **0G**         | Dual surface: (a) on-chain governance decision proofs via `GovernanceProof` contract — every evaluate call posts a `GovernanceDecision` event to 0G Chain, verifiable on ChainScan; (b) 0G Storage evidence anchoring via `ZeroGStorageService` (indexer upload, gated by `ZEROG_PRIVATE_KEY`, re-fetched by deep-verify). | Galileo Testnet (chain ID 16602)     |
+| **0G**         | Dual surface: (a) on-chain governance decision proofs via `GovernanceProof` contract — every evaluate call posts a `GovernanceDecision` event to 0G Chain, verifiable on ChainScan; (b) 0G Storage evidence anchoring via `ZeroGStorageService` and the official TypeScript SDK (gated by `ZEROG_PRIVATE_KEY`, proof re-fetched by deep-verify). | Galileo Testnet (chain ID 16602)     |
 | **ChainGPT**   | Web3-specialized LLM for smart contract auditing and governance queries.                                                                                                                                                                                                                                                   | Live                                 |
 | **Ledger DMK** | Hardware signing for high-value transactions.                                                                                                                                                                                                                                                                              | Live                                 |
 | **MongoDB**    | Persistent agent memory & run ledger. Inserts copies of CRE runs so its auto `_id` never mutates the ledger-hashed object (see persistence invariant above).                                                                                                                                                               | Optional, gated by `MONGODB_URI`     |

@@ -8,6 +8,7 @@
 
 import { Request, Response } from 'express';
 import { AgentsModule } from '@backend/modules/agents/AgentsModule.js';
+import { zeroGStorageService } from '@backend/services/blockchain/ZeroGStorageService.js';
 
 export interface DependencyCheck {
   name: string;
@@ -325,43 +326,20 @@ export class HealthController {
   private async checkZeroGIndexer(): Promise<DependencyCheck> {
     const name = 'zerog_indexer';
     const optional = true;
-    const start = Date.now();
     const zeroGKey = process.env.ZEROG_PRIVATE_KEY;
-    const indexerUrl =
-      process.env.ZEROG_INDEXER_URL || 'https://indexer-storage-testnet-standard.0g.ai';
 
     if (!zeroGKey) {
-      return { name, status: 'healthy', latencyMs: Date.now() - start, optional };
+      return { name, status: 'healthy', latencyMs: 0, optional };
     }
 
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      const response = await fetch(indexerUrl, {
-        method: 'GET',
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-
-      if (!response.ok) {
-        return {
-          name,
-          status: 'unhealthy',
-          latencyMs: Date.now() - start,
-          error: `HTTP ${response.status}`,
-          optional,
-        };
-      }
-      return { name, status: 'healthy', latencyMs: Date.now() - start, optional };
-    } catch (err) {
-      return {
-        name,
-        status: 'unhealthy',
-        latencyMs: Date.now() - start,
-        error: err instanceof Error ? err.message : String(err),
-        optional,
-      };
-    }
+    const result = await zeroGStorageService.checkIndexer();
+    return {
+      name,
+      status: result.healthy ? 'healthy' : 'unhealthy',
+      latencyMs: result.latencyMs,
+      ...(result.error ? { error: result.error } : {}),
+      optional,
+    };
   }
 
   async getReadiness(req: Request, res: Response): Promise<void> {

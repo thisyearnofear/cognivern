@@ -6,8 +6,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const mockPrepare = vi.fn().mockReturnValue({ get: vi.fn() });
 const mockDb = { prepare: mockPrepare };
+const mockZeroGCheckIndexer = vi.fn();
 vi.mock('@backend/db/index.js', () => ({
   getDb: vi.fn(() => mockDb),
+}));
+
+vi.mock('@backend/services/blockchain/ZeroGStorageService.js', () => ({
+  zeroGStorageService: {
+    checkIndexer: mockZeroGCheckIndexer,
+  },
 }));
 
 vi.mock('@backend/modules/agents/AgentsModule.js', () => {
@@ -91,6 +98,7 @@ describe('HealthController', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockZeroGCheckIndexer.mockResolvedValue({ healthy: true, latencyMs: 1 });
     for (const key of OPTIONAL_ENV_KEYS) {
       if (process.env[key] !== undefined) {
         savedEnv[key] = process.env[key];
@@ -301,8 +309,11 @@ describe('HealthController', () => {
 
     it('keeps core health ok when an optional 0G indexer is degraded', async () => {
       process.env.ZEROG_PRIVATE_KEY = 'configured-for-test';
-      process.env.ZEROG_INDEXER_URL = 'https://indexer.invalid';
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+      mockZeroGCheckIndexer.mockResolvedValue({
+        healthy: false,
+        latencyMs: 3,
+        error: 'HTTP 503',
+      });
       mockPrepare.mockReturnValue({
         get: vi.fn().mockReturnValue({ name: 'notifications' }),
       });
@@ -321,7 +332,6 @@ describe('HealthController', () => {
           error: 'HTTP 503',
         }),
       );
-      vi.unstubAllGlobals();
     });
   });
 
