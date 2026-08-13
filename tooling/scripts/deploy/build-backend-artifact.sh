@@ -41,6 +41,13 @@ cp ops/deploy/.npmrc.backend "$TMP/app/.npmrc"
 
 if [ -d config ]; then
   cp -R config "$TMP/app/config"
+  # src/config.ts resolves runtime configuration relative to dist/src, so
+  # include the MCP config alongside compiled modules as well as the root
+  # loader/ecosystem config used by PM2.
+  if [ -f config/mcp-config.json ]; then
+    mkdir -p "$TMP/app/dist/config"
+    cp config/mcp-config.json "$TMP/app/dist/config/mcp-config.json"
+  fi
 fi
 
 if [ -d src/policies ]; then
