@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Activity, ArrowLeft, Download, ExternalLink, FileCheck, FileText, Loader2, ShieldCheck } from 'lucide-react';
+import { Activity, ArrowLeft, Download, ExternalLink, FileCheck, FileText, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ export function CapitalPage() {
   const [report, setReport] = useState<SpendAttributionReport | null>(null);
   const [mandates, setMandates] = useState<FundedMandate[]>([]);
   const [syncHealth, setSyncHealth] = useState<MandateContextSyncHealth | null>(null);
+  const [syncHealthLoading, setSyncHealthLoading] = useState(false);
   const [selectedMandateId, setSelectedMandateId] = useState('');
   const [observations, setObservations] = useState<OutcomeObservation[]>([]);
   const [statement, setStatement] = useState<FundedMandateStatement | null>(null);
@@ -46,19 +47,50 @@ export function CapitalPage() {
 
   useEffect(() => {
     if (!isConnected) return;
-    Promise.all([
-      apiClient.getMandates(),
-      apiClient.getMandateSyncHealth(),
-      apiClient.getSpendAttribution(selectedMandateId || undefined),
-      selectedMandateId ? apiClient.getOutcomeObservations(selectedMandateId) : Promise.resolve(null),
-      selectedMandateId ? apiClient.listPublishedStatements(selectedMandateId) : Promise.resolve(null),
-    ])
-      .then(([mandateResponse, syncHealthResponse, reportResponse, observationResponse, publishedResponse]) => {
+    let active = true;
+    apiClient.getMandates()
+      .then((response) => {
+        if (!active) return;
+        if (!response.success || !response.data) throw new Error(response.error || 'Could not load mandates');
         setError(null);
-        if (mandateResponse.success && mandateResponse.data) setMandates(mandateResponse.data);
-        if (syncHealthResponse.success && syncHealthResponse.data) setSyncHealth(syncHealthResponse.data);
+        setMandates(response.data);
+      })
+      .catch((reason) => {
+        if (active) setError(reason instanceof Error ? reason.message : 'Could not load mandates');
+      });
+
+    // Health is operational context, not a prerequisite for the authoritative
+    // attribution ledger. Keep it independently fail-open and refresh it only
+    // on page entry or explicit operator action.
+    apiClient.getMandateSyncHealth()
+      .then((response) => {
+        if (active && response.success && response.data) setSyncHealth(response.data);
+      })
+      .catch(() => {
+        if (active) setSyncHealth(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isConnected]);
+
+  useEffect(() => {
+    if (!isConnected) return;
+    let active = true;
+
+    const loadMandateData = async () => {
+      try {
+        const [reportResponse, observationResponse, publishedResponse] = await Promise.all([
+          apiClient.getSpendAttribution(selectedMandateId || undefined),
+          selectedMandateId ? apiClient.getOutcomeObservations(selectedMandateId) : Promise.resolve(null),
+          selectedMandateId ? apiClient.listPublishedStatements(selectedMandateId) : Promise.resolve(null),
+        ]);
+        if (!active) return;
         if (!reportResponse.success || !reportResponse.data) throw new Error(reportResponse.error || 'Could not load attribution');
+        setError(null);
         setReport(reportResponse.data);
+        setLoading(false);
         if (observationResponse?.success && observationResponse.data) setObservations(observationResponse.data);
         if (publishedResponse?.success && publishedResponse.data) setPublished(publishedResponse.data);
         if (!selectedMandateId) {
@@ -67,9 +99,18 @@ export function CapitalPage() {
           setPublished(null);
           setExported(null);
         }
-      })
-      .catch((reason) => setError(reason instanceof Error ? reason.message : 'Could not load attribution'))
-      .finally(() => setLoading(false));
+      } catch (reason) {
+        if (active) {
+          setLoading(false);
+          setError(reason instanceof Error ? reason.message : 'Could not load attribution');
+        }
+      }
+    };
+
+    void loadMandateData();
+    return () => {
+      active = false;
+    };
   }, [isConnected, selectedMandateId]);
 
   if (!isConnected) {
@@ -78,6 +119,20 @@ export function CapitalPage() {
   if (loading) {
     return <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading attribution ledger…</div>;
   }
+  async function refreshSyncHealth() {
+    setSyncHealthLoading(true);
+    try {
+      const response = await apiClient.getMandateSyncHealth();
+      if (!response.success || !response.data) throw new Error(response.error || 'Could not refresh evidence sync health');
+      setSyncHealth(response.data);
+    } catch {
+      // Health is supplementary; keep the existing state and do not interrupt
+      // attribution or policy review when the derived index is unavailable.
+    } finally {
+      setSyncHealthLoading(false);
+    }
+  }
+
   async function loadStatement() {
     if (!selectedMandateId) return;
     setStatementLoading(true);
@@ -163,6 +218,8 @@ export function CapitalPage() {
     }
   }
 
+  const selectedMandate = mandates.find((mandate) => mandate.id === selectedMandateId);
+
   if (error || !report) {
     return <PageState variant="error" title="Could not load attribution" message={error || 'The attribution report is unavailable.'} action={{ label: 'Retry', onClick: () => window.location.reload() }} />;
   }
@@ -208,10 +265,10 @@ export function CapitalPage() {
             </select>
           </div>
         </div>
-        {selectedMandateId && mandates.find((mandate) => mandate.id === selectedMandateId) && (
+        {selectedMandate && (
           <div className="mt-3 rounded-lg bg-muted/40 p-3 text-sm">
-            <span className="font-medium">{mandates.find((mandate) => mandate.id === selectedMandateId)?.name}</span>
-            <span className="ml-2 text-muted-foreground">{mandates.find((mandate) => mandate.id === selectedMandateId)?.objective}</span>
+            <span className="font-medium">{selectedMandate.name}</span>
+            <span className="ml-2 text-muted-foreground">{selectedMandate.objective}</span>
           </div>
         )}
       </section>
@@ -226,15 +283,22 @@ export function CapitalPage() {
                 <p className="mt-1 text-sm text-muted-foreground">Workspace-wide recovery for the derived mandate context layer. It never authorizes spend.</p>
               </div>
             </div>
-            <Badge variant={!syncHealth.enabled ? 'outline' : syncHealth.failed > 0 ? 'destructive' : syncHealth.queued + syncHealth.processing > 0 ? 'secondary' : 'outline'}>
-              {!syncHealth.enabled ? 'HydraDB disabled' : syncHealth.failed > 0 ? `${syncHealth.failed} needs attention` : syncHealth.queued + syncHealth.processing > 0 ? 'Recovery active' : 'Queue healthy'}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              {syncHealth.latestUpdatedAt && <span className="text-xs text-muted-foreground" title={new Date(syncHealth.latestUpdatedAt).toLocaleString()}>Updated {new Date(syncHealth.latestUpdatedAt).toLocaleTimeString()}</span>}
+              <Button variant="ghost" size="sm" onClick={refreshSyncHealth} disabled={syncHealthLoading} aria-label="Refresh evidence sync health">
+                <RefreshCw className={syncHealthLoading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
+                Refresh
+              </Button>
+              <Badge variant={!syncHealth.enabled ? 'outline' : syncHealth.failed > 0 ? 'destructive' : syncHealth.queued + syncHealth.processing > 0 ? 'secondary' : 'outline'}>
+                {!syncHealth.enabled ? 'HydraDB disabled' : syncHealth.failed > 0 ? `${syncHealth.failed} needs attention` : syncHealth.queued + syncHealth.processing > 0 ? 'Recovery active' : syncHealth.totalJobs === 0 ? 'No queued work' : 'Queue healthy'}
+              </Badge>
+            </div>
           </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-4">
             {([
               ['Queued', syncHealth.queued],
               ['Processing', syncHealth.processing],
-              ['Recovered', syncHealth.completed],
+              ['Completed', syncHealth.completed],
               ['Failed', syncHealth.failed],
             ] as const).map(([label, value]) => (
               <div key={label} className="rounded-lg bg-muted/40 px-3 py-2">
