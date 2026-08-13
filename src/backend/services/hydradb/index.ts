@@ -43,6 +43,7 @@ export type {
   MandateContextSyncStatus,
   MandateContextSyncTrigger,
   MandateContextSyncJobStatus,
+  MandateContextSyncHealth,
   MandateEvidenceProvenance,
 } from "./HydraDbMandateContextService.js";
 

@@ -113,6 +113,12 @@ export class MandateController {
     }
   }
 
+  async getSyncHealth(req: Request, res: Response): Promise<void> {
+    const id = workspaceId(req, res);
+    if (!id) return;
+    res.json({ success: true, data: hydraDbMandateContext.getSyncHealth(id) });
+  }
+
   async getContext(req: Request, res: Response): Promise<void> {
     const id = workspaceId(req, res);
     if (!id) return;

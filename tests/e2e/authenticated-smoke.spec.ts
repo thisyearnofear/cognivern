@@ -45,5 +45,18 @@ test.describe('Authenticated user-testing smoke', () => {
 
     await page.goto('/agents');
     await expect(page.getByRole('heading', { name: /API Identities/i, level: 1 })).toBeVisible();
+
+    await page.goto('/capital');
+    await expect(page.getByRole('heading', { name: 'Agentic capital', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Evidence sync health', level: 2 })).toBeVisible();
+
+    const mandateSelect = page.getByLabel('Filter by funded mandate');
+    const mandateOptions = await mandateSelect.locator('option').count();
+    if (mandateOptions > 1) {
+      await mandateSelect.selectOption({ index: 1 });
+      await expect(page.getByRole('heading', { name: 'Evidence context', level: 2 })).toBeVisible();
+      await page.getByRole('button', { name: /Build evidence context/i }).click();
+      await expect(page.getByText(/Up to date|Indexing|HydraDB disabled|Recovery/i).first()).toBeVisible({ timeout: 45_000 });
+    }
   });
 });

@@ -42,6 +42,7 @@ describe("HydraDbMandateContextService", () => {
     expect(sync.ingested).toEqual({ mandate: 0, outcomes: 0, statements: 0, recommendations: 0, runs: 0 });
     expect(sync.warning).toMatch(/fully operational/i);
     expect(getDb().prepare("SELECT COUNT(*) AS count FROM hydra_context_sync_jobs").get()).toEqual({ count: 0 });
+    expect(service.getSyncHealth("hydra-context-workspace")).toMatchObject({ enabled: false, totalJobs: 0, failed: 0 });
 
     const context = await service.getContext("hydra-context-workspace", mandateId);
     expect(context.chunks).toEqual([]);
@@ -81,6 +82,7 @@ describe("HydraDbMandateContextService", () => {
     ).get("hydra-context-workspace", mandateId) as { status: string; attempts: number; last_synced_at: string | null };
     expect(job).toMatchObject({ status: "completed", attempts: 1 });
     expect(job.last_synced_at).toBeTruthy();
+    expect(service.getSyncHealth("hydra-context-workspace")).toMatchObject({ enabled: true, totalJobs: 1, completed: 1, failed: 0 });
   });
 
   it("rejects a mandate lookup from another workspace before querying HydraDB", async () => {

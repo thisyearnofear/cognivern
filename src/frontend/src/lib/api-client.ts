@@ -229,6 +229,17 @@ export interface MandateStatementExport {
 
 export type MandateContextSyncStatus = 'disabled' | 'queued' | 'pending' | 'synced' | 'failed';
 
+export interface MandateContextSyncHealth {
+  enabled: boolean;
+  totalJobs: number;
+  queued: number;
+  processing: number;
+  completed: number;
+  failed: number;
+  oldestPendingAt?: string;
+  latestUpdatedAt?: string;
+}
+
 export interface MandateContextSyncJobStatus {
   status: 'queued' | 'processing' | 'completed' | 'failed';
   attempts: number;
@@ -579,6 +590,10 @@ class ApiClient {
 
   async getMandates(): Promise<ApiResponse<FundedMandate[]>> {
     return this.fetch('/api/mandates');
+  }
+
+  async getMandateSyncHealth(): Promise<ApiResponse<MandateContextSyncHealth>> {
+    return this.fetch('/api/mandates/context/sync-health');
   }
 
   async createMandate(params: Partial<FundedMandate> & { name: string; objective: string }): Promise<ApiResponse<FundedMandate>> {

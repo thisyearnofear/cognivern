@@ -105,9 +105,14 @@ the bounded allocation recommendation, and mandate-linked spend runs, then runs
 a thinking-mode query over the graph:
 
 ```text
+GET  /api/mandates/context/sync-health
 GET  /api/mandates/:mandateId/context
 POST /api/mandates/:mandateId/context/sync
 ```
+
+The workspace health endpoint is intentionally aggregate-only: it reports queued,
+processing, completed, and failed derived-context jobs without exposing another
+workspace's records or any HydraDB credentials.
 
 Each workspace receives a dedicated HydraDB collection named
 `cognivern_workspace_<safeWorkspaceId>_<sha256-prefix>`. The digest prevents
@@ -515,7 +520,9 @@ Before treating mandate context as production-ready in a deployment, verify:
 - graph latency is acceptable for the review surface, with a visible fallback
   when indexing is pending or the service is unavailable;
 - the SQLite-backed sync job worker is running with the API, and stale jobs can
-  be inspected/retried without affecting authoritative spend records.
+  be inspected/retried without affecting authoritative spend records;
+- `/api/mandates/context/sync-health` is visible to operators and its failed-job
+  count is monitored before enabling production alerting.
 
 The evaluation artifact is a useful regression signal, not a substitute for
 these tenancy and fail-open checks. Do not use the seeded IDs as production

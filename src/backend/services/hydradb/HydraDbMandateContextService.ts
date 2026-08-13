@@ -44,6 +44,17 @@ export interface MandateContextSyncResult {
   syncJob?: MandateContextSyncJobStatus;
 }
 
+export interface MandateContextSyncHealth {
+  enabled: boolean;
+  totalJobs: number;
+  queued: number;
+  processing: number;
+  completed: number;
+  failed: number;
+  oldestPendingAt?: string;
+  latestUpdatedAt?: string;
+}
+
 export interface MandateEvidenceProvenance {
   recordId?: string;
   kind: string;
@@ -359,6 +370,39 @@ export class HydraDbMandateContextService {
   stopBackgroundSyncWorker(): void {
     if (this.backgroundSyncTimer) clearInterval(this.backgroundSyncTimer);
     this.backgroundSyncTimer = null;
+  }
+
+  getSyncHealth(workspaceId: string): MandateContextSyncHealth {
+    if (!this.ingestion.isEnabled()) {
+      return { enabled: false, totalJobs: 0, queued: 0, processing: 0, completed: 0, failed: 0 };
+    }
+    try {
+      const row = getDb().prepare(
+        `SELECT
+           COUNT(*) AS total_jobs,
+           SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END) AS queued,
+           SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) AS processing,
+           SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed,
+           SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed,
+           MIN(CASE WHEN status IN ('queued', 'processing') THEN updated_at END) AS oldest_pending_at,
+           MAX(updated_at) AS latest_updated_at
+         FROM hydra_context_sync_jobs
+         WHERE workspace_id = ?`,
+      ).get(workspaceId) as Record<string, unknown>;
+      return {
+        enabled: true,
+        totalJobs: Number(row.total_jobs ?? 0),
+        queued: Number(row.queued ?? 0),
+        processing: Number(row.processing ?? 0),
+        completed: Number(row.completed ?? 0),
+        failed: Number(row.failed ?? 0),
+        ...(typeof row.oldest_pending_at === "string" ? { oldestPendingAt: row.oldest_pending_at } : {}),
+        ...(typeof row.latest_updated_at === "string" ? { latestUpdatedAt: row.latest_updated_at } : {}),
+      };
+    } catch (error) {
+      logger.debug(`[hydradb] sync health unavailable: ${error}`);
+      return { enabled: true, totalJobs: 0, queued: 0, processing: 0, completed: 0, failed: 0 };
+    }
   }
 
   private async syncWithRetry(
