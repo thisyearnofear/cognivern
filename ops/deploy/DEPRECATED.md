@@ -1,6 +1,6 @@
 # Deprecated: Hetzner Deployment
 
-This directory contains legacy Hetzner deployment configuration. The primary deployment is now via **Vercel** (see root `vercel.json`).
+This directory contains legacy Hetzner configuration. The frontend deploys via **Vercel** (see root `vercel.json`); the backend uses the active artifact/release workflow in `tooling/scripts/deploy/`.
 
 ## Still Useful
 
@@ -19,7 +19,10 @@ This directory contains legacy Hetzner deployment configuration. The primary dep
 
 Refined Hetzner deploy scripts live in `tooling/scripts/deploy/`:
 
-- `build-backend-artifact.sh` — Build for Hetzner
-- `deploy-backend-artifact-hetzner.sh` — Deploy to Hetzner
-- `rollback-hetzner.sh` — Rollback deployment
-- `list-releases-hetzner.sh` — List releases
+- `build-backend-artifact.sh` — Build a versioned backend artifact locally
+- `deploy-backend-artifact-hetzner.sh` — Validate and atomically activate an immutable release
+- `rollback-hetzner.sh` — Health-gated application rollback
+- `list-releases-hetzner.sh` — Show the active and retained releases
+
+Use the active scripts and read `docs/DEPLOYMENT.md` before any production
+operation; do not restore the removed in-place deploy scripts.

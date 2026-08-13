@@ -28,7 +28,7 @@ pnpm deploy:hetzner
 This runs two scripts:
 
 1. `tooling/scripts/deploy/build-backend-artifact.sh` — compiles backend, bundles `dist/` + `config/` + `package.json` into a `.tgz`
-2. `tooling/scripts/deploy/deploy-backend-artifact-hetzner.sh` — uploads the tarball to an immutable SHA-named release, installs production dependencies, validates the candidate, atomically switches `/opt/cognivern/app`, restarts PM2, and verifies liveness/readiness
+2. `tooling/scripts/deploy/deploy-backend-artifact-hetzner.sh` — uploads the tarball to an immutable timestamp/SHA-named release, installs production dependencies, validates the candidate, atomically switches `/opt/cognivern/app`, restarts PM2, and verifies liveness/readiness
 
 No build happens on the server — it only installs and validates the uploaded
 artifact. The active app path remains stable for PM2 and nginx, while the

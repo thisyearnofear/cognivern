@@ -6,8 +6,12 @@
 ## Quick Deploy
 
 ```bash
-# Primary deploy (build locally, scp tarball to Hetzner)
+# Build locally, upload an immutable release, and activate it atomically
 pnpm deploy:hetzner
+
+# Inspect retained releases or roll back without rebuilding
+pnpm deploy:releases
+pnpm deploy:rollback
 ```
 
 ## What's Here
@@ -20,10 +24,14 @@ pnpm deploy:hetzner
 
 ## Active Hetzner Scripts (`tooling/scripts/deploy/`)
 
-- `build-backend-artifact.sh` — Build for Hetzner
-- `deploy-backend-artifact-hetzner.sh` — Deploy to Hetzner
-- `rollback-hetzner.sh` — Rollback deployment
-- `list-releases-hetzner.sh` — List releases
+- `build-backend-artifact.sh` — Build a versioned backend artifact locally
+- `deploy-backend-artifact-hetzner.sh` — Validate and atomically activate an immutable release
+- `rollback-hetzner.sh` — Health-gated application rollback
+- `list-releases-hetzner.sh` — Show the active and retained releases
+
+The active path `/opt/cognivern/app` is a stable symlink to
+`/opt/cognivern/releases/<release-id>`. Environment, SQLite data, and logs stay
+under `/opt/cognivern/shared/`; rollback never rewinds ledger or database state.
 
 ## Server Setup (One-Time)
 
