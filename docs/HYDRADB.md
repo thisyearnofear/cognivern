@@ -19,6 +19,25 @@ independent authorization system.
 - **Dashboard / API keys**: https://app.hydradb.com
 - **Free tier**: unlimited API calls & tenants — no credit card required.
 
+## Production status (live since 2026-08-14)
+
+The HydraDB layer is **enabled on the live product** (Hack Hydra / Agents Under
+Pressure submission):
+
+- **Backend** (Hetzner, `HYDRADB_ENABLED=true` in `/opt/cognivern/shared/.env`):
+  the Mandate Evidence Graph sync worker runs in production. Mandate creation
+  and outcome ingestion enqueue syncs; `GET /api/mandates/:id/context` returns
+  live HydraDB retrieval (verified: syncStatus `synced`, chunks returned).
+- **Frontend** (Vercel, `HYDRADB_API_KEY` / `HYDRADB_DATABASE` /
+  `HYDRADB_COLLECTION`): the OS Terminal `hydra` commands are live. The
+  frontend talks to the v2 API directly (`/context/ingest` memories,
+  `/query`, `/context/list`, `/databases/*`) — the old `@hydradb/sdk` v1
+  endpoints (`/tenants/infra/status`) no longer exist on api.hydradb.com and
+  were removed.
+- **Demo seeding**: `COGNIVERN_TOKEN=<jwt> pnpm demo:seed` provisions a funded
+  mandate, outcomes, and governance checks and syncs the evidence graph
+  (idempotent — see `tooling/scripts/demo/demo-seed.ts`).
+
 ## When to enable
 
 | Scenario                                                                                      | Enable?                                           |
@@ -485,7 +504,7 @@ HYDRADB_ENABLED=true HYDRADB_API_KEY=... pnpm hydradb:benchmark
 | ---------------------------------------- | ---------------- |
 | Accuracy                                 | **11/11 (100%)** |
 | Mode match (router picked expected mode) | **11/11 (100%)** |
-| Avg latency                              | 3735ms           |
+| Avg latency                              | 3837ms           |
 | Total HydraDB calls                      | 12               |
 | Total notional cost                      | $0.0088          |
 | Fast used                                | 4                |

@@ -2,8 +2,8 @@
   "totalQuestions": 11,
   "passed": 11,
   "accuracy": 1,
-  "totalLatencyMs": 41085,
-  "avgLatencyMs": 3735,
+  "totalLatencyMs": 42205,
+  "avgLatencyMs": 3837,
   "totalCalls": 12,
   "totalCostUsd": 0.0088,
   "fastUsed": 4,
@@ -13,42 +13,42 @@
     "temporal_reasoning": {
       "total": 1,
       "passed": 1,
-      "avgLatencyMs": 5897
+      "avgLatencyMs": 4822
     },
     "metadata_filtering": {
       "total": 3,
       "passed": 3,
-      "avgLatencyMs": 610
+      "avgLatencyMs": 612
     },
     "entity_deduplication": {
       "total": 1,
       "passed": 1,
-      "avgLatencyMs": 5876
+      "avgLatencyMs": 3940
     },
     "actor_based": {
       "total": 2,
       "passed": 2,
-      "avgLatencyMs": 5959
+      "avgLatencyMs": 4789
     },
     "multi_hop": {
       "total": 1,
       "passed": 1,
-      "avgLatencyMs": 8882
+      "avgLatencyMs": 10001
     },
     "third_party_attribution": {
       "total": 1,
       "passed": 1,
-      "avgLatencyMs": 2345
+      "avgLatencyMs": 6740
     },
     "multilingual": {
       "total": 1,
       "passed": 1,
-      "avgLatencyMs": 3632
+      "avgLatencyMs": 4575
     },
     "knowledge_updates": {
       "total": 1,
       "passed": 1,
-      "avgLatencyMs": 706
+      "avgLatencyMs": 714
     }
   },
   "results": [
@@ -60,10 +60,10 @@
       "actualMode": "thinking",
       "routingReason": "open-ended multi-clause question",
       "hydraDbCalls": 1,
-      "latencyMs": 5897,
+      "latencyMs": 4822,
       "estimatedCostUsd": 0.001,
       "resultCount": 12,
-      "topScore": 0.7763781931776662,
+      "topScore": 0.6441098440179437,
       "passed": true,
       "matchedExpected": [
         "12",
@@ -80,8 +80,8 @@
         "github_commit"
       ],
       "multiHop": false,
-      "topChunkTitle": "Spend run de504914-8138-4c81-a388-367e9c2bb3e3 — http-verify-agent → stable-email",
-      "topChunkSnippet": "{\"id\":\"cognivern_run_de504914-8138-4c81-a388-367e9c2bb3e3\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Sp"
+      "topChunkTitle": "Spend run 726c948f-82bc-4584-929e-29411368ea8a — http-verify-agent → stable-email",
+      "topChunkSnippet": "{\"id\":\"cognivern_run_726c948f-82bc-4584-929e-29411368ea8a\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Sp"
     },
     {
       "id": "q2_metadata_filter",
@@ -94,7 +94,7 @@
       "latencyMs": 717,
       "estimatedCostUsd": 0.0002,
       "resultCount": 10,
-      "topScore": 0.9069823599855495,
+      "topScore": 0.9065351048469596,
       "passed": true,
       "matchedExpected": [
         "stable-email"
@@ -118,10 +118,10 @@
       "actualMode": "thinking",
       "routingReason": "multi-hop / cross-source signal detected",
       "hydraDbCalls": 1,
-      "latencyMs": 5876,
+      "latencyMs": 3940,
       "estimatedCostUsd": 0.001,
       "resultCount": 16,
-      "topScore": 0.6761036518782506,
+      "topScore": 0.7501431244855965,
       "passed": true,
       "matchedExpected": [
         "stable-email",
@@ -149,10 +149,10 @@
       "actualMode": "thinking",
       "routingReason": "multi-hop / cross-source signal detected",
       "hydraDbCalls": 1,
-      "latencyMs": 6070,
+      "latencyMs": 4794,
       "estimatedCostUsd": 0.001,
       "resultCount": 13,
-      "topScore": 0.8900874084557372,
+      "topScore": 0.9539483684826445,
       "passed": true,
       "matchedExpected": [
         "thisyearnofear",
@@ -181,10 +181,10 @@
       "actualMode": "thinking (multi-hop)",
       "routingReason": "forced by caller",
       "hydraDbCalls": 2,
-      "latencyMs": 8882,
+      "latencyMs": 10001,
       "estimatedCostUsd": 0.002,
-      "resultCount": 20,
-      "topScore": 0.8314619711480747,
+      "resultCount": 10,
+      "topScore": 0.7181123093591785,
       "passed": true,
       "matchedExpected": [
         "thisyearnofear",
@@ -211,10 +211,10 @@
       "actualMode": "thinking",
       "routingReason": "open-ended multi-clause question",
       "hydraDbCalls": 1,
-      "latencyMs": 2345,
+      "latencyMs": 6740,
       "estimatedCostUsd": 0.001,
-      "resultCount": 55,
-      "topScore": 0.03278688524590164,
+      "resultCount": 16,
+      "topScore": 0.9167424656893569,
       "passed": true,
       "matchedExpected": [
         "thisyearnofear",
@@ -226,14 +226,13 @@
         "cognivern_audit"
       ],
       "sourcesFound": [
-        "cognivern_audit",
-        "github_commit",
         "linear",
-        "github"
+        "cognivern_audit",
+        "github_commit"
       ],
       "multiHop": false,
-      "topChunkTitle": "Spend run 726c948f-82bc-4584-929e-29411368ea8a — http-verify-agent → stable-email",
-      "topChunkSnippet": "{\"id\":\"cognivern_run_726c948f-82bc-4584-929e-29411368ea8a\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Sp"
+      "topChunkTitle": "Linear THI-5: Investigate stable-email spend anomaly",
+      "topChunkSnippet": "{\"id\":\"linear_a1dfc568-ce0a-4ea0-bd8e-7070210296c8\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Linear TH"
     },
     {
       "id": "q7_fast_lookup",
@@ -243,10 +242,10 @@
       "actualMode": "fast",
       "routingReason": "metadata-filtered single-entity lookup",
       "hydraDbCalls": 1,
-      "latencyMs": 561,
+      "latencyMs": 633,
       "estimatedCostUsd": 0.0002,
       "resultCount": 10,
-      "topScore": 0.8938462831109464,
+      "topScore": 0.8941966415544094,
       "passed": true,
       "matchedExpected": [
         "THI-"
@@ -269,10 +268,10 @@
       "actualMode": "thinking",
       "routingReason": "open-ended multi-clause question",
       "hydraDbCalls": 1,
-      "latencyMs": 3632,
+      "latencyMs": 4575,
       "estimatedCostUsd": 0.001,
-      "resultCount": 13,
-      "topScore": 0.6534675683550152,
+      "resultCount": 12,
+      "topScore": 0.5952441054692987,
       "passed": true,
       "matchedExpected": [
         "http-verify-agent",
@@ -289,8 +288,8 @@
         "github_commit"
       ],
       "multiHop": false,
-      "topChunkTitle": "Spend run 726c948f-82bc-4584-929e-29411368ea8a — http-verify-agent → stable-email",
-      "topChunkSnippet": "{\"id\":\"cognivern_run_726c948f-82bc-4584-929e-29411368ea8a\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Sp"
+      "topChunkTitle": "Spend run de504914-8138-4c81-a388-367e9c2bb3e3 — http-verify-agent → stable-email",
+      "topChunkSnippet": "{\"id\":\"cognivern_run_de504914-8138-4c81-a388-367e9c2bb3e3\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Sp"
     },
     {
       "id": "q9_project_scoped",
@@ -300,10 +299,10 @@
       "actualMode": "thinking",
       "routingReason": "open-ended multi-clause question",
       "hydraDbCalls": 1,
-      "latencyMs": 5847,
+      "latencyMs": 4783,
       "estimatedCostUsd": 0.001,
-      "resultCount": 20,
-      "topScore": 0.5947121643014489,
+      "resultCount": 19,
+      "topScore": 0.595042248250596,
       "passed": true,
       "matchedExpected": [
         "Cognivern Governance",
@@ -329,10 +328,10 @@
       "actualMode": "fast",
       "routingReason": "metadata-filtered single-entity lookup",
       "hydraDbCalls": 1,
-      "latencyMs": 706,
+      "latencyMs": 714,
       "estimatedCostUsd": 0.0002,
       "resultCount": 10,
-      "topScore": 0.8642132866621453,
+      "topScore": 0.8624437155202695,
       "passed": true,
       "matchedExpected": [
         "stable-email",
@@ -356,10 +355,10 @@
       "actualMode": "fast",
       "routingReason": "metadata-filtered single-entity lookup",
       "hydraDbCalls": 1,
-      "latencyMs": 552,
+      "latencyMs": 486,
       "estimatedCostUsd": 0.0002,
       "resultCount": 10,
-      "topScore": 0.9633263358817035,
+      "topScore": 0.9618098948869187,
       "passed": true,
       "matchedExpected": [
         "Intercom"
@@ -375,5 +374,5 @@
       "topChunkSnippet": "{\"id\":\"attio_company_7d29b629-5b5e-47a0-860e-3e3d7ee96604\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"At"
     }
   ],
-  "generatedAt": "2026-08-07T13:51:37.573Z"
+  "generatedAt": "2026-08-14T23:00:31.465Z"
 }

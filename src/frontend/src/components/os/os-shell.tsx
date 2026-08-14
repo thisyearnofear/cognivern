@@ -378,7 +378,7 @@ export function OsShell() {
           )}
           {!hydraStatus?.configured && hydraStatus !== null && (
             <span className="text-[10px] font-mono text-amber-500/60 hidden md:inline">
-              &middot; configure HYDRA_DB_API_KEY
+              &middot; configure HYDRADB_API_KEY
             </span>
           )}
         </div>

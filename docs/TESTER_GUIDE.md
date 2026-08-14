@@ -76,9 +76,15 @@ curl https://api.cognivern.persidian.com/api/governance/evaluate \
 1. Go to **Terminal** in the sidebar
 2. Type `help` — see all available commands
 3. Type `status` — system health check
-4. Type `hydra status` — check the memory system
-5. Type `hydra memory "Cognivern test"` — store a memory
+4. Type `hydra status` — check the memory system (live on HydraDB — shows `[CONNECTED]`)
+5. Type `hydra memory "Cognivern test"` — store a memory in HydraDB
 6. Type `hydra recent` — browse recent memories
+7. Type `hydra recall "Cognivern"` — semantic search over stored memories
+8. Type `hydra qna "what have we stored about Cognivern?"` — cross-session Q&A
+
+The `hydra` commands are backed by HydraDB (v2 API) and work on the live
+product. Memories are shared across sessions, so what a tester stores in one
+session is recallable in the next.
 
 ## 5. Review audit trail (30 seconds)
 
@@ -227,6 +233,29 @@ spends funds.
 
 The recommendation is advisory; any real spend still goes through the policy
 boundary and the execution queue.
+
+**HydraDB Evidence context is live.** The Evidence section for a mandate
+retrieves its context graph from HydraDB (mandate, outcomes, statement,
+recommendation, and mandate-linked spend runs) and cites sources with sync
+status. Mandate creation and outcome ingestion sync automatically.
+
+## Moderator: seeding a tester workspace
+
+Before a user-testing session, provision a disposable account and run the
+idempotent demo seed (creates a funded mandate, evidence-backed outcomes, and
+approved/held/denied governance checks, then syncs the mandate to HydraDB):
+
+```bash
+# 1. Register + verify a disposable account (see section 1), then log in:
+curl -s -X POST https://api.cognivern.persidian.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"tester@example.com","password":"..."}'
+# 2. Pass the returned token and run the seed:
+COGNIVERN_TOKEN=<jwt> pnpm demo:seed
+```
+
+Re-running `pnpm demo:seed` is safe — writes are idempotent and never
+duplicate records.
 
 ## What you're looking at
 

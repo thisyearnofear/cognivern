@@ -25,12 +25,10 @@ export async function POST(request: Request) {
     try {
       const recall = await fullRecall(query);
       if (recall.ok && recall.results) {
-        // Extract the memory texts from the recall results
-        // recall.results is a RecallResult object with a nested results array
-        const innerResults = recall.results?.results;
-        const memoryTexts = Array.isArray(innerResults)
-          ? innerResults.map((r: { text?: string }) => r.text).filter(Boolean)
-          : [];
+        // recall.results is already the array of memory items
+        const memoryTexts = recall.results
+          .map((r) => r.text)
+          .filter((t): t is string => Boolean(t));
 
         if (memoryTexts.length > 0) {
           enrichedContext = {

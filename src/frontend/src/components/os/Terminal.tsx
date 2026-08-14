@@ -289,7 +289,7 @@ async function handleLocalCommand(
       );
       term.writeln("");
       term.writeln(
-        "  \x1b[38;2;113;113;122mRequires HYDRA_DB_API_KEY env var. Sign up at app.hydradb.com\x1b[0m",
+        "  \x1b[38;2;113;113;122mRequires HYDRADB_API_KEY env var. Sign up at app.hydradb.com\x1b[0m",
       );
       term.writeln("");
     } else if (sub === "status") {

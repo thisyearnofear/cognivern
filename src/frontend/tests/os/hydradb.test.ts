@@ -37,7 +37,7 @@ async function getStatus(
       configured: false,
       tenantExists: false,
       tenantId: tenantId || null,
-      error: !apiKey ? "HYDRA_DB_API_KEY not set" : "HYDRA_TENANT_ID not set",
+      error: !apiKey ? "HYDRADB_API_KEY not set" : "HYDRADB_DATABASE not set",
     };
   }
   return {
@@ -149,7 +149,7 @@ describe("HydraDB service — status", () => {
   it("returns unconfigured when tenant ID is missing", async () => {
     const status = await getStatus("key-123", undefined);
     expect(status.configured).toBe(false);
-    expect(status.error).toContain("TENANT_ID");
+    expect(status.error).toContain("DATABASE");
   });
 
   it("returns configured when both key and tenant are present", async () => {

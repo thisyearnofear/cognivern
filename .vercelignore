@@ -1,0 +1,26 @@
+# Local dependency/build artifacts — Vercel reinstalls and rebuilds
+node_modules
+**/node_modules
+dist
+**/dist
+.next
+**/.next
+*.tsbuildinfo
+
+# Source control / tooling
+.git
+.github
+.husky
+
+# Local data & secrets — never ship these
+.env
+.env.*
+!.env.example
+data
+logs
+.artifacts
+playwright-report
+test-results
+.testsprite
+playwright/.cache
+coverage

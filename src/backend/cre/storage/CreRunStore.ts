@@ -116,9 +116,14 @@ export class CreRunStore {
   }
 
   async reset() {
-    this.runs = [];
-    this.loaded = true;
+    // Clear in-memory state inside the lock so a concurrent add/replace
+    // (e.g. a fire-and-forget governance or audit write) cannot re-populate
+    // the store after the reset observed an empty snapshot. Without this,
+    // a pending mutation that passed ensureLoaded() before the reset would
+    // unshift its run back into this.runs and rewrite the truncated file.
     await this.withLock(async () => {
+      this.runs = [];
+      this.loaded = true;
       await this.persistence.truncate();
       await this.ledger.record("truncate");
     });

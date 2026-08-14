@@ -42,6 +42,7 @@ describe("AuditLogService persists logs deterministically via CRE store", () => 
     await service.logEvent({
       eventType: "agent_registration",
       agentType: "recall",
+      projectId: "test-workspace",
       timestamp: new Date("2025-01-01T00:00:00.000Z"),
       details: {
         latencyMs: 42,
@@ -53,7 +54,11 @@ describe("AuditLogService persists logs deterministically via CRE store", () => 
     const reloadedPersistence = new JsonlCreRunPersistence({ filePath });
     const reloadedStore = new CreRunStore({ persistence: reloadedPersistence });
     const reloadedService = new AuditLogService(reloadedStore);
-    const logs = await reloadedService.getFilteredLogs({});
+    // getFilteredLogs scopes by workspace; query the workspace the event
+    // was logged under rather than an empty filter that matches nothing.
+    const logs = await reloadedService.getFilteredLogs({
+      workspaceId: "test-workspace",
+    });
 
     expect(logs.length).toBe(1);
     expect(logs[0].agent).toBe("recall");
