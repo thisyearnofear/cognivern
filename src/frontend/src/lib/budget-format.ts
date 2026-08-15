@@ -56,3 +56,21 @@ export function parseBudget(raw: string): ParsedBudget {
 export function formatBudget(raw: string): string {
   return parseBudget(raw).formatted;
 }
+
+/**
+ * Format a USD number for display — the single formatter for numeric money
+ * across stat cards, tables, and feeds.
+ *
+ * `maxFractionDigits` defaults to 2; pass 6 for per-call costs where 2dp hides
+ * real inference prices (a 0G call can cost $0.0001). Null/undefined renders
+ * as an em dash so callers never sprinkle their own fallbacks.
+ */
+export function formatUsd(value: number | null | undefined, maxFractionDigits = 2): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxFractionDigits,
+  }).format(value);
+}

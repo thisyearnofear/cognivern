@@ -242,6 +242,153 @@ export const notifications = sqliteTable(
   ],
 );
 
+// ── Sponsored Inference Credits ────────────────────────────────────────────
+// Money columns are INTEGER nano-USD (1e-9 USD). See
+// migrations/0003_sponsored_credits.sql for the rationale.
+
+export const creditPrograms = sqliteTable(
+  "credit_programs",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id").notNull(),
+    name: text("name").notNull(),
+    sponsorName: text("sponsor_name").notNull().default(""),
+    status: text("status").notNull().default("draft"),
+    backend: text("backend").notNull().default("zerog-router"),
+    poolNano: integer("pool_nano").notNull().default(0),
+    baseAllocationNano: integer("base_allocation_nano").notNull().default(0),
+    allowedModels: text("allowed_models").notNull().default("[]"),
+    maxOutputTokens: integer("max_output_tokens"),
+    maxInputTokens: integer("max_input_tokens"),
+    startsAt: text("starts_at"),
+    endsAt: text("ends_at"),
+    disclosureMultipliers: text("disclosure_multipliers").notNull().default("{}"),
+    requireTrustMode: text("require_trust_mode"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    index("idx_credit_programs_workspace").on(table.workspaceId, table.status),
+  ],
+);
+
+export const creditParticipants = sqliteTable(
+  "credit_participants",
+  {
+    id: text("id").primaryKey(),
+    programId: text("program_id").notNull(),
+    workspaceId: text("workspace_id").notNull(),
+    handle: text("handle").notNull(),
+    displayName: text("display_name"),
+    projectTag: text("project_tag"),
+    disclosureTier: text("disclosure_tier").notNull().default("standard"),
+    baseAllocationNano: integer("base_allocation_nano").notNull().default(0),
+    allocatedNano: integer("allocated_nano").notNull().default(0),
+    consumedNano: integer("consumed_nano").notNull().default(0),
+    heldNano: integer("held_nano").notNull().default(0),
+    overdrawnNano: integer("overdrawn_nano").notNull().default(0),
+    requestCount: integer("request_count").notNull().default(0),
+    keyHash: text("key_hash"),
+    keyPrefix: text("key_prefix"),
+    keyIssuedAt: text("key_issued_at"),
+    lastUsedAt: text("last_used_at"),
+    status: text("status").notNull().default("active"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("credit_participants_handle_unique").on(table.programId, table.handle),
+    index("idx_credit_participants_program").on(table.programId, table.status),
+    index("idx_credit_participants_key_prefix").on(table.keyPrefix),
+  ],
+);
+
+export const creditLedger = sqliteTable(
+  "credit_ledger",
+  {
+    id: text("id").primaryKey(),
+    programId: text("program_id").notNull(),
+    participantId: text("participant_id").notNull(),
+    kind: text("kind").notNull(),
+    amountNano: integer("amount_nano").notNull(),
+    balanceAfterNano: integer("balance_after_nano").notNull(),
+    refType: text("ref_type"),
+    refId: text("ref_id"),
+    note: text("note"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("idx_credit_ledger_participant").on(table.participantId, table.createdAt),
+    index("idx_credit_ledger_program").on(table.programId, table.createdAt),
+    index("idx_credit_ledger_ref").on(table.refType, table.refId),
+  ],
+);
+
+export const creditLedgerCommitments = sqliteTable(
+  "credit_ledger_commitments",
+  {
+    id: text("id").primaryKey(),
+    programId: text("program_id").notNull(),
+    status: text("status").notNull().default("pending"),
+    commitmentRoot: text("commitment_root").notNull(),
+    payloadHash: text("payload_hash").notNull(),
+    participantCount: integer("participant_count").notNull().default(0),
+    highWaterMark: text("high_water_mark"),
+    zerogRootHash: text("zerog_root_hash"),
+    zerogTxHash: text("zerog_tx_hash"),
+    filecoinCid: text("filecoin_cid"),
+    filecoinTxHash: text("filecoin_tx_hash"),
+    filecoinActionId: text("filecoin_action_id"),
+    proofMap: text("proof_map").notNull().default("{}"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("idx_credit_commitments_program").on(table.programId, table.createdAt),
+  ],
+);
+
+export const inferenceRecords = sqliteTable(
+  "inference_records",
+  {
+    id: text("id").primaryKey(),
+    programId: text("program_id").notNull(),
+    participantId: text("participant_id").notNull(),
+    workspaceId: text("workspace_id").notNull(),
+    disclosureTier: text("disclosure_tier").notNull(),
+    backend: text("backend").notNull(),
+    provider: text("provider"),
+    model: text("model").notNull(),
+    status: text("status").notNull(),
+    deniedReason: text("denied_reason"),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    cachedTokens: integer("cached_tokens").notNull().default(0),
+    costNano: integer("cost_nano").notNull().default(0),
+    rawCostNative: text("raw_cost_native"),
+    pricingSource: text("pricing_source"),
+    latencyMs: integer("latency_ms").notNull().default(0),
+    streamed: integer("streamed", { mode: "boolean" }).notNull().default(false),
+    trustTier: text("trust_tier"),
+    teeVerified: integer("tee_verified", { mode: "boolean" }).notNull().default(false),
+    upstreamRequestId: text("upstream_request_id"),
+    promptDigest: text("prompt_digest"),
+    responseDigest: text("response_digest"),
+    redactionCount: integer("redaction_count").notNull().default(0),
+    redactionCategories: text("redaction_categories").notNull().default("[]"),
+    taskClass: text("task_class"),
+    projectTag: text("project_tag"),
+    promptExcerpt: text("prompt_excerpt"),
+    responseExcerpt: text("response_excerpt"),
+    auditRunId: text("audit_run_id"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("idx_inference_records_participant").on(table.participantId, table.createdAt),
+    index("idx_inference_records_program").on(table.programId, table.createdAt),
+    index("idx_inference_records_model").on(table.programId, table.model),
+  ],
+);
+
 // ── Type helpers ───────────────────────────────────────────────────────────
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -265,3 +412,13 @@ export type NewPolicyVersion = typeof policyVersions.$inferInsert;
 export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
+export type CreditProgram = typeof creditPrograms.$inferSelect;
+export type NewCreditProgram = typeof creditPrograms.$inferInsert;
+export type CreditParticipant = typeof creditParticipants.$inferSelect;
+export type NewCreditParticipant = typeof creditParticipants.$inferInsert;
+export type CreditLedgerEntry = typeof creditLedger.$inferSelect;
+export type NewCreditLedgerEntry = typeof creditLedger.$inferInsert;
+export type InferenceRecord = typeof inferenceRecords.$inferSelect;
+export type NewInferenceRecord = typeof inferenceRecords.$inferInsert;
+export type CreditLedgerCommitment = typeof creditLedgerCommitments.$inferSelect;
+export type NewCreditLedgerCommitment = typeof creditLedgerCommitments.$inferInsert;

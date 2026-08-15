@@ -13,6 +13,7 @@ import {
   Radar,
   CircleDollarSign,
   Fingerprint,
+  CreditCard,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -85,6 +86,13 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Users,
         href: '/agents',
         description: 'Control which systems can spend',
+      },
+      {
+        id: 'sponsored-credits',
+        label: 'Sponsored Credits',
+        icon: CreditCard,
+        href: '/sponsor/credits',
+        description: 'Fund a cohort and meter its inference',
       },
     ],
   },

@@ -171,6 +171,12 @@ export class ObservabilityController {
             "Per-route request rate, p95 latency, error rate by status class, audit log volume, governance decision traces.",
           status: "live",
         },
+        {
+          title: "Sponsored Inference Gateway",
+          description:
+            "Metered gateway spend: request rate by outcome, cost by model, tokens by direction, latency p95, denials.",
+          status: "live",
+        },
       ],
       instrumentedSpans: [
         { name: "llm.execute_with_fallback", source: "MultiModelRouter", status: "live" },
@@ -197,6 +203,10 @@ export class ObservabilityController {
         { name: "cognivern.hydradb.sync.jobs.total", source: "HydraDbMandateContextService", status: "live" },
         { name: "cognivern.hydradb.sync.retries.total", source: "HydraDbMandateContextService", status: "live" },
         { name: "cognivern.hydradb.sync.duration.ms", source: "HydraDbMandateContextService", status: "live" },
+        { name: "cognivern.gateway.requests.total", source: "InferenceGatewayService", status: "live" },
+        { name: "cognivern.gateway.cost.usd.total", source: "InferenceGatewayService", status: "live" },
+        { name: "cognivern.gateway.tokens.total", source: "InferenceGatewayService", status: "live" },
+        { name: "cognivern.gateway.latency.ms", source: "InferenceGatewayService", status: "live" },
       ],
     };
 

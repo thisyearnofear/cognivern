@@ -19,6 +19,7 @@ import {
   Radar,
   BarChart3,
   RefreshCw,
+  CreditCard,
 } from 'lucide-react';
 import type { AuditLog } from '@cognivern/shared';
 import { Button } from '@/components/ui/button';
@@ -796,6 +797,24 @@ export function Dashboard() {
                         <div className="text-sm font-semibold">Vendor governance</div>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           Manage confidential vendor selections.
+                        </p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/sponsor/credits')}
+                    className="rounded-xl border bg-card p-4 text-left hover:border-primary/40 transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <CreditCard className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold">Sponsored credits</div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Fund a cohort and meter its inference.
                         </p>
                       </div>
                       <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />

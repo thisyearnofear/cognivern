@@ -15,3 +15,5 @@ export { createEventsRoutes } from "./eventsRoutes.js";
 export { createObservabilityRoutes } from "./observabilityRoutes.js";
 export { createMandateRoutes } from "./mandateRoutes.js";
 export { createOutcomeObservationRoutes } from "./outcomeObservationRoutes.js";
+export { createCreditProgramRoutes } from "./creditProgramRoutes.js";
+export { createInferenceGatewayRoutes } from "./inferenceGatewayRoutes.js";

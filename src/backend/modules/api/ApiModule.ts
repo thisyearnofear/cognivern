@@ -47,7 +47,10 @@ import { EventsController } from './controllers/EventsController.js';
 import { ObservabilityController } from './controllers/ObservabilityController.js';
 import { MandateController } from './controllers/MandateController.js';
 import { OutcomeObservationController } from './controllers/OutcomeObservationController.js';
+import { CreditProgramController } from './controllers/CreditProgramController.js';
+import { InferenceGatewayController } from './controllers/InferenceGatewayController.js';
 import { hydraDbMandateContext } from '@backend/services/hydradb/HydraDbMandateContextService.js';
+import { sharedLedgerCommitmentService } from '@backend/services/credits/LedgerCommitmentService.js';
 import { ApiKeyController, resolveApiKeyRecord } from './controllers/ApiKeyController.js';
 import { isKeyManagementPath, requiredScopeForRoute } from './keyScopes.js';
 import { authMiddleware } from '@backend/middleware/authMiddleware.js';
@@ -96,6 +99,8 @@ interface ControllerRegistry {
   observability: ObservabilityController;
   mandate: MandateController;
   outcomeObservation: OutcomeObservationController;
+  creditProgram: CreditProgramController;
+  inferenceGateway: InferenceGatewayController;
 }
 
 /** Typed error with optional HTTP status code */
@@ -149,6 +154,7 @@ export class ApiModule extends BaseService {
 
   protected async onShutdown(): Promise<void> {
     hydraDbMandateContext.stopBackgroundSyncWorker();
+    sharedLedgerCommitmentService().stop();
     if (this.server) {
       await new Promise<void>((resolve) => {
         this.server!.close(() => {
@@ -532,6 +538,8 @@ export class ApiModule extends BaseService {
     this.controllers.observability = new ObservabilityController();
     this.controllers.mandate = new MandateController();
     this.controllers.outcomeObservation = new OutcomeObservationController();
+    this.controllers.creditProgram = new CreditProgramController();
+    this.controllers.inferenceGateway = new InferenceGatewayController();
 
     // Initialize all controllers that have an initialize method
     for (const [name, controller] of Object.entries(this.controllers)) {
@@ -545,6 +553,12 @@ export class ApiModule extends BaseService {
     // HydraDB is an optional derived layer. Start its durable recovery worker
     // only when enabled; it never participates in API request critical paths.
     hydraDbMandateContext.startBackgroundSyncWorker();
+
+    // Periodically anchor credit-ledger commitments for active programs so
+    // balances stay externally verifiable. Best-effort; failures only log.
+    sharedLedgerCommitmentService().start(
+      Number(process.env.CREDIT_COMMITMENT_INTERVAL_MS || 3600000),
+    );
   }
 
   private async setupRoutes(): Promise<void> {
@@ -569,6 +583,8 @@ export class ApiModule extends BaseService {
       createObservabilityRoutes,
       createMandateRoutes,
       createOutcomeObservationRoutes,
+      createCreditProgramRoutes,
+      createInferenceGatewayRoutes,
     } = await import('./routes/index.js');
 
     // Health check (no API key required)
@@ -587,9 +603,24 @@ export class ApiModule extends BaseService {
     const apiKeyRoutes = createApiKeyRoutes(this.ctrl('apiKey'));
     this.app.use(apiKeyRoutes);
 
+    // Metered inference gateway (/v1/*). Mounted on the app root, NOT the /api
+    // router, so participants authenticate with their cvk_ gateway key instead
+    // of the workspace JWT/x-api-key stack — that is what lets an unmodified
+    // OpenAI SDK point at this base URL. Credit enforcement, metering, and
+    // audit recording all happen inside the controller.
+    this.app.use(createInferenceGatewayRoutes(this.ctrl('inferenceGateway')));
+
     // Data plane ingestion (NO API key middleware)
     this.app.post('/ingest/runs', (req, res) => {
       this.ctrl('ingest').ingestRun(req, res);
+    });
+
+    // Public commitment verification (NO API key middleware). Pure
+    // cryptographic check of a receipt against an anchored root — discloses
+    // nothing, touches no database. The trust lives in the 0G/Filecoin
+    // anchors, not in this server.
+    this.app.post('/verify/credit-commitment', (req, res) => {
+      this.ctrl('creditProgram').verifyCommitment(req, res);
     });
 
     // API routes (require API key)
@@ -638,6 +669,7 @@ export class ApiModule extends BaseService {
     apiRouter.use(createObservabilityRoutes(this.ctrl('observability')));
     apiRouter.use(createMandateRoutes(this.ctrl('mandate')));
     apiRouter.use(createOutcomeObservationRoutes(this.ctrl('outcomeObservation')));
+    apiRouter.use(createCreditProgramRoutes(this.ctrl('creditProgram')));
 
     // Sapience routes (conditional)
     if (this.controllers.sapience) {

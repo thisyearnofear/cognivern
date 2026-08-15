@@ -200,6 +200,116 @@ export class HydraDbIngestionService {
     }
   }
 
+  /**
+   * Ingest one gateway inference call as app-knowledge — the sponsored-flow
+   * counterpart to `ingestCreRun`.
+   *
+   * The rule is that HydraDB never holds more than the SPONSOR projection
+   * (the same tier-gated view the sponsor dashboard renders):
+   *   - calls made at `private` tier are skipped entirely (per-call rows are
+   *     withheld from sponsors, so none are ingested);
+   *   - `standard+` calls carry per-request billing metadata + digests;
+   *   - `detailed+` adds task class and project tag;
+   *   - `open` adds the credential-scrubbed excerpts.
+   * This mirrors `InferenceRecordStore.projectForSponsor` and keeps the
+   * retrieval store exactly as rich as the sponsor's own view — never richer.
+   *
+   * Callers pass the sponsor projection, so a future writer bug cannot widen
+   * disclosure through this path either.
+   */
+  async ingestInferenceRecord(params: {
+    recordId: string;
+    programId: string;
+    programName: string;
+    workspaceId: string;
+    participantHandle: string;
+    backend: string;
+    provider: string | null;
+    model: string;
+    status: string;
+    deniedReason: string | null;
+    inputTokens: number;
+    outputTokens: number;
+    cachedTokens: number;
+    costUsd: number;
+    latencyMs: number;
+    streamed: boolean;
+    trustTier: string | null;
+    teeVerified: boolean;
+    disclosureTier: string;
+    taskClass: string | null;
+    projectTag: string | null;
+    promptExcerpt: string | null;
+    responseExcerpt: string | null;
+    createdAt: string;
+  }): Promise<string | null> {
+    const client = this.getClient();
+    if (!client) return null;
+
+    const record: AppKnowledgeRecord = {
+      id: `cognivern_inference_${params.recordId}`,
+      database: this.database,
+      collection: this.collection,
+      title: `${params.participantHandle} → ${params.model}`,
+      type: "audit",
+      url: `https://cognivern.persidian.com/os/sponsor/credits/${params.programId}`,
+      timestamp: params.createdAt,
+      content: {
+        text: [
+          `Inference call ${params.recordId} (${params.status}) for program ${params.programName} (${params.programId}).`,
+          `${params.participantHandle} ran ${params.model} on ${params.backend}${params.provider ? ` (provider ${params.provider})` : ""} — ${params.inputTokens} in / ${params.outputTokens} out${params.cachedTokens > 0 ? ` / ${params.cachedTokens} cached` : ""}, cost $${params.costUsd.toFixed(6)}.`,
+          params.latencyMs >= 0 ? `Latency ${params.latencyMs}ms, ${params.streamed ? "streamed" : "non-streaming"}.` : "",
+          params.teeVerified ? `Executed in a verified TEE (${params.trustTier ?? "verified"}).` : "",
+          params.status === "denied" ? `Denied: ${params.deniedReason ?? "unknown"}.` : "",
+          params.taskClass ? `Task class: ${params.taskClass}.` : "",
+          params.projectTag ? `Project tag: ${params.projectTag}.` : "",
+          params.promptExcerpt ? `Prompt excerpt: ${params.promptExcerpt}` : "",
+          params.responseExcerpt ? `Response excerpt: ${params.responseExcerpt}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      },
+      tenant_metadata: {},
+      additional_metadata: {
+        workspace_id: params.workspaceId,
+        program_id: params.programId,
+        program_name: params.programName,
+        participant: params.participantHandle,
+        backend: params.backend,
+        provider: params.provider ?? "unknown",
+        model: params.model,
+        status: params.status,
+        denied_reason: params.deniedReason ?? "",
+        input_tokens: params.inputTokens,
+        output_tokens: params.outputTokens,
+        cached_tokens: params.cachedTokens,
+        cost_usd: params.costUsd,
+        latency_ms: params.latencyMs,
+        streamed: params.streamed,
+        trust_tier: params.trustTier ?? "",
+        tee_verified: params.teeVerified,
+        disclosure_tier: params.disclosureTier,
+        task_class: params.taskClass ?? "",
+        project_tag: params.projectTag ?? "",
+        ts: (params.createdAt || new Date().toISOString()).slice(0, 10),
+        origin: "cognivern_gateway",
+        object_type: "inference",
+        record_id: params.recordId,
+        canonical_url: `/sponsor/credits/${params.programId}`,
+      },
+      relations: {
+        ids: [
+          `cognivern_program_${params.programId}`,
+          `cognivern_participant_${params.programId}_${params.participantHandle}`,
+          `cognivern_model_${params.model}`,
+          `cognivern_backend_${params.backend}`,
+        ],
+      },
+    };
+
+    return this.ingestAppRecord(record);
+  }
+
   // ── Internal mappers ────────────────────────────────────────────────────
 
   private extractSpendIntent(run: CreRun): Record<string, unknown> | null {

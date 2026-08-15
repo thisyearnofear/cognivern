@@ -10,9 +10,38 @@ const labels: Record<string, string> = {
   approved: "Approved",
   held: "Held",
   denied: "Denied",
+  // Credit program / participant statuses.
+  active: "Active",
+  draft: "Draft",
+  paused: "Paused",
+  closed: "Closed",
+  suspended: "Suspended",
+  revoked: "Revoked",
+  // Disclosure tiers and gateway call statuses.
+  open: "Open",
+  detailed: "Detailed",
+  standard: "Standard",
+  private: "Private",
+  ok: "Ok",
+  upstream_error: "Upstream error",
+};
+
+const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  failed: "destructive",
+  denied: "destructive",
+  revoked: "destructive",
+  closed: "destructive",
+  completed: "secondary",
+  approved: "secondary",
+  paused: "secondary",
+  detailed: "secondary",
+  running: "default",
+  active: "default",
+  open: "default",
+  ok: "default",
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const variant = status === "failed" || status === "denied" ? "destructive" : status === "completed" || status === "approved" ? "secondary" : status === "running" ? "default" : "outline";
+  const variant = variants[status] ?? "outline";
   return <Badge variant={variant} className={className}>{labels[status] || status.replaceAll("_", " ")}</Badge>;
 }

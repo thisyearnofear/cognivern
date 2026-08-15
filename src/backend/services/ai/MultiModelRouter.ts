@@ -9,6 +9,7 @@ export interface AiUsageRecord {
   outputTokens: number;
   costUsd: number;
   taskClass: string;
+  latencyMs: number;
   timestamp: string;
 }
 
@@ -203,7 +204,9 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
       },
       async (span) => {
         try {
+          const startedAt = Date.now();
           const result = await this.executeWithProvider(prompt, provider, taskType);
+          const latencyMs = Date.now() - startedAt;
 
           const inputTokens = Math.ceil(prompt.length / 4);
           const outputTokens = Math.ceil(result.length / 4);
@@ -215,8 +218,10 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
             outputTokens,
             costUsd: ((inputTokens + outputTokens) / 1000) * costPer1k,
             taskClass: taskType,
+            latencyMs,
             timestamp: new Date().toISOString(),
           };
+          span.setAttributes({ "llm.latency_ms": latencyMs });
 
           // Emit to OTel pipeline + metrics buffer.
           recordLlmUsage(this.lastUsage);

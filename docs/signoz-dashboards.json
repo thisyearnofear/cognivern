@@ -140,6 +140,48 @@
           "panel_type": "traces"
         }
       ]
+    },
+    {
+      "title": "Cognivern - Sponsored Inference Gateway",
+      "description": "The metered gateway: real, provider-reported spend per model and outcome for sponsored credit programs. Unlike the agent-loop LLM panels (which are estimated), these are meter-accurate \u2014 the same numbers the credit ledger settles on.",
+      "tags": [
+        "cognivern",
+        "gateway",
+        "sponsored-credits",
+        "metered-inference"
+      ],
+      "layout": [
+        {
+          "title": "Gateway Requests (by outcome)",
+          "query": "sum(rate(cognivern_gateway_requests_total[5m])) by (status)",
+          "unit": "ops/sec",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "Gateway Cost by Model (USD)",
+          "query": "sum(cognivern_gateway_cost_usd_total) by (model)",
+          "unit": "usd",
+          "panel_type": "bar_chart"
+        },
+        {
+          "title": "Gateway Tokens (input vs output)",
+          "query": "sum(rate(cognivern_gateway_tokens_total[5m])) by (direction)",
+          "unit": "tokens/sec",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "Gateway Latency (p95)",
+          "query": "histogram_quantile(0.95, sum(rate(cognivern_gateway_latency_ms_bucket[5m])) by (le, backend))",
+          "unit": "ms",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "Denials (by model)",
+          "query": "sum(rate(cognivern_gateway_requests_total{status=\"denied\"}[5m])) by (model)",
+          "unit": "ops/sec",
+          "panel_type": "time_series"
+        }
+      ]
     }
   ]
 }

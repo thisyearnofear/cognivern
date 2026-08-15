@@ -15,6 +15,7 @@ import { NodeSDK } from "@opentelemetry/sdk-node";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
+import { PrometheusExporter } from "@opentelemetry/exporter-prometheus";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import {
@@ -29,7 +30,14 @@ import { trace, metrics, diag, DiagConsoleLogger, DiagLogLevel } from "@opentele
 // warning. Use plain console until the SDK is up; the structured logger
 // can take over once instrumentation is registered.
 
-const OTEL_ENABLED = (process.env.OTEL_EXPORTER_OTLP_ENDPOINT || "").length > 0;
+// Enabled when there is ANY telemetry destination: an OTLP receiver (SigNoz,
+// Grafana Cloud, a self-hosted collector, ...) OR a Prometheus scrape port.
+// The Prometheus path needs no vendor at all: point a self-hosted Prometheus
+// or even `curl localhost:PORT/metrics` at it, and the same instruments serve
+// every SigNoz dashboard panel.
+const OTLP_ENDPOINT = (process.env.OTEL_EXPORTER_OTLP_ENDPOINT || "").trim();
+const PROMETHEUS_PORT = Number(process.env.OTEL_PROMETHEUS_PORT || 0);
+const OTEL_ENABLED = OTLP_ENDPOINT.length > 0 || PROMETHEUS_PORT > 0;
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || "cognivern-backend";
 
 let sdk: NodeSDK | null = null;
@@ -39,48 +47,69 @@ if (OTEL_ENABLED) {
   // backend logs without enabling the noisier DEBUG diagnostics.
   diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
 
-  const traceExporter = new OTLPTraceExporter({
-    url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT
-      ? `${process.env.OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/$/, "")}/v1/traces`
-      : undefined,
-    headers: parseOtelHeaders(),
-  });
-
-  const metricExporter = new OTLPMetricExporter({
-    url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT
-      ? `${process.env.OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/$/, "")}/v1/metrics`
-      : undefined,
-    headers: parseOtelHeaders(),
-  });
-
-  const metricReader = new PeriodicExportingMetricReader({
-    exporter: metricExporter as any,
-    exportIntervalMillis: 15000,
-  });
-
-  sdk = new NodeSDK({
+  const metricReaders = [];
+  const sdkOptions: Record<string, unknown> = {
     resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: SERVICE_NAME,
       [ATTR_SERVICE_VERSION]: process.env.npm_package_version || "0.1.0",
       [ATTR_DEPLOYMENT_ENVIRONMENT_NAME]: process.env.NODE_ENV || "development",
     }),
-    traceExporter,
-    metricReader,
     instrumentations: [
       getNodeAutoInstrumentations({
         "@opentelemetry/instrumentation-fs": { enabled: false },
         "@opentelemetry/instrumentation-dns": { enabled: false },
       }),
     ],
-  });
+  };
+
+  if (OTLP_ENDPOINT) {
+    const traceExporter = new OTLPTraceExporter({
+      url: `${OTLP_ENDPOINT.replace(/\/$/, "")}/v1/traces`,
+      headers: parseOtelHeaders(),
+    });
+    const metricExporter = new OTLPMetricExporter({
+      url: `${OTLP_ENDPOINT.replace(/\/$/, "")}/v1/metrics`,
+      headers: parseOtelHeaders(),
+    });
+
+    sdkOptions.traceExporter = traceExporter;
+    metricReaders.push(
+      new PeriodicExportingMetricReader({
+        exporter: metricExporter as any,
+        exportIntervalMillis: 15000,
+      }),
+    );
+  }
+
+  if (PROMETHEUS_PORT > 0) {
+    const prometheusExporter = new PrometheusExporter({
+      port: PROMETHEUS_PORT,
+      endpoint: "/metrics",
+    });
+    metricReaders.push(prometheusExporter);
+    // Fire-and-forget: the reader is registered immediately; only the scrape
+    // server is async. A transient bind failure logs a warning and metrics
+    // stay available via any OTLP reader that is also configured.
+    void prometheusExporter.startServer().catch((error: unknown) => {
+      console.warn(`[otel] Prometheus exporter failed to start: ${(error as Error).message}`);
+    });
+    console.info(`[otel] Prometheus metrics on :${PROMETHEUS_PORT}/metrics`);
+  }
+
+  sdkOptions.metricReaders = metricReaders;
+
+  sdk = new NodeSDK(sdkOptions);
 
   sdk.start();
   console.info("[otel] OpenTelemetry SDK started", {
     service: SERVICE_NAME,
-    endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    otlpEndpoint: OTLP_ENDPOINT || null,
+    prometheusPort: PROMETHEUS_PORT || null,
   });
 } else {
-  console.info("[otel] OpenTelemetry disabled (set OTEL_EXPORTER_OTLP_ENDPOINT to enable)");
+  console.info(
+    "[otel] OpenTelemetry disabled (set OTEL_EXPORTER_OTLP_ENDPOINT or OTEL_PROMETHEUS_PORT to enable)",
+  );
 }
 
 function parseOtelHeaders(): Record<string, string> {
@@ -159,12 +188,14 @@ export interface LlmUsageRecord {
   outputTokens: number;
   costUsd: number;
   taskClass: string;
+  /** Wall-clock latency of the provider call, in ms. */
+  latencyMs: number;
   timestamp: string;
 }
 
 export function recordLlmUsage(rec: LlmUsageRecord): void {
   usageBuffer.push(rec);
-  llmLatencyHistogram.record(0, {
+  llmLatencyHistogram.record(rec.latencyMs, {
     provider: rec.provider,
     task_class: rec.taskClass,
   });

@@ -19,6 +19,11 @@ export function requiredScopeForRoute(method: string, path: string): string | nu
   if (p.startsWith('/api/audit')) return 'audit:read';
   if (p.startsWith('/api/spend') && !isRead) return 'spend:execute';
 
+  // Sponsored credit programs. Reads are reporting (a judge or dashboard needs
+  // them); writes provision participants and mint gateway keys that spend real
+  // money, so they require the same scope as executing spend.
+  if (p.startsWith('/api/credit-programs')) return isRead ? 'audit:read' : 'spend:execute';
+
   return null;
 }
 

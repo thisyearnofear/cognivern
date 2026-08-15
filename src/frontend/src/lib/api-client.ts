@@ -1535,6 +1535,181 @@ class ApiClient {
       },
     );
   }
+
+  // ── Sponsored credits (sponsor/organiser side) ──────────────────────────
+
+  async listCreditPrograms(): Promise<ApiResponse<{ programs: CreditProgramSummary[] }>> {
+    return this.fetch('/api/credit-programs');
+  }
+
+  async createCreditProgram(params: {
+    name: string;
+    sponsorName?: string;
+    backend?: string;
+    poolUsd: number;
+    baseAllocationUsd: number;
+    allowedModels?: string[];
+    maxOutputTokens?: number | null;
+    maxInputTokens?: number | null;
+    startsAt?: string | null;
+    endsAt?: string | null;
+    multipliersMode?: 'bonus' | 'ceiling';
+    requireTrustMode?: string | null;
+    status?: 'draft' | 'active' | 'paused' | 'closed';
+  }): Promise<ApiResponse<{ program: CreditProgramSummary }>> {
+    return this.fetch('/api/credit-programs', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  async getCreditProgram(
+    programId: string,
+  ): Promise<
+    ApiResponse<{
+      program: CreditProgramSummary;
+      totals: CreditProgramTotals;
+      disclosureTiers: DisclosureTierInfo[];
+    }>
+  > {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}`);
+  }
+
+  async updateCreditProgram(
+    programId: string,
+    patch: {
+      name?: string;
+      sponsorName?: string;
+      status?: 'draft' | 'active' | 'paused' | 'closed';
+      allowedModels?: string[];
+      maxOutputTokens?: number | null;
+      maxInputTokens?: number | null;
+      startsAt?: string | null;
+      endsAt?: string | null;
+      multipliersMode?: 'bonus' | 'ceiling';
+      requireTrustMode?: string | null;
+      poolUsd?: number;
+    },
+  ): Promise<ApiResponse<{ program: CreditProgramSummary }>> {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    });
+  }
+
+  async getCreditProgramReport(
+    programId: string,
+  ): Promise<ApiResponse<CreditProgramReport>> {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/report`);
+  }
+
+  async getCreditProgramFunding(
+    programId: string,
+  ): Promise<ApiResponse<{ funding: CreditProgramFunding }>> {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/funding`);
+  }
+
+  async getCreditProgramActivity(
+    programId: string,
+    params: { limit?: number; participantId?: string; model?: string } = {},
+  ): Promise<ApiResponse<CreditProgramActivity>> {
+    const q = new URLSearchParams();
+    if (params.limit !== undefined) q.set('limit', String(params.limit));
+    if (params.participantId) q.set('participantId', params.participantId);
+    if (params.model) q.set('model', params.model);
+    const suffix = q.toString() ? `?${q.toString()}` : '';
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/activity${suffix}`);
+  }
+
+  async reconcileCreditProgram(
+    programId: string,
+  ): Promise<ApiResponse<CreditProgramReconcile>> {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/reconcile`);
+  }
+
+  async topUpCreditProgram(
+    programId: string,
+    additionalUsd: number,
+  ): Promise<ApiResponse<{ toppedUp: number; additionalBaseUsd: number }>> {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/top-up`, {
+      method: 'POST',
+      body: JSON.stringify({ additionalUsd }),
+    });
+  }
+
+  async provisionCreditParticipants(
+    programId: string,
+    participants: Array<string | { handle: string; displayName?: string; projectTag?: string }>,
+  ): Promise<
+    ApiResponse<{
+      warning?: string;
+      participants: Array<{
+        id: string;
+        handle: string;
+        disclosureTier: string;
+        allocationUsd: number;
+        gatewayKey: string;
+      }>;
+    }>
+  > {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/participants`, {
+      method: 'POST',
+      body: JSON.stringify({ participants }),
+    });
+  }
+
+  async listCreditParticipants(
+    programId: string,
+  ): Promise<ApiResponse<{ participants: CreditProgramParticipant[] }>> {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/participants`);
+  }
+
+  async setCreditParticipantStatus(
+    programId: string,
+    participantId: string,
+    status: 'active' | 'suspended' | 'revoked',
+  ): Promise<ApiResponse<{ handle: string; status: string }>> {
+    return this.fetch(
+      `/api/credit-programs/${encodeURIComponent(programId)}/participants/${encodeURIComponent(participantId)}/status`,
+      { method: 'PATCH', body: JSON.stringify({ status }) },
+    );
+  }
+
+  async setCreditParticipantAllocation(
+    programId: string,
+    participantId: string,
+    baseAllocationUsd: number,
+  ): Promise<ApiResponse<{ handle: string; allocationUsd: number; availableUsd: number }>> {
+    return this.fetch(
+      `/api/credit-programs/${encodeURIComponent(programId)}/participants/${encodeURIComponent(participantId)}/allocation`,
+      { method: 'PATCH', body: JSON.stringify({ baseAllocationUsd }) },
+    );
+  }
+
+  async rotateCreditParticipantKey(
+    programId: string,
+    participantId: string,
+  ): Promise<ApiResponse<{ handle: string; gatewayKey: string }>> {
+    return this.fetch(
+      `/api/credit-programs/${encodeURIComponent(programId)}/participants/${encodeURIComponent(participantId)}/rotate-key`,
+      { method: 'POST' },
+    );
+  }
+
+  async getCreditParticipantLedger(
+    programId: string,
+    participantId: string,
+  ): Promise<
+    ApiResponse<{
+      handle: string;
+      balance: CreditParticipantBalance;
+      entries: CreditLedgerEntry[];
+    }>
+  > {
+    return this.fetch(
+      `/api/credit-programs/${encodeURIComponent(programId)}/participants/${encodeURIComponent(participantId)}/ledger`,
+    );
+  }
 }
 
 // Types for the sealed-bid endpoints. Kept in this file so both apiClient
@@ -1686,6 +1861,183 @@ export interface ObservabilityMetrics {
   live: boolean;
   range?: '1h' | '24h' | '7d';
   message?: string;
+}
+
+// ── Sponsored credits types ─────────────────────────────────────────────
+// Response shapes from the credit-program controller. Money arrives as USD
+// numbers (the backend converts from nano-USD); multipliersMode tells the UI
+// which disclosure-multiplier philosophy the program runs on.
+
+export type CreditProgramStatus = 'draft' | 'active' | 'paused' | 'closed';
+export type MultipliersMode = 'bonus' | 'ceiling' | 'custom';
+export type DisclosureTier = 'private' | 'standard' | 'detailed' | 'open';
+
+export interface CreditProgramSummary {
+  id: string;
+  name: string;
+  sponsorName: string;
+  status: CreditProgramStatus;
+  backend: string;
+  poolUsd: number;
+  baseAllocationUsd: number;
+  allowedModels: string[];
+  maxOutputTokens: number | null;
+  maxInputTokens: number | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  disclosureMultipliers: Partial<Record<DisclosureTier, number>>;
+  multipliersMode: MultipliersMode;
+  requireTrustMode: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreditProgramTotals {
+  participantCount: number;
+  allocatedUsd: number;
+  consumedUsd: number;
+  reservedUsd: number;
+  requestCount: number;
+  poolUsd?: number;
+  unallocatedUsd?: number;
+}
+
+export interface CreditProgramParticipantUsage {
+  requestCount: number;
+  okCount: number;
+  deniedCount: number;
+  errorCount: number;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  firstActivityAt: string | null;
+  lastActivityAt: string | null;
+}
+
+export interface CreditProgramParticipant {
+  id: string;
+  handle: string;
+  displayName: string | null;
+  projectTag: string | null;
+  disclosureTier: DisclosureTier;
+  status: 'active' | 'suspended' | 'revoked';
+  keyPrefix: string | null;
+  lastUsedAt: string | null;
+  allocationUsd: number;
+  consumedUsd: number;
+  reservedUsd: number;
+  availableUsd: number;
+  overdrawnUsd: number;
+  usage: CreditProgramParticipantUsage;
+}
+
+export type CreditProgramFunding = {
+  upstream:
+    | {
+        status: 'ok';
+        balanceUsd: number | null;
+        balanceNative: string;
+        nativeUnit: string;
+        fetchedAt: string;
+      }
+    | { status: 'not_configured'; message: string }
+    | { status: 'unavailable'; message: string }
+    | { status: 'not_supported'; message: string };
+  poolUsd: number;
+  committedUsd: number;
+  allocatedUsd: number;
+  unallocatedUsd: number;
+  warnings: string[];
+};
+
+export interface CreditProgramReport {
+  program: CreditProgramSummary;
+  totals: CreditProgramTotals & { poolUsd: number; unallocatedUsd: number };
+  disclosureMix: Record<string, number>;
+  byModel: Array<{
+    model: string;
+    requestCount: number;
+    inputTokens: number;
+    outputTokens: number;
+    costUsd: number;
+  }>;
+  byTaskClass: Array<{ taskClass: string; requestCount: number; costUsd: number }>;
+  participants: Array<{
+    handle: string;
+    projectTag: string | null;
+    disclosureTier: DisclosureTier;
+    allocationUsd: number;
+    consumedUsd: number;
+    utilisation: number;
+    usage: CreditProgramParticipantUsage;
+  }>;
+  caveats: string[];
+}
+
+export interface CreditProgramActivityCall {
+  id: string;
+  createdAt: string;
+  participant: string;
+  model: string;
+  provider: string | null;
+  status: 'ok' | 'denied' | 'upstream_error';
+  inputTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
+  costUsd: number;
+  latencyMs: number;
+  streamed: boolean;
+  trustTier: string | null;
+  teeVerified: boolean;
+  promptDigest: string | null;
+  responseDigest: string | null;
+  disclosureTierAtCall: DisclosureTier;
+  taskClass: string | null;
+  projectTag: string | null;
+  promptExcerpt: string | null;
+  responseExcerpt: string | null;
+}
+
+export interface CreditProgramActivity {
+  calls: CreditProgramActivityCall[];
+  withheld: number;
+  note?: string;
+}
+
+export interface CreditProgramReconcile {
+  ok: boolean;
+  checked: number;
+  drifted: Array<{ handle: string; ok: boolean; expected?: number; actual?: number; reason?: string }>;
+}
+
+export interface CreditParticipantBalance {
+  participantId: string;
+  programId: string;
+  allocatedNano: number;
+  consumedNano: number;
+  heldNano: number;
+  overdrawnNano: number;
+  availableNano: number;
+  requestCount: number;
+}
+
+export interface CreditLedgerEntry {
+  id: string;
+  kind: 'allocation' | 'adjustment' | 'hold' | 'hold_release' | 'debit' | 'refund';
+  amountNano: number;
+  balanceAfterNano: number;
+  refType: string | null;
+  refId: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface DisclosureTierInfo {
+  tier: DisclosureTier;
+  multiplier: number;
+  summary: string;
+  sponsorSees: string[];
+  neverRecorded: string[];
 }
 
 export const apiClient = new ApiClient();
