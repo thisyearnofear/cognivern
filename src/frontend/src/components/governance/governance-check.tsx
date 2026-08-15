@@ -42,6 +42,7 @@ import { useFheProgress } from "@/hooks/use-fhe-progress";
 import { HelpIcon } from "@/components/ui/help-icon";
 import { GovernanceMoment } from "@/components/ui/governance-moment";
 import { ConfidentialSpendTry } from "@/components/governance/confidential-spend-try";
+import { DecisionPreview, type DecisionOutcome } from "@/components/governance/decision-preview";
 
 function getSuggestion(reason: string): string {
   const lower = reason.toLowerCase();
@@ -826,42 +827,13 @@ export function GovernanceCheck() {
             // when present, fall back to legacy `allowed` boolean.
             const decision =
               result.decision || (result.allowed ? "approved" : "denied");
-            const verdict =
-              decision === "approved"
-                ? {
-                    label: "Approved",
-                    blurb: "This spend action is permitted",
-                    icon: (
-                      <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-                    ),
-                    cls: "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900",
-                  }
-                : decision === "held"
-                  ? {
-                      label: "Held for review",
-                      blurb:
-                        "This spend requires operator approval before it can execute",
-                      icon: <Clock className="h-8 w-8 text-amber-500" />,
-                      cls: "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900",
-                    }
-                  : {
-                      label: "Denied",
-                      blurb: "This spend action is blocked",
-                      icon: <XCircle className="h-8 w-8 text-red-500" />,
-                      cls: "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900",
-                    };
             return (
             <div className="rounded-xl border bg-card p-5 space-y-4">
-                {/* Verdict */}
-                <div className={`p-4 rounded-xl flex items-center gap-3 ${verdict.cls}`}>
-                  {verdict.icon}
-                  <div>
-                    <div className="font-bold text-lg">{verdict.label}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {verdict.blurb}
-                    </div>
-                  </div>
-                </div>
+                {/* Canonical verdict */}
+                <DecisionPreview
+                  decision={decision as DecisionOutcome}
+                  showReasoning={false}
+                />
 
                 <GovernanceMoment outcome={decision} compact />
 

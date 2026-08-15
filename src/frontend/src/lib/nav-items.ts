@@ -79,14 +79,14 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Policies',
         icon: ShieldCheck,
         href: '/policies',
-        description: 'Set spending rules',
+        description: 'Set boundaries for agent actions',
       },
       {
         id: 'agents',
         label: 'Identities',
         icon: Users,
         href: '/agents',
-        description: 'Control which systems can spend',
+        description: 'Connect the systems that may act',
       },
       {
         id: 'sponsored-credits',
@@ -105,7 +105,7 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Integrate',
         icon: Code2,
         href: '/integrate',
-        description: 'Connect your first governed system',
+        description: 'Connect your control plane',
       },
       {
         id: 'observability',

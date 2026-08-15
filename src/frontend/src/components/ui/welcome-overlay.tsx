@@ -26,24 +26,24 @@ interface WelcomeCard {
 const WELCOME_CARDS: WelcomeCard[] = [
   {
     icon: ShieldCheck,
-    title: "Check Governance",
-    description: "Test any spend action against your policies in real time",
-    cta: "Try a check",
+    title: "Run a governed request",
+    description: "See whether an agent request is approved, held, or stopped",
+    cta: "Try a request",
     href: "/governance/check",
     color: "from-sky-500/10 to-sky-500/5 border-sky-200 dark:border-sky-800",
   },
   {
     icon: Users,
-    title: "Register an Agent",
-    description: "Give an agent a wallet and budget to govern",
-    cta: "Create agent",
+    title: "Connect an identity",
+    description: "Give the system that acts its own accountable decision history",
+    cta: "Add identity",
     href: "/agents/workshop",
     color: "from-violet-500/10 to-violet-500/5 border-violet-200 dark:border-violet-800",
   },
   {
     icon: FileSearch,
-    title: "View Audit Trail",
-    description: "Every decision is logged — see the full history",
+    title: "See decisions and proof",
+    description: "Review what happened, why it happened, and what needs you next",
     cta: "Open audit",
     href: "/audit",
     color: "from-amber-500/10 to-amber-500/5 border-amber-200 dark:border-amber-800",
@@ -59,15 +59,15 @@ export function WelcomeOverlay() {
   const router = useRouter();
 
   useEffect(() => {
-    // Show overlay once: on first visit, after onboarding completes, or in demo mode
+    // Production workspaces get their orientation inline through the
+    // dashboard journey. Keep the overlay for the exploratory demo only so
+    // first-use guidance does not compete with the user's next action.
     const alreadyShown = sessionStorage.getItem(OVERLAY_KEY);
-    if (alreadyShown) return;
+    if (alreadyShown || !demoMode || onboardingCompleted) return;
 
-    if (demoMode || onboardingCompleted) {
-      // Delay slightly to let the page render first
-      const timer = setTimeout(() => setShow(true), 600);
-      return () => clearTimeout(timer);
-    }
+    // Delay slightly to let the page render first.
+    const timer = setTimeout(() => setShow(true), 600);
+    return () => clearTimeout(timer);
   }, [demoMode, onboardingCompleted]);
 
   const handleDismiss = () => {

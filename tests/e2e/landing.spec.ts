@@ -11,14 +11,14 @@ test.describe('Landing page', () => {
     const brand = page.getByText('Cognivern', { exact: false }).first();
     await expect(brand).toBeVisible();
 
-    // Hero headline
-    await expect(page.getByText('Keep AI agents').first()).toBeVisible();
+    // Hero headline — the product promise stays job-first, not infrastructure-first.
+    await expect(page.getByText('Delegate consequential work.').first()).toBeVisible();
 
-    // Primary CTA — the current guided spend demo
-    const demoButton = page.getByRole('button', { name: /Try a blocked spend/i });
+    // Primary CTA — the guided governed-request demo.
+    const demoButton = page.getByRole('button', { name: /Try a governed request/i });
     await expect(demoButton).toBeVisible();
 
-    // Secondary CTA — private vendor-selection demo
-    await expect(page.getByRole('button', { name: /Explore private selection/i })).toBeVisible();
+    // Secondary CTA — the product flow explanation.
+    await expect(page.getByRole('button', { name: /See how it works/i })).toBeVisible();
   });
 });

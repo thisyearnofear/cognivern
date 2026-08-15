@@ -46,10 +46,10 @@ test.describe('Demo flow', () => {
 
     // Core content
     await expect(page).toHaveTitle(/Cognivern/);
-    await expect(page.getByText('Keep AI agents').first()).toBeVisible();
+    await expect(page.getByText('Delegate consequential work.').first()).toBeVisible();
 
-    // The guided spend demo CTA is visible
-    const demoButton = page.getByRole('button', { name: /Try a blocked spend/i });
+    // The guided governed-request demo CTA is visible
+    const demoButton = page.getByRole('button', { name: /Try a governed request/i });
     await expect(demoButton).toBeVisible();
   });
 });

@@ -386,13 +386,14 @@ export function Dashboard() {
   const hasApiKey = (apiKeysResponse?.data || []).some((key) => !key.revokedAt);
   const setupLoading = agentsLoading || policiesLoading || logsLoading || apiKeysLoading;
   const nextActionLoading = setupLoading || mandatesLoading;
-  // Keep the checklist mounted for completed workspaces too: its compact
-  // success state is the small emotional payoff and a durable handoff into
-  // integration, rather than a one-time onboarding screen.
-  // Show setup checklist for any authenticated user regardless of workspace
-  // mode/tier. New demo-tier users need this guidance the most — hiding it
-  // behind a mode transition they don't understand defeats its purpose.
-  const showSetup = isAuthenticated && !setupLoading;
+  // Setup is the primary journey only until the workspace has proved the
+  // loop end-to-end. Once policy, identity, key, and first decision exist,
+  // hand the first screen back to operating status and the next useful review.
+  // This prevents the checklist and WorkspaceNextAction from competing.
+  const showSetup =
+    isAuthenticated &&
+    !setupLoading &&
+    (!hasActivePolicy || !hasActiveAgent || !hasApiKey || normalizedLogs.length === 0);
 
   // Count decisions carrying a real on-chain governance-record tx (mirrors the
   // audit page's getOnChainTxHash: top-level or nested data.txHash). Real data
@@ -494,11 +495,19 @@ export function Dashboard() {
 
       <AttentionSummary
             tone={attentionCount > 0 ? 'attention' : 'healthy'}
-            title={attentionCount > 0 ? 'Governance needs attention' : 'Governance is steady'}
+            title={
+              attentionCount > 0
+                ? 'Governance needs attention'
+                : normalizedLogs.length > 0
+                  ? 'Governance is steady'
+                  : 'Ready for your first governed action'
+            }
             description={
               attentionCount > 0
                 ? 'Review held decisions and investigate denied outcomes before they become operational surprises.'
-                : 'No held decisions are waiting for action, and there are no denied outcomes to investigate.'
+                : normalizedLogs.length > 0
+                  ? 'No held decisions are waiting for action, and there are no denied outcomes to investigate.'
+                  : 'Set a boundary, run one request through it, and see the decision recorded in context.'
             }
             items={
               attentionCount > 0

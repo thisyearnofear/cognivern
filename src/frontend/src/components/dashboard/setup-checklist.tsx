@@ -12,7 +12,6 @@ import {
   PlayCircle,
   Rocket,
   ShieldCheck,
-  Sparkles,
   Users,
   Zap,
 } from 'lucide-react';
@@ -22,6 +21,12 @@ import { useAgents } from '@/hooks/use-api';
 import { useDemoStore } from '@/stores/demo-store';
 import { trackUxEvent } from '@/lib/ux-events';
 import type { GovernanceEvaluation } from '@/lib/api-client';
+import { DecisionPreview, type DecisionOutcome } from '@/components/governance/decision-preview';
+import {
+  DEMO_APPROVE_THRESHOLD,
+  DEMO_HARD_LIMIT,
+  resolveDemoDecision,
+} from '@cognivern/shared';
 
 interface SetupChecklistProps {
   hasPolicy: boolean;
@@ -65,8 +70,8 @@ export function SetupChecklist({
   const steps: SetupStep[] = [
     {
       id: 'policy',
-      label: 'Set spending rules',
-      why: 'Policies decide what your agents can and can\'t do. Without one, governance checks have nothing to evaluate against.',
+      label: 'Set a boundary',
+      why: 'A clear boundary tells agents what they can do automatically and which requests need judgment.',
       complete: hasPolicy,
       href: '/policies',
       action: 'Create policy',
@@ -75,8 +80,8 @@ export function SetupChecklist({
     },
     {
       id: 'agent',
-      label: 'Register your system',
-      why: 'An API identity represents the bot, script, or app that will call the governance API. It gets its own audit trail.',
+      label: 'Connect an identity',
+      why: 'Give the bot, script, or app its own accountable identity and decision history.',
       complete: hasAgent,
       href: '/agents/workshop',
       action: 'Add identity',
@@ -85,8 +90,8 @@ export function SetupChecklist({
     },
     {
       id: 'key',
-      label: 'Create an API key',
-      why: 'Your system authenticates with a workspace-scoped key (starts with cvn_). Paste it into your bot\'s config.',
+      label: 'Prepare the connection',
+      why: 'Create a scoped key so your system can call Cognivern without sharing a human session.',
       complete: hasApiKey,
       href: '/integrate',
       action: 'Generate key',
@@ -95,8 +100,8 @@ export function SetupChecklist({
     },
     {
       id: 'check',
-      label: 'Run a governance check',
-      why: 'Fire a test evaluation to see the approved/denied/held flow end-to-end. This proves the pipeline works.',
+      label: 'Run a governed request',
+      why: 'See the approved / held / stopped boundary end-to-end before connecting a production workflow.',
       complete: hasGovernedRequest,
       href: '/governance/check',
       action: 'Try it now',
@@ -164,16 +169,15 @@ export function SetupChecklist({
             <Rocket className="h-4 w-4 text-primary" aria-hidden="true" />
             <h2 className="text-sm font-semibold">
               {completedCount === 0
-                ? 'Get running in under 2 minutes'
+                ? 'Get your first governed action running'
                 : `${completedCount} of ${steps.length} done — keep going`}
             </h2>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground max-w-md">
-            {completedCount === 0
-              ? 'Four quick steps to connect your first governed system. Each one takes seconds.'
-              : nextStep.id === 'check' && allPrereqsDone
-                ? 'Everything is wired up. Run a test check below to confirm the pipeline works.'
-                : `Next up: ${nextStep.label.toLowerCase()}.`}
+          <p className="mt-1 text-xs text-muted-foreground max-w-md">              {completedCount === 0
+                ? 'Set one boundary, run one request, and prove the control loop before you connect production.'
+                : nextStep.id === 'check' && allPrereqsDone
+                  ? 'Everything is ready. Run one request below and see the decision recorded in context.'
+                  : `Next up: ${nextStep.label.toLowerCase()}.`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -288,10 +292,25 @@ function InlineGovernanceCheck() {
       try {
         if (demoMode) {
           await new Promise((r) => setTimeout(r, 600));
+          const decision = resolveDemoDecision(amount);
           setResult({
-            allowed: true,
-            reasoning: `Demo: ${type} of $${amount} approved`,
-            policyChecks: [{ policyId: 'demo', result: true, reason: 'Within limit' }],
+            allowed: decision === 'approved',
+            decision,
+            reasoning:
+              decision === 'approved'
+                ? `Within the automatic approval limit for this ${type}`
+                : decision === 'held'
+                  ? `At or above $${DEMO_APPROVE_THRESHOLD} — held for operator review`
+                  : `Above the $${DEMO_HARD_LIMIT.toLocaleString()} hard limit — stopped before execution`,
+            policyChecks: [{
+              policyId: 'demo',
+              result: decision !== 'denied',
+              reason: decision === 'approved'
+                ? `Under the $${DEMO_APPROVE_THRESHOLD} approval threshold`
+                : decision === 'held'
+                  ? 'Requires human review'
+                  : `Over the $${DEMO_HARD_LIMIT.toLocaleString()} hard limit`,
+            }],
             timestamp: new Date().toISOString(),
           });
         } else {
@@ -319,25 +338,13 @@ function InlineGovernanceCheck() {
       <motion.div
         initial={{ opacity: 0, y: -4 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`mt-1.5 rounded-lg border p-3 ${
-          result.allowed
-            ? 'border-emerald-500/30 bg-emerald-500/5'
-            : 'border-red-500/30 bg-red-500/5'
-        }`}
+        className="mt-1.5"
       >
-        <div className="flex items-center gap-2">
-          {result.allowed ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          ) : (
-            <Sparkles className="h-4 w-4 text-red-500" />
-          )}
-          <span className="text-xs font-semibold">
-            {result.allowed ? 'Check passed — your pipeline works!' : 'Denied (as expected from your policy)'}
-          </span>
-        </div>
-        <p className="mt-1 text-[11px] text-muted-foreground pl-6">
-          {result.reasoning}
-        </p>
+        <DecisionPreview
+          compact
+          decision={(result.decision || (result.allowed ? 'approved' : 'denied')) as DecisionOutcome}
+          reasoning={result.reasoning}
+        />
       </motion.div>
     );
   }
@@ -345,7 +352,7 @@ function InlineGovernanceCheck() {
   return (
     <div className="mt-1.5 rounded-lg border border-primary/30 bg-primary/5 p-3">
       <p className="text-[11px] text-muted-foreground mb-2.5">
-        Everything&apos;s wired up. Try a test spend to see governance in action:
+        Everything&apos;s wired up. Run one request to see the decision boundary in action:
       </p>
       {error && (
         <div className="mb-2 p-2 rounded bg-red-50 dark:bg-red-950/30 text-[11px] text-red-600 dark:text-red-400">
@@ -356,7 +363,7 @@ function InlineGovernanceCheck() {
         {[
           { type: 'swap', label: 'Swap $50', amount: 50 },
           { type: 'transfer', label: 'Transfer $500', amount: 500 },
-          { type: 'stake', label: 'Stake $2000', amount: 2000 },
+          { type: 'stake', label: 'Stop $5000', amount: 5000 },
         ].map((action) => (
           <Button
             key={action.type}

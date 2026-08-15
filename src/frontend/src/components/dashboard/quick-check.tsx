@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   ShieldCheck,
-  CheckCircle2,
-  XCircle,
   Loader2,
   ArrowRight,
 } from "lucide-react";
@@ -16,12 +14,18 @@ import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
 import { useAgents } from "@/hooks/use-api";
 import { useDemoStore } from "@/stores/demo-store";
 import { HelpIcon } from "@/components/ui/help-icon";
+import { DecisionPreview, type DecisionOutcome } from "@/components/governance/decision-preview";
 import { trackUxEvent } from "@/lib/ux-events";
+import {
+  DEMO_APPROVE_THRESHOLD,
+  DEMO_HARD_LIMIT,
+  resolveDemoDecision,
+} from "@cognivern/shared";
 
 const QUICK_ACTIONS = [
-  { type: "swap", label: "Swap", amount: "500" },
-  { type: "transfer", label: "Transfer", amount: "1000" },
-  { type: "stake", label: "Stake", amount: "2000" },
+  { type: "swap", label: "Approve $50", amount: "50" },
+  { type: "transfer", label: "Review $500", amount: "500" },
+  { type: "stake", label: "Stop $5,000", amount: "5000" },
 ];
 
 export function QuickCheck() {
@@ -47,39 +51,55 @@ export function QuickCheck() {
       setResult(null);
 
       try {
+        const numericAmount = parseFloat(checkAmount) || 500;
         if (demoMode) {
-          // Simulate response in demo mode
+          // Keep the demo deterministic and aligned with the landing page:
+          // under the approval threshold is approved, the middle band is held,
+          // and the hard limit is denied.
           await new Promise((resolve) => setTimeout(resolve, 800));
-          const allowed = Math.random() > 0.3;
+          const decision = resolveDemoDecision(numericAmount);
+          const allowed = decision === "approved";
           setResult({
             allowed,
+            decision,
             reasoning:
-              allowed
-                ? `Demo: ${checkType} of $${checkAmount} approved by simulated policy`
-                : `Demo: ${checkType} of $${checkAmount} exceeds demo budget limit`,
+              decision === "approved"
+                ? `Within the automatic approval limit for this ${checkType}`
+                : decision === "held"
+                  ? `At or above $${DEMO_APPROVE_THRESHOLD} — held for operator review`
+                  : `Above the $${DEMO_HARD_LIMIT.toLocaleString()} hard limit — stopped before execution`,
             policyChecks: [
               {
                 policyId: "demo-budget-policy",
-                result: Math.random() > 0.3,
-                reason: "Within daily limit",
+                result: decision !== "denied",
+                reason:
+                  decision === "approved"
+                    ? `Under the $${DEMO_APPROVE_THRESHOLD} approval threshold`
+                    : decision === "held"
+                      ? "Requires human review"
+                      : `Over the $${DEMO_HARD_LIMIT.toLocaleString()} hard limit`,
               },
             ],
             timestamp: new Date().toISOString(),
           });
-          trackUxEvent("primary_action_completed", "quick_check", allowed ? "approved" : "denied");
+          trackUxEvent("primary_action_completed", "quick_check", decision);
         } else {
           const res = await apiClient.evaluateGovernance({
             agentId: agentList[0]?.id || "unknown",
             action: {
               type: checkType,
               description: `Quick ${checkType} check`,
-              amount: parseFloat(checkAmount) || 500,
+              amount: numericAmount,
               currency: "USDC",
             },
           });
           setResult(res.data || null);
           if (!res.data) setError("No result returned");
-          else trackUxEvent("primary_action_completed", "quick_check", res.data.allowed ? "approved" : "denied");
+          else trackUxEvent(
+            "primary_action_completed",
+            "quick_check",
+            res.data.decision || (res.data.allowed ? "approved" : "denied"),
+          );
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Check failed");
@@ -95,7 +115,7 @@ export function QuickCheck() {
         <div className="flex items-center justify-between">
           <h3 className="font-semibold flex items-center gap-2 text-sm">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            Quick Check
+            Run a governed request
             <HelpIcon helpKey="governance:quick-check" />
           </h3>
           <Button
@@ -107,7 +127,7 @@ export function QuickCheck() {
             }}
             className="h-7 gap-1 text-xs"
           >
-            Full Check <ArrowRight className="h-3 w-3" />
+            Open full check <ArrowRight className="h-3 w-3" />
           </Button>
         </div>
 
@@ -174,32 +194,16 @@ export function QuickCheck() {
         )}
 
         {result && !evaluating && (
-          <div
-            className={`p-3 rounded-lg flex items-center gap-2 ${
-              result.allowed
-                ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900"
-                : "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900"
-            }`}
-          >
-            {result.allowed ? (
-              <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-            ) : (
-              <XCircle className="h-5 w-5 text-red-500 shrink-0" />
-            )}
-            <div className="min-w-0">
-              <div className="font-medium text-sm">
-                {result.allowed ? "Approved" : "Denied"}
-              </div>
-              <div className="text-xs text-muted-foreground truncate">
-                {result.reasoning}
-              </div>
-            </div>
-          </div>
+          <DecisionPreview
+            compact
+            decision={(result.decision || (result.allowed ? "approved" : "denied")) as DecisionOutcome}
+            reasoning={result.reasoning}
+          />
         )}
 
         {!result && !evaluating && !error && (
           <div className="p-3 text-center text-xs text-muted-foreground border border-dashed rounded-lg">
-            Select an action or enter an amount to check
+            Select an outcome or enter an amount to see the boundary
           </div>
         )}
       </div>

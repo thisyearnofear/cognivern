@@ -13,14 +13,13 @@ import {
   Eye,
   ExternalLink,
   Copy,
-  Check,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { useDemoStore } from "@/stores/demo-store";
 import { useAuthStore, useAuthHydrated } from "@/stores/auth-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { DecisionPreview } from "@/components/governance/decision-preview";
 import { useAccount } from "wagmi";
 import {
   DEMO_APPROVE_THRESHOLD,
@@ -165,11 +164,9 @@ export function LandingPage() {
   const txCount = useCountUp(18, 2500, statsVisible);
   const policiesCount = useCountUp(3, 1500, statsVisible);
 
-  const handleTryDemo = () => {
-    // The CTA promises "a blocked spend" — so jump the slider straight
-    // into the denied band and let the visitor see the stamp, rather than
-    // silently starting the full demo tour (which navigates away before
-    // the visitor sees anything get blocked).
+  const handleTryDemo = () => {            // Start in the denied band so the visitor immediately sees one of
+            // Cognivern's three clear answers, while the slider makes the full
+            // approve / hold / stop boundary explorable in place.
     setDemoAmount(DEMO_HARD_LIMIT + 500);
     // Smooth-scroll the interactive panel into view so the stamp lands
     // in the visitor's viewport.
@@ -289,7 +286,7 @@ export function LandingPage() {
               className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium mb-8 border border-primary/20"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Every approval is accountable
+              Governance for agentic work
             </motion.span>
 
             <motion.h1
@@ -299,9 +296,9 @@ export function LandingPage() {
               className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-[1.1] tracking-tight max-w-3xl mx-auto"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              Keep AI agents
+              Delegate consequential work.
               <br />
-              <span className="text-primary">inside the lines.</span>
+              <span className="text-primary">Keep judgment in the loop.</span>
             </motion.h1>
 
             <motion.p
@@ -310,8 +307,8 @@ export function LandingPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-lg text-muted-foreground max-w-xl mx-auto mt-6 leading-relaxed"
             >
-              Set the budget. Decide what needs approval. See why every action was
-              allowed or stopped, before a small mistake becomes an expensive one.
+              Set the boundaries, let agents handle routine work, and step in when a
+              decision needs judgment. Every action leaves a clear record.
             </motion.p>
 
             <motion.div
@@ -321,7 +318,7 @@ export function LandingPage() {
               className="flex gap-4 justify-center flex-wrap mt-8"
             >
               <Button variant="default" size="lg" onClick={handleTryDemo}>
-                Try a blocked spend <ArrowRight />
+                Try a governed request <ArrowRight />
               </Button>
               <Button
                 variant="secondary"
@@ -375,7 +372,7 @@ export function LandingPage() {
                   <div className="mt-2 flex justify-between text-xs text-muted-foreground"><span>$10</span><span>$5,000</span></div>
                   <p className="mt-5 text-sm text-muted-foreground">Drag past ${DEMO_APPROVE_THRESHOLD} to hold a request for review, or past ${DEMO_HARD_LIMIT.toLocaleString()} to stop it outright.</p>
                 </div>
-                <div className={`relative p-5 transition-colors duration-300 ${demoResult.status === "approved" ? "bg-emerald-500/5" : demoResult.status === "held" ? "bg-amber-500/5" : "bg-red-500/5"}`}>
+                <div className="relative p-5">
                   {stampKey > 0 && (
                     <motion.div
                       key={stampKey}
@@ -383,37 +380,17 @@ export function LandingPage() {
                       animate={{ opacity: 1, scale: 1, rotate: -8 }}
                       transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 22, mass: 0.8 }}
                       aria-hidden
-                      className={`pointer-events-none absolute top-3 right-3 inline-flex items-center gap-1 rounded-md border-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-widest shadow-sm ${
-                        demoResult.status === "approved"
-                          ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-600"
-                          : demoResult.status === "held"
-                            ? "border-amber-500/60 bg-amber-500/10 text-amber-600"
-                            : "border-red-500/60 bg-red-500/10 text-red-600"
-                      }`}
+                      className="pointer-events-none absolute right-3 top-3 z-10 inline-flex items-center rounded-md border-2 border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-widest text-primary shadow-sm"
                     >
-                      {demoResult.status === "approved" ? (
-                        <>
-                          <Check className="h-3 w-3" aria-hidden /> Approved
-                        </>
-                      ) : demoResult.status === "held" ? (
-                        <>
-                          <span className="h-3 w-3" aria-hidden>⏸</span> Held
-                        </>
-                      ) : (
-                        <>
-                          <X className="h-3 w-3" aria-hidden /> Stopped
-                        </>
-                      )}
+                      Decision updated
                     </motion.div>
                   )}
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Decision</p>
-                  <p className={`mt-2 text-2xl font-bold ${demoResult.status === "approved" ? "text-emerald-600" : demoResult.status === "held" ? "text-amber-600" : "text-red-600"}`} style={{ fontFamily: "var(--font-space-grotesk)" }}>
-                    {demoResult.status === "approved" ? "Approved" : demoResult.status === "held" ? "Held for review" : "Stopped"}
-                  </p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {demoResult.reason}
-                  </p>
-                  <div className="mt-5 border-t border-border/60 pt-4 text-xs text-muted-foreground">
+                  <DecisionPreview
+                    decision={demoResult.status}
+                    amount={demoAmount}
+                    reasoning={demoResult.reason}
+                  />
+                  <div className="mt-4 border-t border-border/60 pt-4 text-xs text-muted-foreground">
                     {demoResult.status === "approved" ? "Recorded for review" : "Reason recorded for review"}
                   </div>
                 </div>
@@ -444,8 +421,8 @@ export function LandingPage() {
             From agent request to accountable action
           </h2>
           <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
-            Every spend follows the same clear path: request, policy check, decision,
-            and a record your team can review.
+            Every consequential action follows the same clear path: define the
+            boundary, evaluate the request, decide what happens, and keep the record.
           </p>
         </motion.div>
 
@@ -500,10 +477,10 @@ export function LandingPage() {
               className="text-3xl font-bold text-foreground mt-3"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              Stay in control without slowing agents down
+              Let agents handle more. Keep judgment where it matters.
             </h2>
             <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
-              Cognivern gives teams a clear answer at the moment an agent asks to do something consequential.
+              Cognivern gives teams a clear answer at the moment an agent asks to do something consequential — without turning every routine action into a meeting.
             </p>
           </motion.div>
 
@@ -611,10 +588,10 @@ export function LandingPage() {
               className="text-3xl font-bold text-foreground mt-3"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              Test it from your terminal
+              Connect the control plane to your system
             </h2>
             <p className="text-muted-foreground mt-3 max-w-md mx-auto">
-              Evaluate a spend against the active policy. Sign in to get an API key for your workspace, or explore the live demo to see decisions in context.
+              Add one governance check before an agent takes a consequential action. Sign in to get an API key for your workspace, or try the live demo to see the decision boundary first.
             </p>
           </motion.div>
 
@@ -683,7 +660,7 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
             </div>
 
             <p className="mt-8 text-center text-sm text-muted-foreground">
-              Deployed across Arbitrum, X Layer, Filecoin, 0G, Flare, Canton, and more.{" "}
+              Connect the systems you already run. Cognivern governs the action before it moves and preserves the evidence afterward.{" "}
               <a
                 href="https://github.com/thisyearnofear/cognivern/blob/main/docs/DEV.md"
                 target="_blank"
@@ -715,7 +692,7 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
             className="text-3xl font-bold text-foreground mt-3"
             style={{ fontFamily: "var(--font-space-grotesk)" }}
           >
-              Start with the agent you already have
+              Delegate the work you already understand
           </h2>
           <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
             Begin with one consequential workflow, prove the guardrails work, then expand with confidence.
@@ -819,15 +796,15 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
               className="text-3xl font-bold text-foreground mb-4"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              See it before you set it up.
+              Start with one governed action.
             </h2>
             <p className="text-muted-foreground max-w-md mx-auto mb-8 leading-relaxed">
-              Try a realistic scenario first. When you&apos;re ready, the same controls
-              can govern your own agents and workflows.
+              Prove the boundary with a realistic request, then connect the same
+              controls to your own agents and workflows.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Button variant="default" size="lg" onClick={handleTryDemo}>
-                Open Live Demo <ExternalLink className="h-4 w-4 ml-1" />
+                Run a governed request <ExternalLink className="h-4 w-4 ml-1" />
               </Button>
               <Button
                 variant="secondary"
@@ -855,7 +832,7 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="text-primary font-semibold">Cognivern</span>
               <span className="text-border">|</span>
-              <span>Agent Governance Platform</span>
+              <span>Governance for agentic work</span>
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <a
