@@ -56,8 +56,12 @@ export function EmailAuthForm({
     setLoading(true);
 
     try {
+      // Auth routes are mounted at the app root, NOT under /api (see
+      // ApiModule.setupRoutes and api-client.ts — the same trap broke the
+      // workspace upgrade). /api/auth/login reaches apiRouter, matches
+      // nothing, and 404s with "Resource not found".
       const endpoint = mode === "register" ? "/auth/register" : "/auth/login";
-      const response = await fetch(`/api${endpoint}`, {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

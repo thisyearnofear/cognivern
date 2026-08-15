@@ -87,6 +87,47 @@ function migrate(db: Database.Database): void {
     }
   }
 
+  // Email registration inserts rows without a wallet address. Older inline
+  // migrations created users.wallet_address as NOT NULL, so any DB that
+  // predates the nullable schema fails the INSERT with
+  // SQLITE_CONSTRAINT_NOTNULL. SQLite cannot ALTER a column to drop a NOT
+  // NULL constraint, so rebuild the table with the current schema when the
+  // stale constraint is detected. Column data is preserved by name; FK
+  // enforcement is toggled off for the swap because workspaces references
+  // users(id).
+  const userTableCols = db.pragma("table_info(users)") as Array<{
+    name: string;
+    notnull: number;
+  }>;
+  const walletAddressNotNull =
+    userTableCols.find((c) => c.name === "wallet_address")?.notnull === 1;
+  if (walletAddressNotNull) {
+    const keepCols = userTableCols.map((c) => `"${c.name}"`).join(", ");
+    const fkWasOn = db.pragma("foreign_keys", { simple: true });
+    db.pragma("foreign_keys = OFF");
+    db.exec(`
+      BEGIN;
+      CREATE TABLE users_rebuild (
+        id TEXT PRIMARY KEY,
+        wallet_address TEXT UNIQUE,
+        email TEXT,
+        password_hash TEXT,
+        email_verified INTEGER DEFAULT 0,
+        verification_token TEXT,
+        reset_token TEXT,
+        reset_token_expires_at TEXT,
+        auth_method TEXT DEFAULT 'wallet' NOT NULL,
+        created_at TEXT NOT NULL,
+        last_login_at TEXT NOT NULL
+      );
+      INSERT INTO users_rebuild (${keepCols}) SELECT ${keepCols} FROM users;
+      DROP TABLE users;
+      ALTER TABLE users_rebuild RENAME TO users;
+      COMMIT;
+    `);
+    db.pragma(`foreign_keys = ${fkWasOn ? "ON" : "OFF"}`);
+  }
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS workspaces (
       id TEXT PRIMARY KEY,
