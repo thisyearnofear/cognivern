@@ -25,6 +25,7 @@ import {
   Loader2,
   SquareCheckBig,
   X,
+  Bot,
 } from 'lucide-react';
 import { useAgents } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
@@ -296,6 +297,11 @@ export function AgentsPage() {
             <Badge variant="destructive" className="text-xs">
               Error
             </Badge>
+          )}
+          {!selectionMode && (
+            <Button variant="outline" size="sm" onClick={() => router.push('/copilot')}>
+              <Bot className="h-4 w-4" /> Copilot
+            </Button>
           )}
           {hasActionableAgents && !selectionMode && (
             <Button variant="outline" size="sm" onClick={() => setSelectionMode(true)}>

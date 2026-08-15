@@ -1,7 +1,12 @@
-import { CapitalPage } from '@/components/capital/capital-page';
+import { Suspense } from "react";
+import { CapitalOverview } from "@/components/capital/capital-overview";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default function Page() {
-  return <CapitalPage />;
+  return (
+    <Suspense>
+      <CapitalOverview />
+    </Suspense>
+  );
 }

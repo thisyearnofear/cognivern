@@ -1,5 +1,5 @@
-import { VerifiedCapitalPage } from "@/components/capital/verified-capital-page";
+import { redirect } from "next/navigation";
 
 export default function VerifiedCapitalRoute() {
-  return <VerifiedCapitalPage />;
+  redirect("/capital?view=verified");
 }

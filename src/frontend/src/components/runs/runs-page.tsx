@@ -35,7 +35,7 @@ function useCountUp(target: number, duration = 2000, start = false) {
   return count;
 }
 
-export function RunsPage() {
+export function RunsPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const router = useRouter();
   const { data: rawRuns, isLoading, error } = useRuns();
   const statsRef = useRef<HTMLDivElement>(null);
@@ -99,15 +99,16 @@ export function RunsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Runs"
-        description={
-          awaitingCount + failedCount > 0
-            ? `${awaitingCount + failedCount} execution${awaitingCount + failedCount === 1 ? '' : 's'} need attention.`
-            : 'Monitor governance evaluations and execution traces.'
-        }
-        action={
-          <>
+      {!hideHeader && (
+        <PageHeader
+          title="Runs"
+          description={
+            awaitingCount + failedCount > 0
+              ? `${awaitingCount + failedCount} execution${awaitingCount + failedCount === 1 ? '' : 's'} need attention.`
+              : 'Monitor governance evaluations and execution traces.'
+          }
+          action={
+            <>
             {error && (
               <Badge variant="destructive" className="text-xs">
                 Error
@@ -118,8 +119,9 @@ export function RunsPage() {
               <PlayCircle className="h-3.5 w-3.5" /> Run governance check
             </Button>
           </>
-        }
-      />
+          }
+        />
+      )}
 
       {!isLoading && !error && (
         <AttentionSummary

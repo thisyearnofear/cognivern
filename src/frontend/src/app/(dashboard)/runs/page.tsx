@@ -1,5 +1,5 @@
-import { RunsPage } from "@/components/runs/runs-page";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return <RunsPage />;
+export default function RunsRoute() {
+  redirect("/capital?view=runs");
 }

@@ -234,6 +234,17 @@ export function LandingPage() {
             Cognivern
           </span>
         </div>
+        <nav className="hidden lg:flex items-center gap-6 text-sm text-muted-foreground" aria-label="Landing sections">
+          <a href="#how-it-works" className="transition-colors hover:text-foreground">
+            How it works
+          </a>
+          <a href="#use-cases" className="transition-colors hover:text-foreground">
+            Use cases
+          </a>
+          <a href="#api" className="transition-colors hover:text-foreground">
+            API
+          </a>
+        </nav>
         <div className="flex items-center gap-3">
           <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -315,10 +326,12 @@ export function LandingPage() {
               <Button
                 variant="secondary"
                 size="lg"
-                onClick={() => router.push("/sealed-bid")}
+                onClick={() =>
+                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })
+                }
               >
-                <Lock className="h-4 w-4 mr-1.5" />
-                Explore private selection
+                <ArrowRight className="h-4 w-4 mr-1.5 rotate-90" />
+                See how it works
               </Button>
             </motion.div>
           </div>
@@ -410,39 +423,8 @@ export function LandingPage() {
         </div>
       </motion.section>
 
-      {/* ── The Problem ── */}
-      <section className="border-t border-border">
-        <div className="max-w-3xl mx-auto px-6 py-20 text-center">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <span
-              className="text-xs font-semibold text-primary uppercase tracking-widest"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              The problem
-            </span>
-            <h2
-              className="text-3xl font-bold text-foreground mt-3"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              Agents are becoming operators.
-              <br />
-              <span className="text-muted-foreground">They need boundaries, not blind trust.</span>
-            </h2>
-            <p className="text-muted-foreground mt-5 max-w-xl mx-auto leading-relaxed">
-              A prompt injection, a runaway retry, or the wrong recipient should not
-              become a financial incident. Cognivern gives agents room to work while
-              making the boundaries and accountability explicit.
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── Flow Diagram ── */}
-      <section className="max-w-5xl mx-auto px-6 py-24">
+      {/* ── How it works ── */}
+      <section id="how-it-works" className="max-w-5xl mx-auto px-6 py-24 scroll-mt-24">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -610,91 +592,8 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── One control plane ── */}
-      <section className="border-t border-border">
-        <div className="max-w-5xl mx-auto px-6 py-20">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-14"
-          >
-            <span
-              className="text-xs font-semibold text-primary uppercase tracking-widest"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              One control plane
-            </span>
-            <h2
-              className="text-3xl font-bold text-foreground mt-3"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              Govern once. Run anywhere. Stay in control.
-            </h2>
-            <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
-              The same guardrails follow your agents across the chains and systems where they work — portable, confidential, and auditable.
-            </p>
-          </motion.div>
-
-          {/* Benefits — what the enabling tech delivers */}
-          <div className="grid sm:grid-cols-3 gap-4">
-            {[
-              {
-                icon: Globe,
-                title: "Portable",
-                desc: "The same guardrails follow your agents across the systems where they work.",
-              },
-              {
-                icon: Lock,
-                title: "Confidential",
-                desc: "Sensitive amounts stay protected while policies evaluate, so agents receive decisions without seeing your private limits.",
-              },
-              {
-                icon: Eye,
-                title: "Private procurement",
-                desc: "Run vendor selections where each bidder sees only what they are meant to see until the decision is complete.",
-              },
-            ].map((b, i) => (
-              <motion.div
-                key={b.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.4 }}
-                className="rounded-xl border border-border bg-card p-5"
-              >
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 mb-3">
-                  <b.icon size={18} />
-                </div>
-                <h3
-                  className="font-semibold text-foreground text-base"
-                  style={{ fontFamily: "var(--font-space-grotesk)" }}
-                >
-                  {b.title}
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-                  {b.desc}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-
-          <p className="text-center text-sm text-muted-foreground mt-10">
-            Deployed across Arbitrum, X Layer, Filecoin, 0G, Flare, Canton, and more.{" "}
-            <a
-              href="https://github.com/thisyearnofear/cognivern/blob/main/docs/DEV.md"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              See the architecture &amp; deployed networks →
-            </a>
-          </p>
-        </div>
-      </section>
-
       {/* ── "Prove It" Section ── */}
-      <section className="border-t border-border bg-muted/30">
+      <section id="api" className="border-t border-border bg-muted/30 scroll-mt-24">
         <div className="max-w-3xl mx-auto px-6 py-20">
           <motion.div
             initial={{ opacity: 0 }}
@@ -782,12 +681,24 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
 }`}
               </pre>
             </div>
+
+            <p className="mt-8 text-center text-sm text-muted-foreground">
+              Deployed across Arbitrum, X Layer, Filecoin, 0G, Flare, Canton, and more.{" "}
+              <a
+                href="https://github.com/thisyearnofear/cognivern/blob/main/docs/DEV.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                See the architecture &amp; deployed networks →
+              </a>
+            </p>
           </motion.div>
         </div>
       </section>
 
       {/* ── Use Cases — Alternating Rows ── */}
-      <section className="max-w-5xl mx-auto px-6 py-20">
+      <section id="use-cases" className="max-w-5xl mx-auto px-6 py-20 scroll-mt-24">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -868,39 +779,27 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
             </motion.div>
           ))}
         </div>
-      </section>
 
-      {/* ── Who It's For — Inline badges ── */}
-      <section className="border-t border-border bg-muted/30">
-        <div className="max-w-3xl mx-auto px-6 py-16 text-center">
-          <motion.h2
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-2xl font-bold text-foreground mb-8"
+        <div className="mt-14 border-t border-border pt-10">
+          <span
+            className="text-xs font-semibold text-primary uppercase tracking-widest"
             style={{ fontFamily: "var(--font-space-grotesk)" }}
           >
             Who it&apos;s for
-          </motion.h2>
-
-          <div className="flex flex-wrap justify-center gap-3">
+          </span>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
             {[
               { label: "AI product teams", desc: "Ship agents that customers can trust with consequential work" },
               { label: "Operations teams", desc: "Delegate routine work without surrendering oversight" },
               { label: "Financial teams", desc: "Keep spending agents inside explicit limits" },
             ].map((persona) => (
-              <motion.div
+              <div
                 key={persona.label}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                className="group relative px-5 py-3 rounded-full border border-border bg-background hover:border-primary/30 transition-colors cursor-default"
+                className="rounded-xl border border-border bg-card p-5 text-center"
               >
-                <span className="text-sm font-medium text-foreground">{persona.label}</span>
-                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-foreground text-background text-[11px] rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
-                  {persona.desc}
-                </span>
-              </motion.div>
+                <h3 className="text-sm font-semibold text-foreground">{persona.label}</h3>
+                <p className="mt-1.5 text-sm text-muted-foreground">{persona.desc}</p>
+              </div>
             ))}
           </div>
         </div>

@@ -168,7 +168,7 @@ function buildMandateActivity(
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
-export function CapitalPage() {
+export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const router = useRouter();
   const isConnected = useAuthStore((state) => state.isConnected);
   const [report, setReport] = useState<SpendAttributionReport | null>(null);
@@ -427,13 +427,15 @@ export function CapitalPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')}><ArrowLeft className="h-4 w-4" /></Button>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Agentic capital</h1>
-          <p className="mt-1 text-sm text-muted-foreground">A first attribution ledger for governed agent spend, shown in asset base units.</p>
+      {!hideHeader && (
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')}><ArrowLeft className="h-4 w-4" /></Button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Agentic capital</h1>
+            <p className="mt-1 text-sm text-muted-foreground">A first attribution ledger for governed agent spend, shown in asset base units.</p>
+          </div>
         </div>
-      </div>
+      )}
 
       <section className="rounded-xl border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

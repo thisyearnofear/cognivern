@@ -63,6 +63,15 @@ pnpm build
 pnpm start
 ```
 
+The frontend builds with `cd src/frontend && pnpm build` (the root `pnpm build`
+is backend-only). Always use the package scripts — **never run `next build`
+directly from a shell that has `NODE_ENV` exported**. Next 16 respects an
+ambient `NODE_ENV` instead of forcing production internally, so a globally
+exported `NODE_ENV=development` (common in agent/dev shells) makes the
+`/_global-error` prerender crash with `TypeError: Cannot read properties of
+null (reading 'useContext')` — a false positive that looks like a framework
+bug. The package scripts prefix `NODE_ENV=production` and are immune.
+
 ### Environment
 
 Create `.env` from `.env.example`. Minimum for local dev:

@@ -477,7 +477,10 @@ export function Dashboard() {
         />
       )}
 
-      {!nextActionLoading && (
+      {/* Guided next step — but when there is real attention to resolve, the
+          review queue supersedes guidance: the operator's job is clearing held
+          and denied decisions, not reading a next-step card. */}
+      {!nextActionLoading && attentionCount === 0 && (
         <WorkspaceNextAction
           demoMode={demoMode}
           hasPolicy={hasActivePolicy}
@@ -609,14 +612,6 @@ export function Dashboard() {
 
           {/* The sole primary task: run a spend through governance. */}
           <QuickCheck />
-
-          <GovernancePosture
-            logs={normalizedLogs}
-            activeIdentities={activeCount}
-            onChainProofCount={onChainProofCount}
-          />
-
-          <AttributionCard onOpen={() => router.push('/audit?view=capital')} />
 
           {/* Recent Activity */}
           <div>
@@ -784,6 +779,15 @@ export function Dashboard() {
                   </div>
                   <AiSpendCard />
                   <ControlScoreCard />
+
+                  <div className="md:col-span-2 space-y-6">
+                    <GovernancePosture
+                      logs={normalizedLogs}
+                      activeIdentities={activeCount}
+                      onChainProofCount={onChainProofCount}
+                    />
+                    <AttributionCard onOpen={() => router.push('/audit?view=capital')} />
+                  </div>
                   <button
                     type="button"
                     onClick={() => router.push('/sealed-bid')}

@@ -100,7 +100,7 @@ function toBaseUnits(humanAmount: string, decimals: number): string | null {
   return padded || "0";
 }
 
-export function VerifiedCapitalPage() {
+export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const [status, setStatus] = useState<CleanverseStatus | null>(null);
   const [resolvedDepositAddress, setResolvedDepositAddress] = useState<string | null>(null);
   const [depositLookupBusy, setDepositLookupBusy] = useState(false);
@@ -347,33 +347,35 @@ export function VerifiedCapitalPage() {
         }}
       />
 
-      <header className="relative space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={railLive ? "default" : "secondary"}>
-            {railLive ? "Rail connected" : "Credentials required"}
-          </Badge>
-          <Badge variant="outline">
-            Monad · {status?.monadChainId ?? 10143}
-          </Badge>
-          {spendStatus?.features?.includes("cleanverse-cvi-cva") && (
-            <Badge variant="outline">Spend path armed</Badge>
-          )}
-          {cleanverseWallets.length > 0 && (
-            <Badge variant="outline">{cleanverseWallets.length} Cleanverse wallet(s)</Badge>
-          )}
-        </div>
-        <h1
-          className="text-3xl font-semibold tracking-tight"
-          style={{ fontFamily: "var(--font-space-grotesk)" }}
-        >
-          Verified Capital
-        </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Screen identities (CVI), preview policy with A-Pass risk signals, then settle{" "}
-          <strong className="font-medium text-foreground">{assetSymbol}</strong> on Monad
-          (CVA). Evidence lands in CRE runs and Capital statements.
-        </p>
-      </header>
+      {!hideHeader && (
+        <header className="relative space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={railLive ? "default" : "secondary"}>
+              {railLive ? "Rail connected" : "Credentials required"}
+            </Badge>
+            <Badge variant="outline">
+              Monad · {status?.monadChainId ?? 10143}
+            </Badge>
+            {spendStatus?.features?.includes("cleanverse-cvi-cva") && (
+              <Badge variant="outline">Spend path armed</Badge>
+            )}
+            {cleanverseWallets.length > 0 && (
+              <Badge variant="outline">{cleanverseWallets.length} Cleanverse wallet(s)</Badge>
+            )}
+          </div>
+          <h1
+            className="text-3xl font-semibold tracking-tight"
+            style={{ fontFamily: "var(--font-space-grotesk)" }}
+          >
+            Verified Capital
+          </h1>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            Screen identities (CVI), preview policy with A-Pass risk signals, then settle{" "}
+            <strong className="font-medium text-foreground">{assetSymbol}</strong> on Monad
+            (CVA). Evidence lands in CRE runs and Capital statements.
+          </p>
+        </header>
+      )}
 
       <section className="relative grid gap-3 sm:grid-cols-4">
         {[

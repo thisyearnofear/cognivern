@@ -1,19 +1,16 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard,
-  Users,
   ShieldCheck,
   FileSearch,
-  Activity,
-  Bot,
-  PlayCircle,
-  Code2,
-  Sparkles,
-  Gavel,
-  Radar,
   CircleDollarSign,
-  Fingerprint,
+  Gavel,
+  Code2,
+  Radar,
+  Sparkles,
+  Users,
   CreditCard,
+  PlayCircle,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -29,6 +26,17 @@ export interface NavGroup {
   items: NavItem[];
 }
 
+/**
+ * Navigation grouped by job, mapped to the vision loop
+ * (fund → act → spend → evidence → outcome):
+ *
+ *   Operate     — the daily loop: what needs me, what happened, what was spent
+ *   Configure   — the guardrails: who may spend, under what rules
+ *   Developers  — the tooling: integrate, observe, drive from a terminal
+ *
+ * One rule: an item must name which stage of the loop it serves, or it is a
+ * view inside an existing destination. See docs/UX_IA_REVIEW.md.
+ */
 export const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Operate',
@@ -48,25 +56,18 @@ export const NAV_GROUPS: NavGroup[] = [
         description: 'Investigate decisions and proof',
       },
       {
-        id: 'runs',
-        label: 'Runs',
-        icon: Activity,
-        href: '/runs',
-        description: 'Resolve active and failed executions',
-      },
-      {
-        id: 'capital',
-        label: 'Capital',
+        id: 'spend-outcomes',
+        label: 'Spend & Outcomes',
         icon: CircleDollarSign,
         href: '/capital',
-        description: 'See what governed agent capital produced',
+        description: 'Runs, attribution, and verified spend',
       },
       {
-        id: 'verified-capital',
-        label: 'Verified Capital',
-        icon: Fingerprint,
-        href: '/verified-capital',
-        description: 'Cleanverse CVI/CVA spend rail on Monad',
+        id: 'sealed-bid',
+        label: 'Sealed Bids',
+        icon: Gavel,
+        href: '/sealed-bid',
+        description: 'Run private vendor selections without exposing bids',
       },
     ],
   },
@@ -82,7 +83,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         id: 'agents',
-        label: 'API Identities',
+        label: 'Identities',
         icon: Users,
         href: '/agents',
         description: 'Control which systems can spend',
@@ -97,33 +98,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Test',
-    items: [
-      {
-        id: 'governance',
-        label: 'Governance Check',
-        icon: PlayCircle,
-        href: '/governance/check',
-        description: 'Test a spend against your policy',
-      },
-      {
-        id: 'copilot',
-        label: 'Copilot',
-        icon: Bot,
-        href: '/copilot',
-        description: 'Agent mission console',
-      },
-      {
-        id: 'sealed-bid',
-        label: 'Sealed Bids',
-        icon: Gavel,
-        href: '/sealed-bid',
-        description: 'Run private vendor selections without exposing bids',
-      },
-    ],
-  },
-  {
-    label: 'Build',
+    label: 'Developers',
     items: [
       {
         id: 'integrate',
@@ -134,10 +109,10 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         id: 'observability',
-        label: 'Tracing',
+        label: 'Observability',
         icon: Radar,
         href: '/observability',
-        description: 'SigNoz distributed tracing & metrics',
+        description: 'Traces, metrics, and dashboards',
       },
       {
         id: 'os',
