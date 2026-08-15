@@ -468,7 +468,7 @@ All file-backed stores use a common `BaseStore` abstract class. To swap to Redis
 
 | Layer          | Protection                                                               |
 | -------------- | ------------------------------------------------------------------------ |
-| Auth           | SIWE + JWT with nonce replay protection                                  |
+| Auth           | SIWE + JWT with nonce replay protection. Auth routes are mounted at the **root** (`/auth/*`), not under `/api` — client calls must not prefix. |
 | API Keys       | scrypt hashed, workspace-scoped, **enforced scopes** (route map in `keyScopes.ts`; key management is session-only) — optional **TEE-sealed spend mandate** per key |
 | Rate Limiting  | 3 layers (global, workspace, per-endpoint)                               |
 | Encryption     | Fhenix FHE on-chain evaluation (confidential policies)                   |
@@ -683,6 +683,12 @@ The project includes 24 TestSprite CLI backend tests, 30 MCP-generated Playwrigh
 
 - `tests/e2e/landing.spec.ts` — public landing page content and primary CTAs;
 - `tests/e2e/demo-flow.spec.ts` — governed and ungoverned spend-demo paths;
+- `tests/e2e/sponsor-credits.spec.ts` — full sponsored-credits flow: signs in
+  through the UI, drives a seeded program through list/detail/tabs/
+  participants/reconcile, and exercises the anchoring surfaces (anchor,
+  history, public verify, participant receipt). Self-contained: registers a
+  fresh user and seeds its own program against the local backend, so it needs
+  the API running on `:3001` (the Playwright webServer starts the frontend).
 - `tests/e2e/authenticated-smoke.spec.ts` — opt-in navigation through the
   authenticated core surfaces using an existing disposable account.
 
