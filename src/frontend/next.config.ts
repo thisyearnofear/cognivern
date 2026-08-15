@@ -18,8 +18,9 @@ const cspHeader = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // Vercel traces and packages Next's serverless output directly; standalone
+  // is for self-hosted Node deployments and breaks Vercel's nft packaging.
   distDir: "dist",
-  output: "standalone",
   async headers() {
     return [
       {
