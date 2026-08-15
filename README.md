@@ -67,6 +67,7 @@ For the public/demo path, most optional integrations can remain disabled. See th
 - [Agentic capital implementation spec](./docs/AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md) — mandate, outcome, statement, and evidence invariants
 - [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md) — sealed-bid and governance integration details
 - [Cleanverse hackathon submission](./docs/HACKATHON_SUBMISSION_CLEANVERSE.md) — CVI/CVA verified agent capital rail
+- [Telegraph Track 3 proposal](./docs/TELEGRAPH_TRACK3_PROPOSAL.md) — verified-intelligence → governed on-chain action application concept
 
 ## Product surfaces
 
