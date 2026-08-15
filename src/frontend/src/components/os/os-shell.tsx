@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useSyncExternalStore } from "react";
 import { Terminal, type TerminalHandle } from "./Terminal";
 import { AgentGrid } from "./AgentGrid";
 import { runAutoDemo } from "./AutoDemo";
@@ -78,6 +78,16 @@ export function OsShell() {
     readStoredBoolean(ONBOARDING_STORAGE_KEY),
   );
   const [welcomeBackFading, setWelcomeBackFading] = useState(false);
+  // localStorage-derived UI (welcome-back banner, recent prompts) must not
+  // render during SSR — the server can't read the client's storage, so any
+  // conditional block keyed on it would fail hydration (React error #418).
+  // Gate those blocks on this flag so both passes render the same tree:
+  // false during SSR/hydration, true from the first client commit onward.
+  const mounted = useSyncExternalStore(
+    () => () => {}, // no subscription needed — state never changes
+    () => true, // client snapshot
+    () => false, // server snapshot
+  );
   const [hydraStatus, setHydraStatus] = useState<HydraDBStatusData | null>(
     null,
   );
@@ -89,6 +99,16 @@ export function OsShell() {
 
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const ttsEnabledRef = useRef(false);
+
+  // Clock renders client-side only — SSR would render a different time string
+  // than the client, which breaks hydration (React error #418).
+  const [clock, setClock] = useState("");
+  useEffect(() => {
+    const update = () => setClock(new Date().toLocaleTimeString());
+    update();
+    const interval = setInterval(update, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const {
     recording,
@@ -348,13 +368,15 @@ export function OsShell() {
                 : "[auto-demo]"}
           </button>
           <span className="text-[10px] font-mono text-zinc-600 hidden md:inline">
-            {new Date().toLocaleTimeString()}
+            {clock}
           </span>
         </div>
       </header>
 
-      {/* Welcome-back banner for returning users */}
-      {showWelcomeBack && (
+      {/* Welcome-back banner for returning users — client-only so it never
+          mismatches the server-rendered tree (localStorage is unreadable on
+          the server). */}
+      {mounted && showWelcomeBack && (
         <div
           className={`flex items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 bg-emerald-950/25 border-b border-emerald-900/40 transition-all duration-500 ${
             welcomeBackFading
@@ -378,7 +400,7 @@ export function OsShell() {
           )}
           {!hydraStatus?.configured && hydraStatus !== null && (
             <span className="text-[10px] font-mono text-amber-500/60 hidden md:inline">
-              &middot; configure HYDRADB_API_KEY
+              &middot; memory offline
             </span>
           )}
         </div>
@@ -433,7 +455,7 @@ export function OsShell() {
             and governance health.
           </div>
 
-          {recentPrompts.length > 0 && (
+          {mounted && recentPrompts.length > 0 && (
             <div className="space-y-2 border-t border-zinc-800/60 pt-3">
               <div className="flex items-center justify-between">
                 <div className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">

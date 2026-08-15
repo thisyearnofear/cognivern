@@ -217,12 +217,16 @@ export class ApiModule extends BaseService {
     // Request timeout — protects against hung connections. SSE/streaming
     // endpoints (text/event-stream) and long-running governance/FHE
     // evaluations are exempted by checking the Accept header and path.
+    // Mandate evidence retrieval (/context, /context/sync) runs HydraDB
+    // thinking-mode queries that legitimately take tens of seconds, so it
+    // gets the same long timeout as streams instead of the 30s default.
     this.app.use((req, res, next) => {
       const isStream =
         req.headers.accept?.includes('text/event-stream') ||
         req.path.includes('/stream') ||
         req.path.includes('/events');
-      const timeoutMs = isStream
+      const isSlowRetrieval = req.path.includes('/context');
+      const timeoutMs = isStream || isSlowRetrieval
         ? Number(process.env.STREAM_TIMEOUT_MS || 120000)
         : Number(process.env.REQUEST_TIMEOUT_MS || 30000);
       const timer = setTimeout(() => {
@@ -696,6 +700,15 @@ export class ApiModule extends BaseService {
     this.app.use(
       (error: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
         this.logger.error(`API Error: ${error.message}`, error);
+
+        if (res.headersSent || res.destroyed) {
+          // The response is already on its way — a request-timeout 504, an
+          // earlier error, or a client disconnect. Writing again would throw
+          // ERR_HTTP_HEADERS_SENT inside this handler and crash the process;
+          // just release the connection and move on.
+          req.destroy();
+          return;
+        }
 
         if (error.name === 'ZodError') {
           return res.status(422).json({

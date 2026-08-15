@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Activity, ArrowLeft, CalendarClock, CheckCircle2, CircleAlert, Download, ExternalLink, FileCheck, FileText, History, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -176,6 +176,7 @@ export function CapitalPage() {
   const [syncHealth, setSyncHealth] = useState<MandateContextSyncHealth | null>(null);
   const [syncHealthLoading, setSyncHealthLoading] = useState(false);
   const [selectedMandateId, setSelectedMandateId] = useState('');
+  const selectedMandateIdRef = useRef('');
   const [newMandateName, setNewMandateName] = useState('');
   const [newMandateObjective, setNewMandateObjective] = useState('');
   const [creatingMandate, setCreatingMandate] = useState(false);
@@ -207,6 +208,12 @@ export function CapitalPage() {
         if (!response.success || !response.data) throw new Error(response.error || 'Could not load mandates');
         setError(null);
         setMandates(response.data);
+        // With exactly one mandate, jump straight into its review so the cited
+        // evidence history is visible without an extra click.
+        if (response.data.length === 1 && !selectedMandateIdRef.current) {
+          selectedMandateIdRef.current = response.data[0].id;
+          setSelectedMandateId(response.data[0].id);
+        }
       })
       .catch((reason) => {
         if (active) setError(reason instanceof Error ? reason.message : 'Could not load mandates');

@@ -124,8 +124,13 @@ export class MandateController {
     if (!id) return;
     try {
       const context = await hydraDbMandateContext.getContext(id, req.params.mandateId);
+      // Retrieval is slow (thinking-mode HydraDB query) — the client may have
+      // disconnected or hit the request timeout while we were working. Writing
+      // to a finished response throws ERR_HTTP_HEADERS_SENT; bail out instead.
+      if (res.headersSent || res.destroyed) return;
       res.json({ success: true, data: context });
     } catch (error) {
+      if (res.headersSent || res.destroyed) return;
       const message = error instanceof Error ? error.message : "Failed to build mandate context";
       res.status(/not found/i.test(message) ? 404 : 500).json({ success: false, error: message });
     }
@@ -136,8 +141,10 @@ export class MandateController {
     if (!id) return;
     try {
       const sync = await hydraDbMandateContext.syncMandate(id, req.params.mandateId);
+      if (res.headersSent || res.destroyed) return;
       res.json({ success: true, data: sync });
     } catch (error) {
+      if (res.headersSent || res.destroyed) return;
       const message = error instanceof Error ? error.message : "Failed to sync mandate context";
       res.status(/not found/i.test(message) ? 404 : 500).json({ success: false, error: message });
     }

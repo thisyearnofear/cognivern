@@ -780,6 +780,8 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       if (!terminalRef.current || termRef.current) return;
 
       const term = new XTerminal({
+        // Accessibility (screen-reader live region + DOM buffer) is built into
+        // xterm v6+ and enabled by default.
         cursorBlink: true,
         cursorStyle: "bar",
         fontFamily: "'Geist Mono', 'SF Mono', 'Fira Code', monospace",
