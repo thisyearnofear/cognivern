@@ -164,9 +164,10 @@ export function LandingPage() {
   const txCount = useCountUp(18, 2500, statsVisible);
   const policiesCount = useCountUp(3, 1500, statsVisible);
 
-  const handleTryDemo = () => {            // Start in the denied band so the visitor immediately sees one of
-            // Cognivern's three clear answers, while the slider makes the full
-            // approve / hold / stop boundary explorable in place.
+  const handleTryDemo = () => {
+    // Start in the denied band so the visitor immediately sees one of
+    // Cognivern's three clear answers, while the slider makes the full
+    // approve / hold / stop boundary explorable in place.
     setDemoAmount(DEMO_HARD_LIMIT + 500);
     // Smooth-scroll the interactive panel into view so the stamp lands
     // in the visitor's viewport.
@@ -692,7 +693,7 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
             className="text-3xl font-bold text-foreground mt-3"
             style={{ fontFamily: "var(--font-space-grotesk)" }}
           >
-              Delegate the work you already understand
+            Delegate the work you already understand
           </h2>
           <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
             Begin with one consequential workflow, prove the guardrails work, then expand with confidence.

@@ -22,7 +22,7 @@ pnpm typecheck
 pnpm vitest run
 ```
 
-`pnpm lint` is the CI lint command and should also be run for frontend changes. It currently reports pre-existing repository-wide formatting debt, so record its result rather than assuming a clean pass.
+`pnpm lint` is the CI lint command and runs the frontend's canonical Next.js ESLint configuration.
 
 Add the focused command for your area. For frontend changes, also run:
 

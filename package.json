@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "postinstall": "",
-    "lint": "eslint --config ./config/eslint.config.mjs src/frontend/src",
+    "lint": "pnpm --filter cognivern-frontend lint",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

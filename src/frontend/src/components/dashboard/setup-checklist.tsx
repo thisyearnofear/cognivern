@@ -173,11 +173,12 @@ export function SetupChecklist({
                 : `${completedCount} of ${steps.length} done — keep going`}
             </h2>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground max-w-md">              {completedCount === 0
-                ? 'Set one boundary, run one request, and prove the control loop before you connect production.'
-                : nextStep.id === 'check' && allPrereqsDone
-                  ? 'Everything is ready. Run one request below and see the decision recorded in context.'
-                  : `Next up: ${nextStep.label.toLowerCase()}.`}
+          <p className="mt-1 max-w-md text-xs text-muted-foreground">
+            {completedCount === 0
+              ? 'Set one boundary, run one request, and prove the control loop before you connect production.'
+              : nextStep.id === 'check' && allPrereqsDone
+                ? 'Everything is ready. Run one request below and see the decision recorded in context.'
+                : `Next up: ${nextStep.label.toLowerCase()}.`}
           </p>
         </div>
         <div className="flex items-center gap-2">
