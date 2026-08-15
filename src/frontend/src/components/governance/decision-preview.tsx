@@ -1,9 +1,9 @@
 "use client";
 
 import { CheckCircle2, Clock3, XCircle } from "lucide-react";
-import type { GovernanceEvaluation } from "@cognivern/shared";
+import { decisionLabel, resolveDecision, type DecisionOutcome } from "@/lib/decision-language";
 
-export type DecisionOutcome = NonNullable<GovernanceEvaluation["decision"]>;
+export type { DecisionOutcome } from "@/lib/decision-language";
 
 interface DecisionPreviewProps {
   decision: DecisionOutcome;
@@ -22,31 +22,27 @@ const OUTCOME_COPY: Record<DecisionOutcome, {
   iconClass: string;
 }> = {
   approved: {
-    label: "Approved",
+    label: decisionLabel("approved"),
     blurb: "This action is within the boundary",
     surface: "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30",
     iconSurface: "bg-emerald-500/10",
     iconClass: "text-emerald-500",
   },
   held: {
-    label: "Held for review",
+    label: decisionLabel("held"),
     blurb: "This action needs operator judgment before it can execute",
     surface: "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30",
     iconSurface: "bg-amber-500/10",
     iconClass: "text-amber-500",
   },
   denied: {
-    label: "Stopped",
+    label: decisionLabel("denied"),
     blurb: "This action is outside the boundary",
     surface: "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30",
     iconSurface: "bg-red-500/10",
     iconClass: "text-red-500",
   },
 };
-
-function resolveDecision(decision: DecisionOutcome): DecisionOutcome {
-  return decision === "denied" ? "denied" : decision;
-}
 
 /**
  * The canonical Cognivern decision object. Keep the outcome language stable

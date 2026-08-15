@@ -5,6 +5,7 @@ import { Check, Copy, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { trackUxEvent } from "@/lib/ux-events";
+import { decisionLabel } from "@/lib/decision-language";
 
 interface DecisionReceiptProps {
   decision: string;
@@ -23,7 +24,7 @@ export function DecisionReceipt({ decision, subject, summary, reference, evidenc
   const copyReceipt = async () => {
     const receipt = [
       "Cognivern decision receipt",
-      `Outcome: ${decision.replaceAll("_", " ")}`,
+      `Outcome: ${decisionLabel(decision)}`,
       `Subject: ${subject}`,
       `Summary: ${summary}`,
       `Evidence: ${evidence.join(" · ")}`,

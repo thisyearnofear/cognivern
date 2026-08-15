@@ -46,7 +46,7 @@ function getReviewProgress(
     return {
       activeStep: 0,
       title: 'Choose a mandate to begin',
-      description: 'Select a funded mandate to see its governed spend, cited decision history, and next allocation review.',
+      description: 'Choose a funded mandate to see what happened, what is missing, and what to do next.',
       action: 'select',
       actionLabel: 'Choose a mandate',
     };
@@ -55,7 +55,7 @@ function getReviewProgress(
     return {
       activeStep: 1,
       title: 'Build the cited decision history',
-      description: 'Connect this mandate to its runs, receipts, outcomes, and policy-linked records. This is advisory and never authorizes spend.',
+      description: 'Collect the spend, receipt, outcome, and policy evidence for this mandate.',
       action: 'context',
       actionLabel: 'Build cited history',
     };
@@ -64,7 +64,7 @@ function getReviewProgress(
     return {
       activeStep: 2,
       title: 'Review the next allocation',
-      description: 'Use the cited evidence to generate a bounded recommendation. An operator and the existing policy gate remain required.',
+      description: 'Use the evidence to generate a bounded next-allocation recommendation for operator review.',
       action: 'recommendation',
       actionLabel: 'Review recommendation',
     };
@@ -73,7 +73,7 @@ function getReviewProgress(
     return {
       activeStep: 3,
       title: 'Preview the review report',
-      description: 'Inspect the read-only capital report before freezing a versioned snapshot for your team.',
+      description: 'Inspect the read-only review report before publishing a versioned snapshot.',
       action: 'statement',
       actionLabel: 'Preview review report',
     };
@@ -82,7 +82,7 @@ function getReviewProgress(
     return {
       activeStep: 3,
       title: 'Freeze the review snapshot',
-      description: 'Publish an immutable, hashed version of this report for review. Publishing does not authorize or execute spend.',
+      description: 'Publish an immutable, hashed version of this report for your team.',
       action: 'publish',
       actionLabel: 'Publish review snapshot',
     };
@@ -109,9 +109,6 @@ function buildMandateActivity(
   selectedMandateId: string,
   report: SpendAttributionReport,
   observations: OutcomeObservation[],
-  context: MandateContext | null,
-  statement: FundedMandateStatement | null,
-  published: PublishedMandateStatementSummary[] | null,
 ): MandateActivity[] {
   const events: MandateActivity[] = report.records
     .filter((record) => !selectedMandateId || record.mandateId === selectedMandateId)
@@ -132,36 +129,6 @@ function buildMandateActivity(
     timestamp: observation.observedAt,
     status: observation.confidence === 'independently_verified' ? ('success' as const) : ('info' as const),
   })));
-
-  if (context) {
-    events.push({
-      id: `context-${context.syncedAt}`,
-      title: context.syncStatus === 'synced' ? 'Cited history refreshed' : 'Cited history accepted for indexing',
-      detail: `${context.metrics.resultCount} relevant sources · ${context.metrics.latencyMs}ms retrieval`,
-      timestamp: context.lastSyncedAt || context.syncedAt,
-      status: context.syncStatus === 'synced' ? 'success' : 'pending',
-    });
-  }
-
-  if (statement) {
-    events.push({
-      id: `statement-${statement.statementId}`,
-      title: 'Review report generated',
-      detail: `${statement.performance.evidenceCompleteness.spendRecordCount} spend records · ${statement.performance.evidenceCompleteness.outcomeCount} measured results`,
-      timestamp: statement.generatedAt,
-      status: 'info',
-    });
-  }
-
-  if (published) {
-    events.push(...published.map((snapshot) => ({
-      id: `snapshot-${snapshot.id}`,
-      title: `Review snapshot v${snapshot.version} published`,
-      detail: 'Immutable, hashed report available for review',
-      timestamp: snapshot.publishedAt,
-      status: 'success' as const,
-    })));
-  }
 
   return events
     .filter((event) => Number.isFinite(new Date(event.timestamp).getTime()))
@@ -423,7 +390,7 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
     return <PageState variant="error" title="Could not load attribution" message={error || 'The attribution report is unavailable.'} action={{ label: 'Retry', onClick: () => window.location.reload() }} />;
   }
 
-  const activity = buildMandateActivity(selectedMandateId, report, observations, context, statement, published);
+  const activity = buildMandateActivity(selectedMandateId, report, observations);
 
   return (
     <div className="space-y-6">
@@ -437,15 +404,13 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
         </div>
       )}
 
-      <section className="rounded-xl border bg-card p-4">
+      <section aria-label="Mandate selector" className="rounded-xl border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-semibold">Review a mandate</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Follow the review path from governed spend to cited evidence and an operator-approved decision.</p>
+            <p className="text-xs font-medium uppercase tracking-[.12em] text-muted-foreground">Mandate review</p>
+            <p className="mt-1 text-sm text-muted-foreground">Choose a mandate to see its current review state.</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {selectedMandateId && <Button variant="outline" size="sm" onClick={loadStatement} disabled={statementLoading}><FileText className="h-3.5 w-3.5" />{statementLoading ? 'Generating…' : 'Preview statement'}</Button>}
-            <select
+          <select
             id="capital-mandate-select"
             aria-label="Filter by funded mandate"
             className="rounded-md border bg-background px-3 py-2 text-sm"
@@ -463,18 +428,11 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
               setExported(null);
               setError(null);
             }}
-            >
-              <option value="">All mandates</option>
-              {mandates.map((mandate) => <option key={mandate.id} value={mandate.id}>{mandate.name}</option>)}
-            </select>
-          </div>
+          >
+            <option value="">All mandates</option>
+            {mandates.map((mandate) => <option key={mandate.id} value={mandate.id}>{mandate.name}</option>)}
+          </select>
         </div>
-        {selectedMandate && (
-          <div className="mt-3 rounded-lg bg-muted/40 p-3 text-sm">
-            <span className="font-medium">{selectedMandate.name}</span>
-            <span className="ml-2 text-muted-foreground">{selectedMandate.objective}</span>
-          </div>
-        )}
       </section>
 
       {mandates.length === 0 && (
@@ -508,54 +466,34 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
       )}
 
       {selectedMandate && (
-        <section aria-label="Selected mandate summary" className="rounded-xl border bg-card p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+        <section aria-label="Selected mandate summary" className="rounded-xl border bg-card p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="truncate text-lg font-semibold">{selectedMandate.name}</h2>
                 <Badge variant={selectedMandate.status === 'active' ? 'secondary' : 'outline'}>{selectedMandate.status}</Badge>
               </div>
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{selectedMandate.objective}</p>
+              <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{selectedMandate.objective}</p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <CalendarClock className="h-3.5 w-3.5" /> Updated {new Date(selectedMandate.updatedAt).toLocaleDateString()}
-            </div>
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><CalendarClock className="h-3.5 w-3.5" /> Updated {new Date(selectedMandate.updatedAt).toLocaleDateString()}</span>
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg bg-muted/40 p-3">
-              <div className="text-xs text-muted-foreground">Budget position</div>
-              <div className="mt-2 space-y-1 text-sm">
-                {Object.entries(selectedMandate.budget.byAsset).map(([asset, budget]) => (
-                  <div key={asset} className="flex items-center justify-between gap-3">
-                    <span className="font-medium">{asset}</span>
-                    <span className="text-muted-foreground">{formatAmount(budget.consumedAmount)} / {formatAmount(budget.authorizedAmount)} used</span>
-                  </div>
-                ))}
-                {Object.keys(selectedMandate.budget.byAsset).length === 0 && <span className="text-muted-foreground">No budget recorded</span>}
-              </div>
-            </div>
-            <div className="rounded-lg bg-muted/40 p-3">
-              <div className="text-xs text-muted-foreground">Agents covered</div>
-              <div className="mt-2 text-xl font-semibold">{selectedMandate.agentIds.length}</div>
-              <div className="mt-1 text-xs text-muted-foreground">authorized identities for this mandate</div>
-            </div>
-            <div className="rounded-lg bg-muted/40 p-3">
-              <div className="text-xs text-muted-foreground">Success measures</div>
-              <div className="mt-2 text-xl font-semibold">{selectedMandate.successMetrics.length}</div>
-              <div className="mt-1 text-xs text-muted-foreground">results this review should track</div>
-            </div>
+          <div className="mt-4 grid gap-px overflow-hidden rounded-lg bg-border sm:grid-cols-4">
+            <div className="bg-muted/40 p-3"><div className="text-lg font-semibold">{Object.entries(selectedMandate.budget.byAsset).map(([asset, budget]) => `${asset} ${formatAmount(budget.consumedAmount)} / ${formatAmount(budget.authorizedAmount)}`).join(' · ') || '—'}</div><div className="text-xs text-muted-foreground">Budget position</div></div>
+            <div className="bg-muted/40 p-3"><div className="text-lg font-semibold">{report.totalRecords}</div><div className="text-xs text-muted-foreground">Governed spends</div></div>
+            <div className="bg-muted/40 p-3"><div className="text-lg font-semibold">{observations.length}</div><div className="text-xs text-muted-foreground">Outcomes recorded</div></div>
+            <div className="bg-muted/40 p-3"><div className="text-lg font-semibold">{selectedMandate.agentIds.length}</div><div className="text-xs text-muted-foreground">Governed identities</div></div>
           </div>
         </section>
       )}
 
-      <section aria-label="Guided mandate review" className="rounded-xl border border-primary/20 bg-primary/[.025] p-4">
+      <section aria-label="Mandate review status" className="rounded-xl border border-primary/20 bg-primary/[.025] p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-semibold">Guided review</h2>
+              <h2 className="font-semibold">Review status</h2>
               <Badge variant="secondary">{review.activeStep === 4 ? 'Complete' : `Step ${review.activeStep + 1} of 4`}</Badge>
             </div>
-            <p className="mt-2 text-sm font-medium">{review.title}</p>
+            <p className="mt-2 text-base font-semibold">{review.title}</p>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{review.description}</p>
           </div>
           {review.action !== 'done' && (
@@ -584,7 +522,12 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
       </section>
 
       {syncHealth && (
-        <section aria-label="Evidence sync health" className="rounded-xl border bg-card p-4">
+        <details className="rounded-xl border bg-card">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+            <span>Evidence sync</span>
+            <span className="text-xs font-normal text-muted-foreground">{syncHealth.failed > 0 ? 'Needs attention' : syncHealth.needsAttention ? 'Stale' : 'Operational detail'}</span>
+          </summary>
+        <section aria-label="Evidence sync health" className="border-t p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary"><Activity className="h-4 w-4" /></div>
@@ -622,6 +565,7 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
           {syncHealth.oldestPendingAt && <p className="mt-3 text-xs text-muted-foreground">Oldest active recovery: {new Date(syncHealth.oldestPendingAt).toLocaleString()} · age {formatDuration(syncHealth.oldestPendingAgeMs)} · attention threshold {formatDuration(syncHealth.pendingAgeAlertMs)}</p>}
           {syncHealth.needsAttention && <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-muted-foreground">Derived evidence recovery needs attention. The authoritative ledger and policy path remain operational; inspect the selected mandate or retry after HydraDB recovers.</p>}
         </section>
+        </details>
       )}
 
       {statementError && (
@@ -676,13 +620,19 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
       )}
 
       {selectedMandateId && (
-        <MandateContextPanel
-          context={context}
-          loading={contextLoading}
-          onBuild={loadContext}
-          onReviewAllocation={loadRecommendation}
-          recommendationLoading={recommendationLoading}
-        />
+        <details className="rounded-xl border bg-card">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+            <span>Evidence context</span>
+            <span className="text-xs font-normal text-muted-foreground">Derived sources and retrieval detail</span>
+          </summary>
+          <MandateContextPanel
+            context={context}
+            loading={contextLoading}
+            onBuild={loadContext}
+            onReviewAllocation={loadRecommendation}
+            recommendationLoading={recommendationLoading}
+          />
+        </details>
       )}
 
       {selectedMandateId && (
@@ -691,8 +641,8 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary"><History className="h-4 w-4" /></div>
               <div>
-                <h2 className="font-semibold">What changed</h2>
-                <p className="mt-1 text-sm text-muted-foreground">A single view of governed spend, measured results, evidence refreshes, and review snapshots.</p>
+                <h2 className="font-semibold">Evidence trail</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Governed spend and measured outcomes linked to this mandate.</p>
               </div>
             </div>
             <Badge variant="outline">{activity.length} event{activity.length === 1 ? '' : 's'}</Badge>
@@ -740,7 +690,7 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="font-semibold">Review report</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Read-only statement candidate for review. It is hashed for integrity, not published or treated as ROI.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Read-only report, hashed for integrity.</p>
             </div>
             <code className="max-w-full truncate rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground" title={statement.contentHash}>sha256:{statement.contentHash}</code>
           </div>
@@ -755,11 +705,16 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
       )}
 
       {selectedMandateId && (
-        <section className="rounded-xl border bg-card p-5">
+        <details className="rounded-xl border bg-card">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+            <span>Published reviews</span>
+            <span className="text-xs font-normal text-muted-foreground">Versioned reports and exports</span>
+          </summary>
+          <section className="border-t p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="font-semibold">Review snapshots</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Freeze a versioned review report. Exports are redacted; publishing does not authorize or execute spend.</p>
+              <h2 className="font-semibold">Published reviews</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Freeze a versioned report for your team.</p>
             </div>
             <Button variant="outline" size="sm" onClick={publishStatement} disabled={publishing}><FileCheck className="h-3.5 w-3.5" />{publishing ? 'Publishing…' : 'Publish snapshot'}</Button>
           </div>
@@ -791,13 +746,14 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
               <p className="mt-2 text-muted-foreground">Internal sources, notes, and evidence references are stripped; capital, mandate framing, and hashes are preserved. The JSON download was triggered in your browser.</p>
             </div>
           )}
-        </section>
+          </section>
+        </details>
       )}
 
       {selectedMandateId && (
         <section id="outcomes" className="rounded-xl border bg-card p-5">
-          <h2 className="font-semibold">Measured results</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Recorded outcomes support review; they are evidence, not causal ROI claims.</p>
+          <h2 className="font-semibold">Outcomes</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Results recorded against this mandate.</p>
           <div className="mt-4 divide-y">
             {observations.map((observation) => (
               <div key={observation.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
@@ -811,25 +767,34 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
                 </div>
               </div>
             ))}
-            {observations.length === 0 && <p className="py-4 text-sm text-muted-foreground">No outcomes recorded for this mandate yet.</p>}
+            {observations.length === 0 && <p className="py-4 text-sm text-muted-foreground">No outcomes recorded yet.</p>}
           </div>
         </section>
       )}
 
-      <div className="grid gap-px overflow-hidden rounded-xl bg-border sm:grid-cols-3">
-        {([
-          ['Attribution records', report.totalRecords],
-          ['Consumed outcomes', report.counts.consumed],
-          ['Held / uncertain', report.counts.held + report.counts.uncertain],
-        ] as const).map(([label, value]) => (
-          <div key={label} className="bg-card p-5">
-            <div className="text-2xl font-bold">{value}</div>
-            <div className="text-xs text-muted-foreground">{label}</div>
-          </div>
-        ))}
-      </div>
+      <section aria-label="Review pulse" className="rounded-xl border bg-card p-4">
+        <div className="grid gap-px overflow-hidden rounded-lg bg-border sm:grid-cols-4">
+          {([
+            ['Governed spends', report.totalRecords],
+            ['Consumed', report.counts.consumed],
+            ['Outcomes', observations.length],
+            ['Held / uncertain', report.counts.held + report.counts.uncertain],
+          ] as const).map(([label, value]) => (
+            <div key={label} className="bg-muted/40 p-3">
+              <div className="text-xl font-semibold">{value}</div>
+              <div className="text-xs text-muted-foreground">{label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      <section className="rounded-xl border bg-card p-5">
+      <details className="rounded-xl border bg-card">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+          <span>Detailed attribution</span>
+          <span className="text-xs font-normal text-muted-foreground">Asset totals and receipt records</span>
+        </summary>
+
+      <section className="border-t p-5">
         <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-500" /><h2 className="font-semibold">By asset</h2></div>
         <div className="mt-4 space-y-2">
           {Object.entries(report.totalsByAsset).map(([asset, totals]) => (
@@ -860,6 +825,7 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
           {report.records.length === 0 && <p className="py-4 text-sm text-muted-foreground">No records yet.</p>}
         </div>
       </section>
+      </details>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { DecisionPreview } from '@/components/governance/decision-preview';
+import { decisionLabel, resolveDecision } from '@/lib/decision-language';
 
 describe('DecisionPreview', () => {
   it.each([
@@ -21,5 +22,11 @@ describe('DecisionPreview', () => {
     expect(screen.getByText(blurb)).toBeTruthy();
     expect(screen.getByText('$500')).toBeTruthy();
     expect(screen.getByText('The policy result is recorded for review.')).toBeTruthy();
+  });
+
+  it('keeps backend denial values mapped to the user-facing stopped language', () => {
+    expect(decisionLabel('denied')).toBe('Stopped');
+    expect(resolveDecision('denied', false)).toBe('denied');
+    expect(resolveDecision(undefined, true)).toBe('approved');
   });
 });

@@ -43,7 +43,7 @@ export function CapitalOverview() {
     <div className="space-y-6">
       <PageHeader
         title="Spend & Outcomes"
-        description="Runs, attribution, and verified spend — the money moving through governance, in one place."
+        description="Review what a mandate spent, what it produced, and whether the evidence supports another allocation."
       />
 
       <Tabs value={view} onValueChange={onViewChange} className="space-y-4">

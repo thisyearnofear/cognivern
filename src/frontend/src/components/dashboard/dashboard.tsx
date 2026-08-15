@@ -29,7 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PageState } from '@/components/ui/error-state';
 import { AttentionSummary } from '@/components/ui/attention-summary';
 import { useRouter } from 'next/navigation';
-import { useAgents, useAuditLogs, useMandates, usePolicies, useNetworkStatus } from '@/hooks/use-api';
+import { useAgents, useAuditLogs, usePolicies, useNetworkStatus } from '@/hooks/use-api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useDemoStore } from '@/stores/demo-store';
 import dynamic from 'next/dynamic';
@@ -64,7 +64,7 @@ import { formatBudget } from '@/lib/budget-format';
 import { normalizeAuditLogs, computeAverageLatency } from '@/lib/normalizers';
 import { authFetch } from '@/lib/auth-fetch';
 import { AttributionCard } from './attribution-card';
-import { WorkspaceNextAction } from './workspace-next-action';
+import { decisionLabel } from '@/lib/decision-language';
 
 /* ─── Animated counter hook ────────────────────────────────── */
 
@@ -307,7 +307,6 @@ export function Dashboard() {
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
   const { data: logs, isLoading: logsLoading, error: logsError } = useAuditLogs();
   const { data: policies, isLoading: policiesLoading } = usePolicies();
-  const { data: mandates, isLoading: mandatesLoading } = useMandates();
   const { data: apiKeysResponse, isLoading: apiKeysLoading } = useSWR(
     isAuthenticated ? 'dashboard-api-keys' : null,
     () => apiClient.getApiKeys(),
@@ -385,7 +384,6 @@ export function Dashboard() {
   const hasActiveAgent = agentList.some((agent) => agent.status !== 'inactive');
   const hasApiKey = (apiKeysResponse?.data || []).some((key) => !key.revokedAt);
   const setupLoading = agentsLoading || policiesLoading || logsLoading || apiKeysLoading;
-  const nextActionLoading = setupLoading || mandatesLoading;
   // Setup is the primary journey only until the workspace has proved the
   // loop end-to-end. Once policy, identity, key, and first decision exist,
   // hand the first screen back to operating status and the next useful review.
@@ -394,6 +392,11 @@ export function Dashboard() {
     isAuthenticated &&
     !setupLoading &&
     (!hasActivePolicy || !hasActiveAgent || !hasApiKey || normalizedLogs.length === 0);
+  const workspaceState = showSetup
+    ? 'setup'
+    : attentionCount > 0
+      ? 'attention'
+      : 'operating';
 
   // Count decisions carrying a real on-chain governance-record tx (mirrors the
   // audit page's getOnChainTxHash: top-level or nested data.txHash). Real data
@@ -478,54 +481,35 @@ export function Dashboard() {
         />
       )}
 
-      {/* Guided next step — but when there is real attention to resolve, the
-          review queue supersedes guidance: the operator's job is clearing held
-          and denied decisions, not reading a next-step card. */}
-      {!nextActionLoading && attentionCount === 0 && (
-        <WorkspaceNextAction
-          demoMode={demoMode}
-          hasPolicy={hasActivePolicy}
-          hasAgent={hasActiveAgent}
-          hasApiKey={hasApiKey}
-          hasGovernedRequest={normalizedLogs.length > 0}
-          mandates={mandates || []}
-          attentionCount={attentionCount}
+      {/* The first screen has one job at a time: finish setup, resolve
+          attention, or confirm that governance is steady. */}
+      {workspaceState !== 'setup' && (
+        <AttentionSummary
+          tone={workspaceState === 'attention' ? 'attention' : 'healthy'}
+          title={workspaceState === 'attention' ? 'Governance needs attention' : 'Governance is steady'}
+          description={
+            workspaceState === 'attention'
+              ? 'Review held decisions and investigate stopped outcomes before they become operational surprises.'
+              : 'No decisions are waiting for operator action. Run a Quick Check or review recent activity below.'
+          }
+          items={
+            workspaceState === 'attention'
+              ? [
+                  ...(heldCount > 0 ? [{ label: 'held', count: heldCount }] : []),
+                  ...(blockedCount > 0 ? [{ label: 'stopped', count: blockedCount }] : []),
+                ]
+              : []
+          }
+          action={
+            workspaceState === 'attention'
+              ? {
+                  label: 'Review decisions',
+                  onClick: () => router.push('/audit?status=needs_attention'),
+                }
+              : undefined
+          }
         />
       )}
-
-      <AttentionSummary
-            tone={attentionCount > 0 ? 'attention' : 'healthy'}
-            title={
-              attentionCount > 0
-                ? 'Governance needs attention'
-                : normalizedLogs.length > 0
-                  ? 'Governance is steady'
-                  : 'Ready for your first governed action'
-            }
-            description={
-              attentionCount > 0
-                ? 'Review held decisions and investigate denied outcomes before they become operational surprises.'
-                : normalizedLogs.length > 0
-                  ? 'No held decisions are waiting for action, and there are no denied outcomes to investigate.'
-                  : 'Set a boundary, run one request through it, and see the decision recorded in context.'
-            }
-            items={
-              attentionCount > 0
-                ? [
-                    ...(heldCount > 0 ? [{ label: 'held', count: heldCount }] : []),
-                    ...(blockedCount > 0 ? [{ label: 'denied', count: blockedCount }] : []),
-                  ]
-                : []
-            }
-            action={
-              attentionCount > 0
-                ? {
-                    label: 'Review decisions',
-                    onClick: () => router.push('/audit?status=needs_attention'),
-                  }
-                : undefined
-            }
-          />
 
           {/* Operational overview */}
           <div ref={statsRef}>
@@ -612,7 +596,7 @@ export function Dashboard() {
                         {decisions} total
                       </span>
                     </div>
-                    <div className="text-xs text-muted-foreground">Blocked decisions</div>
+                    <div className="text-xs text-muted-foreground">Stopped decisions</div>
                   </div>
                 </div>
               </div>
@@ -629,7 +613,7 @@ export function Dashboard() {
                 <h2 className="font-semibold">Recent Activity</h2>
                 {decisionFilter && (
                   <Badge variant="secondary" className="text-xs capitalize">
-                    {decisionFilter} only
+                    {decisionLabel(decisionFilter)} only
                   </Badge>
                 )}
                 {filteredActivity.length !== activity.length && (
@@ -685,7 +669,7 @@ export function Dashboard() {
                               ? 'bg-red-100 dark:bg-red-950 text-red-600'
                               : 'bg-blue-100 dark:bg-blue-950 text-blue-600'
                         }`}
-                        aria-label={`Decision: ${item.status}`}
+                        aria-label={`Decision: ${decisionLabel(item.status)}`}
                       >
                         {item.status === 'approved' ? (
                           <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
@@ -712,7 +696,7 @@ export function Dashboard() {
                         }
                         className="text-xs"
                       >
-                        {item.status}
+                        {decisionLabel(item.status)}
                       </Badge>
                       <span className="text-xs text-muted-foreground">{item.time}</span>
                     </div>

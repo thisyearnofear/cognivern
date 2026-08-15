@@ -40,9 +40,12 @@ import { isConfidentialEvidence, railViewFromEvidence } from "@/lib/confidential
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { useFheProgress } from "@/hooks/use-fhe-progress";
 import { HelpIcon } from "@/components/ui/help-icon";
+import { PageHeader } from "@/components/ui/page-header";
+import { DisclosureSection } from "@/components/ui/disclosure-section";
 import { GovernanceMoment } from "@/components/ui/governance-moment";
 import { ConfidentialSpendTry } from "@/components/governance/confidential-spend-try";
 import { DecisionPreview, type DecisionOutcome } from "@/components/governance/decision-preview";
+import { resolveDecision } from "@/lib/decision-language";
 
 function getSuggestion(reason: string): string {
   const lower = reason.toLowerCase();
@@ -467,18 +470,19 @@ export function GovernanceCheck() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>
-            Governance Check
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Evaluate a spend action against your active policies
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Governance Check"
+        description="Run one action through your active policy boundary and see the decision before anything moves."
+      />
 
-      <ConfidentialSpendTry />
+      <DisclosureSection
+        title="Try a confidential evaluation"
+        description="Optional encrypted evaluation for sensitive policy inputs"
+      >
+        <div className="p-4 sm:p-5">
+          <ConfidentialSpendTry />
+        </div>
+      </DisclosureSection>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Input Panel */}
@@ -825,8 +829,7 @@ export function GovernanceCheck() {
           {result && !evaluating && (() => {
             // Three-outcome verdict: prefer the explicit `decision` field
             // when present, fall back to legacy `allowed` boolean.
-            const decision =
-              result.decision || (result.allowed ? "approved" : "denied");
+            const decision = resolveDecision(result.decision, result.allowed);
             return (
             <div className="rounded-xl border bg-card p-5 space-y-4">
                 {/* Canonical verdict */}
@@ -1154,7 +1157,7 @@ export function GovernanceCheck() {
                       ? "Approved spend"
                       : ex.outcome === "held"
                         ? "Held for review"
-                        : "Denied spend";
+                        : "Stopped spend";
                   return (
                     <button
                       key={ex.outcome}
@@ -1188,29 +1191,25 @@ export function GovernanceCheck() {
         </div>
       </div>
 
-      {/* Quick Reference */}
-      <div className="rounded-xl border bg-muted/20 p-4 space-y-2">
+      <DisclosureSection
+        title="How governance works"
+        description="Request → policy boundary → decision → audit record"
+      >
+        <div className="space-y-2 bg-muted/20 p-4">
           <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-            <span className="font-medium text-foreground">How it works:</span>
-            <span className="flex items-center gap-1">
-              Policy Created <ArrowRight className="h-3 w-3" />
-            </span>
-            <span className="flex items-center gap-1">
-              System Requests Spend <ArrowRight className="h-3 w-3" />
-            </span>
-            <span className="flex items-center gap-1">
-              Policy Evaluated <ArrowRight className="h-3 w-3" />
-            </span>
-            <Badge variant="secondary">Approved / Denied / Held</Badge>
-            <span className="flex items-center gap-1">
-              <ArrowRight className="h-3 w-3" /> Audit Logged
-            </span>
+            <span className="font-medium text-foreground">System requests spend</span>
+            <ArrowRight className="h-3 w-3" />
+            <span>Policy evaluated</span>
+            <ArrowRight className="h-3 w-3" />
+            <Badge variant="secondary">Approved / Held / Stopped</Badge>
+            <ArrowRight className="h-3 w-3" />
+            <span>Audit logged</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Standard policies evaluate in milliseconds; encrypted (FHE) checks
-            take longer but never expose amounts to agents.
+            Standard policies evaluate quickly; encrypted checks take longer but keep sensitive inputs private.
           </p>
         </div>
+      </DisclosureSection>
     </div>
   );
 }

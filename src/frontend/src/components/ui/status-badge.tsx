@@ -8,8 +8,8 @@ const labels: Record<string, string> = {
   running: "Running",
   failed: "Failed",
   approved: "Approved",
-  held: "Held",
-  denied: "Denied",
+  held: "Held for review",
+  denied: "Stopped",
   // Credit program / participant statuses.
   active: "Active",
   draft: "Draft",

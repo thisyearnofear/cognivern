@@ -10,6 +10,7 @@ import { AttentionSummary } from '@/components/ui/attention-summary';
 import { PageHeader } from '@/components/ui/page-header';
 import { DecisionReceipt } from '@/components/ui/decision-receipt';
 import { trackUxEvent } from '@/lib/ux-events';
+import { decisionLabel } from '@/lib/decision-language';
 import { motion } from 'motion/react';
 import {
   CheckCircle2,
@@ -331,7 +332,7 @@ function TimelineNode({
         type="button"
         onClick={() => setExpanded(!expanded)}
         className={`absolute left-[9px] sm:left-[13px] top-[5px] w-[13px] h-[13px] rounded-full ring-4 ${statusRingColor} ring-background z-10 cursor-pointer ${statusColor}`}
-        aria-label={`${log.decision} decision`}
+        aria-label={`${decisionLabel(log.decision)} decision`}
       />
 
       {/* Content */}
@@ -409,7 +410,7 @@ function TimelineNode({
                 }
                 className="text-xs capitalize"
               >
-                {log.decision}
+                {decisionLabel(log.decision)}
               </Badge>
               <ChevronDown
                 className={`h-4 w-4 text-muted-foreground transition-transform shrink-0 ${
@@ -1176,14 +1177,14 @@ export function AuditPage() {
           title={heldCount + deniedCount > 0 ? 'Decisions need attention' : 'Audit trail is clear'}
           description={
             heldCount + deniedCount > 0
-              ? 'Start with held decisions that need action, then investigate denied outcomes; approved history remains available below.'
-              : 'No held decisions are waiting for action, and there are no denied outcomes to investigate.'
+              ? 'Start with held decisions that need action, then investigate stopped outcomes; approved history remains available below.'
+              : 'No held decisions are waiting for action, and there are no stopped outcomes to investigate.'
           }
           items={
             heldCount + deniedCount > 0
               ? [
                   ...(heldCount > 0 ? [{ label: 'held', count: heldCount }] : []),
-                  ...(deniedCount > 0 ? [{ label: 'denied', count: deniedCount }] : []),
+                  ...(deniedCount > 0 ? [{ label: 'stopped', count: deniedCount }] : []),
                 ]
               : []
           }

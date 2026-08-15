@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageState } from '@/components/ui/error-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { DisclosureSection } from '@/components/ui/disclosure-section';
 import {
   Dialog,
   DialogContent,
@@ -18,7 +20,6 @@ import {
   PlusCircle,
   Key,
   Eye,
-  ChevronDown,
   Pause,
   Play,
   Trash2,
@@ -184,7 +185,6 @@ function AgentCard({
 export function AgentsPage() {
   const router = useRouter();
   const { data: agents, isLoading, error } = useAgents();
-  const [examplesExpanded, setExamplesExpanded] = useState(false);
   // Selection mode reveals per-card checkboxes + a batch action bar so
   // operators can pause/resume/revoke several governed identities at once.
   const [selectionMode, setSelectionMode] = useState(false);
@@ -280,45 +280,34 @@ export function AgentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1
-            className="text-2xl font-bold tracking-tight"
-            style={{ fontFamily: 'var(--font-space-grotesk)' }}
-          >
-            API Identities
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-            Policy-bound identities for bots, scripts, and workflows that spend through Cognivern
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {error && (
-            <Badge variant="destructive" className="text-xs">
-              Error
-            </Badge>
-          )}
-          {!selectionMode && (
-            <Button variant="outline" size="sm" onClick={() => router.push('/copilot')}>
-              <Bot className="h-4 w-4" /> Copilot
-            </Button>
-          )}
-          {hasActionableAgents && !selectionMode && (
-            <Button variant="outline" size="sm" onClick={() => setSelectionMode(true)}>
-              <SquareCheckBig className="h-4 w-4" /> Select
-            </Button>
-          )}
-          {!selectionMode ? (
-            <Button onClick={() => router.push('/agents/workshop')}>
-              <PlusCircle className="h-4 w-4" /> Create API identity
-            </Button>
-          ) : (
-            <Button variant="ghost" size="sm" onClick={exitSelection}>
-              <X className="h-4 w-4" /> Exit select
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="API Identities"
+        description="Connect the bots, scripts, and workflows that may act through Cognivern."
+        action={
+          <>
+            {error && <Badge variant="destructive" className="text-xs">Error</Badge>}
+            {!selectionMode && (
+              <Button variant="ghost" size="sm" onClick={() => router.push('/copilot')}>
+                <Bot className="h-4 w-4" /> Copilot
+              </Button>
+            )}
+            {hasActionableAgents && !selectionMode && (
+              <Button variant="outline" size="sm" onClick={() => setSelectionMode(true)}>
+                <SquareCheckBig className="h-4 w-4" /> Select
+              </Button>
+            )}
+            {!selectionMode ? (
+              <Button onClick={() => router.push('/agents/workshop')}>
+                <PlusCircle className="h-4 w-4" /> Create API identity
+              </Button>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={exitSelection}>
+                <X className="h-4 w-4" /> Exit select
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {batchError && !selectionMode && (
         <div
@@ -445,44 +434,28 @@ export function AgentsPage() {
       ) : (
         <div className="space-y-8">
           {showcase.length > 0 && (
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => setExamplesExpanded((expanded) => !expanded)}
-                aria-expanded={examplesExpanded}
-                aria-controls="example-identities"
-                className="flex w-full items-center justify-between rounded-xl border border-dashed px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+            <DisclosureSection
+              title="Example identities"
+              description="Demo-only systems showing what Cognivern can govern."
+            >
+              <motion.div
+                id="example-identities"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-b-xl overflow-hidden"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
               >
-                <div>
-                  <h2 className="text-sm font-semibold">View example identities</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Demo-only systems showing what Cognivern can govern.
-                  </p>
-                </div>
-                <ChevronDown
-                  className={`h-4 w-4 text-muted-foreground transition-transform ${examplesExpanded ? 'rotate-180' : ''}`}
-                />
-              </button>
-              {examplesExpanded && (
-                <motion.div
-                  id="example-identities"
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {showcase.map((agent) => (
-                    <AgentCard
-                      key={agent.id}
-                      agent={agent}
-                      selectionMode={selectionMode}
-                      selected={selectedIds.has(agent.id)}
-                      onToggle={toggleSelected}
-                    />
-                  ))}
-                </motion.div>
-              )}
-            </div>
+                {showcase.map((agent) => (
+                  <AgentCard
+                    key={agent.id}
+                    agent={agent}
+                    selectionMode={selectionMode}
+                    selected={selectedIds.has(agent.id)}
+                    onToggle={toggleSelected}
+                  />
+                ))}
+              </motion.div>
+            </DisclosureSection>
           )}
 
           <div className="space-y-3">

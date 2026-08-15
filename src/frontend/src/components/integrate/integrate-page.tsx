@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Check, Terminal, Code2, Zap, ArrowRight, Shield, Key, Plus, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { HelpIcon } from "@/components/ui/help-icon";
+import { PageHeader } from "@/components/ui/page-header";
+import { DisclosureSection } from "@/components/ui/disclosure-section";
 import { apiClient } from "@/lib/api-client";
 import { useConfidentialRail } from "@/hooks/use-confidential-rail";
 import type { ApiKeyCreateResponse } from "@/lib/api-client";
@@ -348,15 +350,10 @@ export function IntegratePage() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>
-          Integrate the Governance API
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Connect your external system (bot, script, workflow) to Cognivern&apos;s governance API in under 5
-          minutes
-        </p>
-      </div>
+      <PageHeader
+        title="Integrate the Governance API"
+        description="Connect one external system to Cognivern, generate a scoped key, and test its first governed request."
+      />
 
       <div className="grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3">
         <Link href="/policies" className="bg-card p-4 transition-colors hover:bg-muted/40">
@@ -373,13 +370,12 @@ export function IntegratePage() {
         </a>
       </div>
 
-      <details className="group rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-sky-500/5">
-        <summary className="flex cursor-pointer list-none items-center justify-between p-5 text-sm font-semibold [&::-webkit-details-marker]:hidden">
-          <span className="flex items-center gap-3"><Zap className="h-5 w-5 text-primary" /> How Cognivern works</span>
-          <span className="text-xs font-normal text-muted-foreground group-open:hidden">Optional overview</span>
-          <span className="hidden text-xs font-normal text-muted-foreground group-open:inline">Hide overview</span>
-        </summary>
-        <div className="px-5 pb-5">
+      <DisclosureSection
+        title="How Cognivern works"
+        description="Optional overview of the request, decision, and audit flow"
+        className="border-primary/20 bg-gradient-to-r from-primary/5 to-sky-500/5"
+      >
+        <div className="space-y-0 p-5">
           <div className="flex items-center gap-3 mb-3">
             <h2 className="font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Governance decision flow</h2>
           </div>
@@ -390,13 +386,13 @@ export function IntegratePage() {
             <ArrowRight className="h-3 w-3" />
             <Badge variant="secondary">Policies checked</Badge>
             <ArrowRight className="h-3 w-3" />
-            <Badge variant="outline">Approved / Denied</Badge>
+            <Badge variant="outline">Approved / Held / Stopped</Badge>
             <ArrowRight className="h-3 w-3" />
             <Badge variant="secondary">Audit logged</Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
             Your system calls Cognivern before every transaction. If the action
-            violates a policy, it gets denied. Your system should respect the
+            violates a policy, it is stopped. Your system should respect the
             decision — or the audit trail will flag it.
           </p>
           <p className="text-xs text-muted-foreground mt-2">
@@ -414,7 +410,7 @@ export function IntegratePage() {
             <span>· {rail.integrateFragment} · sealed-bid procurement on Canton.</span>
           </div>
         </div>
-      </details>
+      </DisclosureSection>
 
       <Tabs defaultValue="quickstart" className="space-y-4">
         <TabsList>

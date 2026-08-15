@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageState } from "@/components/ui/error-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { DisclosureSection } from "@/components/ui/disclosure-section";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -277,33 +279,27 @@ export function PoliciesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>Policies</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Governance guardrails for system spend
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {error && (
-            <Badge variant="destructive" className="text-xs">
-              Error
-            </Badge>
-          )}
-          {rail.rail === "flare" && (
-            <Button
-              variant="outline"
-              onClick={() => router.push("/governance/check?confidential=1")}
-              className="border-amber-300 text-amber-800 dark:border-amber-700 dark:text-amber-200"
-            >
-              <Lock className="h-4 w-4" /> Try confidential spend
+      <PageHeader
+        title="Policies"
+        description="Set the boundaries that decide what systems can do automatically and what needs review."
+        action={
+          <>
+            {error && <Badge variant="destructive" className="text-xs">Error</Badge>}
+            {rail.rail === "flare" && (
+              <Button
+                variant="outline"
+                onClick={() => router.push("/governance/check?confidential=1")}
+                className="border-amber-300 text-amber-800 dark:border-amber-700 dark:text-amber-200"
+              >
+                <Lock className="h-4 w-4" /> Try confidential spend
+              </Button>
+            )}
+            <Button onClick={() => setShowCreate(true)}>
+              <PlusCircle className="h-4 w-4" /> Create policy
             </Button>
-          )}
-          <Button onClick={() => setShowCreate(true)}>
-            <PlusCircle className="h-4 w-4" /> Create policy
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Held Policies Banner */}
       {holds.length > 0 && (
@@ -377,11 +373,17 @@ export function PoliciesPage() {
 
       {/* Quick-create templates */}
       {policies.length === 0 && !isLoading && !error && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-amber-500" />
-            <span className="text-sm font-medium">Quick Start Templates</span>
-          </div>
+        <DisclosureSection
+          title="Start with a policy"
+          description="Choose a boundary that fits the first system you want to govern."
+          defaultOpen
+          className="border-primary/20 bg-primary/[.02]"
+        >
+          <div className="space-y-3 p-4">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-amber-500" />
+              <span className="text-sm font-medium">Quick start templates</span>
+            </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {POLICY_TEMPLATES.map((t, i) => (
               <motion.div
@@ -413,7 +415,8 @@ export function PoliciesPage() {
               </motion.div>
             ))}
           </div>
-        </div>
+          </div>
+        </DisclosureSection>
       )}
 
       {showCreate && (

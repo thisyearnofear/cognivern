@@ -69,7 +69,7 @@ export function MandateContextPanel({
   const syncJob = context?.syncJob;
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card">
+    <section className="overflow-hidden border-t bg-card">
       <div className="border-b bg-[linear-gradient(110deg,hsl(var(--muted)/.55),transparent_65%)] p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex gap-3">
@@ -84,7 +84,7 @@ export function MandateContextPanel({
                 {syncJob && syncJob.status !== 'completed' && <Badge variant={syncJob.status === 'failed' ? 'destructive' : 'secondary'}>Recovery {syncJobLabel(syncJob.status)}</Badge>}
               </div>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-                Cited decision history for this mandate: governed runs, spend, outcomes, and receipts. Review it before considering another allocation.
+                Evidence linked to this mandate: governed runs, spend, outcomes, and receipts.
               </p>
             </div>
           </div>
@@ -112,7 +112,7 @@ export function MandateContextPanel({
             <div>
               <p className="text-sm font-medium">No cited decision history yet</p>
               <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-                Build a workspace-isolated view of what happened, what was measured, and which receipts support this mandate. It is advisory and never authorizes spend.
+                Build the evidence trail for this mandate before reviewing the next allocation.
               </p>
             </div>
           </div>
@@ -260,8 +260,8 @@ export function MandateContextPanel({
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold">Decision trail</h3>
-              <p className="mt-1 text-sm text-muted-foreground">The most relevant evidence returned for this mandate.</p>
+              <h3 className="text-sm font-semibold">Evidence sources</h3>
+              <p className="mt-1 text-sm text-muted-foreground">The records returned for this mandate.</p>
             </div>
             <Button variant="outline" size="sm" onClick={onReviewAllocation} disabled={recommendationLoading}>
               <ShieldCheck className="h-3.5 w-3.5" />
