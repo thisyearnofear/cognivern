@@ -166,7 +166,6 @@ async function handleLocalCommand(
         writePrompt();
       });
     return true; // prompt handled in callback
-    return true;
   } else if (lower === "history") {
     term.writeln("");
     commandHistoryStore.forEach((h, i) => {
@@ -289,7 +288,10 @@ async function handleLocalCommand(
       );
       term.writeln("");
       term.writeln(
-        "  \x1b[38;2;113;113;122mRequires HYDRADB_API_KEY env var. Sign up at app.hydradb.com\x1b[0m",
+        "  \x1b[38;2;113;113;122mEvery command is auto-stored as a memory — recall it later with\x1b[0m",
+      );
+      term.writeln(
+        "  \x1b[38;2;113;113;122m`hydra recent` or `hydra search <topic>`.\x1b[0m",
       );
       term.writeln("");
     } else if (sub === "status") {
@@ -421,7 +423,10 @@ async function handleLocalCommand(
               });
             } else {
               term.writeln(
-                "  \x1b[38;2;113;113;122mNo memories stored yet. Run commands to auto-store them.\x1b[0m",
+                "  \x1b[38;2;113;113;122mNo memories yet — run any command or store one with\x1b[0m",
+              );
+              term.writeln(
+                "  \x1b[38;2;113;113;122m`hydra memory \"remember this\"`. Commands auto-store too.\x1b[0m",
               );
             }
           } else {
@@ -511,7 +516,9 @@ async function handleLocalCommand(
           .then((r) => r.json())
           .then((res) => {
             if (res.success) {
-              term.writeln("  \x1b[38;2;34;197;94mMemory stored.\x1b[0m");
+              term.writeln(
+                "  \x1b[38;2;34;197;94mMemory stored.\x1b[0m \x1b[38;2;113;113;122mRecall it with `hydra recent` or `hydra search`.\x1b[0m",
+              );
             } else {
               term.writeln(
                 `  \x1b[38;2;239;68;68mFailed: ${res.error || "unknown"}\x1b[0m`,
@@ -810,6 +817,38 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
           clearInterval(bootInterval);
           promptFn();
           onBootRef.current?.();
+
+          // Live HydraDB memory status — resolved asynchronously so the boot
+          // log reflects the real memory layer without blocking input. The
+          // line is inserted above the prompt (clearing it) only when the
+          // user hasn't started typing yet.
+          authFetch("/api/os/hydra")
+            .then((r) => r.json())
+            .then((json) => {
+              const data = json?.data as
+                | { configured?: boolean; tenantExists?: boolean }
+                | undefined;
+              const ready = Boolean(data?.configured && data?.tenantExists);
+              if (inputBufferRef.current.length === 0) {
+                term.write("\r\x1b[2K");
+              } else {
+                term.writeln("");
+              }
+              term.writeln(
+                ready
+                  ? "  \x1b[38;2;34;197;94m[hydra memory] connected\x1b[0m — every command is auto-remembered (try `hydra recent`)"
+                  : "  \x1b[38;2;234;179;8m[hydra memory] offline\x1b[0m — memory recall disabled",
+              );
+            })
+            .catch(() => {
+              if (inputBufferRef.current.length === 0) {
+                term.write("\r\x1b[2K");
+              }
+              term.writeln("  \x1b[38;2;234;179;8m[hydra memory] offline\x1b[0m");
+            })
+            .finally(() => {
+              term.write(PROMPT);
+            });
         }
       }, 150);
 
