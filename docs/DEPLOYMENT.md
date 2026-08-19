@@ -118,7 +118,7 @@ ZEROG_MAINNET_POSTER_PRIVATE_KEY=<secret — never commit>
 Verify after rollout with:
 
 ```bash
-curl -sS https://api.cognivern.persidian.com/api/governance/zerog-proof \
+curl -sS https://api.cognivern.persidian.com/api/governance/proof-info \
   | jq '.data | {enabled, version, chainId, network, contractAddress, explorerUrl}'
 ```
 

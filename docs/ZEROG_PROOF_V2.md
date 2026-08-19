@@ -51,7 +51,7 @@ commitment transaction, and the receipt is saved back to the run evidence.
 After rollout, verify the public integration info endpoint:
 
 ```bash
-curl -sS https://api.cognivern.persidian.com/api/governance/zerog-proof \
+curl -sS https://api.cognivern.persidian.com/api/governance/proof-info \
   | jq '.data | {enabled, version, chainId, network, contractAddress, explorerUrl}'
 ```
 
