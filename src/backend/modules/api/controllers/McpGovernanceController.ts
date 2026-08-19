@@ -159,7 +159,9 @@ export class McpGovernanceController {
         const active = policies
           .filter(
             (candidate) =>
-              candidate.status === "active" && candidate.rules.length > 0,
+              candidate.status === "active" &&
+              Array.isArray(candidate.rules) &&
+              candidate.rules.length > 0,
           )
           .sort(
             (left, right) =>
