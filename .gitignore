@@ -42,6 +42,7 @@ data/
 .env.test.local
 .env.production.local
 .env.vercel
+.env.0g-mainnet
 !.env.example
 *.pem
 *.key

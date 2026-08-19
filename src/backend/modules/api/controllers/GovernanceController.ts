@@ -286,7 +286,10 @@ export class GovernanceController {
       // If 0G is unreachable, governance still works — the proof is an
       // additional verifiability layer, not a dependency.
       let zeroGProof: Record<string, unknown> | undefined;
-      if (sharedZeroGProofService.isEnabled()) {
+      if (
+        process.env.ZEROG_PROOF_VERSION !== "v2" &&
+        sharedZeroGProofService.isEnabled()
+      ) {
         const proof = await sharedZeroGProofService.recordDecision({
           workspaceId: workspaceId!,
           agentId,

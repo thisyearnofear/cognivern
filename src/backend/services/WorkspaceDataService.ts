@@ -15,6 +15,7 @@ import {
   policyViolationCounter,
   governanceLatencyHistogram,
 } from "@backend/observability/otel.js";
+import { hashPolicyContent } from "../../shared/zerog-proof-v2.js";
 
 type Row = Record<string, unknown>;
 
@@ -503,12 +504,25 @@ export const WorkspaceDataService = {
 
     for (const policy of policies) {
       const rules = JSON.parse((policy.rules as string) || "[]") as Array<{ condition: string; action: string; params?: Record<string, unknown> }>;
+      const policyVersion = String(policy.version ?? "1");
+      const policyContentHash = hashPolicyContent({
+        id: policy.id as string,
+        version: policyVersion,
+        name: policy.name as string,
+        description: policy.description as string,
+        status: policy.status as string,
+        rules,
+      });
       for (const rule of rules) {
         const check = evaluateRule(rule, params.action, agentSafe);
         policyChecks.push({
           policyId: policy.id as string,
           result: check.passed,
           reason: check.reason,
+          metadata: {
+            policyVersion,
+            policyContentHash,
+          },
         });
         if (!check.passed && rule.action === "deny") {
           denied = true;

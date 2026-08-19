@@ -1,5 +1,10 @@
 import { ethers } from "ethers";
 import logger from "@backend/utils/logger.js";
+import {
+  ZeroGProofV2Service,
+  type ZeroGProofV2Input,
+  type ZeroGProofV2Result,
+} from "./ZeroGProofV2Service.js";
 
 /**
  * ZeroGProofService — posts governance decision proofs to 0G Chain.
@@ -74,7 +79,7 @@ export interface GovernanceProofResult {
   network: string;
 }
 
-class ZeroGProofService {
+class ZeroGProofV1Service {
   private provider: ethers.JsonRpcProvider | null = null;
   private wallet: ethers.Wallet | null = null;
   private contract: ethers.Contract | null = null;
@@ -192,6 +197,50 @@ class ZeroGProofService {
       network: "0g-galileo-testnet",
       chainId: ZEROG_CHAIN_ID,
     };
+  }
+}
+
+export type GovernanceProofRequest = {
+  workspaceId: string;
+  agentId: string;
+  actionType: string;
+  amount: number;
+  currency: string;
+  decision: string;
+  timestamp: number;
+  v2?: ZeroGProofV2Input;
+};
+
+/**
+ * Versioned facade. V1 remains the default and is untouched. V2 is opt-in via
+ * ZEROG_PROOF_VERSION=v2 and requires its own mainnet contract/key variables.
+ */
+class ZeroGProofService {
+  private readonly version = process.env.ZEROG_PROOF_VERSION || "v1";
+  private readonly v1 = new ZeroGProofV1Service();
+  private readonly v2 = new ZeroGProofV2Service();
+
+  isEnabled(): boolean {
+    return this.version === "v2" ? this.v2.isEnabled() : this.v1.isEnabled();
+  }
+
+  getInfo() {
+    return this.version === "v2" ? this.v2.getInfo() : this.v1.getInfo();
+  }
+
+  async recordDecision(
+    params: GovernanceProofRequest,
+  ): Promise<GovernanceProofResult | ZeroGProofV2Result | null> {
+    if (this.version === "v2") {
+      if (!params.v2) {
+        logger.warn(
+          "[ZeroGProof] V2 is enabled but no V2 commitment context was supplied — proof skipped",
+        );
+        return null;
+      }
+      return this.v2.recordDecision(params.v2);
+    }
+    return this.v1.recordDecision(params);
   }
 }
 

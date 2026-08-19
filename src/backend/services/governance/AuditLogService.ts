@@ -1,6 +1,7 @@
 import { AgentAction, PolicyCheck } from "@backend/types/Agent.js";
 import logger from "@backend/utils/logger.js";
 import { zeroGStorageService } from "@backend/services/blockchain/ZeroGStorageService.js";
+import { sharedZeroGProofService } from "@backend/services/blockchain/ZeroGProofService.js";
 import { filecoinStorageService } from "@backend/services/blockchain/FilecoinStorageService.js";
 import { creRunStore, CreRunStore } from "@backend/cre/storage/CreRunStore.js";
 import { CreRun, CreArtifact } from "@backend/cre/types.js";
@@ -324,6 +325,7 @@ export class AuditLogService {
     options?: {
       projectId?: string;
       suspicion?: Record<string, unknown>;
+      decision?: "approved" | "denied" | "held";
       aiUsage?: {
         provider: string;
         model: string;
@@ -381,6 +383,7 @@ export class AuditLogService {
     options?: {
       projectId?: string;
       suspicion?: Record<string, unknown>;
+      decision?: "approved" | "denied" | "held";
       aiUsage?: {
         provider: string;
         model: string;
@@ -471,6 +474,67 @@ export class AuditLogService {
     };
 
     await this.creStore.add(run);
+
+    // V2 anchors the completed run's canonical commitments. This remains
+    // opt-in and fire-and-forget so 0G Mainnet cannot block governance or audit
+    // persistence. The original action timestamp is reused on every adapter
+    // invocation; it must never be regenerated during a retry.
+    if (process.env.ZEROG_PROOF_VERSION === "v2" && sharedZeroGProofService.isEnabled()) {
+      const decision =
+        options?.decision || inferGovernanceDecision(allowed, policyChecks);
+      const decisionTimestamp = Math.floor(
+        new Date(action.timestamp || now).getTime() / 1000,
+      );
+      sharedZeroGProofService
+        .recordDecision({
+          workspaceId: run.projectId,
+          agentId: String(action.metadata?.agentId || "unknown"),
+          actionType: action.type,
+          amount: Number(action.metadata?.amount || action.metadata?.amountUsd || 0),
+          currency: String(action.metadata?.currency || "USDC"),
+          decision,
+          timestamp: decisionTimestamp,
+          v2: {
+            runId,
+            decision,
+            decisionTimestamp,
+            action,
+            policyChecks,
+            evidence: {
+              workflow: run.workflow,
+              evidenceHash: evidence.hash,
+              signature: evidence.signature || null,
+              signer: evidence.signer || null,
+              suspicion: options?.suspicion || null,
+              aiUsage: options?.aiUsage || null,
+              ...(traceId ? { traceId } : {}),
+            },
+          },
+        })
+        .then(async (proof) => {
+          if (!proof || !("proofId" in proof)) return;
+          run.evidence = {
+            ...(run.evidence || { hash: evidence.hash }),
+            zeroGProofV2: {
+              proofId: proof.proofId,
+              runIdHash: proof.runIdHash,
+              evidenceHash: proof.evidenceHash,
+              policySetHash: proof.policySetHash,
+              txHash: proof.txHash,
+              blockNumber: proof.blockNumber,
+              chainId: proof.chainId,
+              network: proof.network,
+            },
+          };
+          await this.creStore.replace(run);
+        })
+        .catch((error) => {
+          logger.warn("0G GovernanceProofV2 anchor failed (non-fatal)", {
+            runId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+    }
 
     // Anchor governance decision to 0G Storage (non-fatal, fire-and-forget with post-hoc update)
     zeroGStorageService
@@ -625,6 +689,22 @@ export class AuditLogService {
     const logs = await this.getFilteredLogs({ workspaceId, startDate, endDate });
     return { format, data: logs };
   }
+}
+
+function inferGovernanceDecision(
+  allowed: boolean,
+  policyChecks: PolicyCheck[],
+): "approved" | "denied" | "held" {
+  if (allowed) return "approved";
+  const requiresReview = policyChecks.some((check) => {
+    const metadata = check.metadata as Record<string, unknown> | undefined;
+    return (
+      metadata?.suspicionHold === true ||
+      metadata?.requiresReview === true ||
+      metadata?.reviewReason !== undefined
+    );
+  });
+  return requiresReview ? "held" : "denied";
 }
 
 function extractSigningProvider(run: CreRun): AuditLog["signingProvider"] {

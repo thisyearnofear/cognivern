@@ -9,6 +9,7 @@ import { ControlEvaluationService, SuspicionResult, AgentActionHistory } from ".
 import { tracer, meter, governanceDecisionCounter, policyViolationCounter, governanceLatencyHistogram } from "@backend/observability/otel.js";
 import logger from "@backend/utils/logger.js";
 import { Script } from "node:vm";
+import { hashPolicyContent } from "../../../shared/zerog-proof-v2.js";
 
 /**
  * Core policy enforcement engine.
@@ -124,13 +125,17 @@ export class PolicyEnforcementService {
           result: result.allowed,
           reason:
             result.reason || (result.allowed ? "Rule passed" : "Rule failed"),
-          metadata: result.metadata,
+          metadata: {
+            ...(result.metadata || {}),
+            ...this.getPolicyProofMetadata(),
+          },
         });
       } catch (error) {
         checks.push({
           policyId: rule.id,
           result: false,
           reason: `Error evaluating rule: ${error instanceof Error ? error.message : "Unknown error"}`,
+          metadata: this.getPolicyProofMetadata(),
         });
       }
     }
@@ -570,6 +575,26 @@ export class PolicyEnforcementService {
       });
       return false;
     }
+  }
+
+  private getPolicyProofMetadata(): Record<string, string> {
+    if (!this.currentPolicy) {
+      throw new Error("No policy loaded");
+    }
+
+    const version = String(this.currentPolicy.version || "1");
+    return {
+      policyVersion: version,
+      policyContentHash: hashPolicyContent({
+        id: this.currentPolicy.id,
+        version,
+        name: this.currentPolicy.name,
+        description: this.currentPolicy.description,
+        status: this.currentPolicy.status,
+        rules: this.currentPolicy.rules,
+        metadata: this.currentPolicy.metadata || {},
+      }),
+    };
   }
 
   /**

@@ -11,6 +11,7 @@
 import type { Policy, PolicyRule, SharpContext } from "@backend/types/Policy.js";
 import type { AgentAction, PolicyCheck } from "@backend/types/Agent.js";
 import logger from "@backend/utils/logger.js";
+import { hashPolicyContent } from "../../../shared/zerog-proof-v2.js";
 
 const TOGETHER_API_URL = "https://api.together.xyz/v1/chat/completions";
 const DEFAULT_MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo";
@@ -69,10 +70,26 @@ function buildUserPrompt(req: PolicyEvaluationRequest): string {
     .join("\n");
 }
 
+function policyProofMetadata(req: PolicyEvaluationRequest): Record<string, string> {
+  return {
+    policyVersion: String(req.policy.version || "1"),
+    policyContentHash: hashPolicyContent({
+      id: req.policy.id,
+      version: String(req.policy.version || "1"),
+      name: req.policy.name,
+      description: req.policy.description,
+      status: req.policy.status,
+      rules: req.policy.rules,
+      metadata: req.policy.metadata || {},
+    }),
+  };
+}
+
 function buildFallbackResult(
   req: PolicyEvaluationRequest,
   reason: string,
 ): PolicyEvaluationResult {
+  const metadata = policyProofMetadata(req);
   return {
     allowed: false,
     reasoning: `Fallback deny — ${reason}`,
@@ -80,6 +97,7 @@ function buildFallbackResult(
       policyId: r.id,
       result: false,
       reason: "LLM evaluator unavailable",
+      metadata,
     })),
     model: "none",
     provider: "fallback",
@@ -144,10 +162,12 @@ export async function evaluatePolicyWithTogetherAI(
       checks: { ruleId: string; passed: boolean; reason: string }[];
     };
 
+    const metadata = policyProofMetadata(req);
     const policyChecks: PolicyCheck[] = (parsed.checks ?? []).map((c) => ({
       policyId: c.ruleId,
       result: c.passed,
       reason: c.reason,
+      metadata,
     }));
 
     logger.info("Together AI policy evaluation complete", {

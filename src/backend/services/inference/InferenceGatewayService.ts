@@ -61,6 +61,7 @@ import { ModelPricingService } from "./ModelPricingService.js";
 import { listBackends, resolveBackend } from "./backendRegistry.js";
 import { recordGatewayInference } from "@backend/observability/gateway.js";
 import { ZERO_USAGE, type InferenceBackend, type UpstreamUsage } from "./types.js";
+import { hashPolicyContent } from "../../../shared/zerog-proof-v2.js";
 
 const EXCERPT_MAX_CHARS = Number(process.env.GATEWAY_EXCERPT_MAX_CHARS || 500);
 /** Hard ceiling on requested output tokens when neither client nor program set one. */
@@ -769,6 +770,23 @@ export class InferenceGatewayService {
     backendId: string,
   ): Promise<void> {
     try {
+      const policyVersion = context.program.updatedAt;
+      const policyContentHash = hashPolicyContent({
+        id: `program:${context.program.id}`,
+        version: policyVersion,
+        name: context.program.name,
+        description: `Sponsored inference constraints for ${context.program.id}`,
+        status: context.program.status,
+        rules: {
+          allowedModels: context.program.allowedModels,
+          maxOutputTokens: context.program.maxOutputTokens,
+          maxInputTokens: context.program.maxInputTokens,
+          disclosureMultipliers: context.program.disclosureMultipliers,
+          multipliersMode: context.program.multipliersMode,
+          requireTrustMode: context.program.requireTrustMode,
+        },
+        metadata: { backend: context.program.backend },
+      });
       const policyChecks: PolicyCheck[] = [
         {
           policyId: `program:${context.program.id}`,
@@ -781,6 +799,8 @@ export class InferenceGatewayService {
             allowedModels: context.program.allowedModels,
             maxOutputTokens: input.prepared.maxOutputTokens,
             disclosureTier: context.participant.disclosureTier,
+            policyVersion,
+            policyContentHash,
           },
         },
       ];

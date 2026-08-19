@@ -137,6 +137,17 @@ export interface CreArtifact {
   };
 }
 
+export interface ZeroGProofV2Receipt {
+  proofId: string;
+  runIdHash: string;
+  evidenceHash: string;
+  policySetHash: string;
+  txHash: string;
+  blockNumber: number | null;
+  chainId: number;
+  network: "0g-mainnet";
+}
+
 export interface CreRun {
   runId: string;
   projectId: string;
@@ -199,6 +210,7 @@ export interface CreRun {
       taskClass: string;
     };
     traceId?: string;
+    zeroGProofV2?: ZeroGProofV2Receipt;
   };
   events?: CreRunEvent[];
   steps: CreStepLog[];

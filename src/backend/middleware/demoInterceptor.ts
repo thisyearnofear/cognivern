@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import crypto from "node:crypto";
 import { jwtVerify } from "jose";
 import { getWorkspaceTier } from "./workspaceMiddleware.js";
 import { DemoDataService } from "@backend/services/DemoDataService.js";
@@ -9,6 +10,7 @@ import {
   DEMO_HARD_LIMIT,
   resolveDemoDecision,
 } from "@cognivern/shared";
+import { hashPolicyContent } from "../../shared/zerog-proof-v2.js";
 
 function resolveJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -156,6 +158,25 @@ function serveDemoData(
 
       const timestamp = new Date().toISOString();
       const auditLogId = `log-${agentId}-${timestamp}`;
+      const proofRunId = crypto.randomUUID();
+      const policySet = {
+        schemaVersion: 1,
+        policies: policies.map((policy) => {
+          const version = String((policy as any).version || "1");
+          return {
+            id: policy.id,
+            version,
+            contentHash: hashPolicyContent({
+              id: policy.id,
+              version,
+              name: policy.name,
+              description: policy.description,
+              status: policy.status,
+              rules: policy.rules,
+            }),
+          };
+        }),
+      };
 
       // Fire-and-forget: post governance decision proof to 0G Chain.
       // The proof is posted asynchronously — the response doesn't wait for it.
@@ -167,7 +188,16 @@ function serveDemoData(
           amount: amount,
           currency: action.currency || "USDC",
           decision,
-          timestamp: Math.floor(Date.now() / 1000),
+          timestamp: Math.floor(new Date(timestamp).getTime() / 1000),
+          v2: {
+            runId: proofRunId,
+            decision,
+            decisionTimestamp: Math.floor(new Date(timestamp).getTime() / 1000),
+            action,
+            policyChecks,
+            policySet,
+            evidence: { source: "demo", auditLogId, reasoning },
+          },
         }).then((proof) => {
           if (proof) {
             console.log(`[0GProof] Demo decision recorded — tx: ${proof.txHash}`);
@@ -468,14 +498,25 @@ async function serveLiveData(
 
       // Fire-and-forget: post governance decision proof to 0G Chain.
       if (sharedZeroGProofService.isEnabled()) {
+        const proofRunId = crypto.randomUUID();
+        const proofDecision = evaluation.decision || (evaluation.allowed ? "approved" : "denied");
+        const proofTimestamp = Math.floor(new Date(evaluation.timestamp).getTime() / 1000);
         sharedZeroGProofService.recordDecision({
           workspaceId,
           agentId,
           actionType: action.type || "unknown",
           amount: action.amount || 0,
           currency: action.currency || "USDC",
-          decision: evaluation.decision || (evaluation.allowed ? "approved" : "denied"),
-          timestamp: Math.floor(Date.now() / 1000),
+          decision: proofDecision,
+          timestamp: proofTimestamp,
+          v2: {
+            runId: proofRunId,
+            decision: proofDecision,
+            decisionTimestamp: proofTimestamp,
+            action,
+            policyChecks: evaluation.policyChecks,
+            evidence: { source: "workspace-demo", auditLogId: evaluation.auditLogId, reasoning: evaluation.reasoning },
+          },
         }).then((proof) => {
           if (proof) {
             console.log(`[0GProof] Workspace decision recorded — tx: ${proof.txHash}`);
