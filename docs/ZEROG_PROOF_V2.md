@@ -1,8 +1,63 @@
 # 0G GovernanceProof V2
 
-`GovernanceProofV2` is Cognivern's proposed 0G Mainnet proof anchor. It is an
+`GovernanceProofV2` is Cognivern's deployed 0G Mainnet proof anchor. It is an
 append-only commitment stream, not an execution contract, custody contract, or
 policy engine.
+
+## Deployment status
+
+The V2 contract is live on **0G Mainnet / Aristotle (chain ID `16661`)**:
+
+| Item | Verified value |
+| --- | --- |
+| Contract | `0xAAe217e0893934F7434bdDB27ce87C6e3246D960` |
+| Deployment transaction | `0x93837e5e7c599093065300b50823d80f95b6522ecbd16f03deeb9da1f74f15a4` |
+| Explorer | [ChainScan](https://chainscan.0g.ai/address/0xAAe217e0893934F7434bdDB27ce87C6e3246D960) |
+| Schema | `2` |
+| Admin | `0xEa480C8CD699B84C7775fe1b1878eBc3bCb1cb77` |
+| Dedicated poster | `0xE5D1ef8F7bC8b2B045390406907Afb81dd4b1a43` |
+
+The deployer, admin, and poster are separate addresses. Only the dedicated
+poster key is installed in the backend runtime; the admin is an infrequently
+used control role for poster rotation and two-step admin transfer. No private
+key or seed phrase belongs in this repository or in public documentation.
+The backend rollout enables V2 only after the artifact deployment and a
+read-only runtime check confirm the configured chain, contract, and poster.
+
+The original Galileo V1 contract remains separate and unchanged.
+
+## Production configuration
+
+The live backend uses the following non-secret V2 settings in its private
+shared environment. The poster private key is stored only as a secret runtime
+value:
+
+```env
+ZEROG_PROOF_VERSION=v2
+ZEROG_MAINNET_RPC_URL=https://evmrpc.0g.ai
+ZEROG_MAINNET_CHAIN_ID=16661
+ZEROG_MAINNET_PROOF_CONTRACT=0xAAe217e0893934F7434bdDB27ce87C6e3246D960
+ZEROG_MAINNET_ADMIN=0xEa480C8CD699B84C7775fe1b1878eBc3bCb1cb77
+ZEROG_MAINNET_POSTER=0xE5D1ef8F7bC8b2B045390406907Afb81dd4b1a43
+```
+
+The backend remains fail-open for governance if 0G is unavailable: audit
+persistence and policy decisions do not depend on a successful proof write.
+Once enabled, each completed governance audit run attempts one idempotent
+commitment transaction, and the receipt is saved back to the run evidence.
+
+### Controlled production verification
+
+After rollout, verify the public integration info endpoint:
+
+```bash
+curl -sS https://api.cognivern.persidian.com/api/governance/zerog-proof \
+  | jq '.data | {enabled, version, chainId, network, contractAddress, explorerUrl}'
+```
+
+Then run one controlled, non-custodial governance evaluation in the demo
+workspace and verify the resulting V2 receipt and transaction on ChainScan.
+Do not use a contract deployment or a wallet-spend request as the probe.
 
 ## What the chain proves
 
@@ -167,14 +222,16 @@ The receipt should contain at least:
 
 The backend adapter is wired behind the explicit `ZEROG_PROOF_VERSION=v2`
 feature flag and uses the separate `ZEROG_MAINNET_*` credentials. V1 remains the
-default. Keep deployment secrets in the ignored `.env.0g-mainnet` file or inject
-them from a secret manager; do not replace existing testnet wallet variables.
-Before enabling V2 in production, run the preflight command:
+default for environments that do not opt in. Keep deployment secrets in the
+ignored `.env.0g-mainnet` file or inject them from a secret manager; do not
+replace existing testnet wallet variables.
+
+For a new deployment, run the preflight command before sending a transaction:
 
 ```bash
 ZEROG_MAINNET_ENV_FILE=.env.0g-mainnet pnpm zerog:proof:preflight
 ```
 
-Then deploy, verify the constructor roles and source, configure the dedicated
-poster key, run one controlled proof, and verify the resulting receipt with the
-utility above.
+The deployed instance above has already passed role and chain preflight. After a
+backend rollout, run one controlled proof and verify the resulting receipt with
+the utility above.

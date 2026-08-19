@@ -87,7 +87,44 @@ See `.env.example` for the full list. Minimum for production:
 | `JWT_SECRET`       | JWT signing secret — authMiddleware throws if missing |
 | `OWS_VAULT_SECRET` | Secret used to encrypt the local OWS vault            |
 
-Optional integrations: `FILECOIN_PRIVATE_KEY`, `FHENIX_PRIVATE_KEY`, `ZEROG_PRIVATE_KEY` / `ZEROG_RPC_URL` / `ZEROG_CHAIN_ID` / `ZEROG_PROOF_CONTRACT`, `MONGODB_URI`, `CHAINGPT_API_KEY`, `OPENAI_API_KEY`. See `.env.example` for the complete list.
+Optional integrations: `FILECOIN_PRIVATE_KEY`, `FHENIX_PRIVATE_KEY`, the Galileo V1 `ZEROG_PRIVATE_KEY` / `ZEROG_RPC_URL` / `ZEROG_CHAIN_ID` / `ZEROG_PROOF_CONTRACT`, the separate 0G Mainnet V2 `ZEROG_PROOF_VERSION` / `ZEROG_MAINNET_*` settings, `MONGODB_URI`, `CHAINGPT_API_KEY`, `OPENAI_API_KEY`. See `.env.example` for the complete list.
+
+### 0G GovernanceProof V2 — deployed mainnet rail
+
+The commitment-only V2 contract is deployed on 0G Mainnet / Aristotle
+(chain ID `16661`) at
+`0xAAe217e0893934F7434bdDB27ce87C6e3246D960`.
+
+- Deployment transaction: `0x93837e5e7c599093065300b50823d80f95b6522ecbd16f03deeb9da1f74f15a4`
+- Explorer: https://chainscan.0g.ai/address/0xAAe217e0893934F7434bdDB27ce87C6e3246D960
+- Admin: `0xEa480C8CD699B84C7775fe1b1878eBc3bCb1cb77`
+- Dedicated poster: `0xE5D1ef8F7bC8b2B045390406907Afb81dd4b1a43`
+
+The deployer, admin, and poster are deliberately distinct. The poster key is
+an environment-only secret; the admin is not used for routine proof posting.
+To enable the rail on a backend release, set the following in the active
+`/opt/cognivern/shared/.env` and restart through the artifact deploy flow:
+
+```env
+ZEROG_PROOF_VERSION=v2
+ZEROG_MAINNET_RPC_URL=https://evmrpc.0g.ai
+ZEROG_MAINNET_CHAIN_ID=16661
+ZEROG_MAINNET_PROOF_CONTRACT=0xAAe217e0893934F7434bdDB27ce87C6e3246D960
+ZEROG_MAINNET_ADMIN=0xEa480C8CD699B84C7775fe1b1878eBc3bCb1cb77
+ZEROG_MAINNET_POSTER=0xE5D1ef8F7bC8b2B045390406907Afb81dd4b1a43
+ZEROG_MAINNET_POSTER_PRIVATE_KEY=<secret — never commit>
+```
+
+Verify after rollout with:
+
+```bash
+curl -sS https://api.cognivern.persidian.com/api/governance/zerog-proof \
+  | jq '.data | {enabled, version, chainId, network, contractAddress, explorerUrl}'
+```
+
+Keep the existing Galileo V1 variables unchanged; V2 is a separate opt-in
+mainnet rail. See [`ZEROG_PROOF_V2.md`](./ZEROG_PROOF_V2.md) for canonical
+preimages, trust boundaries, and read-only receipt verification.
 
 Canton (Daml) backend for confidential sealed-bid rounds — all optional, backend simply isn't registered if `CANTON_JSON_API_URL` is absent. For HackCanton final submission this must point at a Canton DevNet participant; `http://127.0.0.1:7575` / Hetzner sandbox is useful for staging but does not satisfy the DevNet deployment requirement.
 
