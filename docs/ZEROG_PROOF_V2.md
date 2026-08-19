@@ -59,6 +59,15 @@ Then run one controlled, non-custodial governance evaluation in the demo
 workspace and verify the resulting V2 receipt and transaction on ChainScan.
 Do not use a contract deployment or a wallet-spend request as the probe.
 
+A controlled default-policy MCP verification was completed after the production
+rollout. The zero-amount request returned `success: true` and `allowed: true`,
+and the resulting proof was verified directly against the contract:
+
+- Proof ID: `0x0c4c0cfb4f193e676754c067f029829ca6428c47450e3389b1364b3a552fd4c8`
+- Transaction: `0x4e3dd1440b227bef60941995e1ac018c41d490c3f4e28db55201c127bb8431b9`
+- Block: `42107566`
+- Contract `proofCount`: `2` after verification
+
 ## What the chain proves
 
 A confirmed `GovernanceDecision` event proves that the configured Cognivern
