@@ -18,6 +18,20 @@ import {
   ChainGptDailyBudget,
   getSharedChainGptBudget,
 } from "@backend/services/ai/chainGptBudget.js";
+import { getRequestAbortSignal } from "@backend/middleware/requestContext.js";
+
+/** Abort `local` when the HTTP request times out or the client disconnects. */
+function linkRequestAbort(local: AbortController): () => void {
+  const parent = getRequestAbortSignal();
+  if (!parent) return () => {};
+  if (parent.aborted) {
+    local.abort(parent.reason);
+    return () => {};
+  }
+  const onAbort = () => local.abort(parent.reason);
+  parent.addEventListener("abort", onAbort, { once: true });
+  return () => parent.removeEventListener("abort", onAbort);
+}
 
 export interface AuditResult {
   safe: boolean;
@@ -427,6 +441,7 @@ Respond with JSON: { "hasExploitRisk": boolean, "patterns": string[] }`;
       () => controller.abort(),
       this.config.timeoutMs,
     );
+    const unlinkRequestAbort = linkRequestAbort(controller);
 
     try {
       // Build the audit prompt with strict output format
@@ -493,6 +508,7 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
       throw error;
     } finally {
       clearTimeout(timeoutId);
+      unlinkRequestAbort();
     }
   }
 
@@ -664,6 +680,7 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
       () => controller.abort(),
       this.config.timeoutMs,
     );
+    const unlinkRequestAbort = linkRequestAbort(controller);
 
     try {
       const response = await fetch(`${this.config.baseUrl}/chat/stream`, {
@@ -700,6 +717,7 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
       return fullResponse || "{}";
     } finally {
       clearTimeout(timeoutId);
+      unlinkRequestAbort();
     }
   }
 

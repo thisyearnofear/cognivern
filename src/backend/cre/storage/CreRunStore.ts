@@ -26,6 +26,8 @@ export class CreRunStore {
   private persistence: CreRunPersistence;
   private ledger: CreLedgerChain;
   private loaded = false;
+  /** Deduplicates concurrent first loads so two callers cannot overwrite each other. */
+  private loadPromise: Promise<void> | null = null;
 
   constructor(
     params: {
@@ -51,11 +53,16 @@ export class CreRunStore {
 
   async ensureLoaded() {
     if (this.loaded) return;
-    // loadAll() is newest-first, so the slice retains the most recent runs
-    // and the cap evicts the oldest — never the newest.
-    this.runs = await this.persistence.loadAll();
-    this.runs = this.runs.slice(0, this.maxRuns);
-    this.loaded = true;
+    if (!this.loadPromise) {
+      this.loadPromise = (async () => {
+        // loadAll() is newest-first, so the slice retains the most recent runs
+        // and the cap evicts the oldest — never the newest.
+        this.runs = await this.persistence.loadAll();
+        this.runs = this.runs.slice(0, this.maxRuns);
+        this.loaded = true;
+      })();
+    }
+    await this.loadPromise;
   }
 
   /**
@@ -69,9 +76,18 @@ export class CreRunStore {
     return withRunStoreLock(lockPath, task);
   }
 
+  /** Reload shared persistence into the local cache (call under withLock). */
+  private async reloadFromPersistence(): Promise<void> {
+    this.runs = (await this.persistence.loadAll()).slice(0, this.maxRuns);
+    this.loaded = true;
+  }
+
   async add(run: CreRun) {
     await this.ensureLoaded();
     await this.withLock(async () => {
+      if (this.persistence.lockPath) {
+        await this.reloadFromPersistence();
+      }
       this.runs.unshift(run);
       if (this.runs.length > this.maxRuns) {
         this.runs.pop();
@@ -84,6 +100,9 @@ export class CreRunStore {
   async replace(run: CreRun) {
     await this.ensureLoaded();
     await this.withLock(async () => {
+      if (this.persistence.lockPath) {
+        await this.reloadFromPersistence();
+      }
       const idx = this.runs.findIndex((r) => r.runId === run.runId);
       if (idx === -1) {
         this.runs.unshift(run);

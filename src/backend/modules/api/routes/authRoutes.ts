@@ -26,7 +26,9 @@ export function createAuthRoutes(authController: AuthController): Router {
   router.get("/auth/me", authMiddleware, (req, res) =>
     authController.getMe(req, res),
   );
-  router.post("/auth/refresh", authMiddleware, (req, res) =>
+  // Refresh verifies the Bearer itself (including recently-expired tokens)
+  // and must not sit behind authMiddleware, which rejects expired JWTs.
+  router.post("/auth/refresh", (req, res) =>
     authController.refresh(req, res),
   );
   router.post("/auth/logout", authMiddleware, (req, res) =>

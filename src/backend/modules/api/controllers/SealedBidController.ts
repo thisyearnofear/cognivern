@@ -77,6 +77,16 @@ const submitBidSchema = z.object({
 const revealSchema = z.object({
   selectionMethod: z.enum(["lowest-bid", "highest-bid", "specific"]),
   specificBidder: z.string().optional(),
+  // FHE manager-decrypt-and-publish flow. Plaintexts may arrive as string or
+  // number (JSON has no bigint); converted to bigint before the backend call.
+  decryptionProof: z
+    .array(
+      z.object({
+        bidder: z.string().min(1),
+        plaintext: z.union([z.string(), z.number(), z.bigint()]),
+      }),
+    )
+    .optional(),
 });
 
 export class SealedBidController {
@@ -407,8 +417,15 @@ export class SealedBidController {
         return;
       }
 
-      const { selectionMethod, specificBidder } = parse.data;
-      const request: RevealRequest = { selectionMethod, specificBidder };
+      const { selectionMethod, specificBidder, decryptionProof } = parse.data;
+      const request: RevealRequest = {
+        selectionMethod,
+        specificBidder,
+        decryptionProof: decryptionProof?.map((entry) => ({
+          bidder: entry.bidder,
+          plaintext: BigInt(entry.plaintext),
+        })),
+      };
 
       const round = await this.sealedBidService.revealWinner(roundId, request);
 

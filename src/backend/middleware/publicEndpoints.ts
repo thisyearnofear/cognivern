@@ -90,6 +90,8 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   '/auth/verify-email',
   '/auth/forgot-password',
   '/auth/reset-password',
+  // Refresh validates the Bearer itself (allows recently-expired JWTs).
+  '/auth/refresh',
   // MCP tool manifest and governance check are public for agent discovery.
   '/mcp/governance-check',
   // OpenAPI spec is public so external agents can self-discover the API.

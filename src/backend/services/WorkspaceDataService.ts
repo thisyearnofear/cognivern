@@ -433,10 +433,10 @@ export const WorkspaceDataService = {
     // Verify agent belongs to workspace
     const agent = db
       .prepare(
-        "SELECT id, name, budget FROM workspace_agents WHERE id = ? AND workspace_id = ?",
+        "SELECT id, name, budget, spend_history FROM workspace_agents WHERE id = ? AND workspace_id = ?",
       )
       .get(params.agentId, workspaceId) as
-      | { id: string; name: string; budget: string }
+      | { id: string; name: string; budget: string; spend_history: string }
       | undefined;
 
     // Agent not found: still evaluate the policy rules so callers like the
@@ -444,7 +444,17 @@ export const WorkspaceDataService = {
     // id) get a real policy evaluation. We only skip recordSpend, since
     // there's no agent row to update.
     const agentMissing = !agent;
-    const agentSafe = agent || { id: params.agentId, name: "unknown", budget: "$0" };
+    const agentSafe = agent || {
+      id: params.agentId,
+      name: "unknown",
+      budget: "$0",
+      spend_history: "[]",
+    };
+
+    const dailySpendSoFar = sumApprovedSpendToday(
+      parseSpendHistory(agentSafe.spend_history),
+      now,
+    );
 
     // Auto-promote: first valid governed request marks the agent as connected.
     if (agent) {
@@ -514,7 +524,7 @@ export const WorkspaceDataService = {
         rules,
       });
       for (const rule of rules) {
-        const check = evaluateRule(rule, params.action, agentSafe);
+        const check = evaluateRule(rule, params.action, agentSafe, dailySpendSoFar);
         policyChecks.push({
           policyId: policy.id as string,
           result: check.passed,
@@ -651,10 +661,38 @@ export const WorkspaceDataService = {
   },
 };
 
+function parseSpendHistory(
+  raw: string | undefined,
+): Array<{ amount?: number; timestamp?: string; decision?: string }> {
+  try {
+    const parsed = JSON.parse(raw || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Sum approved spend entries that share the UTC calendar day of `nowIso`. */
+export function sumApprovedSpendToday(
+  history: Array<{ amount?: number; timestamp?: string; decision?: string }>,
+  nowIso: string,
+): number {
+  const day = nowIso.slice(0, 10);
+  let total = 0;
+  for (const entry of history) {
+    if (entry.decision !== "approved") continue;
+    if (!entry.timestamp || !String(entry.timestamp).startsWith(day)) continue;
+    const amount = Number(entry.amount) || 0;
+    total += amount;
+  }
+  return total;
+}
+
 function evaluateRule(
   rule: { condition: string; action: string; params?: Record<string, unknown> },
   action: { type?: string; amount?: number; currency?: string },
   agent: { budget: string },
+  dailySpendSoFar: number = 0,
 ): { passed: boolean; reason: string } {
   const condition = rule.condition.toLowerCase();
   const amount = action.amount || 0;
@@ -663,37 +701,8 @@ function evaluateRule(
   const budgetNum =
     parseInt(agent.budget.replace(/[^0-9]/g, ""), 10) || Infinity;
 
-  // Simple condition evaluator
-  if (condition.includes("amount >")) {
-    const threshold = parseFloat(condition.replace(/.*amount\s*>\s*/, ""));
-    if (!isNaN(threshold) && amount > threshold) {
-      return {
-        passed: false,
-        reason: `Amount ${amount} exceeds threshold ${threshold}`,
-      };
-    }
-    return {
-      passed: true,
-      reason: `Amount ${amount} within threshold ${threshold}`,
-    };
-  }
-
-  if (
-    condition.includes("dailytotal >") ||
-    condition.includes("daily_total >")
-  ) {
-    const limit = parseFloat(
-      condition.replace(/.*(?:dailytotal|daily_total)\s*>\s*/, ""),
-    );
-    if (!isNaN(limit) && amount > limit) {
-      return {
-        passed: false,
-        reason: `Amount ${amount} exceeds daily limit ${limit}`,
-      };
-    }
-    return { passed: true, reason: `Within daily limit` };
-  }
-
+  // Symbolic budget checks MUST run before the generic `amount > N` parser,
+  // otherwise "amount > budget" parses threshold as NaN and incorrectly passes.
   if (
     condition.includes("amount > budget") ||
     condition.includes("exceeds budget")
@@ -705,6 +714,53 @@ function evaluateRule(
       };
     }
     return { passed: true, reason: `Within agent budget` };
+  }
+
+  if (
+    condition.includes("dailytotal >") ||
+    condition.includes("daily_total >")
+  ) {
+    const limit = parseFloat(
+      condition.replace(/.*(?:dailytotal|daily_total)\s*>\s*/, ""),
+    );
+    if (isNaN(limit)) {
+      return {
+        passed: false,
+        reason: `Unparseable daily_total threshold in rule: ${rule.condition}`,
+      };
+    }
+    const projected = dailySpendSoFar + amount;
+    if (projected > limit) {
+      return {
+        passed: false,
+        reason: `Daily total ${projected} (prior ${dailySpendSoFar} + ${amount}) exceeds daily limit ${limit}`,
+      };
+    }
+    return {
+      passed: true,
+      reason: `Within daily limit (${projected}/${limit})`,
+    };
+  }
+
+  if (condition.includes("amount >")) {
+    const threshold = parseFloat(condition.replace(/.*amount\s*>\s*/, ""));
+    // Fail closed on unparseable thresholds so typos cannot approve spend.
+    if (isNaN(threshold)) {
+      return {
+        passed: false,
+        reason: `Unparseable amount threshold in rule: ${rule.condition}`,
+      };
+    }
+    if (amount > threshold) {
+      return {
+        passed: false,
+        reason: `Amount ${amount} exceeds threshold ${threshold}`,
+      };
+    }
+    return {
+      passed: true,
+      reason: `Amount ${amount} within threshold ${threshold}`,
+    };
   }
 
   if (condition.includes("not in") && condition.includes("allowlist")) {
@@ -729,6 +785,9 @@ function evaluateRule(
     reason: `Rule evaluated (condition: ${rule.condition})`,
   };
 }
+
+/** Exported for unit tests. */
+export const __testEvaluateRule = evaluateRule;
 
 function rowToAgent(row: Row): Agent {
   return {

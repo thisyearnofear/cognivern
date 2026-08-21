@@ -236,6 +236,9 @@ export class ApiModule extends BaseService {
         ? Number(process.env.STREAM_TIMEOUT_MS || 120000)
         : Number(process.env.REQUEST_TIMEOUT_MS || 30000);
       const timer = setTimeout(() => {
+        if (!req.abortSignal?.aborted) {
+          req.abortController?.abort(new Error('Request timed out'));
+        }
         if (!res.headersSent) {
           res.status(504).json({
             success: false,
@@ -244,7 +247,10 @@ export class ApiModule extends BaseService {
         }
         req.destroy();
       }, timeoutMs);
-      res.on('finish', () => clearTimeout(timer));
+      const clear = () => clearTimeout(timer);
+      res.on('finish', clear);
+      res.on('close', clear);
+      req.on('close', clear);
       next();
     });
 

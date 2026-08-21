@@ -23,4 +23,11 @@ describe("AuthController credential handling", () => {
       /const normalizedAddress = address\.toLowerCase\(\)/,
     );
   });
+
+  it("blacklists logout tokens through JWT exp and soft-verifies refresh", () => {
+    const source = fs.readFileSync(authControllerPath, "utf8");
+    expect(source).toContain("blacklistTtlMsFromToken");
+    expect(source).toContain("verifyRefreshableToken");
+    expect(source).toContain("compactVerify");
+  });
 });

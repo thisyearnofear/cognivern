@@ -66,7 +66,7 @@ export function NotificationsProvider() {
       try {
         const secondsLeft = jwtSecondsRemaining(token);
         if (secondsLeft === null) return;
-        if (secondsLeft <= 300 && secondsLeft > 0 && !refreshedRef.current) {
+        if (secondsLeft <= 3600 && secondsLeft > 0 && !refreshedRef.current) {
           refreshedRef.current = true;
           if (await refreshSession()) {
             toast.success("Session refreshed", {
@@ -86,7 +86,7 @@ export function NotificationsProvider() {
             });
           }
         }
-        if (secondsLeft > 300) refreshedRef.current = false;
+        if (secondsLeft > 3600) refreshedRef.current = false;
       } catch {
         // Ignore malformed tokens
       }

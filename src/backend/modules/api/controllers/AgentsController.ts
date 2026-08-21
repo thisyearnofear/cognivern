@@ -1079,8 +1079,17 @@ export class AgentsController {
 
     await sendNewEvents();
 
+    let inFlight = false;
     const intervalId = setInterval(() => {
-      void sendNewEvents();
+      if (inFlight) return;
+      inFlight = true;
+      void sendNewEvents()
+        .catch(() => {
+          /* keep stream alive on transient storage errors */
+        })
+        .finally(() => {
+          inFlight = false;
+        });
     }, 2000);
 
     req.on("close", () => {

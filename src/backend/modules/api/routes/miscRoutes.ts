@@ -6,6 +6,7 @@ import type { PayrollController } from "@backend/modules/api/controllers/Payroll
 import type { SealedBidController } from "@backend/modules/api/controllers/SealedBidController.js";
 import type { SpeechController } from "@backend/modules/api/controllers/SpeechController.js";
 import { sealedBidWriteAuth } from "@backend/middleware/sealedBidAuthMiddleware.js";
+import { idempotencyMiddleware } from "@backend/middleware/idempotencyMiddleware.js";
 
 export function createMiscRoutes(
   ingestController: IngestController,
@@ -62,22 +63,29 @@ export function createMiscRoutes(
   // Write routes carry `sealedBidWriteAuth`: sandbox mode passes through with
   // demo personas; production mode requires a verified wallet JWT and binds the
   // acting identity to it. GET routes stay open (landing/demo read views).
-  router.post("/vendor/sealed-bid/rounds", sealedBidWriteAuth, (req, res) =>
-    sealedBidController.createRound(req, res),
+  // Idempotency-Key replays prior successes so timeout retries do not double-submit.
+  router.post(
+    "/vendor/sealed-bid/rounds",
+    sealedBidWriteAuth,
+    idempotencyMiddleware,
+    (req, res) => sealedBidController.createRound(req, res),
   );
   router.post(
     "/vendor/sealed-bid/rounds/:roundId/bid",
     sealedBidWriteAuth,
+    idempotencyMiddleware,
     (req, res) => sealedBidController.submitBid(req, res),
   );
   router.post(
     "/vendor/sealed-bid/rounds/:roundId/close",
     sealedBidWriteAuth,
+    idempotencyMiddleware,
     (req, res) => sealedBidController.closeRound(req, res),
   );
   router.post(
     "/vendor/sealed-bid/rounds/:roundId/reveal",
     sealedBidWriteAuth,
+    idempotencyMiddleware,
     (req, res) => sealedBidController.revealWinner(req, res),
   );
   router.get("/vendor/sealed-bid/rounds/:roundId/party-view", (req, res) =>

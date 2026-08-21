@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { SiweMessage, generateNonce } from "siwe";
-import { SignJWT } from "jose";
+import { SignJWT, decodeJwt, compactVerify } from "jose";
 import { randomUUID } from "node:crypto";
 import { createHash, randomBytes } from "node:crypto";
 import {
@@ -108,6 +108,69 @@ function getJwtSecret(): Uint8Array {
 }
 
 const JWT_SECRET = getJwtSecret();
+
+/** How long after `exp` a token may still be presented to /auth/refresh. */
+const REFRESH_GRACE_MS = 24 * 60 * 60 * 1000;
+
+function blacklistTtlMsFromToken(token: string): number {
+  try {
+    const { exp } = decodeJwt(token);
+    if (typeof exp === "number") {
+      // Keep the hash until JWT expiry (+1m skew), never shorter than 1 minute.
+      return Math.max(exp * 1000 - Date.now() + 60_000, 60_000);
+    }
+  } catch {
+    // fall through
+  }
+  // Unknown exp — cover the maximum issued lifetime.
+  return 7 * 86_400_000;
+}
+
+async function verifyRefreshableToken(
+  token: string,
+): Promise<{ sub: string; workspaceId: string; walletAddress?: string } | null> {
+  try {
+    await compactVerify(token, JWT_SECRET);
+    const payload = decodeJwt(token);
+    if (typeof payload.sub !== "string" || typeof payload.workspaceId !== "string") {
+      return null;
+    }
+
+    const now = Date.now();
+    if (typeof payload.exp === "number") {
+      const expMs = payload.exp * 1000;
+      if (now > expMs + REFRESH_GRACE_MS) {
+        return null;
+      }
+    } else if (typeof payload.iat === "number") {
+      // No exp claim — bound by iat + 7d + grace.
+      if (now > payload.iat * 1000 + 7 * 86_400_000 + REFRESH_GRACE_MS) {
+        return null;
+      }
+    } else {
+      return null;
+    }
+
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const { tokenBlacklistStore } = await import(
+      "../../../shared/storage/TokenBlacklistStore.js"
+    );
+    if (await tokenBlacklistStore.isBlacklisted(tokenHash)) {
+      return null;
+    }
+
+    return {
+      sub: payload.sub,
+      workspaceId: payload.workspaceId,
+      walletAddress:
+        typeof payload.walletAddress === "string"
+          ? payload.walletAddress
+          : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Chain config for viem public clients used during SIWE signature verification.
@@ -482,14 +545,31 @@ export class AuthController {
     });
   }
 
+  /**
+   * Rotate a session JWT. Accepts a still-valid token OR a recently expired
+   * one (signature + blacklist checked; expiry may have passed within the
+   * refresh grace window). This matches the frontend contract of recovering
+   * from a 401 by posting the rejected Bearer to /auth/refresh.
+   */
   async refresh(req: Request, res: Response): Promise<void> {
-    const userId = req.userId;
-    const workspaceId = req.workspaceId;
-
-    if (!userId || !workspaceId) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
       res.status(401).json({ success: false, error: "Not authenticated" });
       return;
     }
+
+    const presented = authHeader.slice(7);
+    const claims = await verifyRefreshableToken(presented);
+    if (!claims) {
+      res.status(401).json({
+        success: false,
+        error: "Token expired or invalid. Please sign in again.",
+      });
+      return;
+    }
+
+    const userId = claims.sub;
+    const workspaceId = claims.workspaceId;
 
     const db = getDb();
     const user = db
@@ -555,6 +635,17 @@ export class AuthController {
       .setExpirationTime("7d")
       .sign(JWT_SECRET);
 
+    // Rotate: revoke the presented token through its remaining lifetime so a
+    // stolen copy cannot be refreshed again after this response.
+    const presentedHash = createHash("sha256").update(presented).digest("hex");
+    const { tokenBlacklistStore } = await import(
+      "../../../shared/storage/TokenBlacklistStore.js"
+    );
+    await tokenBlacklistStore.blacklist(
+      presentedHash,
+      blacklistTtlMsFromToken(presented),
+    );
+
     res.json({ token, user: authUser, workspace: authWorkspace });
   }
 
@@ -566,7 +657,10 @@ export class AuthController {
       const { tokenBlacklistStore } = await import(
         "../../../shared/storage/TokenBlacklistStore.js"
       );
-      await tokenBlacklistStore.blacklist(tokenHash);
+      await tokenBlacklistStore.blacklist(
+        tokenHash,
+        blacklistTtlMsFromToken(token),
+      );
     }
     res.json({ success: true });
   }

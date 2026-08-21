@@ -98,6 +98,8 @@ deploy-bundle/
 # ── Video / media / binary assets (host externally, don't bloat git) ──
 videos/
 docs/demo-video-canton/
+docs/demo-video*.mp4
+docs/demo-clip*.mp4
 *.mp4
 *.webm
 *.mov
@@ -110,6 +112,11 @@ docs/demo-video-canton/
 *.flac
 docs/*.pptx
 docs/*.pdf
+
+# ── Demo video / Python local caches ────────────────────────────────
+**/__pycache__/
+*.py[cod]
+tooling/scripts/demo/.cache/
 
 # ── TestSprite transient output ────────────────────────────────────
 src/frontend/testsprite_tests/tmp/

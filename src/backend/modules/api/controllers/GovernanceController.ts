@@ -618,6 +618,19 @@ export class GovernanceController {
 
   async getDecision(req: Request, res: Response): Promise<void> {
     try {
+      const workspaceId = req.workspaceId;
+      if (!workspaceId) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: "AUTH_REQUIRED",
+            message: "Workspace authentication is required",
+          },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
       const { decisionId } = req.params;
       if (!decisionId) {
         res.status(400).json({
@@ -629,12 +642,14 @@ export class GovernanceController {
       }
 
       const allRuns = await creRunStore.list();
-      const matchingRun = allRuns.find((run) =>
-        run.artifacts?.some(
-          (a: any) =>
-            a.data?.decisionId === decisionId ||
-            a.data?.txHash === decisionId,
-        ),
+      const matchingRun = allRuns.find(
+        (run) =>
+          run.projectId === workspaceId &&
+          run.artifacts?.some(
+            (a: any) =>
+              a.data?.decisionId === decisionId ||
+              a.data?.txHash === decisionId,
+          ),
       );
 
       if (matchingRun) {
@@ -684,6 +699,19 @@ export class GovernanceController {
    */
   async getEvaluationResult(req: Request, res: Response): Promise<void> {
     try {
+      const workspaceId = req.workspaceId;
+      if (!workspaceId) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: "AUTH_REQUIRED",
+            message: "Workspace authentication is required",
+          },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
       const { runId } = req.params;
       if (!runId) {
         res.status(400).json({
@@ -695,7 +723,7 @@ export class GovernanceController {
       }
 
       const run = await creRunStore.get(runId);
-      if (!run) {
+      if (!run || run.projectId !== workspaceId) {
         res.status(404).json({
           success: false,
           error: { code: "NOT_FOUND", message: `Evaluation run ${runId} not found` },
