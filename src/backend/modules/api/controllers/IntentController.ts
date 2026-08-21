@@ -203,11 +203,22 @@ export class IntentController {
         return;
       }
 
+      const workspaceId = req.workspaceId;
+      if (!workspaceId) {
+        res.status(401).json({
+          success: false,
+          error: "Authentication required",
+        });
+        return;
+      }
+
+      const safeContext = this.scopedContext(context, workspaceId);
+
       // Use fallback if circuit breaker is open
       if (this.shouldUseFallback()) {
         this.metrics.fallbackCount++;
         logger.info("Using fallback due to circuit breaker state");
-        await this.handleFallback(req, res, query, context);
+        await this.handleFallback(req, res, query, safeContext);
         return;
       }
 
@@ -218,7 +229,7 @@ export class IntentController {
       // includes actual numbers instead of hallucinated placeholders.
       const enrichedContext = await this.enrichContext(
         classification.type,
-        context || {},
+        safeContext,
       );
 
       // Generate response using AI
@@ -234,14 +245,17 @@ export class IntentController {
         agentType: "system",
         timestamp: new Date(),
         details: { query, intentType: classification.type },
-        projectId: (req as any).workspaceId || "intent-system",
+        projectId: workspaceId,
       });
 
       this.cb.reset();
       this.updateLatency(Date.now() - startTime);
       this.metrics.successfulRequests++;
 
-      const component = await this.buildComponent(classification.type, context);
+      const component = await this.buildComponent(
+        classification.type,
+        safeContext,
+      );
 
       res.json({
         success: true,
@@ -259,8 +273,22 @@ export class IntentController {
       logger.error("Intent processing failed:", err);
       this.metrics.fallbackCount++;
 
-      // Handle with fallback on error
-      await this.handleFallback(req, res, req.body.query, req.body.context);
+      const fallbackWorkspaceId = req.workspaceId;
+      if (!fallbackWorkspaceId) {
+        if (!res.headersSent) {
+          res.status(401).json({
+            success: false,
+            error: "Authentication required",
+          });
+        }
+        return;
+      }
+      await this.handleFallback(
+        req,
+        res,
+        req.body?.query,
+        this.scopedContext(req.body?.context, fallbackWorkspaceId),
+      );
     }
   }
 
@@ -288,7 +316,7 @@ export class IntentController {
           intentType: classification.type,
           reason: "ai_provider_unavailable",
         },
-        projectId: (req as any).workspaceId || "intent-system",
+        projectId: req.workspaceId as string,
       });
     } catch (e) {
       // Non-blocking
@@ -432,9 +460,8 @@ export class IntentController {
     context?: Record<string, any>,
   ): Promise<IntentResponse["component"] | undefined> {
     const workspaceId = context?.workspaceId as string | undefined;
-    // Every component variant renders workspace-scoped data. Without a
-    // workspace there is nothing to show (the legacy global key's shared
-    // "default" bucket was retired).
+    // Workspace id is injected from the authenticated request, never from
+    // the caller-supplied context body.
     if (!workspaceId) return undefined;
 
     switch (intentType) {
@@ -567,6 +594,19 @@ export class IntentController {
   }
 
   /**
+   * Drop any client-supplied workspace identifier and replace it with the
+   * authenticated request's workspace. Tenant data must never be selected
+   * from the JSON body.
+   */
+  private scopedContext(
+    context: Record<string, any> | undefined,
+    workspaceId: string,
+  ): Record<string, any> {
+    const { workspaceId: _ignored, ...rest } = context || {};
+    return { ...rest, workspaceId };
+  }
+
+  /**
    * Extract context updates from intent
    */
   private extractContext(
@@ -593,8 +633,6 @@ export class IntentController {
     intentType: IntentType,
     context: Record<string, any>,
   ): Promise<Record<string, any>> {
-    // Without a workspace there is no tenant data to enrich with (the legacy
-    // global key's shared "default" bucket was retired).
     const workspaceId = context.workspaceId as string | undefined;
     const enriched = { ...context };
     if (!workspaceId) return enriched;

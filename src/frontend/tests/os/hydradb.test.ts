@@ -380,3 +380,14 @@ describe("HydraDB — terminal CLI integration", () => {
     expect(parts.slice(1).join(" ")).toBe("I like dark mode");
   });
 });
+
+describe("HydraDB tenant collection isolation", () => {
+  it("derives distinct collections for different workspaces", async () => {
+    const { collectionForOsWorkspace } = await import("@/lib/hydradb-service");
+    const a = collectionForOsWorkspace("workspace-a");
+    const b = collectionForOsWorkspace("workspace-b");
+    expect(a).not.toBe(b);
+    expect(a).toContain("workspace-a");
+    expect(collectionForOsWorkspace("workspace-a")).toBe(a);
+  });
+});

@@ -227,6 +227,13 @@ export async function executeChainGPT(
   config: MultiModelConfig,
   apiKey: string,
 ): Promise<string> {
+  const { getSharedChainGptBudget } = await import(
+    "@backend/services/ai/chainGptBudget.js"
+  );
+  if (!getSharedChainGptBudget().tryConsume()) {
+    throw new Error("ChainGPT daily call budget exhausted");
+  }
+
   const response = await fetch(
     "https://api.chaingpt.org/api/v1/chat/completions",
     {

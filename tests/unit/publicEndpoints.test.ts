@@ -26,9 +26,22 @@ describe('publicEndpoints — auth bypass list', () => {
     expect(PUBLIC_API_PATHS.has('/cleanverse/deposit-address')).toBe(false);
   });
 
-  it('still bypasses webhooks (prefix match)', () => {
+  it('still bypasses the signed news webhook only', () => {
     expect(isPublicApiPath('/webhooks/chain-gpt-news')).toBe(true);
-    expect(isPublicApiPath('/webhooks/anything-else')).toBe(true);
+    expect(isPublicApiPath('/webhooks/holds')).toBe(false);
+    expect(isPublicApiPath('/webhooks/holds/policy-1/release')).toBe(false);
+    expect(isPublicApiPath('/webhooks/anything-else')).toBe(false);
+  });
+
+  it('does NOT bypass /intent', () => {
+    expect(isPublicApiPath('/intent')).toBe(false);
+    expect(isPublicApiPath('/intent/metrics')).toBe(false);
+  });
+
+  it('does NOT bypass /spend/scan', () => {
+    // ChainGPT auditor credits — must require JWT / workspace API key.
+    expect(isPublicApiPath('/spend/scan')).toBe(false);
+    expect(PUBLIC_API_PATHS.has('/spend/scan')).toBe(false);
   });
 
   it('still bypasses /health and /health/slo for monitoring', () => {

@@ -248,9 +248,17 @@ export class ApiModule extends BaseService {
       next();
     });
 
-    // Body parsing
-    // Control plane can accept larger payloads for dashboards, etc.
-    this.app.use(express.json({ limit: '10mb' }));
+    // Body parsing. Capture the raw buffer for the news webhook so HMAC
+    // verification can run over the exact bytes the provider signed.
+    this.app.use(express.json({
+      limit: '10mb',
+      verify: (req, _res, buf) => {
+        const url = req.url || '';
+        if (url.includes('/webhooks/chain-gpt-news')) {
+          (req as express.Request).rawBody = Buffer.from(buf);
+        }
+      },
+    }));
     this.app.use(express.urlencoded({ extended: true }));
 
     // Data plane: tighter limits to reduce abuse risk

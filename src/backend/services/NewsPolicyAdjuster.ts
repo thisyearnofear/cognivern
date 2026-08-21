@@ -103,10 +103,16 @@ export class NewsPolicyAdjuster {
   async releasePolicyHold(
     policyId: string,
     releasedBy?: string,
+    workspaceId?: string,
   ): Promise<boolean> {
     const hold = this.activeHolds.get(policyId);
     if (!hold) {
       logger.warn(`No active hold found for policy ${policyId}`);
+      return false;
+    }
+
+    if (workspaceId && hold.workspaceId !== workspaceId) {
+      logger.warn(`Hold release denied for policy ${policyId}: workspace mismatch`);
       return false;
     }
 
@@ -131,8 +137,10 @@ export class NewsPolicyAdjuster {
     return true;
   }
 
-  getActiveHolds(): PolicyHold[] {
-    return Array.from(this.activeHolds.values());
+  getActiveHolds(workspaceId?: string): PolicyHold[] {
+    const holds = Array.from(this.activeHolds.values());
+    if (!workspaceId) return holds;
+    return holds.filter((hold) => hold.workspaceId === workspaceId);
   }
 
   getHold(policyId: string): PolicyHold | undefined {

@@ -370,7 +370,8 @@ ChainGPT provides Web3-specialized LLM capabilities for governance analysis and 
 CHAINGPT_API_KEY=your_api_key_here
 CHAINGPT_BASE_URL=https://api.chaingpt.org
 CHAINGPT_AUDIT_TIMEOUT_MS=30000
-CHAINGPT_AUDIT_CACHE_TTL_MS=300000
+CHAINGPT_AUDIT_CACHE_TTL_MS=3600000
+CHAINGPT_DAILY_CALL_BUDGET=100
 ```
 
 Flow: agent submits spend targeting a contract → `PolicyEnforcementService` evaluates `contract_audit` rule → `ChainGPTAuditService.auditContract()` runs vulnerability scan → decision by severity → audit trail records verdict with score and findings.

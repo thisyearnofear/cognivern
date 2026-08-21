@@ -1,21 +1,50 @@
 import { NextResponse } from "next/server";
 import {
   getStatus,
-  ensureTenant,
   addMemory,
   fullRecall,
   recallPreferences,
   getRecentMemories,
   qna,
-  getMetrics,
+  MAX_MEMORY_CHARS,
+  MAX_QUERY_CHARS,
+  type MemoryTenant,
 } from "@/lib/hydradb-service";
+import { unauthorizedResponse, verifyOsSession } from "@/lib/os-session";
+
+const RATE_LIMIT_MAX = 60;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function allowRequest(workspaceId: string): boolean {
+  const now = Date.now();
+  const bucket = rateBuckets.get(workspaceId);
+  if (!bucket || now > bucket.resetAt) {
+    rateBuckets.set(workspaceId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  if (bucket.count >= RATE_LIMIT_MAX) return false;
+  bucket.count += 1;
+  return true;
+}
+
+function rateLimited(): NextResponse {
+  return NextResponse.json(
+    { success: false, error: "Too many memory requests. Try again shortly." },
+    { status: 429 },
+  );
+}
 
 /**
  * GET /api/os/hydra
  * Returns HydraDB connection status and tenant health.
  * Used by the frontend to show the memory status indicator.
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const session = verifyOsSession(request);
+  if (!session) return unauthorizedResponse();
+  if (!allowRequest(session.workspaceId)) return rateLimited();
+
   const status = await getStatus();
   return NextResponse.json({ success: true, data: status });
 }
@@ -26,15 +55,22 @@ export async function GET() {
  *
  * Actions:
  *   - "status"          → get status
- *   - "ensure-tenant"   → auto-create tenant if missing
  *   - "memory"          → { text, title? } — store a memory
- *   - "recall"          → { query } — full recall search
+ *   - "recall"/"search" → { query } — full recall search
  *   - "recent"          → { limit? } — most recent memories
  *   - "preferences"     → { query } — preference recall
  *   - "qna"             → { question } — Q&A search
- *   - "metrics"         → get storage metrics
  */
 export async function POST(request: Request) {
+  const session = verifyOsSession(request);
+  if (!session) return unauthorizedResponse();
+  if (!allowRequest(session.workspaceId)) return rateLimited();
+
+  const tenant: MemoryTenant = {
+    workspaceId: session.workspaceId,
+    userId: session.userId,
+  };
+
   try {
     const body = await request.json();
     const { action } = body;
@@ -52,14 +88,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true, data: status });
       }
 
-      case "ensure-tenant": {
-        const result = await ensureTenant();
-        return NextResponse.json({
-          success: result.ok,
-          data: result,
-          error: result.error,
-        });
-      }
+      case "ensure-tenant":
+      case "metrics":
+        return NextResponse.json(
+          { success: false, error: "This action is not available" },
+          { status: 403 },
+        );
 
       case "memory": {
         const { text, title } = body;
@@ -69,7 +103,13 @@ export async function POST(request: Request) {
             { status: 400 },
           );
         }
-        const result = await addMemory(text, title);
+        if (text.length > MAX_MEMORY_CHARS) {
+          return NextResponse.json(
+            { success: false, error: `text exceeds ${MAX_MEMORY_CHARS} characters` },
+            { status: 400 },
+          );
+        }
+        const result = await addMemory(text, title, tenant);
         return NextResponse.json({
           success: result.ok,
           data: result,
@@ -86,7 +126,13 @@ export async function POST(request: Request) {
             { status: 400 },
           );
         }
-        const result = await fullRecall(query);
+        if (query.length > MAX_QUERY_CHARS) {
+          return NextResponse.json(
+            { success: false, error: `query exceeds ${MAX_QUERY_CHARS} characters` },
+            { status: 400 },
+          );
+        }
+        const result = await fullRecall(query, tenant);
         return NextResponse.json({
           success: result.ok,
           data: result,
@@ -99,7 +145,7 @@ export async function POST(request: Request) {
           typeof body.limit === "number"
             ? Math.min(Math.max(1, body.limit), 20)
             : 5;
-        const result = await getRecentMemories(limit);
+        const result = await getRecentMemories(limit, tenant);
         return NextResponse.json({
           success: result.ok,
           data: result,
@@ -115,7 +161,13 @@ export async function POST(request: Request) {
             { status: 400 },
           );
         }
-        const result = await recallPreferences(query);
+        if (query.length > MAX_QUERY_CHARS) {
+          return NextResponse.json(
+            { success: false, error: `query exceeds ${MAX_QUERY_CHARS} characters` },
+            { status: 400 },
+          );
+        }
+        const result = await recallPreferences(query, tenant);
         return NextResponse.json({
           success: result.ok,
           data: result,
@@ -131,16 +183,13 @@ export async function POST(request: Request) {
             { status: 400 },
           );
         }
-        const result = await qna(question);
-        return NextResponse.json({
-          success: result.ok,
-          data: result,
-          error: result.error,
-        });
-      }
-
-      case "metrics": {
-        const result = await getMetrics();
+        if (question.length > MAX_QUERY_CHARS) {
+          return NextResponse.json(
+            { success: false, error: `question exceeds ${MAX_QUERY_CHARS} characters` },
+            { status: 400 },
+          );
+        }
+        const result = await qna(question, tenant);
         return NextResponse.json({
           success: result.ok,
           data: result,
@@ -152,7 +201,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             success: false,
-            error: `Unknown action: ${action}. Available: status, ensure-tenant, memory, recall, preferences, qna, metrics`,
+            error: `Unknown action: ${action}. Available: status, memory, recall, preferences, qna, recent`,
           },
           { status: 400 },
         );

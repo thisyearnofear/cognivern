@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { isConfigured, fullRecall } from "@/lib/hydradb-service";
+import { isConfigured, fullRecall, addMemory } from "@/lib/hydradb-service";
 import { apiUrl } from "@/lib/runtime-config";
+import { unauthorizedResponse, verifyOsSession } from "@/lib/os-session";
 
 /**
  * POST /api/os/intent
@@ -9,6 +10,10 @@ import { apiUrl } from "@/lib/runtime-config";
  * so the intent engine has cross-session context.
  */
 export async function POST(request: Request) {
+  const session = verifyOsSession(request);
+  if (!session) return unauthorizedResponse();
+
+  const authorization = request.headers.get("authorization") || "";
   const body = await request.json();
   const { query, context } = body;
 
@@ -19,13 +24,18 @@ export async function POST(request: Request) {
     );
   }
 
-  // Step 1: Recall relevant HydraDB memories to enrich context
-  let enrichedContext = context || {};
+  const restContext =
+    context && typeof context === "object"
+      ? { ...(context as Record<string, unknown>) }
+      : {};
+  delete restContext.workspaceId;
+  const tenant = { workspaceId: session.workspaceId, userId: session.userId };
+
+  let enrichedContext: Record<string, unknown> = { ...restContext };
   if (isConfigured()) {
     try {
-      const recall = await fullRecall(query);
+      const recall = await fullRecall(query, tenant);
       if (recall.ok && recall.results) {
-        // recall.results is already the array of memory items
         const memoryTexts = recall.results
           .map((r) => r.text)
           .filter((t): t is string => Boolean(t));
@@ -45,7 +55,10 @@ export async function POST(request: Request) {
   try {
     const response = await fetch(apiUrl("/api/intent"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authorization,
+      },
       body: JSON.stringify({ query, context: enrichedContext }),
     });
 
@@ -59,10 +72,7 @@ export async function POST(request: Request) {
 
     const data = await response.json();
 
-    // Step 2: After successful intent, also store the result as a memory
     if (isConfigured() && data.success && data.data) {
-      const { addMemory } = await import("@/lib/hydradb-service");
-      // Dynamic import to keep the critical path fast
       const resultText =
         typeof data.data.response === "string"
           ? data.data.response.slice(0, 200)
@@ -71,6 +81,7 @@ export async function POST(request: Request) {
         addMemory(
           `[result] ${resultText}`,
           `Result: ${query.slice(0, 60)}`,
+          tenant,
         ).catch(() => {});
       }
     }

@@ -18,6 +18,8 @@
  * without touching the network, so the OS still works without HydraDB.
  */
 
+import { createHash } from "node:crypto";
+
 export interface MemoryEntry {
   text: string;
   title?: string;
@@ -60,8 +62,27 @@ function getDatabase(): string {
   return process.env.HYDRADB_DATABASE || "cognivern";
 }
 
+export const MAX_MEMORY_CHARS = 8_000;
+export const MAX_QUERY_CHARS = 2_000;
+
+export interface MemoryTenant {
+  workspaceId: string;
+  userId: string;
+}
+
 function getCollection(): string {
   return process.env.HYDRADB_COLLECTION || "cognivern_os";
+}
+
+/**
+ * Per-workspace collection so OS memories cannot cross tenant boundaries.
+ * Digest prevents collisions between ids that sanitize to the same string.
+ */
+export function collectionForOsWorkspace(workspaceId: string): string {
+  const base = getCollection();
+  const safe = workspaceId.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
+  const digest = createHash("sha256").update(workspaceId).digest("hex").slice(0, 16);
+  return `${base}_${safe}_${digest}`;
 }
 
 function getBaseUrl(): string {
@@ -211,11 +232,15 @@ export async function ensureTenant(): Promise<{ ok: boolean; error?: string }> {
  */
 export async function addMemory(
   text: string,
-  title?: string,
+  title: string | undefined,
+  tenant: MemoryTenant,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!isConfigured()) return { ok: false, error: "HydraDB not configured" };
   if (!text || typeof text !== "string") {
     return { ok: false, error: "text is required" };
+  }
+  if (text.length > MAX_MEMORY_CHARS) {
+    return { ok: false, error: `text exceeds ${MAX_MEMORY_CHARS} characters` };
   }
 
   // /context/list surfaces only title/description/note — not the searchable
@@ -233,7 +258,11 @@ export async function addMemory(
     title: displayTitle,
     text,
     infer: true,
-    user_name: "cognivern-os",
+    user_name: tenant.userId,
+    additional_metadata: {
+      workspace_id: tenant.workspaceId,
+      user_id: tenant.userId,
+    },
   };
 
   try {
@@ -241,7 +270,7 @@ export async function addMemory(
       formFields: {
         type: "memory",
         database: getDatabase(),
-        collection: getCollection(),
+        collection: collectionForOsWorkspace(tenant.workspaceId),
         memories: JSON.stringify([memory]),
       },
     });
@@ -273,10 +302,14 @@ function chunkToItem(chunk: {
  */
 export async function fullRecall(
   query: string,
+  tenant: MemoryTenant,
 ): Promise<{ ok: boolean; results?: RecallResultItem[]; error?: string }> {
   if (!isConfigured()) return { ok: false, error: "HydraDB not configured" };
   if (!query || typeof query !== "string") {
     return { ok: false, error: "query is required" };
+  }
+  if (query.length > MAX_QUERY_CHARS) {
+    return { ok: false, error: `query exceeds ${MAX_QUERY_CHARS} characters` };
   }
 
   try {
@@ -285,7 +318,7 @@ export async function fullRecall(
     }>("POST", "/query", {
       jsonBody: {
         database: getDatabase(),
-        collection: getCollection(),
+        collection: collectionForOsWorkspace(tenant.workspaceId),
         query,
         type: "memory",
         query_by: "hybrid",
@@ -306,8 +339,9 @@ export async function fullRecall(
  */
 export async function recallPreferences(
   query: string,
+  tenant: MemoryTenant,
 ): Promise<{ ok: boolean; results?: RecallResultItem[]; error?: string }> {
-  return fullRecall(query);
+  return fullRecall(query, tenant);
 }
 
 /**
@@ -316,10 +350,14 @@ export async function recallPreferences(
  */
 export async function qna(
   question: string,
+  tenant: MemoryTenant,
 ): Promise<{ ok: boolean; answer?: string; error?: string }> {
   if (!isConfigured()) return { ok: false, error: "HydraDB not configured" };
   if (!question || typeof question !== "string") {
     return { ok: false, error: "question is required" };
+  }
+  if (question.length > MAX_QUERY_CHARS) {
+    return { ok: false, error: `question exceeds ${MAX_QUERY_CHARS} characters` };
   }
 
   try {
@@ -328,7 +366,7 @@ export async function qna(
     }>("POST", "/query", {
       jsonBody: {
         database: getDatabase(),
-        collection: getCollection(),
+        collection: collectionForOsWorkspace(tenant.workspaceId),
         query: question,
         type: "memory",
         mode: "thinking",
@@ -373,6 +411,7 @@ export async function getMetrics(): Promise<{
  */
 export async function getRecentMemories(
   limit: number = 5,
+  tenant: MemoryTenant,
 ): Promise<{ ok: boolean; results?: RecallResultItem[]; error?: string }> {
   if (!isConfigured()) return { ok: false, error: "HydraDB not configured" };
 
@@ -385,7 +424,7 @@ export async function getRecentMemories(
     }>("POST", "/context/list", {
       jsonBody: {
         database: getDatabase(),
-        collection: getCollection(),
+        collection: collectionForOsWorkspace(tenant.workspaceId),
         type: "memory",
         page: 1,
         page_size: limit,

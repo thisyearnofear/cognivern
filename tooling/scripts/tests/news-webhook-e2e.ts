@@ -16,10 +16,22 @@
  *   pnpm tsx tooling/scripts/tests/news-webhook-e2e.ts
  */
 
+import { createHmac } from "node:crypto";
+
 const baseUrl = (process.env.COGNIVERN_URL || "http://localhost:3000").replace(
   /\/$/,
 );
 const apiKey = process.env.COGNIVERN_API_KEY || "development-api-key";
+const webhookSecret =
+  process.env.CHAINGPT_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET || "";
+
+function signNewsBody(body: string): { signature: string; timestamp: string } {
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const digest = createHmac("sha256", webhookSecret)
+    .update(`${timestamp}.${body}`)
+    .digest("hex");
+  return { timestamp, signature: `sha256=${digest}` };
+}
 
 let passed = 0;
 let failed = 0;
@@ -36,17 +48,29 @@ function assert(condition: boolean, label: string, detail?: string) {
 
 async function api<T = any>(
   path: string,
-  init: RequestInit & { json?: unknown } = {},
+  init: RequestInit & { json?: unknown; sign?: boolean } = {},
 ): Promise<{ ok: boolean; status: number; data: T }> {
-  const headers = new Headers(init.headers || {});
+  const { json, sign, headers: initHeaders, ...fetchInit } = init;
+  const headers = new Headers(initHeaders || {});
   headers.set("X-API-KEY", apiKey);
-  if (init.json !== undefined) {
+  let body: BodyInit | undefined = fetchInit.body;
+  if (json !== undefined) {
     headers.set("Content-Type", "application/json");
+    body = JSON.stringify(json);
+  }
+  if (sign) {
+    if (!webhookSecret) {
+      throw new Error("CHAINGPT_WEBHOOK_SECRET or WEBHOOK_SECRET is required");
+    }
+    const raw = typeof body === "string" ? body : "";
+    const { signature, timestamp } = signNewsBody(raw);
+    headers.set("X-Webhook-Signature", signature);
+    headers.set("X-Webhook-Timestamp", timestamp);
   }
   const res = await fetch(`${baseUrl}${path}`, {
-    ...init,
+    ...fetchInit,
     headers,
-    body: init.json !== undefined ? JSON.stringify(init.json) : init.body,
+    body,
   });
   const text = await res.text();
   const data = text ? JSON.parse(text) : {};
@@ -87,6 +111,7 @@ async function main() {
   console.log("\nStep 3: Post exploit news event");
   const newsRes = await api("/api/webhooks/chain-gpt-news", {
     method: "POST",
+    sign: true,
     json: {
       event: "exploit",
       title: "Uniswap V4 Flash Loan Exploit Detected",
@@ -142,6 +167,7 @@ async function main() {
   for (const eventType of ["depeg", "sanction", "vulnerability", "regulatory"] as const) {
     const res = await api("/api/webhooks/chain-gpt-news", {
       method: "POST",
+      sign: true,
       json: {
         event: eventType,
         title: `Test ${eventType} event`,

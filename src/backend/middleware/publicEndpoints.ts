@@ -69,7 +69,8 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   '/spend',
   '/spend/encrypted',
   '/spend/status',
-  '/spend/scan',
+  // /spend/scan burns ChainGPT auditor credits — requires JWT or workspace API key.
+  // '/spend/scan',
   '/cleanverse/status',
   '/cleanverse/screen',
   '/projects',
@@ -79,8 +80,8 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   '/flare/status',
   '/fhenix/encrypt',
   '/fhenix/decrypt',
-  '/intent',
-  '/intent/metrics',
+  // /intent and /intent/metrics require JWT or a workspace API key. Tenant
+  // data is derived from req.workspaceId, never from the request body.
   // Auth endpoints must be public — you can't require auth to create an account.
   '/auth/nonce',
   '/auth/verify',
@@ -103,8 +104,9 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   '/vendor/sealed-bid/rounds/:roundId/reveal',
   // Speech transcription is used by the frontend without workspace auth.
   '/speech/transcribe',
+  // Provider news webhook is signature-authenticated (raw-body HMAC), not JWT.
+  // List/release of holds are operator actions and are intentionally NOT public.
   '/webhooks/chain-gpt-news',
-  '/webhooks/holds',
   // NOTE: /events/stream is NOT in this list. EventsController demands
   // req.workspaceId, which is populated by authMiddleware from the JWT
   // payload. Bypassing the middleware here would skip that population and
@@ -114,13 +116,11 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Returns true if the given request path is in the public list, or is under
- * a public prefix (e.g. /api/webhooks/*), or matches a parameterized public
- * path pattern (e.g. /vendor/sealed-bid/rounds/:roundId/bid).
+ * Returns true if the given request path is in the public list, or matches a
+ * parameterized public path pattern (e.g. /vendor/sealed-bid/rounds/:roundId/bid).
  */
 export function isPublicApiPath(path: string): boolean {
   if (PUBLIC_API_PATHS.has(path)) return true;
-  if (path.startsWith('/webhooks/')) return true;
   // Check parameterized patterns — replace :param segments with wildcards
   for (const pattern of PUBLIC_API_PATHS) {
     if (pattern.includes(':')) {

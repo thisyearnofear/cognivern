@@ -96,6 +96,13 @@ export class MultiModelRouter {
       throw new Error("ChainGPT API key not configured");
     }
 
+    const { getSharedChainGptBudget } = await import(
+      "@backend/services/ai/chainGptBudget.js"
+    );
+    if (!getSharedChainGptBudget().tryConsume()) {
+      throw new Error("ChainGPT daily call budget exhausted");
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 

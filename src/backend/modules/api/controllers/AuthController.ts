@@ -22,6 +22,10 @@ import {
 import type { AuthUser, Workspace } from "@cognivern/shared";
 import { getDb } from "@backend/db/index.js";
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
+import {
+  resolveAuthenticatedAddress,
+  validateSiweBindings,
+} from "@backend/services/auth/siweIdentity.js";
 
 // Simple bcrypt-like hashing using scrypt (built into Node.js crypto)
 async function hashPassword(password: string): Promise<string> {
@@ -234,6 +238,16 @@ export class AuthController {
       return;
     }
 
+    try {
+      validateSiweBindings(siweMessage);
+    } catch (err) {
+      res.status(401).json({
+        success: false,
+        error: err instanceof Error ? err.message : "Invalid SIWE message",
+      });
+      return;
+    }
+
     const db = getDb();
     const stored = db
       .prepare("SELECT nonce, expires_at FROM nonces WHERE nonce = ?")
@@ -269,7 +283,19 @@ export class AuthController {
       return;
     }
 
-    const normalizedAddress = address.toLowerCase();
+    let normalizedAddress: string;
+    try {
+      normalizedAddress = resolveAuthenticatedAddress(
+        siweMessage.address,
+        address,
+      );
+    } catch (err) {
+      res.status(401).json({
+        success: false,
+        error: err instanceof Error ? err.message : "Address mismatch",
+      });
+      return;
+    }
     let user = db
       .prepare(
         "SELECT id, wallet_address, created_at, last_login_at FROM users WHERE wallet_address = ?",
@@ -298,7 +324,7 @@ export class AuthController {
       const userId = randomUUID();
       const workspaceId = randomUUID();
       const now = new Date().toISOString();
-      const workspaceName = `${address.slice(0, 6)}...${address.slice(-4)}'s Workspace`;
+      const workspaceName = `${normalizedAddress.slice(0, 6)}...${normalizedAddress.slice(-4)}'s Workspace`;
 
       const insertUser = db.prepare(
         "INSERT INTO users (id, wallet_address, created_at, last_login_at) VALUES (?, ?, ?, ?)",
@@ -829,10 +855,8 @@ export class AuthController {
       "UPDATE users SET reset_token = ?, reset_token_expires_at = ? WHERE id = ?",
     ).run(resetToken, expiresAt, (user as { id: string }).id);
 
-    // In production, send email with reset link
-    console.log(
-      `Password reset token for ${normalizedEmail}: ${resetToken}`,
-    );
+    // Deliver the token only over email. Never log reset or verification
+    // credentials — they are bearer secrets.
   }
 
   async resetPassword(req: Request, res: Response): Promise<void> {

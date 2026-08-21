@@ -70,11 +70,22 @@ export class WebhookController {
   async releaseHold(req: Request, res: Response): Promise<void> {
     try {
       const { policyId } = req.params;
-      const releasedBy = ((req as unknown as Record<string, unknown>).userId as string) || "operator";
+      const workspaceId = req.workspaceId;
+      const releasedBy = req.userId;
+
+      if (!workspaceId || !releasedBy) {
+        res.status(401).json({
+          success: false,
+          error: "Authentication required",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
 
       const released = await sharedNewsPolicyAdjuster.releasePolicyHold(
         policyId,
         releasedBy,
+        workspaceId,
       );
 
       if (!released) {
@@ -106,7 +117,17 @@ export class WebhookController {
    */
   async listHolds(req: Request, res: Response): Promise<void> {
     try {
-      const holds = sharedNewsPolicyAdjuster.getActiveHolds();
+      const workspaceId = req.workspaceId;
+      if (!workspaceId) {
+        res.status(401).json({
+          success: false,
+          error: "Authentication required",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const holds = sharedNewsPolicyAdjuster.getActiveHolds(workspaceId);
 
       res.json({
         success: true,

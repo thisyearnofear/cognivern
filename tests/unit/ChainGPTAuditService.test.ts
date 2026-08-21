@@ -7,8 +7,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   ChainGPTAuditService,
-  AuditResult,
 } from "@backend/services/ai/ChainGPTAuditService.js";
+import { ChainGptDailyBudget } from "@backend/services/ai/chainGptBudget.js";
 
 // Mock fetch for testing — returns a streaming response matching ChainGPT's format
 function mockStreamResponse(text: string) {
@@ -36,15 +36,28 @@ function mockStreamResponse(text: string) {
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
+function makeService(
+  overrides: ConstructorParameters<typeof ChainGPTAuditService>[0] = {
+    apiKey: "test-api-key", // pragma: allowlist secret
+  },
+) {
+  return new ChainGPTAuditService({
+    apiKey: "test-api-key", // pragma: allowlist secret
+    blockOnSeverity: "high",
+    holdOnMedium: true,
+    cacheFile: null,
+    budget: new ChainGptDailyBudget({ limit: 1000, storePath: null }),
+    // Treat every address as a contract unless a test overrides this.
+    hasContractCode: async () => true,
+    ...overrides,
+  });
+}
+
 describe("ChainGPTAuditService", () => {
   let service: ChainGPTAuditService;
 
   beforeEach(() => {
-    service = new ChainGPTAuditService({
-      apiKey: "test-api-key", // pragma: allowlist secret
-      blockOnSeverity: "high",
-      holdOnMedium: true,
-    });
+    service = makeService();
     mockFetch.mockReset();
   });
 
@@ -117,16 +130,14 @@ describe("ChainGPTAuditService", () => {
         ),
       );
 
-      // First call
       await service.auditContract("0x1234567890abcdef1234567890abcdef12345678");
-
-      // Second call - should use cache
       const result = await service.auditContract(
         "0x1234567890abcdef1234567890abcdef12345678",
       );
 
-      expect(mockFetch).toHaveBeenCalledTimes(1); // Only one API call
+      expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(result.decision).toBe("approve");
+      expect(result.audit.source).toBe("cache");
     });
 
     it("should skip cache when requested", async () => {
@@ -136,16 +147,46 @@ describe("ChainGPTAuditService", () => {
         ),
       );
 
-      // First call
       await service.auditContract("0x1234567890abcdef1234567890abcdef12345678");
-
-      // Second call with skipCache
       await service.auditContract(
         "0x1234567890abcdef1234567890abcdef12345678",
         { skipCache: true },
       );
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("skips ChainGPT for EOAs", async () => {
+      const eoaService = makeService({
+        apiKey: "test-api-key", // pragma: allowlist secret
+        hasContractCode: async () => false,
+      });
+
+      const result = await eoaService.auditContract(
+        "0x1111111111111111111111111111111111111111",
+      );
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(result.decision).toBe("approve");
+      expect(result.audit.source).toBe("skipped");
+    });
+
+    it("skips paid audits when the daily budget is exhausted", async () => {
+      const tight = new ChainGptDailyBudget({ limit: 1, storePath: null });
+      expect(tight.tryConsume()).toBe(true);
+
+      const limited = makeService({
+        apiKey: "test-api-key", // pragma: allowlist secret
+        budget: tight,
+        hasContractCode: async () => true,
+      });
+
+      const result = await limited.auditContract(
+        "0x1234567890abcdef1234567890abcdef12345678",
+      );
+      expect(result.audit.source).toBe("skipped");
+      expect(result.audit.summary).toMatch(/budget exhausted/i);
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 
@@ -190,49 +231,14 @@ describe("ChainGPTAuditService", () => {
       expect(result).toBe("0x1234567890abcdef1234567890abcdef12345678");
     });
   });
+});
 
-  describe("getAuditSummary", () => {
-    it("should format critical findings", () => {
-      const audit: AuditResult = {
-        safe: false,
-        score: 10,
-        severity: "critical",
-        findings: [
-          { title: "Bug 1", description: "", severity: "critical" },
-          { title: "Bug 2", description: "", severity: "critical" },
-        ],
-        summary: "Multiple critical issues",
-        auditedAt: new Date().toISOString(),
-      };
-
-      expect(service.getAuditSummary(audit)).toContain("CRITICAL");
-      expect(service.getAuditSummary(audit)).toContain("2");
-    });
-
-    it("should format high severity findings", () => {
-      const audit: AuditResult = {
-        safe: false,
-        score: 40,
-        severity: "high",
-        findings: [{ title: "Bug 1", description: "", severity: "high" }],
-        summary: "High risk",
-        auditedAt: new Date().toISOString(),
-      };
-
-      expect(service.getAuditSummary(audit)).toContain("HIGH RISK");
-    });
-
-    it("should format safe contracts with score", () => {
-      const audit: AuditResult = {
-        safe: true,
-        score: 95,
-        severity: "informational",
-        findings: [],
-        summary: "No issues found",
-        auditedAt: new Date().toISOString(),
-      };
-
-      expect(service.getAuditSummary(audit)).toContain("95/100");
-    });
+describe("ChainGptDailyBudget", () => {
+  it("enforces a hard daily cap", () => {
+    const budget = new ChainGptDailyBudget({ limit: 2, storePath: null });
+    expect(budget.tryConsume()).toBe(true);
+    expect(budget.tryConsume()).toBe(true);
+    expect(budget.tryConsume()).toBe(false);
+    expect(budget.used).toBe(2);
   });
 });

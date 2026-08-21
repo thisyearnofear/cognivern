@@ -8,11 +8,16 @@
  * Includes fallback to heuristic analysis when ChainGPT is unavailable.
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import logger from "@backend/utils/logger.js";
 import {
-  ContractSecurityFallback,
   getContractSecurityFallback,
 } from "@backend/services/blockchain/ContractSecurityFallback.js";
+import {
+  ChainGptDailyBudget,
+  getSharedChainGptBudget,
+} from "@backend/services/ai/chainGptBudget.js";
 
 export interface AuditResult {
   safe: boolean;
@@ -21,7 +26,7 @@ export interface AuditResult {
   findings: AuditFinding[];
   summary: string;
   auditedAt: string;
-  source?: "chaingpt" | "fallback" | "cache";
+  source?: "chaingpt" | "fallback" | "cache" | "skipped";
 }
 
 export interface AuditFinding {
@@ -40,22 +45,62 @@ export interface AuditConfig {
   blockOnSeverity?: "critical" | "high" | "medium";
   // Whether to hold (vs deny) for medium severity
   holdOnMedium?: boolean;
+  /** Cache TTL in ms. Defaults to CHAINGPT_AUDIT_CACHE_TTL_MS or 1 hour. */
+  cacheTimeoutMs?: number;
+  /** Optional disk cache path. Defaults under the shared data dir. */
+  cacheFile?: string | null;
+  /** RPC URL for eth_getCode EOA checks. */
+  rpcUrl?: string;
+  /** Injected budget (tests). Defaults to the shared daily budget. */
+  budget?: ChainGptDailyBudget;
+  /** Injected contract-code checker (tests). */
+  hasContractCode?: (address: string) => Promise<boolean | null>;
 }
 
+type CacheEntry = { result: AuditResult; timestamp: number };
+
 export class ChainGPTAuditService {
-  private config: Required<AuditConfig>;
-  private cache: Map<string, { result: AuditResult; timestamp: number }> =
-    new Map();
-  private cacheTimeoutMs = 5 * 60 * 1000; // 5 minute cache
+  private config: Required<
+    Omit<AuditConfig, "cacheFile" | "budget" | "hasContractCode" | "rpcUrl">
+  > & {
+    cacheFile: string | null;
+    rpcUrl: string;
+  };
+  private cache: Map<string, CacheEntry> = new Map();
+  private cacheTimeoutMs: number;
+  private budget: ChainGptDailyBudget;
+  private hasContractCodeFn?: (address: string) => Promise<boolean | null>;
 
   constructor(config: AuditConfig) {
+    const cacheTimeoutMs =
+      config.cacheTimeoutMs ??
+      Number(process.env.CHAINGPT_AUDIT_CACHE_TTL_MS || 60 * 60 * 1000);
     this.config = {
+      apiKey: config.apiKey,
       baseUrl: config.baseUrl || "https://api.chaingpt.org",
-      timeoutMs: config.timeoutMs || 30000,
+      timeoutMs:
+        config.timeoutMs ||
+        Number(process.env.CHAINGPT_AUDIT_TIMEOUT_MS || 30000),
       blockOnSeverity: config.blockOnSeverity || "high",
       holdOnMedium: config.holdOnMedium ?? true,
-      ...config,
+      cacheTimeoutMs,
+      cacheFile:
+        config.cacheFile === null
+          ? null
+          : config.cacheFile ||
+            process.env.CHAINGPT_AUDIT_CACHE_FILE ||
+            defaultCachePath(),
+      rpcUrl:
+        config.rpcUrl ||
+        process.env.ETH_RPC_URL ||
+        process.env.ETHEREUM_RPC_URL ||
+        process.env.BASE_RPC_URL ||
+        "https://eth.drpc.org",
     };
+    this.cacheTimeoutMs = this.config.cacheTimeoutMs;
+    this.budget = config.budget || getSharedChainGptBudget();
+    this.hasContractCodeFn = config.hasContractCode;
+    this.loadDiskCache();
   }
 
   /**
@@ -69,17 +114,71 @@ export class ChainGPTAuditService {
       sourceCode?: string;
       bytecode?: string;
       skipCache?: boolean;
+      /** Force the ChainGPT path even for EOAs (tests / explicit scans). */
+      forceAudit?: boolean;
     },
   ): Promise<{ decision: "approve" | "hold" | "deny"; audit: AuditResult }> {
+    const key = contractAddress.toLowerCase();
     logger.info(`Auditing contract: ${contractAddress}`);
 
     // Check cache first
     if (!options?.skipCache) {
-      const cached = this.cache.get(contractAddress.toLowerCase());
+      const cached = this.cache.get(key);
       if (cached && Date.now() - cached.timestamp < this.cacheTimeoutMs) {
         logger.debug(`Cache hit for contract: ${contractAddress}`);
-        return this.makeDecision(cached.result);
+        const hit = { ...cached.result, source: "cache" as const };
+        return this.makeDecision(hit);
       }
+    }
+
+    // Skip EOAs — ChainGPT smart_contract_auditor is wasted on wallets.
+    if (!options?.forceAudit && !options?.sourceCode && !options?.bytecode) {
+      const isContract = await this.resolveHasContractCode(contractAddress);
+      if (isContract === false) {
+        const audit: AuditResult = {
+          safe: true,
+          score: 100,
+          severity: "informational",
+          findings: [
+            {
+              title: "EOA Address",
+              description:
+                "Recipient is an externally owned account, not a smart contract. ChainGPT audit skipped.",
+              severity: "informational",
+            },
+          ],
+          summary: "EOA — no contract bytecode; audit skipped",
+          auditedAt: new Date().toISOString(),
+          source: "skipped",
+        };
+        this.writeCache(key, audit);
+        return this.makeDecision(audit);
+      }
+    }
+
+    // Daily call budget — do not call ChainGPT or external APIs when exhausted.
+    if (!this.budget.tryConsume()) {
+      logger.warn(
+        `ChainGPT budget exhausted; skipping paid audit for ${contractAddress}`,
+      );
+      const audit: AuditResult = {
+        safe: true,
+        score: 50,
+        severity: "informational",
+        findings: [
+          {
+            title: "Audit Budget Exhausted",
+            description:
+              "Daily ChainGPT call budget reached. Paid contract audit skipped; operator should review high-value spends manually.",
+            severity: "informational",
+          },
+        ],
+        summary: "ChainGPT daily budget exhausted — audit skipped",
+        auditedAt: new Date().toISOString(),
+        source: "skipped",
+      };
+      // Do not cache budget-skip results for long — they should retry next day.
+      return this.makeDecision(audit);
     }
 
     // Try ChainGPT first
@@ -92,31 +191,117 @@ export class ChainGPTAuditService {
         "ChainGPT audit failed, falling back to heuristic analysis:",
         chainGptError,
       );
-
-      // Fallback to heuristic analysis
       try {
-        const fallback = getContractSecurityFallback();
-        const fallbackResult = await fallback.analyzeContract(contractAddress);
-        audit = {
-          ...fallbackResult,
-          source: "fallback",
-        };
-        logger.info(
-          `Fallback audit completed for ${contractAddress}: score=${audit.score}`,
-        );
+        audit = await this.runFallback(contractAddress);
       } catch (fallbackError) {
         logger.error("Fallback audit also failed:", fallbackError);
         throw chainGptError; // Throw original error if both fail
       }
     }
 
-    // Cache the result
-    this.cache.set(contractAddress.toLowerCase(), {
-      result: audit,
-      timestamp: Date.now(),
-    });
-
+    this.writeCache(key, audit);
     return this.makeDecision(audit);
+  }
+
+  private async runFallback(contractAddress: string): Promise<AuditResult> {
+    const fallback = getContractSecurityFallback();
+    const fallbackResult = await fallback.analyzeContract(contractAddress);
+    const audit: AuditResult = {
+      ...fallbackResult,
+      source: "fallback",
+    };
+    logger.info(
+      `Fallback audit completed for ${contractAddress}: score=${audit.score}`,
+    );
+    this.writeCache(contractAddress.toLowerCase(), audit);
+    return audit;
+  }
+
+  private writeCache(key: string, result: AuditResult): void {
+    this.cache.set(key, { result, timestamp: Date.now() });
+    this.persistDiskCache();
+  }
+
+  private async resolveHasContractCode(
+    address: string,
+  ): Promise<boolean | null> {
+    if (this.hasContractCodeFn) {
+      return this.hasContractCodeFn(address);
+    }
+    return this.hasContractCode(address);
+  }
+
+  /**
+   * eth_getCode probe. Returns:
+   *   true  — bytecode present (contract)
+   *   false — empty code (EOA)
+   *   null  — RPC unavailable / error (caller may still audit)
+   */
+  private async hasContractCode(address: string): Promise<boolean | null> {
+    try {
+      const response = await fetch(this.config.rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "eth_getCode",
+          params: [address, "latest"],
+          id: 1,
+        }),
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (!response.ok) return null;
+      const data = (await response.json()) as { result?: string };
+      const code = data.result;
+      if (typeof code !== "string") return null;
+      return code !== "0x" && code !== "0x0" && code.length > 2;
+    } catch (err) {
+      logger.warn(`eth_getCode failed for ${address}; proceeding cautiously`, err);
+      return null;
+    }
+  }
+
+  private loadDiskCache(): void {
+    const file = this.config.cacheFile;
+    if (!file) return;
+    try {
+      if (!fs.existsSync(file)) return;
+      const raw = JSON.parse(fs.readFileSync(file, "utf8")) as Record<
+        string,
+        CacheEntry
+      >;
+      const now = Date.now();
+      for (const [key, entry] of Object.entries(raw)) {
+        if (
+          entry &&
+          entry.result &&
+          typeof entry.timestamp === "number" &&
+          now - entry.timestamp < this.cacheTimeoutMs
+        ) {
+          this.cache.set(key, entry);
+        }
+      }
+    } catch (err) {
+      logger.warn("Failed to load ChainGPT audit cache", err);
+    }
+  }
+
+  private persistDiskCache(): void {
+    const file = this.config.cacheFile;
+    if (!file) return;
+    try {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      const now = Date.now();
+      const out: Record<string, CacheEntry> = {};
+      for (const [key, entry] of this.cache.entries()) {
+        if (now - entry.timestamp < this.cacheTimeoutMs) {
+          out[key] = entry;
+        }
+      }
+      fs.writeFileSync(file, JSON.stringify(out));
+    } catch (err) {
+      logger.warn("Failed to persist ChainGPT audit cache", err);
+    }
   }
 
   /**
@@ -222,6 +407,14 @@ Respond with JSON: { "hasExploitRisk": boolean, "patterns": string[] }`;
    */
   clearCache(): void {
     this.cache.clear();
+    const file = this.config.cacheFile;
+    if (file) {
+      try {
+        if (fs.existsSync(file)) fs.unlinkSync(file);
+      } catch {
+        // best-effort
+      }
+    }
     logger.info("ChainGPT audit cache cleared");
   }
 
@@ -599,6 +792,20 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
 // Singleton instance
 let auditService: ChainGPTAuditService | null = null;
 
+function defaultCachePath(): string | null {
+  const base =
+    process.env.RATE_LIMIT_STORE_FILE ||
+    process.env.DB_PATH ||
+    path.join(process.cwd(), "data", "cognivern.db");
+  try {
+    const dir = path.dirname(base);
+    fs.mkdirSync(dir, { recursive: true });
+    return path.join(dir, "chaingpt-audit-cache.json");
+  } catch {
+    return null;
+  }
+}
+
 export function getChainGPTAuditService(): ChainGPTAuditService | null {
   const apiKey = process.env.CHAINGPT_API_KEY;
   if (!apiKey) return null;
@@ -612,4 +819,9 @@ export function getChainGPTAuditService(): ChainGPTAuditService | null {
   }
 
   return auditService;
+}
+
+/** Test helper — drop the singleton so the next call rebuilds with fresh env. */
+export function resetChainGPTAuditServiceForTests(): void {
+  auditService = null;
 }
