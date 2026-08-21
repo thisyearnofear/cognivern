@@ -111,6 +111,55 @@ test.describe('Participant self-service (/credits)', () => {
     await expect(verifyLink).toHaveAttribute('href', `/verify?id=${RECEIPT.commitment.id}`);
   });
 
+  test('the onboarding link auto-looks-up and strips the key from the URL', async ({ page }) => {
+    await page.route('**/v1/credits/verification', (route) =>
+      route.fulfill({ json: RECEIPT }),
+    );
+    await page.route('**/v1/credits/activity*', (route) =>
+      route.fulfill({ json: ACTIVITY }),
+    );
+    await page.route('**/v1/credits', (route) => route.fulfill({ json: CREDITS }));
+
+    // The fragment carries the key — the page must consume it without any
+    // interaction and remove it from the address bar.
+    await page.goto(`/credits#k=${KEY}`);
+    await expect(page.getByText('Autumn Agent Hack')).toBeVisible();
+    expect(page.url()).not.toContain('cvk_');
+  });
+
+  test('switching disclosure tier from the page calls the gateway as the participant', async ({
+    page,
+  }) => {
+    await page.route('**/v1/credits/verification', (route) =>
+      route.fulfill({ json: RECEIPT }),
+    );
+    await page.route('**/v1/credits/activity*', (route) =>
+      route.fulfill({ json: ACTIVITY }),
+    );
+    await page.route('**/v1/credits/disclosure', (route) => {
+      const request = route.request();
+      expect(request.method()).toBe('PUT');
+      expect(request.headers()['authorization']).toBe(`Bearer ${KEY}`);
+      expect(request.postDataJSON()).toEqual({ tier: 'detailed' });
+      return route.fulfill({
+        json: {
+          previousTier: 'private',
+          currentTier: 'detailed',
+          allocationUsd: 5.5,
+          availableUsd: 4.25,
+          note: 'Applies to future calls.',
+        },
+      });
+    });
+    await page.route('**/v1/credits', (route) => route.fulfill({ json: CREDITS }));
+
+    await page.goto(`/credits#k=${KEY}`);
+    await expect(page.getByText('Autumn Agent Hack')).toBeVisible();
+
+    await page.getByRole('button', { name: /detailed\s*×/ }).click();
+    await expect(page.getByText('Switched to detailed')).toBeVisible();
+  });
+
   test('an invalid key surfaces the gateway error without a crash', async ({ page }) => {
     await page.route('**/v1/credits', (route) =>
       route.fulfill({

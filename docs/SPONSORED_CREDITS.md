@@ -62,9 +62,14 @@ ceiling, not a floor.
 `/sponsor/credits` (nav: **Configure → Sponsored Credits**): create programs,
 provision and manage participants, top-up, rotate keys, and view report /
 activity / reconcile / commitments. No emailing — key distribution is the
-sponsor's job (the provision dialog has a one-click keys CSV for that).
-Participants need no account: `/credits` lets them paste their `cvk_` key to
-see balance, tier, what the sponsor sees, and their verifiable receipt.
+sponsor's job (the provision dialog has a one-click CSV with a per-row
+onboarding link for that).
+Participants need no account: each onboarding link (`/credits#k=<key>`, key in
+the URL fragment so it never touches a server log) opens `/credits` directly
+on their balance, the allowed models with copy-ready cURL/Python snippets,
+their disclosure tier (switchable in-page — the rails guard the money, the
+tester owns the privacy), what the sponsor sees of each call, and their
+verifiable receipt.
 Landing carries the organiser-facing wedge section ("Sponsor a cohort at
 cost").
 

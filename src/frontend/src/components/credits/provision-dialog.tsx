@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Copy, KeyRound, Loader2, Check, Download } from 'lucide-react';
+import { Copy, KeyRound, Loader2, Check, Download, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -64,14 +64,24 @@ export function ProvisionDialog({
     }
   }
 
-  async function copyKey(key: string, handle: string) {
+  async function copyValue(value: string, label: string) {
     try {
-      await navigator.clipboard.writeText(key);
-      setCopied(key);
+      await navigator.clipboard.writeText(value);
+      setCopied(value);
       setTimeout(() => setCopied(null), 1500);
     } catch {
-      toast.error(`Could not copy — key for ${handle}: ${key}`);
+      toast.error(`Could not copy — ${label}: ${value}`);
     }
+  }
+
+  /**
+   * One personalized onboarding link per participant. The key rides in the
+   * URL fragment, so it never touches a server, log, or analytics pipeline —
+   * sending the link is equivalent to handing over the key, except the
+   * participant lands on their balance rather than a raw string.
+   */
+  function onboardingUrl(gatewayKey: string): string {
+    return `${window.location.origin}/credits#k=${gatewayKey}`;
   }
 
   function downloadCsv() {
@@ -79,7 +89,13 @@ export function ProvisionDialog({
     // Keys are shown exactly once; the CSV is the take-away for handing out
     // a whole cohort in one motion (mail merge, spreadsheet, encrypted file).
     const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
-    const rows = ['handle,gateway_key', ...issued.map(({ handle, gatewayKey }) => `${escape(handle)},${escape(gatewayKey)}`)];
+    const rows = [
+      'handle,gateway_key,onboarding_url',
+      ...issued.map(
+        ({ handle, gatewayKey }) =>
+          `${escape(handle)},${escape(gatewayKey)},${escape(onboardingUrl(gatewayKey))}`,
+      ),
+    ];
     const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -111,7 +127,7 @@ export function ProvisionDialog({
           </DialogTitle>
           <DialogDescription>
             {issued
-              ? 'Keys are shown once and only a hash is stored. Distribute them now; a lost key is rotated, never recovered.'
+              ? 'Keys are shown once and only a hash is stored. Send each participant their Link — it lands them directly on their balance. A lost key is rotated, never recovered.'
               : 'One handle per line (or comma-separated). Bare handles work; this is the 50-username-paste case. The cohort provisions atomically — a failure anywhere rolls back the whole batch.'}
           </DialogDescription>
         </DialogHeader>
@@ -127,10 +143,25 @@ export function ProvisionDialog({
                   <p className="truncate text-xs font-medium">{handle}</p>
                   <code className="block truncate text-xs text-muted-foreground">{gatewayKey}</code>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => copyKey(gatewayKey, handle)}>
-                  {copied === gatewayKey ? <Check /> : <Copy />}
-                  {copied === gatewayKey ? 'Copied' : 'Copy'}
-                </Button>
+                <div className="flex shrink-0 gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyValue(gatewayKey, `key for ${handle}`)}
+                  >
+                    {copied === gatewayKey ? <Check /> : <Copy />}
+                    {copied === gatewayKey ? 'Copied' : 'Key'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    title="Copy personalized onboarding link"
+                    onClick={() => copyValue(onboardingUrl(gatewayKey), `link for ${handle}`)}
+                  >
+                    {copied === onboardingUrl(gatewayKey) ? <Check /> : <Link2 />}
+                    Link
+                  </Button>
+                </div>
               </div>
             ))}
             <p className="pt-1 text-xs text-amber-600 dark:text-amber-400">
