@@ -5,6 +5,9 @@ mints per-participant `cvk_` keys against it and enforces per-participant
 budgets, metering every call into an append-only ledger with a full audit
 trail. Participants use any OpenAI SDK pointed at `https://your-host/v1`.
 
+> Strategy context for why this rail is free and where revenue lives instead:
+> [`GO_TO_MARKET.md`](./GO_TO_MARKET.md).
+
 The default backend is the **0G Compute Router** (`ZEROG_ROUTER_BASE_URL`),
 but the gateway is provider-agnostic: see `services/inference/backendRegistry.ts`
 for how to add provider #2.

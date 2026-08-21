@@ -8,7 +8,9 @@ be used, records what each spend was for, and creates the evidence needed to
 measure outcomes and allocate more.
 
 See [`AGENTIC_CAPITAL_THESIS.md`](./AGENTIC_CAPITAL_THESIS.md) for the full
-strategy and product sequence.
+strategy and product sequence, and [`GO_TO_MARKET.md`](./GO_TO_MARKET.md) for
+the sponsored-inference wedge, the 0-fee-throughput model, and the creative
+monopoly argument.
 
 ---
 
