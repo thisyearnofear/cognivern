@@ -16,7 +16,7 @@
         "admin": "0xEa480C8CD699B84C7775fe1b1878eBc3bCb1cb77",
         "poster": "0xd0aeA50F5428b85f60f4F250d0978741af5D1a2a"
       },
-      "notes": "Deployed 2026-08-21; admin matches the 0G Mainnet control address. Backend anchor pending XLAYER_PROOF_VERSION=v2 rollout. See docs/XLAYER_PROOF_V2.md."
+      "notes": "Deployed 2026-08-21; admin matches the 0G Mainnet control address. Backend anchoring live (XLAYER_PROOF_VERSION=v2); first proof 0x6c6240c20ccb8b86ddba4d3f18dbaebad849f043301cb1c561387b18e75f5c6f at block 68566290. See docs/XLAYER_PROOF_V2.md."
     }
   ]
 }

@@ -99,6 +99,23 @@ workspace and verify the resulting V2 receipt and transaction on OKLink. Do
 not use a contract deployment or a wallet-spend request as the probe — a
 wallet spend on X Layer Mainnet moves real OKB.
 
+A controlled default-policy MCP verification was completed after the
+production rollout (2026-08-21). The zero-amount request returned
+`success: true` and `allowed: true`, and the resulting proof was verified
+directly against the contract:
+
+- Run: `bcebcdef-43f5-44f9-b03c-ff1a635f7f2c`
+- Proof ID: `0x6c6240c20ccb8b86ddba4d3f18dbaebad849f043301cb1c561387b18e75f5c6f`
+- Transaction: `0x32c740619c97bcc68d92deb371026f4c1170958f2e13a6ae11d594ffc47b1a13`
+- Block: `68566290` (`proofBlock` == `runBlock` == tx block; `runProofId` matches)
+- Contract `proofCount`: `1` after verification
+
+The same run anchored on 0G Mainnet in the same minute (proof
+`0x5ce9f1b3530832ecc689a76cfb2c0364960ace856f43e62dbd06fdf1a77bbe14`, tx
+`0x98510a60f3d8a1efdf30bb482f4b66b0eeb7a253ceec2d19047f18aede2e4ae9`, block
+`42262905`) — the two proof IDs differ by design, since each is
+domain-separated by chain ID and contract address.
+
 ## What the chain proves
 
 A confirmed `GovernanceDecision` event proves that the configured Cognivern
