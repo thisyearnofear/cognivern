@@ -62,7 +62,11 @@ ceiling, not a floor.
 `/sponsor/credits` (nav: **Configure → Sponsored Credits**): create programs,
 provision and manage participants, top-up, rotate keys, and view report /
 activity / reconcile / commitments. No emailing — key distribution is the
-sponsor's job.
+sponsor's job (the provision dialog has a one-click keys CSV for that).
+Participants need no account: `/credits` lets them paste their `cvk_` key to
+see balance, tier, what the sponsor sees, and their verifiable receipt.
+Landing carries the organiser-facing wedge section ("Sponsor a cohort at
+cost").
 
 ## Verifiable anchoring
 
@@ -71,7 +75,11 @@ root over every participant's balance state and anchors it to 0G Storage +
 Filecoin. The anchored payload contains **only leaf hashes** — never handles or
 balances. A third party can verify a participant's receipt with the public,
 unauthenticated `POST /verify/credit-commitment` (pure hash math), and can
-fetch the root from the anchors to check Cognivern itself. See
+fetch the root from the anchors to check Cognivern itself. Its GET sibling
+`GET /verify/credit-commitment/:id` (also public, aggregates only) powers the
+shareable **`/verify?id=…` page** — the recap-dropping receipt from
+[`GO_TO_MARKET.md`](./GO_TO_MARKET.md), reachable from each commitment row in
+the program's Verification tab. See
 [`DATA_OWNERSHIP.md`](./DATA_OWNERSHIP.md) for the trust model and per-domain
 ownership map.
 

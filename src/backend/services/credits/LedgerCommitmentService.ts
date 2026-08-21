@@ -168,6 +168,24 @@ export class LedgerCommitmentService {
   }
 
   /**
+   * Fetch a single commitment by id. Powers the public verification page —
+   * the aggregate metadata (root, timestamp, counts, anchors) is shareable
+   * because it contains no per-participant content.
+   */
+  get(id: string): CommitmentRow | null {
+    const row = this.db
+      .prepare(
+        `SELECT id, program_id, status, commitment_root, payload_hash, participant_count,
+                high_water_mark, zerog_root_hash, zerog_tx_hash, filecoin_cid,
+                filecoin_tx_hash, filecoin_action_id, proof_map, created_at
+         FROM credit_ledger_commitments
+         WHERE id = ?`,
+      )
+      .get(id) as CommitmentRowSql | undefined;
+    return row ? toCommitmentRow(row) : null;
+  }
+
+  /**
    * The receipt a participant (or sponsor) can hand to a third party: their
    * own state, its leaf, the inclusion proof, and the anchored root. The
    * verifier recomputes root = f(leaf, index, path) and compares with the

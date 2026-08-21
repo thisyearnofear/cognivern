@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, useScroll, useTransform, useReducedMotion } from "motion/react";
 import {
@@ -13,6 +14,7 @@ import {
   Eye,
   ExternalLink,
   Copy,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
@@ -780,6 +782,94 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── Sponsor a cohort — the 0%-fees wedge ── */}
+      <section id="sponsor-a-cohort" className="border-t border-border bg-muted/30">
+        <div className="max-w-5xl mx-auto px-6 py-20">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <span
+              className="text-xs font-semibold text-primary uppercase tracking-widest"
+              style={{ fontFamily: "var(--font-space-grotesk)" }}
+            >
+              For organisers
+            </span>
+            <h2
+              className="text-3xl font-bold text-foreground mt-3"
+              style={{ fontFamily: "var(--font-space-grotesk)" }}
+            >
+              Sponsor a cohort at cost. Prove every cent.
+            </h2>
+            <p className="text-muted-foreground mt-3 max-w-xl mx-auto leading-relaxed">
+              Hand out inference budgets for your hackathon or workshop. Cognivern
+              charges 0% on the throughput — you pay inference at provider cost —
+              because the product is the evidence of what that spend did, not a
+              take-rate on a commodity.
+            </p>
+          </motion.div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              {
+                title: "Keys in one paste",
+                desc: "Paste a participant list, mint every budgeted key in one atomic batch, hand them out with one CSV.",
+                icon: Users,
+              },
+              {
+                title: "0% fees, pass-through pricing",
+                desc: "Every call is metered at provider pricing into an append-only ledger. No markup, no spread — reconcilable at any time.",
+                icon: Eye,
+              },
+              {
+                title: "A receipt anyone can check",
+                desc: "Balances are committed to a Merkle root anchored on public networks. Drop the verification link in your recap.",
+                icon: Shield,
+              },
+            ].map((card, i) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="rounded-xl border border-border bg-card p-5"
+              >
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                  <card.icon size={18} />
+                </div>
+                <h3 className="font-semibold text-foreground text-sm mt-3">{card.title}</h3>
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{card.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Button
+              size="lg"
+              onClick={() =>
+                hasHydrated && (isAppAuthenticated || walletConnected)
+                  ? router.push("/sponsor/credits")
+                  : setShowAuthModal(true)
+              }
+            >
+              Open the sponsor console <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+            <Link
+              href="/credits"
+              className="inline-flex h-11 items-center rounded-md bg-secondary px-8 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
+            >
+              Have a key? Check your credits
+            </Link>
+          </div>
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            Participants need no account — balance, disclosure and receipts are self-service.
+          </p>
         </div>
       </section>
 

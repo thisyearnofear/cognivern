@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Copy, KeyRound, Loader2, Check } from 'lucide-react';
+import { Copy, KeyRound, Loader2, Check, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -74,6 +74,22 @@ export function ProvisionDialog({
     }
   }
 
+  function downloadCsv() {
+    if (!issued || issued.length === 0) return;
+    // Keys are shown exactly once; the CSV is the take-away for handing out
+    // a whole cohort in one motion (mail merge, spreadsheet, encrypted file).
+    const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
+    const rows = ['handle,gateway_key', ...issued.map(({ handle, gatewayKey }) => `${escape(handle)},${escape(gatewayKey)}`)];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${programName.replace(/[^a-z0-9-_]+/gi, '_').toLowerCase()}_keys.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded credentials for ${issued.length} participant(s)`);
+  }
+
   function reset() {
     setIssued(null);
     setHandlesText('');
@@ -121,6 +137,11 @@ export function ProvisionDialog({
               The raw keys are gone once this dialog closes. If any are lost, use rotate-key on the
               participant.
             </p>
+            <DialogFooter className="pt-2">
+              <Button variant="outline" onClick={downloadCsv}>
+                <Download /> Download keys CSV
+              </Button>
+            </DialogFooter>
           </div>
         ) : (
           <form onSubmit={handleProvision}>

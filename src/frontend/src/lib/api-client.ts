@@ -1612,6 +1612,20 @@ class ApiClient {
     return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/funding`);
   }
 
+  async listCreditProgramCommitments(
+    programId: string,
+  ): Promise<ApiResponse<{ commitments: CreditProgramCommitment[] }>> {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/commitments`);
+  }
+
+  async anchorCreditProgramCommitment(
+    programId: string,
+  ): Promise<ApiResponse<{ commitment: CreditProgramCommitment }>> {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/commitments`, {
+      method: 'POST',
+    });
+  }
+
   async getCreditProgramActivity(
     programId: string,
     params: { limit?: number; participantId?: string; model?: string } = {},
@@ -1932,6 +1946,23 @@ export interface CreditProgramParticipant {
   availableUsd: number;
   overdrawnUsd: number;
   usage: CreditProgramParticipantUsage;
+}
+
+export interface CreditProgramCommitment {
+  id: string;
+  programId: string;
+  status: 'anchored' | 'pending';
+  commitmentRoot: string;
+  participantCount: number;
+  highWaterMark: string | null;
+  createdAt: string;
+  anchors: {
+    zerogRootHash: string | null;
+    zerogTxHash: string | null;
+    filecoinCid: string | null;
+    filecoinTxHash: string | null;
+    filecoinActionId: string | null;
+  };
 }
 
 export type CreditProgramFunding = {

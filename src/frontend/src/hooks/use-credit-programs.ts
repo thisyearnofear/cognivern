@@ -5,6 +5,7 @@ import {
   type CreditProgramParticipant,
   type CreditProgramReport,
   type CreditProgramFunding,
+  type CreditProgramCommitment,
   type CreditProgramActivity,
   type CreditProgramReconcile,
 } from '@/lib/api-client';
@@ -54,6 +55,19 @@ export function useCreditProgramReport(programId: string) {
   return useSWR<CreditProgramReport>(
     isConnected ? `/api/credit-programs/${programId}/report` : null,
     async () => unwrap(apiClient.getCreditProgramReport(programId)),
+    { ...SWR_DEFAULTS, refreshInterval: 30000 },
+  );
+}
+
+export function useCreditProgramCommitments(programId: string) {
+  const isConnected = useAuthStore((s) => s.isConnected);
+  return useSWR<CreditProgramCommitment[]>(
+    isConnected ? `/api/credit-programs/${programId}/commitments` : null,
+    async () => {
+      const res = await apiClient.listCreditProgramCommitments(programId);
+      if (!res.success) throw new Error(res.error || 'Failed to load commitments');
+      return res.data?.commitments ?? [];
+    },
     { ...SWR_DEFAULTS, refreshInterval: 30000 },
   );
 }

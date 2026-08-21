@@ -75,6 +75,22 @@ const nextConfig: NextConfig = {
         source: "/api-keys",
         destination: `${apiUrl}/api-keys`,
       },
+      // Public verification + self-serve gateway calls. Scoped to the exact
+      // backend paths so the frontend's own /verify page routes still win
+      // (rewrites without beforeFiles yield to filesystem routes anyway, but
+      // the scoping makes the intent explicit).
+      {
+        source: "/verify/credit-commitment",
+        destination: `${apiUrl}/verify/credit-commitment`,
+      },
+      {
+        source: "/verify/credit-commitment/:id",
+        destination: `${apiUrl}/verify/credit-commitment/:id`,
+      },
+      {
+        source: "/v1/:path*",
+        destination: `${apiUrl}/v1/:path*`,
+      },
     ];
   },
 };

@@ -637,6 +637,13 @@ export class ApiModule extends BaseService {
       this.ctrl('creditProgram').verifyCommitment(req, res);
     });
 
+    // The GET sibling: aggregate metadata for one commitment, powering the
+    // shareable public verification page. Same disclosure discipline — no
+    // per-participant content ever leaves through this route.
+    this.app.get('/verify/credit-commitment/:id', (req, res) => {
+      this.ctrl('creditProgram').getPublicCommitment(req, res);
+    });
+
     // API routes (require API key)
     const apiRouter = express.Router();
 

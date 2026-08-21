@@ -33,6 +33,7 @@ import { FundingBanner } from './funding-banner';
 import { ParticipantsPanel } from './participants-panel';
 import { ActivityFeed } from './activity-feed';
 import { ReconcileView } from './reconcile-view';
+import { CommitmentsPanel } from './commitments-panel';
 
 function pct(n: number): string {
   return `${Math.round(n * 100)}%`;
@@ -190,11 +191,12 @@ export function CreditProgramDetail({ programId }: { programId: string }) {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="participants">Participants</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
           <TabsTrigger value="reconcile">Reconcile</TabsTrigger>
+          <TabsTrigger value="verification">Verification</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -211,6 +213,10 @@ export function CreditProgramDetail({ programId }: { programId: string }) {
 
         <TabsContent value="reconcile" className="space-y-4">
           <ReconcileView programId={programId} />
+        </TabsContent>
+
+        <TabsContent value="verification" className="space-y-4">
+          <CommitmentsPanel programId={programId} />
         </TabsContent>
       </Tabs>
     </div>

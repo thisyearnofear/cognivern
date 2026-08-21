@@ -234,6 +234,35 @@ export class CreditProgramController {
     });
   }
 
+  /**
+   * GET /verify/credit-commitment/:id — PUBLIC, the GET sibling of the POST
+   * above. Powers the shareable verification page: the aggregate metadata
+   * behind one anchored commitment (program name, timestamp, participant
+   * count, root, anchor references). Deliberately excludes all
+   * per-participant content — leaf data is only ever disclosed by its owner.
+   */
+  async getPublicCommitment(req: Request, res: Response): Promise<void> {
+    const commitment = this.commitments.get(req.params.id);
+    if (!commitment) return notFound(res, "Commitment not found");
+
+    const program = this.programs.getProgram(commitment.programId);
+    res.json({
+      success: true,
+      data: {
+        commitment: {
+          ...serialiseCommitment(commitment),
+          highWaterMarkUsd:
+            commitment.highWaterMark !== null && Number.isFinite(Number(commitment.highWaterMark))
+              ? nanoToUsd(Number(commitment.highWaterMark))
+              : null,
+          program: program
+            ? { name: program.name, sponsorName: program.sponsorName, status: program.status }
+            : null,
+        },
+      },
+    });
+  }
+
   // ── Participants ─────────────────────────────────────────────────────────
 
   /**

@@ -286,6 +286,29 @@ describe("LedgerCommitmentService", () => {
     expect(receipt!.commitment.status).toBe("pending");
   });
 
+  it("fetches a single commitment by id — the public verification lookup", async () => {
+    capturedPayloads = [];
+    commitments = new LedgerCommitmentService(getDb(), fakeSinks());
+
+    const program = programs.createProgram({
+      workspaceId: WORKSPACE,
+      name: "Public Lookup",
+      poolUsd: 100,
+      baseAllocationUsd: 10,
+      status: "active",
+    });
+    programs.provisionParticipants(program.id, [{ handle: "gina" }]);
+    const row = await commitments.anchor(program.id);
+
+    const fetched = commitments.get(row!.id);
+    expect(fetched).not.toBeNull();
+    expect(fetched!.commitmentRoot).toBe(row!.commitmentRoot);
+    expect(fetched!.status).toBe("anchored");
+    expect(fetched!.participantCount).toBe(1);
+
+    expect(commitments.get("cmt_nonexistent")).toBeNull();
+  });
+
   it("lists commitments newest-first", async () => {
     capturedPayloads = [];
     commitments = new LedgerCommitmentService(getDb(), fakeSinks());
