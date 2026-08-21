@@ -216,6 +216,20 @@ export interface AuthUser {
 export interface WorkspaceSettings {
   suspicionHoldThreshold?: number;
   webhookUrl?: string;
+  /**
+   * Preferred EVM execution rail id from the shared registry
+   * (e.g. "xlayer-testnet"). Used when a wallet omits chainId.
+   */
+  defaultExecutionRail?: string;
+  /**
+   * Spend broadcast adapter when wallet metadata omits executionProvider.
+   */
+  defaultExecutionProvider?: "local" | "keeperhub" | "cleanverse";
+  /**
+   * Evidence sinks to fan out to. Omit / empty = platform defaults.
+   * Ids: "zerog" | "filecoin".
+   */
+  evidenceSinks?: Array<"zerog" | "filecoin">;
 }
 
 export interface Workspace {

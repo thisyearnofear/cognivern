@@ -38,6 +38,11 @@ import { SuspicionOverview } from './suspicion-overview';
 import { LedgerIntegrityCard } from './ledger-integrity-card';
 import { EventTimeline, type TimelineEvent } from '@/components/shared/event-timeline';
 import { useAuditLogs } from '@/hooks/use-api';
+import {
+  defaultExecutionRail,
+  explorerTxUrl,
+  formatEvidenceAnchorLine,
+} from '@cognivern/shared';
 import { useConfidentialRail } from '@/hooks/use-confidential-rail';
 import {
   confidentialExplorerHref,
@@ -182,6 +187,22 @@ function getOnChainTxHash(rawLog: unknown): string | null {
   return null;
 }
 
+function getOnChainChainId(rawLog: unknown): number | undefined {
+  if (!rawLog || typeof rawLog !== 'object') return undefined;
+  const r = rawLog as Record<string, unknown>;
+  if (typeof r.chainId === 'number') return r.chainId;
+  const meta = r.metadata as Record<string, unknown> | undefined;
+  if (typeof meta?.chainId === 'number') return meta.chainId;
+  const artifacts = r.artifacts as Array<Record<string, unknown>> | undefined;
+  if (Array.isArray(artifacts)) {
+    for (const art of artifacts) {
+      const data = art.data as Record<string, unknown> | undefined;
+      if (typeof data?.chainId === 'number') return data.chainId;
+    }
+  }
+  return undefined;
+}
+
 function getPolicyId(rawLog: unknown): string | null {
   if (!rawLog || typeof rawLog !== 'object') return null;
   const r = rawLog as Record<string, unknown>;
@@ -278,6 +299,13 @@ function TimelineNode({
   const isLedger = hasLedgerSigning(rawLog);
   const hasChecks = log.policyChecks.length > 0;
   const txHash = getOnChainTxHash(rawLog);
+  const onChainChainId = getOnChainChainId(rawLog);
+  const executionRail = defaultExecutionRail();
+  const onChainExplorerHref =
+    txHash
+      ? explorerTxUrl(onChainChainId, txHash) ??
+        explorerTxUrl(executionRail.id, txHash)
+      : undefined;
   const policyId = getPolicyId(rawLog);
   const anchoring = getAnchoringData(rawLog);
   const suspicion = getSuspicionData(rawLog);
@@ -504,7 +532,7 @@ function TimelineNode({
                     On-Chain Governance Record
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    This decision was recorded on X Layer via{' '}
+                    This decision was recorded on {executionRail.displayName} via{' '}
                     <code className="px-1 py-0.5 rounded bg-muted font-mono">
                       GovernanceContract.evaluateAction()
                     </code>
@@ -514,12 +542,13 @@ function TimelineNode({
                       {txHash.slice(0, 18)}...{txHash.slice(-6)}
                     </code>
                     <a
-                      href={`https://www.oklink.com/xlayer-test/tx/${txHash}`}
+                      href={onChainExplorerHref}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-[11px] text-sky-600 dark:text-sky-400 hover:underline shrink-0"
                     >
-                      View on X Layer <ExternalLink className="h-3 w-3" />
+                      View on {executionRail.displayName}{' '}
+                      <ExternalLink className="h-3 w-3" />
                     </a>
                   </div>
                 </div>
@@ -1522,7 +1551,7 @@ export function AuditPage() {
                     label: 'Private budgets',
                     value: rail.architectureLine,
                   },
-                  { icon: Shield, label: 'Audit', value: 'Immutable on 0G + X Layer' },
+                  { icon: Shield, label: 'Audit', value: formatEvidenceAnchorLine() },
                   { icon: Shield, label: 'Contract Audit', value: 'ChainGPT scan on recipients' },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="flex items-center gap-2 text-muted-foreground">
@@ -1536,7 +1565,8 @@ export function AuditPage() {
               {onChainCount > 0 && (
                 <div className="mt-3 pt-3 border-t border-border flex items-center gap-2 text-[11px] text-muted-foreground">
                   <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
-                  {onChainCount} of {total} decisions have on-chain proof on X Layer
+                  {onChainCount} of {total} decisions have on-chain proof on{' '}
+                  {defaultExecutionRail().displayName}
                 </div>
               )}
             </div>

@@ -2,7 +2,12 @@ import { Request, Response } from "express";
 import { randomUUID } from "node:crypto";
 import { SignJWT } from "jose";
 import { getDb } from "@backend/db/index.js";
-import type { Workspace } from "@cognivern/shared";
+import type { Workspace, WorkspaceSettings } from "@cognivern/shared";
+import {
+  isSelectableExecutionRailId,
+  isWorkspaceExecutionProviderId,
+  normalizeWorkspaceEvidenceSinks,
+} from "@cognivern/shared";
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 
 function getJwtSecret(): Uint8Array {
@@ -73,10 +78,20 @@ export class WorkspaceController {
 
   async updateWorkspace(req: Request, res: Response): Promise<void> {
     const workspaceId = req.workspaceId;
-    const { name, tier, suspicionHoldThreshold } = req.body as {
+    const {
+      name,
+      tier,
+      suspicionHoldThreshold,
+      defaultExecutionRail,
+      defaultExecutionProvider,
+      evidenceSinks,
+    } = req.body as {
       name?: string;
       tier?: "demo" | "live";
       suspicionHoldThreshold?: number;
+      defaultExecutionRail?: string | null;
+      defaultExecutionProvider?: string | null;
+      evidenceSinks?: string[] | null;
     };
 
     if (!workspaceId) {
@@ -103,19 +118,113 @@ export class WorkspaceController {
       ).run(name, now, workspaceId);
     }
 
-    if (suspicionHoldThreshold !== undefined) {
-      const existing = db
-        .prepare("SELECT settings FROM workspaces WHERE id = ?")
-        .get(workspaceId) as { settings: string | null } | undefined;
-      let settings: Record<string, unknown> = {};
-      if (existing?.settings) {
-        try {
-          settings = JSON.parse(existing.settings);
-        } catch {
-          settings = {};
+    const railPatchRequested =
+      suspicionHoldThreshold !== undefined ||
+      defaultExecutionRail !== undefined ||
+      defaultExecutionProvider !== undefined ||
+      evidenceSinks !== undefined;
+
+    if (railPatchRequested) {
+      if (
+        suspicionHoldThreshold !== undefined &&
+        (typeof suspicionHoldThreshold !== "number" ||
+          Number.isNaN(suspicionHoldThreshold) ||
+          suspicionHoldThreshold < 0 ||
+          suspicionHoldThreshold > 1)
+      ) {
+        res.status(400).json({
+          success: false,
+          error: "suspicionHoldThreshold must be a number between 0 and 1",
+        });
+        return;
+      }
+
+      if (
+        defaultExecutionRail !== undefined &&
+        defaultExecutionRail !== null &&
+        defaultExecutionRail !== "" &&
+        !isSelectableExecutionRailId(defaultExecutionRail)
+      ) {
+        res.status(400).json({
+          success: false,
+          error:
+            "defaultExecutionRail must be a live/configured execution rail id",
+        });
+        return;
+      }
+
+      if (
+        defaultExecutionProvider !== undefined &&
+        defaultExecutionProvider !== null &&
+        defaultExecutionProvider !== "" &&
+        !isWorkspaceExecutionProviderId(defaultExecutionProvider)
+      ) {
+        res.status(400).json({
+          success: false,
+          error:
+            "defaultExecutionProvider must be one of: local, keeperhub, cleanverse",
+        });
+        return;
+      }
+
+      if (evidenceSinks !== undefined && evidenceSinks !== null) {
+        if (!Array.isArray(evidenceSinks)) {
+          res.status(400).json({
+            success: false,
+            error: "evidenceSinks must be an array of sink ids",
+          });
+          return;
+        }
+        const normalized = normalizeWorkspaceEvidenceSinks(evidenceSinks);
+        if (evidenceSinks.length > 0 && !normalized) {
+          res.status(400).json({
+            success: false,
+            error: "evidenceSinks must be a subset of: zerog, filecoin",
+          });
+          return;
         }
       }
-      settings.suspicionHoldThreshold = suspicionHoldThreshold;
+
+      const settings: WorkspaceSettings = {
+        ...WorkspaceDataService.getSettings(workspaceId),
+      };
+
+      if (suspicionHoldThreshold !== undefined) {
+        settings.suspicionHoldThreshold = suspicionHoldThreshold;
+      }
+
+      if (defaultExecutionRail !== undefined) {
+        if (
+          defaultExecutionRail === null ||
+          defaultExecutionRail === ""
+        ) {
+          delete settings.defaultExecutionRail;
+        } else {
+          settings.defaultExecutionRail = defaultExecutionRail;
+        }
+      }
+
+      if (defaultExecutionProvider !== undefined) {
+        if (
+          defaultExecutionProvider === null ||
+          defaultExecutionProvider === ""
+        ) {
+          delete settings.defaultExecutionProvider;
+        } else if (isWorkspaceExecutionProviderId(defaultExecutionProvider)) {
+          settings.defaultExecutionProvider = defaultExecutionProvider;
+        }
+      }
+
+      if (evidenceSinks !== undefined) {
+        if (evidenceSinks === null || evidenceSinks.length === 0) {
+          delete settings.evidenceSinks;
+        } else {
+          const normalized = normalizeWorkspaceEvidenceSinks(evidenceSinks);
+          if (normalized) settings.evidenceSinks = normalized;
+          else delete settings.evidenceSinks;
+        }
+      }
+
       db.prepare(
         "UPDATE workspaces SET settings = ?, updated_at = ? WHERE id = ?",
       ).run(JSON.stringify(settings), now, workspaceId);

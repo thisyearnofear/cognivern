@@ -28,6 +28,10 @@ import { useRun } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { buildSignozTraceLink } from '@/lib/signoz';
 import { trackUxEvent } from '@/lib/ux-events';
+import {
+  explorerTxUrl,
+  defaultExecutionRail,
+} from '@cognivern/shared';
 
 type ApprovalResult = Awaited<ReturnType<typeof apiClient.submitRunApproval>>;
 type ReconciliationResult = Awaited<ReturnType<typeof apiClient.getRunReconciliation>>;
@@ -122,9 +126,10 @@ function getSpendSourceContext(run: unknown): {
 }
 
 function getTransferExplorerUrl(chainId: number | undefined, txHash: string): string | undefined {
-  if (chainId === 421614) return `https://sepolia.arbiscan.io/tx/${txHash}`;
-  if (chainId === 196) return `https://www.oklink.com/xlayer-test/tx/${txHash}`;
-  return undefined;
+  return (
+    explorerTxUrl(chainId, txHash) ??
+    explorerTxUrl(defaultExecutionRail().id, txHash)
+  );
 }
 
 function useCountUp(target: number, duration = 2000, start = false) {

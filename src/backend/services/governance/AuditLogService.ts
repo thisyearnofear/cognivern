@@ -1,8 +1,13 @@
 import { AgentAction, PolicyCheck } from "@backend/types/Agent.js";
 import logger from "@backend/utils/logger.js";
-import { zeroGStorageService } from "@backend/services/blockchain/ZeroGStorageService.js";
 import { sharedZeroGProofService } from "@backend/services/blockchain/ZeroGProofService.js";
-import { filecoinStorageService } from "@backend/services/blockchain/FilecoinStorageService.js";
+import {
+  defaultAuditEvidenceSinks,
+  fanOutEvidenceAnchors,
+  selectEvidenceSinks,
+  type EvidenceSink,
+} from "@backend/services/governance/evidence/index.js";
+import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 import { creRunStore, CreRunStore } from "@backend/cre/storage/CreRunStore.js";
 import { CreRun, CreArtifact } from "@backend/cre/types.js";
 import { tracer, meter, trace as otelTrace } from "@backend/observability/otel.js";
@@ -77,10 +82,58 @@ export interface AuditInsight {
  */
 export class AuditLogService {
   private creStore: CreRunStore;
+  private evidenceSinks: EvidenceSink[];
 
-  constructor(creStore: CreRunStore = creRunStore) {
+  constructor(
+    creStore: CreRunStore = creRunStore,
+    evidenceSinks: EvidenceSink[] = defaultAuditEvidenceSinks(),
+  ) {
     this.creStore = creStore;
+    this.evidenceSinks = evidenceSinks;
     logger.info("AuditLogService initialized (CRE-Unified Mode)");
+  }
+
+  /**
+   * Attach storage anchors to a CRE run without blocking the caller.
+   * Each sink patches run.evidence independently on success.
+   */
+  private scheduleEvidenceAnchors(
+    run: CreRun,
+    event: {
+      kind: string;
+      payloadHash: string;
+      payload: Record<string, unknown>;
+    },
+  ): void {
+    const workspaceId = run.projectId;
+    let sinks = this.evidenceSinks;
+    if (workspaceId && workspaceId !== "unscoped") {
+      try {
+        const settings = WorkspaceDataService.getSettings(workspaceId);
+        sinks = selectEvidenceSinks(settings.evidenceSinks, this.evidenceSinks);
+      } catch {
+        /* keep platform defaults */
+      }
+    }
+
+    fanOutEvidenceAnchors(
+      sinks,
+      {
+        runId: run.runId,
+        workspaceId,
+        kind: event.kind,
+        payloadHash: event.payloadHash,
+        payload: event.payload,
+      },
+      async (result) => {
+        run.evidence = {
+          hash: run.evidence?.hash ?? event.payloadHash,
+          ...(run.evidence ?? {}),
+          ...result.evidencePatch,
+        };
+        await this.creStore.replace(run);
+      },
+    );
   }
 
   /**
@@ -269,53 +322,18 @@ export class AuditLogService {
 
     await this.creStore.add(run);
 
-    // Anchor event to 0G Storage (non-fatal, fire-and-forget with post-hoc update)
-    zeroGStorageService
-      .anchorAuditRecord({
+    this.scheduleEvidenceAnchors(run, {
+      kind: "audit_event",
+      payloadHash: evidence.hash,
+      payload: {
         runId,
         workflow: workflowType,
         eventType: eventData.eventType,
         agentType: eventData.agentType,
         timestamp: startedAt,
         evidenceHash: evidence.hash,
-      })
-      .then(async (result) => {
-        if (result) {
-          run.evidence = {
-            hash: run.evidence?.hash ?? "pending",
-            ...(run.evidence ?? {}),
-            zeroGRootHash: result.rootHash,
-            zeroGLocalHash: result.localHash,
-          };
-          await this.creStore.replace(run);
-        }
-      })
-      .catch(() => {});
-
-    // Anchor event to Filecoin AIGovernanceStorage (non-fatal, fire-and-forget with post-hoc update)
-    filecoinStorageService
-      .anchorAuditRecord({
-        runId,
-        workflow: workflowType,
-        eventType: eventData.eventType,
-        agentType: eventData.agentType,
-        timestamp: startedAt,
-        evidenceHash: evidence.hash,
-      })
-      .then(async (result) => {
-        if (result) {
-          run.evidence = {
-            hash: run.evidence?.hash ?? "pending",
-            ...(run.evidence ?? {}),
-            zeroGRootHash: run.evidence?.zeroGRootHash,
-            filecoinCid: result.cid,
-            filecoinTxHash: result.txHash,
-            filecoinActionId: result.actionId,
-          };
-          await this.creStore.replace(run);
-        }
-      })
-      .catch(() => {});
+      },
+    });
   }
 
   async logAction(
@@ -536,9 +554,10 @@ export class AuditLogService {
         });
     }
 
-    // Anchor governance decision to 0G Storage (non-fatal, fire-and-forget with post-hoc update)
-    zeroGStorageService
-      .anchorAuditRecord({
+    this.scheduleEvidenceAnchors(run, {
+      kind: "governance_decision",
+      payloadHash: evidence.hash,
+      payload: {
         runId,
         workflow: "governance",
         outcome: allowed ? "allowed" : "denied",
@@ -546,47 +565,8 @@ export class AuditLogService {
         actionType: action.type,
         timestamp: now,
         evidenceHash: evidence.hash,
-      })
-      .then(async (result) => {
-        if (result) {
-          run.evidence = {
-            hash: run.evidence?.hash ?? "pending",
-            ...(run.evidence ?? {}),
-            zeroGRootHash: result.rootHash,
-            zeroGLocalHash: result.localHash,
-          };
-          await this.creStore.replace(run);
-        }
-      })
-      .catch(() => {
-        /* already logged inside ZeroGStorageService */
-      });
-
-    // Anchor governance decision to Filecoin AIGovernanceStorage (non-fatal, fire-and-forget with post-hoc update)
-    filecoinStorageService
-      .anchorAuditRecord({
-        runId,
-        workflow: "governance",
-        outcome: allowed ? "allowed" : "denied",
-        agentId: action.metadata?.agentId,
-        actionType: action.type,
-        timestamp: now,
-        evidenceHash: evidence.hash,
-      })
-      .then(async (result) => {
-        if (result) {
-          run.evidence = {
-            hash: run.evidence?.hash ?? "pending",
-            ...(run.evidence ?? {}),
-            zeroGRootHash: run.evidence?.zeroGRootHash,
-            filecoinCid: result.cid,
-            filecoinTxHash: result.txHash,
-            filecoinActionId: result.actionId,
-          };
-          await this.creStore.replace(run);
-        }
-      })
-      .catch(() => {});
+      },
+    });
 
     return runId;
   }

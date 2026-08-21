@@ -1,8 +1,12 @@
 import { ethers } from "ethers";
 import logger from "@backend/utils/logger.js";
-import { blockchainConfig } from "@backend/shared/config/index.js";
+import { executionRails } from "@backend/shared/config/index.js";
 import { circuitBreakers } from "@backend/shared/utils/circuitBreaker.js";
 import { withTimeout, retry } from "@backend/shared/utils/index.js";
+import { explorerTxUrl } from "@cognivern/shared";
+
+/** Default EVM execution rail (alias historically known as blockchainConfig). */
+const executionRail = executionRails.default;
 
 const GOVERNANCE_ABI = [
   "function evaluateAction(bytes32 actionId, bytes32 agentId, string memory actionType, bytes32 dataHash, bool approved) external",
@@ -26,7 +30,7 @@ export class OwsWalletOnChainManager {
   private lastProviderHealthCheck: number = 0;
 
   async getOnChainSigner(): Promise<{ wallet: ethers.Wallet; contract: ethers.Contract } | null> {
-    const pk = blockchainConfig.privateKey;
+    const pk = executionRail.privateKey;
     if (!pk) return null;
 
     if (this.onChainWallet && this.onChainContract) {
@@ -47,10 +51,10 @@ export class OwsWalletOnChainManager {
     }
 
     try {
-      this.onChainProvider = new ethers.JsonRpcProvider(blockchainConfig.rpcUrl);
+      this.onChainProvider = new ethers.JsonRpcProvider(executionRail.rpcUrl);
       this.onChainWallet = new ethers.Wallet(pk, this.onChainProvider);
       this.onChainContract = new ethers.Contract(
-        blockchainConfig.contracts.governance,
+        executionRail.contracts.governance,
         GOVERNANCE_ABI,
         this.onChainWallet,
       );
@@ -67,7 +71,14 @@ export class OwsWalletOnChainManager {
     agentId: string;
     actionType: string;
     metadata: Record<string, any>;
-  }): Promise<{ success: boolean; txHash?: string; dataHash?: string }> {
+  }): Promise<{
+    success: boolean;
+    txHash?: string;
+    dataHash?: string;
+    chainId?: number;
+    railId?: string;
+    explorerUrl?: string;
+  }> {
     const signer = await this.getOnChainSigner();
     if (!signer) return { success: false };
 
@@ -90,7 +101,7 @@ export class OwsWalletOnChainManager {
             }),
           ),
         );
-        const gas = blockchainConfig.gasLimits;
+        const gas = executionRail.gasLimits;
 
         await this.ensureOnChainAgent(signer.wallet, signer.contract, params.agentId);
 
@@ -106,8 +117,18 @@ export class OwsWalletOnChainManager {
           tx.wait(),
           60000,
         );
-        logger.info(`On-chain approval recorded: ${receipt?.hash}`);
-        return { success: true, txHash: receipt?.hash, dataHash };
+        const txHash = receipt?.hash;
+        logger.info(`On-chain approval recorded: ${txHash}`);
+        return {
+          success: true,
+          txHash,
+          dataHash,
+          chainId: executionRail.chainId,
+          railId: executionRail.railId,
+          explorerUrl: txHash
+            ? explorerTxUrl(executionRail.chainId, txHash)
+            : undefined,
+        };
       });
     } catch (error) {
       logger.error("On-chain record failed:", error);
@@ -121,7 +142,7 @@ export class OwsWalletOnChainManager {
     agentIdStr: string,
   ): Promise<void> {
     const agentId = ethers.id(agentIdStr);
-    const gas = blockchainConfig.gasLimits;
+    const gas = executionRail.gasLimits;
     try {
       const agent = await retry(() => contract.getAgent(agentId), 2, 2000);
       if (agent.status === 1) return;

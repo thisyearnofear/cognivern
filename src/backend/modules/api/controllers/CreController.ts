@@ -13,7 +13,7 @@ import { owsWalletService } from '@backend/services/blockchain/OwsWalletService.
 import { keeperHubExecutionProvider } from '@backend/services/blockchain/KeeperHubExecutionProvider.js';
 import { zeroGStorageService } from '@backend/services/blockchain/ZeroGStorageService.js';
 import { filecoinStorageService } from '@backend/services/blockchain/FilecoinStorageService.js';
-import { blockchainConfig } from '@backend/shared/config/index.js';
+import { executionRails } from '@backend/shared/config/index.js';
 import {
   buildSpendAttributionReport,
   getRunSpendAttribution,
@@ -251,13 +251,14 @@ export class CreController {
   ): Promise<{ matched: boolean; reason?: string; chainId?: number; from?: string; to?: string; valueWei?: string; receiptStatus?: string; blockNumber?: number }> {
     if (!/^0x[0-9a-fA-F]{64}$/.test(transactionHash)) return { matched: false, reason: 'Local transfer hash is malformed' };
     try {
-      const provider = new ethers.JsonRpcProvider(blockchainConfig.rpcUrl);
+      const rail = executionRails.resolve(expectedChainId);
+      const provider = new ethers.JsonRpcProvider(rail.rpcUrl, rail.chainId);
       const receipt = await provider.waitForTransaction(transactionHash, 1, 10_000);
       if (!receipt) return { matched: false, reason: 'No local receipt was available' };
       const transaction = await provider.getTransaction(transactionHash);
       const network = await provider.getNetwork();
       const actualChainId = Number(network.chainId);
-      const expectedChainIdValue = expectedChainId ?? blockchainConfig.chainId;
+      const expectedChainIdValue = expectedChainId ?? rail.chainId;
       const matched =
         actualChainId === expectedChainIdValue &&
         receipt.status === 1 &&

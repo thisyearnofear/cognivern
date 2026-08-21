@@ -14,6 +14,10 @@ import { PageHeader } from "@/components/ui/page-header";
 import { DisclosureSection } from "@/components/ui/disclosure-section";
 import { apiClient } from "@/lib/api-client";
 import { useConfidentialRail } from "@/hooks/use-confidential-rail";
+import {
+  defaultExecutionRail,
+  getRailById,
+} from "@cognivern/shared";
 import type { ApiKeyCreateResponse } from "@/lib/api-client";
 
 const AVAILABLE_SCOPES = [
@@ -404,9 +408,12 @@ export function IntegratePage() {
           <div className="mt-3 pt-3 border-t border-primary/10 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
             <span className="font-medium text-foreground">Every decision is recorded on-chain.</span>
             <span>GovernanceContract live on</span>
-            <Badge variant="outline" className="text-[10px]">Arbitrum</Badge>
-            <Badge variant="outline" className="text-[10px]">Robinhood</Badge>
-            <Badge variant="outline" className="text-[10px]">X Layer</Badge>
+            <Badge variant="outline" className="text-[10px]">
+              {getRailById("arbitrum-sepolia")?.displayName ?? "Arbitrum Sepolia"}
+            </Badge>
+            <Badge variant="outline" className="text-[10px]">
+              {defaultExecutionRail().displayName}
+            </Badge>
             <span>· {rail.integrateFragment} · sealed-bid procurement on Canton.</span>
           </div>
         </div>

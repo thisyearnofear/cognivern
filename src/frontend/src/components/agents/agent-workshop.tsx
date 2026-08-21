@@ -28,15 +28,12 @@ import {
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
 import { useCallback } from "react";
+import { agentSelectableRails } from "@cognivern/shared";
 
-const CHAINS = [
-  { id: "Ethereum", name: "Ethereum" },
-  { id: "Arbitrum", name: "Arbitrum" },
-  { id: "Base", name: "Base" },
-  { id: "X Layer", name: "X Layer" },
-  { id: "Mantle", name: "Mantle" },
-  { id: "Fhenix", name: "Fhenix" },
-];
+const CHAINS = agentSelectableRails().map((r) => ({
+  id: r.displayName,
+  name: r.displayName,
+}));
 
 const BUDGETS = [
   { id: "$1,000", label: "$1,000/day" },

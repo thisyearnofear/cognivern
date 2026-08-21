@@ -18,10 +18,11 @@ import {
 } from './confidentialEvaluator.js';
 import { OwsWalletPolicyEvaluator } from './OwsWalletPolicy.js';
 import { OwsWalletOnChainManager } from './OwsWalletOnChain.js';
-import { blockchainConfig, cleanverseConfig, keeperHubConfig } from '@backend/shared/config/index.js';
-import { keeperHubExecutionProvider } from './KeeperHubExecutionProvider.js';
+import { cleanverseConfig, executionRails, keeperHubConfig } from '@backend/shared/config/index.js';
+import { resolveExecutionBackend } from './execution/index.js';
+import { getRailById } from '@cognivern/shared';
+import { WorkspaceDataService } from '@backend/services/WorkspaceDataService.js';
 import {
-  cleanverseExecutionProvider,
   cleanverseIdentityService,
   deriveCleanversePolicySignals,
   summarizeAPass,
@@ -618,10 +619,25 @@ export class OwsWalletService {
       operatorApproved,
     } = params;
 
-    // Broadcast the real value transfer FROM the scoped wallet.
-    // KeeperHub → managed native transfer; Cleanverse → Access USDC/aUSDC ERC-20 on Monad;
-    // otherwise local native RPC.
-    const executionProvider = (access.wallet.metadata?.executionProvider as string) || 'local';
+    // Broadcast via ExecutionBackend. Wallet metadata wins; otherwise
+    // workspace defaultExecutionProvider / defaultExecutionRail apply.
+    const workspaceId =
+      typeof intent.metadata?.workspaceId === 'string'
+        ? intent.metadata.workspaceId
+        : recorder.getRun().projectId;
+    const wsSettings =
+      workspaceId && workspaceId !== 'unscoped'
+        ? WorkspaceDataService.getSettings(workspaceId)
+        : {};
+    const wsRail = wsSettings.defaultExecutionRail
+      ? getRailById(wsSettings.defaultExecutionRail)
+      : undefined;
+
+    const executionProvider =
+      (access.wallet.metadata?.executionProvider as string) ||
+      wsSettings.defaultExecutionProvider ||
+      'local';
+    const backend = resolveExecutionBackend(executionProvider);
     const rawChainId = access.wallet.metadata?.chainId;
     const walletChainId =
       typeof rawChainId === 'number'
@@ -630,7 +646,9 @@ export class OwsWalletService {
           ? Number(rawChainId)
           : executionProvider === 'cleanverse'
             ? cleanverseConfig.monadChainId
-            : blockchainConfig.chainId;
+            : typeof wsRail?.chainId === 'number'
+              ? wsRail.chainId
+              : backend.chainId;
     const keeperHubWalletAddress = access.wallet.metadata?.keeperHubWalletAddress as
       | string
       | undefined;
@@ -642,100 +660,37 @@ export class OwsWalletService {
         ? cleanverseSenderAddress || access.wallet.accounts[0]?.address || signer
         : keeperHubWalletAddress || access.wallet.accounts[0]?.address || signer;
 
-    let transfer:
-      | Awaited<ReturnType<typeof keeperHubExecutionProvider.executeTransfer>>
-      | Awaited<ReturnType<typeof cleanverseExecutionProvider.executeTransfer>>
-      | Awaited<ReturnType<typeof owsLocalVaultService.sendNativeTransfer>>;
+    const transfer = await backend.transfer({
+      intentId: intent.id,
+      walletId: access.wallet.id,
+      fromAddress: senderAddress,
+      to: intent.recipient,
+      amountWei: valueWei,
+      chainId: walletChainId || backend.chainId,
+      idempotencyKey: intent.id,
+      apiKeyToken,
+      operatorApproved,
+      metadata: access.wallet.metadata,
+    });
 
-    if (executionProvider === 'keeperhub') {
-      transfer = await keeperHubExecutionProvider.executeTransfer({
-        intentId: intent.id,
-        from: senderAddress,
-        to: intent.recipient,
-        valueWei,
-        chainId: walletChainId,
-      });
-    } else if (executionProvider === 'cleanverse') {
-      transfer = await cleanverseExecutionProvider.executeTransfer({
-        intentId: intent.id,
-        walletId: access.wallet.id,
-        apiKeyToken,
-        operatorApproved,
-        from: senderAddress,
-        to: intent.recipient,
-        amount: valueWei,
-        chainId: walletChainId || cleanverseConfig.monadChainId,
-      });
-    } else {
-      transfer = await owsLocalVaultService.sendNativeTransfer({
-        walletId: access.wallet.id,
-        apiKeyToken: operatorApproved ? undefined : apiKeyToken,
-        operatorApproved,
-        to: intent.recipient,
-        valueWei,
-        rpcUrl: blockchainConfig.rpcUrl,
-        chainId: blockchainConfig.chainId,
-        gasLimit: blockchainConfig.gasLimits.nativeTransfer,
-      });
-    }
     // Never fabricate transferTxHash on failure (same fail-loud contract as
     // onChainStatus). A failed transfer with status=approved is a PARTIAL
     // success, not moved money — callers must surface it.
-    const transferTxHash = 'txHash' in transfer ? transfer.txHash : undefined;
-    const transferExecutionId =
-      'executionId' in transfer && typeof transfer.executionId === 'string'
-        ? transfer.executionId
-        : undefined;
-    const transferChainId =
-      'chainId' in transfer && typeof transfer.chainId === 'number' ? transfer.chainId : undefined;
-    const transferFrom =
-      'from' in transfer && typeof transfer.from === 'string' ? transfer.from : undefined;
-    const transferTransactionLink =
-      'transactionLink' in transfer && typeof transfer.transactionLink === 'string'
-        ? transfer.transactionLink
-        : undefined;
-    const transferSponsored =
-      'sponsored' in transfer && typeof transfer.sponsored === 'boolean'
-        ? transfer.sponsored
-        : undefined;
-    const transferVerified =
-      'verified' in transfer && typeof transfer.verified === 'boolean'
-        ? transfer.verified
-        : undefined;
-    const transferReceiptStatus =
-      'receiptStatus' in transfer && typeof transfer.receiptStatus === 'string'
-        ? transfer.receiptStatus
-        : undefined;
-    const transferReceipts =
-      'receipts' in transfer && Array.isArray(transfer.receipts) ? transfer.receipts : undefined;
-    const transferTokenAddress =
-      'tokenAddress' in transfer && typeof transfer.tokenAddress === 'string'
-        ? transfer.tokenAddress
-        : undefined;
-    const transferTokenSymbol =
-      'tokenSymbol' in transfer && typeof transfer.tokenSymbol === 'string'
-        ? transfer.tokenSymbol
-        : undefined;
-    const transferVerifyApass =
-      'verifyApass' in transfer ? transfer.verifyApass : undefined;
-    const transferError = 'error' in transfer ? transfer.error : undefined;
-    const transferIdempotencyKey =
-      'idempotencyKey' in transfer && typeof transfer.idempotencyKey === 'string'
-        ? transfer.idempotencyKey
-        : undefined;
-    const providerTransferUncertain = 'uncertain' in transfer && transfer.uncertain === true;
-    const hasValidTransferTxHash =
-      typeof transferTxHash === 'string' && /^0x[0-9a-fA-F]{64}$/.test(transferTxHash);
-    const claimedTransferResponse =
-      ('txHash' in transfer && transfer.txHash !== undefined) ||
-      ('executionId' in transfer && transfer.executionId !== undefined) ||
-      providerTransferUncertain;
-    const transferStatus: 'sent' | 'failed' | 'uncertain' =
-      hasValidTransferTxHash
-        ? 'sent'
-        : claimedTransferResponse
-          ? 'uncertain'
-          : 'failed';
+    const transferTxHash = transfer.txHash;
+    const transferExecutionId = transfer.executionId;
+    const transferChainId = transfer.chainId;
+    const transferFrom = transfer.from;
+    const transferTransactionLink = transfer.transactionLink || transfer.explorerUrl;
+    const transferSponsored = transfer.sponsored;
+    const transferVerified = transfer.verified;
+    const transferReceiptStatus = transfer.receiptStatus;
+    const transferReceipts = transfer.receipts;
+    const transferTokenAddress = transfer.tokenAddress;
+    const transferTokenSymbol = transfer.tokenSymbol;
+    const transferVerifyApass = transfer.verifyApass;
+    const transferError = transfer.error;
+    const transferIdempotencyKey = transfer.idempotencyKey;
+    const transferStatus = transfer.status;
 
     // Reconcile the claimed txHash against the actual chain receipt. The
     // executor's return value is treated as a claim; the audit record
@@ -749,8 +704,8 @@ export class OwsWalletService {
     } else if (executionProvider === 'keeperhub') {
       const receiptStatusOk = transferReceiptStatus === 'success';
       const verified = transferVerified === true;
-      const recipientMatches = 'recipientMatches' in transfer && transfer.recipientMatches === true;
-      const valueMatches = 'valueMatches' in transfer && transfer.valueMatches === true;
+      const recipientMatches = transfer.recipientMatches === true;
+      const valueMatches = transfer.valueMatches === true;
       receiptVerification = {
         outcome: verified && receiptStatusOk && recipientMatches && valueMatches ? 'verified' : 'unverified',
         checks: {
@@ -764,12 +719,10 @@ export class OwsWalletService {
             : 'KeeperHub did not provide a verified receipt matching the requested transfer',
       };
     } else if (executionProvider === 'cleanverse') {
-      const receiptStatusOk =
-        'receiptStatus' in transfer && transfer.receiptStatus === 'success';
-      const verified = 'verified' in transfer && transfer.verified === true;
-      const recipientMatches =
-        'recipientMatches' in transfer && transfer.recipientMatches === true;
-      const valueMatches = 'valueMatches' in transfer && transfer.valueMatches === true;
+      const receiptStatusOk = transferReceiptStatus === 'success';
+      const verified = transferVerified === true;
+      const recipientMatches = transfer.recipientMatches === true;
+      const valueMatches = transfer.valueMatches === true;
       receiptVerification = {
         outcome:
           verified && receiptStatusOk && recipientMatches && valueMatches
@@ -790,6 +743,7 @@ export class OwsWalletService {
         transferTxHash,
         intent.recipient,
         valueWei,
+        transferChainId || walletChainId,
       );
       if (receiptVerification.outcome === 'mismatch') {
         logger.error(
@@ -1162,7 +1116,7 @@ export class OwsWalletService {
                       access.wallet.accounts[0]?.address,
                     expectedRecipient: intent.recipient,
                 expectedValueWei: valueWei.toString(),
-                chainId: Number(access.wallet.metadata?.chainId || blockchainConfig.chainId),
+                chainId: Number(access.wallet.metadata?.chainId || executionRails.default.chainId),
               },
             },
           ],
@@ -1209,7 +1163,7 @@ export class OwsWalletService {
                       access.wallet.accounts[0]?.address,
                     expectedRecipient: intent.recipient,
                     expectedValueWei: valueWei.toString(),
-              chainId: Number(access.wallet.metadata?.chainId || blockchainConfig.chainId),
+              chainId: Number(access.wallet.metadata?.chainId || executionRails.default.chainId),
             },
           },
         ],
@@ -1236,9 +1190,11 @@ export class OwsWalletService {
     txHash: string,
     expectedRecipient: string,
     expectedValueWei: bigint,
+    chainId?: number,
   ): Promise<ReceiptVerification> {
     try {
-      const provider = new ethers.JsonRpcProvider(blockchainConfig.rpcUrl);
+      const rail = executionRails.resolve(chainId);
+      const provider = new ethers.JsonRpcProvider(rail.rpcUrl, rail.chainId);
       const receipt = await provider.waitForTransaction(txHash, 1, 10_000);
       if (!receipt) {
         return {

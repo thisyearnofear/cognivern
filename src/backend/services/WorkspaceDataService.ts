@@ -7,6 +7,7 @@ import type {
   Run,
   GovernanceEvaluation,
   PolicyCheck,
+  WorkspaceSettings,
 } from "@cognivern/shared";
 import { NotificationService } from "./NotificationService.js";
 import type { CreRun } from "@backend/cre/types.js";
@@ -658,6 +659,24 @@ export const WorkspaceDataService = {
     }
     const runs = deriveRunsFromAgents(workspaceId);
     return runs.find((r) => r.id === runId);
+  },
+
+  /** Parsed workspace.settings JSON, or empty object when missing/invalid. */
+  getSettings(workspaceId: string): WorkspaceSettings {
+    if (!workspaceId) return {};
+    try {
+      const row = getDb()
+        .prepare("SELECT settings FROM workspaces WHERE id = ?")
+        .get(workspaceId) as { settings: string | null } | undefined;
+      if (!row?.settings) return {};
+      const parsed = JSON.parse(row.settings) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return {};
+      }
+      return parsed as WorkspaceSettings;
+    } catch {
+      return {};
+    }
   },
 };
 

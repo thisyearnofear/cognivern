@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { useTheme } from "next-themes";
 import { useConfidentialRail } from "@/hooks/use-confidential-rail";
+import { settingsRailRows, workspaceSelectableExecutionRails } from "@cognivern/shared";
 import {
   Sun,
   Moon,
@@ -84,6 +85,7 @@ export function SettingsPage() {
         <TabsContent value="workspace" className="space-y-4">
           <WorkspaceCard workspace={workspace} />
           <SuspicionThresholdCard workspaceId={workspace?.id} />
+          <RailsPreferencesCard workspaceId={workspace?.id} />
           <ChainsCard />
         </TabsContent>
 
@@ -673,6 +675,182 @@ function SuspicionThresholdCard({ workspaceId }: { workspaceId?: string }) {
           Failed to save threshold. Check your connection and try again.
         </p>
       )}
+    </div>
+  );
+}
+
+function RailsPreferencesCard({ workspaceId }: { workspaceId?: string }) {
+  const executionRails = workspaceSelectableExecutionRails();
+  const [executionRail, setExecutionRail] = useState<string>("");
+  const [executionProvider, setExecutionProvider] = useState<string>("");
+  const [sinkZerog, setSinkZerog] = useState(true);
+  const [sinkFilecoin, setSinkFilecoin] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    let cancelled = false;
+    authFetch("/workspace")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (cancelled || !json?.success) return;
+        const ws = json.data?.settings ?? {};
+        setExecutionRail(
+          typeof ws.defaultExecutionRail === "string" ? ws.defaultExecutionRail : "",
+        );
+        setExecutionProvider(
+          typeof ws.defaultExecutionProvider === "string"
+            ? ws.defaultExecutionProvider
+            : "",
+        );
+        const sinks = Array.isArray(ws.evidenceSinks) ? ws.evidenceSinks : null;
+        if (sinks === null) {
+          setSinkZerog(true);
+          setSinkFilecoin(true);
+        } else {
+          setSinkZerog(sinks.includes("zerog"));
+          setSinkFilecoin(sinks.includes("filecoin"));
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId]);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setSaved(false);
+    try {
+      const evidenceSinks: Array<"zerog" | "filecoin"> = [];
+      if (sinkZerog) evidenceSinks.push("zerog");
+      if (sinkFilecoin) evidenceSinks.push("filecoin");
+      // Empty selection clears override → platform defaults (both sinks).
+      await apiClient.updateWorkspace({
+        defaultExecutionRail: executionRail || null,
+        defaultExecutionProvider: (executionProvider || null) as
+          | "local"
+          | "keeperhub"
+          | "cleanverse"
+          | null,
+        evidenceSinks: evidenceSinks.length > 0 ? evidenceSinks : null,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      toast.error("Failed to save rail preferences", {
+        description: "Could not update workspace execution / evidence settings.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }, [executionRail, executionProvider, sinkZerog, sinkFilecoin]);
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border bg-card p-5 animate-pulse">
+        <div className="h-4 w-40 bg-muted rounded mb-3" />
+        <div className="h-8 w-full bg-muted rounded" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border bg-card p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <Zap className="h-4 w-4 text-sky-500" />
+        <h2
+          className="font-semibold text-sm"
+          style={{ fontFamily: "var(--font-space-grotesk)" }}
+        >
+          Rail preferences
+        </h2>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Defaults for this workspace when a wallet does not set its own execution
+        provider or chain. Evidence sinks control which storage anchors fan out
+        from audit runs (CRE remains canonical either way).
+      </p>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="space-y-1.5 text-xs">
+          <span className="text-muted-foreground">Default execution rail</span>
+          <select
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+            value={executionRail}
+            onChange={(e) => setExecutionRail(e.target.value)}
+          >
+            <option value="">Platform default</option>
+            {executionRails.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.displayName}
+                {r.chainId != null ? ` (${r.chainId})` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="space-y-1.5 text-xs">
+          <span className="text-muted-foreground">Default execution provider</span>
+          <select
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+            value={executionProvider}
+            onChange={(e) => setExecutionProvider(e.target.value)}
+          >
+            <option value="">Platform default (local)</option>
+            <option value="local">Local vault</option>
+            <option value="keeperhub">KeeperHub</option>
+            <option value="cleanverse">Cleanverse</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="space-y-2">
+        <div className="text-xs text-muted-foreground">Evidence sinks</div>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={sinkZerog}
+              onChange={(e) => setSinkZerog(e.target.checked)}
+              className="accent-sky-500"
+            />
+            0G storage
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={sinkFilecoin}
+              onChange={(e) => setSinkFilecoin(e.target.checked)}
+              className="accent-sky-500"
+            />
+            Filecoin
+          </label>
+        </div>
+        {!sinkZerog && !sinkFilecoin && (
+          <p className="text-[11px] text-muted-foreground">
+            Leaving both unchecked clears the override and restores platform
+            defaults (both sinks).
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Button size="sm" onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : saved ? (
+            <>
+              <Check className="h-3.5 w-3.5 mr-1" /> Saved
+            </>
+          ) : (
+            "Save"
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -1377,16 +1555,25 @@ function AppearanceCard({
 function ChainsCard() {
   const { view: rail } = useConfidentialRail();
   const chains = [
-    { name: "Arbitrum Sepolia", role: "Governance", note: "Gov + Vault live", noteColor: "text-emerald-500" },
-    { name: "Robinhood Chain", role: "Governance", note: "Gov + Vault live", noteColor: "text-emerald-500" },
-    { name: "X Layer", role: "Execution", note: "Live", noteColor: "text-emerald-500" },
-    rail.rail === "flare"
-      ? { name: "Flare Coston2", role: "Confidential Compute", note: "TEE live · private budgets", noteColor: "text-emerald-500" }
-      : { name: "Fhenix / Arb Sepolia", role: "Confidential Compute", note: "FHE live · verified", noteColor: "text-emerald-500" },
-    { name: "Ethereum", role: "Execution" },
-    { name: "Base", role: "Execution" },
-    { name: "Mantle", role: "Execution" },
+    ...settingsRailRows().map((row) => ({
+      name: row.name,
+      role: row.role,
+      note: row.note,
+      noteColor: row.noteColor,
+    })),
   ];
+  // Confidential compute host may swap (Flare TEE vs Fhenix) — surface the active one.
+  if (rail.rail === "flare") {
+    const idx = chains.findIndex((c) => c.role === "Confidential Compute");
+    const flareRow = {
+      name: "Flare Coston2",
+      role: "Confidential Compute",
+      note: "TEE live · private budgets",
+      noteColor: "text-emerald-500",
+    };
+    if (idx >= 0) chains[idx] = flareRow;
+    else chains.splice(2, 0, flareRow);
+  }
 
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">

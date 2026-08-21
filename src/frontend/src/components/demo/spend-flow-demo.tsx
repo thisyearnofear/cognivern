@@ -24,6 +24,13 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
+import {
+  defaultExecutionRail,
+  formatEvidenceAnchorLine,
+} from "@cognivern/shared";
+
+const EXECUTION_RAIL_NAME = defaultExecutionRail().displayName;
+const EVIDENCE_LINE = formatEvidenceAnchorLine();
 
 interface StepState {
   id: string;
@@ -63,7 +70,7 @@ const SCENARIOS: Scenario[] = [
     purpose: "LP staking deposit on Curve",
     outcome: "held",
     decisionDetail: "Held for review — exceeds soft limit of $200, requires operator approval",
-    summaryDetail: "Spend held for operator review. Once approved, the transaction will broadcast to X Layer.",
+    summaryDetail: `Spend held for operator review. Once approved, the transaction will broadcast to ${EXECUTION_RAIL_NAME}.`,
   },
   {
     id: "deny",
@@ -114,7 +121,7 @@ function buildSteps(scenario: Scenario): StepState[] {
       status: "pending",
       detail: scenario.outcome === "held"
         ? "Run paused. Operator must approve before broadcast."
-        : "Immutable record stored on 0G + X Layer",
+        : EVIDENCE_LINE.replace("Immutable on", "Immutable record stored on"),
     },
   ];
 }
@@ -562,7 +569,8 @@ export function SpendFlowDemo() {
                   </span>{" "}
                   Budgets, limits, and spend amounts are evaluated while encrypted —
                   the policy engine sees compliance, not your numbers. Audit evidence
-                  is stored immutably on 0G and X Layer.
+                  is stored immutably on configured evidence rails (
+                  {EVIDENCE_LINE.replace(/^Immutable on /, "")}).
                 </>
               ) : (
                 <>

@@ -182,31 +182,200 @@ export const tradingConfig = {
   recallApiKeys: { direct: "", vincent: "" },
   maxRiskPerTrade: 0.02,
 };
-export const blockchainConfig = {
-  privateKey: process.env.XLAYER_PRIVATE_KEY || "",
-  rpcUrl: process.env.XLAYER_TESTNET_RPC_URL || "https://testrpc.xlayer.tech",
-  network: "xlayerTestnet",
-  // X Layer testnet chainId is 1952 (testrpc.xlayer.tech). Mainnet is 196.
-  // The literal "195" we used previously did not correspond to any X Layer
-  // chain — the broadcast failed with NETWORK_ERROR (network changed: 195 =>
-  // 1952) when ethers detected the RPC's actual chainId.
-  chainId: Number(process.env.XLAYER_CHAIN_ID || "1952"),
+/**
+ * Default EVM execution / public-governance-anchor rail.
+ *
+ * Prefer `EXECUTION_*` env names. Legacy `XLAYER_*` vars remain accepted as
+ * aliases so existing deployments keep working without a cutover.
+ *
+ * Address this via `executionRails.default` / `executionRails.resolve(...)`
+ * (and `@cognivern/shared` rail ids) — not as product identity.
+ *
+ * @see docs/ARCHITECTURE_RAILS.md
+ */
+export type EvmExecutionRailConfig = {
+  railId: string;
+  chainId: number;
+  rpcUrl: string;
+  network: string;
+  privateKey: string;
   contracts: {
-    governance:
-      process.env.XLAYER_GOVERNANCE_CONTRACT_ADDRESS ||
-      "0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6",
-    storage:
-      process.env.XLAYER_STORAGE_CONTRACT_ADDRESS ||
-      "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D",
-  },
+    governance: string;
+    storage: string;
+  };
   gasLimits: {
-    evaluateAction: Number(process.env.XLAYER_GAS_EVALUATE || "300000"),
-    createPolicy: Number(process.env.XLAYER_GAS_CREATE_POLICY || "400000"),
-    updateStatus: Number(process.env.XLAYER_GAS_UPDATE_STATUS || "100000"),
-    registerAgent: Number(process.env.XLAYER_GAS_REGISTER_AGENT || "300000"),
-    nativeTransfer: Number(process.env.XLAYER_GAS_TRANSFER || "21000"),
+    evaluateAction: number;
+    createPolicy: number;
+    updateStatus: number;
+    registerAgent: number;
+    nativeTransfer: number;
+  };
+};
+
+function envFirst(...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (value !== undefined && value !== "") return value;
+  }
+  return undefined;
+}
+
+function buildDefaultEvmExecutionRail(): EvmExecutionRailConfig {
+  const chainId = Number(
+    envFirst("EXECUTION_CHAIN_ID", "XLAYER_CHAIN_ID") || "1952",
+  );
+  const railId =
+    envFirst("EXECUTION_RAIL_ID") ||
+    (chainId === 196 ? "xlayer-mainnet" : "xlayer-testnet");
+
+  return {
+    railId,
+    privateKey: envFirst("EXECUTION_PRIVATE_KEY", "XLAYER_PRIVATE_KEY") || "",
+    rpcUrl:
+      envFirst("EXECUTION_RPC_URL", "XLAYER_TESTNET_RPC_URL") ||
+      "https://testrpc.xlayer.tech",
+    network: chainId === 196 ? "xlayerMainnet" : "xlayerTestnet",
+    // X Layer testnet chainId is 1952 (testrpc.xlayer.tech). Mainnet is 196.
+    // The literal "195" we used previously did not correspond to any X Layer
+    // chain — the broadcast failed with NETWORK_ERROR (network changed: 195 =>
+    // 1952) when ethers detected the RPC's actual chainId.
+    chainId,
+    contracts: {
+      governance:
+        envFirst(
+          "EXECUTION_GOVERNANCE_CONTRACT_ADDRESS",
+          "XLAYER_GOVERNANCE_CONTRACT_ADDRESS",
+        ) || "0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6",
+      storage:
+        envFirst(
+          "EXECUTION_STORAGE_CONTRACT_ADDRESS",
+          "XLAYER_STORAGE_CONTRACT_ADDRESS",
+        ) || "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D",
+    },
+    gasLimits: {
+      evaluateAction: Number(
+        envFirst("EXECUTION_GAS_EVALUATE", "XLAYER_GAS_EVALUATE") || "300000",
+      ),
+      createPolicy: Number(
+        envFirst("EXECUTION_GAS_CREATE_POLICY", "XLAYER_GAS_CREATE_POLICY") ||
+          "400000",
+      ),
+      updateStatus: Number(
+        envFirst("EXECUTION_GAS_UPDATE_STATUS", "XLAYER_GAS_UPDATE_STATUS") ||
+          "100000",
+      ),
+      registerAgent: Number(
+        envFirst("EXECUTION_GAS_REGISTER_AGENT", "XLAYER_GAS_REGISTER_AGENT") ||
+          "300000",
+      ),
+      nativeTransfer: Number(
+        envFirst("EXECUTION_GAS_TRANSFER", "XLAYER_GAS_TRANSFER") || "21000",
+      ),
+    },
+  };
+}
+
+/**
+ * Second EVM execution rail (Mantle Sepolia) — proof that local vault
+ * transfers are not hard-wired to a single L2. Uses Mantle env when set;
+ * governance/storage contracts default empty (native transfer only).
+ */
+function buildMantleSepoliaExecutionRail(
+  defaultRail: EvmExecutionRailConfig,
+): EvmExecutionRailConfig {
+  return {
+    railId: "mantle-sepolia",
+    chainId: Number(
+      envFirst("EXECUTION_MANTLE_SEPOLIA_CHAIN_ID", "MANTLE_SEPOLIA_CHAIN_ID") ||
+        "5003",
+    ),
+    rpcUrl:
+      envFirst(
+        "EXECUTION_MANTLE_SEPOLIA_RPC_URL",
+        "MANTLE_SEPOLIA_RPC_URL",
+      ) || "https://rpc.sepolia.mantle.xyz",
+    network: "mantleSepolia",
+    // Prefer a Mantle-specific key; fall back to the default execution key
+    // so one funded ops key can smoke-test both rails in demo.
+    privateKey:
+      envFirst("EXECUTION_MANTLE_SEPOLIA_PRIVATE_KEY", "MANTLE_PRIVATE_KEY") ||
+      defaultRail.privateKey,
+    contracts: {
+      governance:
+        envFirst("EXECUTION_MANTLE_SEPOLIA_GOVERNANCE_CONTRACT_ADDRESS") || "",
+      storage:
+        envFirst("EXECUTION_MANTLE_SEPOLIA_STORAGE_CONTRACT_ADDRESS") || "",
+    },
+    gasLimits: {
+      evaluateAction: defaultRail.gasLimits.evaluateAction,
+      createPolicy: defaultRail.gasLimits.createPolicy,
+      updateStatus: defaultRail.gasLimits.updateStatus,
+      registerAgent: defaultRail.gasLimits.registerAgent,
+      nativeTransfer: Number(
+        envFirst("EXECUTION_MANTLE_SEPOLIA_GAS_TRANSFER") ||
+          String(defaultRail.gasLimits.nativeTransfer),
+      ),
+    },
+  };
+}
+
+const defaultEvmExecutionRail = buildDefaultEvmExecutionRail();
+const mantleSepoliaExecutionRail = buildMantleSepoliaExecutionRail(
+  defaultEvmExecutionRail,
+);
+
+const executionRailsById: Record<string, EvmExecutionRailConfig> = {
+  [defaultEvmExecutionRail.railId]: defaultEvmExecutionRail,
+  "mantle-sepolia": mantleSepoliaExecutionRail,
+};
+
+// Keep both registry ids reachable when the default rail is an X Layer chain.
+if (defaultEvmExecutionRail.chainId === 1952) {
+  executionRailsById["xlayer-testnet"] = defaultEvmExecutionRail;
+} else if (defaultEvmExecutionRail.chainId === 196) {
+  executionRailsById["xlayer-mainnet"] = defaultEvmExecutionRail;
+}
+
+export const executionRails = {
+  /** Default public EVM execution + governance-anchor rail (env-selected). */
+  default: defaultEvmExecutionRail,
+  /** Optional second EVM rail for agnostic local transfers. */
+  secondary: mantleSepoliaExecutionRail,
+  byId: executionRailsById as Readonly<Record<string, EvmExecutionRailConfig>>,
+  list(): EvmExecutionRailConfig[] {
+    const seen = new Set<string>();
+    const out: EvmExecutionRailConfig[] = [];
+    for (const rail of Object.values(executionRailsById)) {
+      if (seen.has(rail.railId)) continue;
+      seen.add(rail.railId);
+      out.push(rail);
+    }
+    return out;
+  },
+  /**
+   * Resolve a configured EVM rail by registry id or chain id.
+   * Falls back to `default` when unknown (preserves prior single-rail behavior).
+   */
+  resolve(chainIdOrRailId?: number | string | null): EvmExecutionRailConfig {
+    if (typeof chainIdOrRailId === "string" && chainIdOrRailId.trim()) {
+      const byId = executionRailsById[chainIdOrRailId.trim()];
+      if (byId) return byId;
+    }
+    if (typeof chainIdOrRailId === "number" && Number.isFinite(chainIdOrRailId)) {
+      const match = Object.values(executionRailsById).find(
+        (r) => r.chainId === chainIdOrRailId,
+      );
+      if (match) return match;
+    }
+    return defaultEvmExecutionRail;
   },
 };
+
+/**
+ * @deprecated Prefer `executionRails.default`. Kept as a stable alias for
+ * existing imports and test mocks.
+ */
+export const blockchainConfig = executionRails.default;
 
 export const filecoinConfig = {
   rpcUrl:

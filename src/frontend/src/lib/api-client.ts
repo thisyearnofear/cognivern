@@ -983,6 +983,9 @@ class ApiClient {
     name?: string;
     tier?: 'demo' | 'live';
     suspicionHoldThreshold?: number;
+    defaultExecutionRail?: string | null;
+    defaultExecutionProvider?: 'local' | 'keeperhub' | 'cleanverse' | null;
+    evidenceSinks?: Array<'zerog' | 'filecoin'> | null;
   }): Promise<ApiResponse<Workspace>> {
     return this.fetch('/workspace', {
       method: 'PUT',

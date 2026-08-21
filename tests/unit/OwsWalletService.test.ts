@@ -5,6 +5,8 @@ const cfg = vi.hoisted(() => {
     privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
     rpcUrl: "https://testrpc.xlayer.tech",
     network: "xlayerTestnet",
+    chainId: 1952,
+    railId: "xlayer-testnet",
     contracts: {
       governance: "0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6",
       storage: "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D",
@@ -21,6 +23,39 @@ const cfg = vi.hoisted(() => {
 
 vi.mock("@backend/shared/config/index.js", () => ({
   blockchainConfig: cfg.mockBlockchainConfig,
+  executionRails: {
+    default: cfg.mockBlockchainConfig,
+    secondary: {
+      ...cfg.mockBlockchainConfig,
+      railId: "mantle-sepolia",
+      chainId: 5003,
+      rpcUrl: "https://rpc.sepolia.mantle.xyz",
+      network: "mantleSepolia",
+    },
+    byId: {
+      "xlayer-testnet": cfg.mockBlockchainConfig,
+      "mantle-sepolia": {
+        ...cfg.mockBlockchainConfig,
+        railId: "mantle-sepolia",
+        chainId: 5003,
+        rpcUrl: "https://rpc.sepolia.mantle.xyz",
+        network: "mantleSepolia",
+      },
+    },
+    list: () => [cfg.mockBlockchainConfig],
+    resolve: (id?: number | string | null) => {
+      if (id === 5003 || id === "mantle-sepolia") {
+        return {
+          ...cfg.mockBlockchainConfig,
+          railId: "mantle-sepolia",
+          chainId: 5003,
+          rpcUrl: "https://rpc.sepolia.mantle.xyz",
+          network: "mantleSepolia",
+        };
+      }
+      return cfg.mockBlockchainConfig;
+    },
+  },
   config: { NODE_ENV: "test", PORT: 3000 },
   apiConfig: { port: 3000, apiKey: "test", corsOrigin: "*", rateLimit: {}, requestTimeout: 30000 },
   sapienceConfig: {},
@@ -85,6 +120,12 @@ const mockExecute = vi.fn((fn: () => Promise<unknown>) => fn());
 vi.mock("@backend/shared/utils/circuitBreaker.js", () => ({
   circuitBreakers: {
     blockchain: { execute: (...args: unknown[]) => mockExecute(...args) },
+  },
+}));
+
+vi.mock("@backend/services/WorkspaceDataService.js", () => ({
+  WorkspaceDataService: {
+    getSettings: () => ({}),
   },
 }));
 
