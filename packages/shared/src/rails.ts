@@ -53,7 +53,7 @@ export const RAILS: readonly RailDescriptor[] = [
     explorerAddressBase: "https://www.oklink.com/xlayer",
     capabilities: ["native_transfer", "governance_anchor"],
     status: "live",
-    notes: "Mainnet execution rail (chainId 196); GovernanceProofV2 anchor live at 0xCDb7aD5dF5295C35cfd872Ee01eA01D51EC185c1 — see docs/XLAYER_PROOF_V2.md.",
+    notes: "Mainnet execution rail (chainId 196) · GovernanceProofV2 anchor live — see contracts/deployments/196.json.",
   },
   {
     id: "arbitrum-sepolia",
@@ -304,6 +304,8 @@ export function settingsRailRows(): Array<{
   const preferred = [
     "arbitrum-sepolia",
     "xlayer-testnet",
+    "xlayer-mainnet",
+    "mantle-sepolia",
     "canton-devnet",
     "filecoin-calibration",
     "zerog-mainnet",

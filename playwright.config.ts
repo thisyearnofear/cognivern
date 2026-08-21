@@ -3,9 +3,14 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Playwright E2E configuration for Cognivern.
  *
- * The Playwright web server always binds the frontend to port 3000 so a
- * developer's ambient PORT value cannot make the runner wait on the wrong port.
+ * The Playwright web server binds the frontend to a fixed port (default 3000,
+ * overridable via PLAYWRIGHT_PORT when another dev server already occupies
+ * it) so a developer's ambient PORT value cannot make the runner wait on the
+ * wrong port — or silently reuse an unrelated project that happens to listen
+ * on 3000 (reuseExistingServer only checks "something responded").
  */
+const port = Number(process.env.PLAYWRIGHT_PORT || 3000);
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -16,7 +21,7 @@ export default defineConfig({
   timeout: 60_000,
 
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: `http://localhost:${port}`,
     screenshot: 'only-on-failure',
     trace: 'on-first-retry',
   },
@@ -29,8 +34,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'PORT=3000 pnpm frontend',
-    url: 'http://localhost:3000',
+    command: `PORT=${port} pnpm frontend`,
+    url: `http://localhost:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

@@ -333,6 +333,41 @@ export const DEMO_RUNS = [
     duration: "12s",
     artifacts: 2,
     timestamp: hoursAgo(2),
+    // Real mainnet probe proofs (docs/XLAYER_PROOF_V2.md, run
+    // bcebcdef-43f5-44f9-b03c-ff1a635f7f2c) so demo-mode explorer links
+    // resolve to genuine, verifiable transactions.
+    evidence: {
+      zeroGProofV2: {
+        proofId:
+          "0x5ce9f1b3530832ecc689a76cfb2c0364960ace856f43e62dbd06fdf1a77bbe14",
+        runIdHash:
+          "0x52fe6eae6d0f858f3c3a522ff61f8f075f58d0df67345a52c15b683e007e8d59",
+        evidenceHash:
+          "0x7a8db9687d61bd2bfb601b008702b7d7b37f03255710313351c5e479ee92e1d7",
+        policySetHash:
+          "0x0edc31540c75ba032c306fe4ab6871cbdb164477a30589a5be71e65640fad06e",
+        txHash:
+          "0x98510a60f3d8a1efdf30bb482f4b66b0eeb7a253ceec2d19047f18aede2e4ae9",
+        blockNumber: 42262905,
+        chainId: 16661,
+        network: "0g-mainnet",
+      },
+      xlayerProofV2: {
+        proofId:
+          "0x6c6240c20ccb8b86ddba4d3f18dbaebad849f043301cb1c561387b18e75f5c6f",
+        runIdHash:
+          "0x52fe6eae6d0f858f3c3a522ff61f8f075f58d0df67345a52c15b683e007e8d59",
+        evidenceHash:
+          "0x7a8db9687d61bd2bfb601b008702b7d7b37f03255710313351c5e479ee92e1d7",
+        policySetHash:
+          "0x0edc31540c75ba032c306fe4ab6871cbdb164477a30589a5be71e65640fad06e",
+        txHash:
+          "0x32c740619c97bcc68d92deb371026f4c1170958f2e13a6ae11d594ffc47b1a13",
+        blockNumber: 68566290,
+        chainId: 196,
+        network: "xlayer-mainnet",
+      },
+    },
   },
   {
     id: "run-002",
