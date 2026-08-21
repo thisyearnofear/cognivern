@@ -35,6 +35,19 @@ export interface PolicyCheck {
   metadata?: Record<string, unknown>;
 }
 
+/** On-chain GovernanceProofV2 anchor receipt persisted on a run's evidence. */
+export interface ProofAnchorReceipt {
+  proofId: string;
+  runIdHash: string;
+  evidenceHash: string;
+  policySetHash: string;
+  txHash: string;
+  blockNumber: number | null;
+  chainId: number;
+  /** Rail the proof was posted to (e.g. "0g-mainnet", "xlayer-mainnet"). */
+  network: string;
+}
+
 export interface Run {
   id: string;
   workflow: string;
@@ -47,6 +60,8 @@ export interface Run {
   events?: RunEvent[];
   evidence?: {
     traceId?: string;
+    zeroGProofV2?: ProofAnchorReceipt;
+    xlayerProofV2?: ProofAnchorReceipt;
   };
 }
 

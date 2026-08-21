@@ -21,6 +21,7 @@ import {
   ExternalLink,
   RotateCw,
   ShieldAlert,
+  ShieldCheck,
   LockKeyhole,
   SearchCheck,
 } from 'lucide-react';
@@ -31,6 +32,9 @@ import { trackUxEvent } from '@/lib/ux-events';
 import {
   explorerTxUrl,
   defaultExecutionRail,
+  getRailByChainId,
+  getRailById,
+  type ProofAnchorReceipt,
 } from '@cognivern/shared';
 
 type ApprovalResult = Awaited<ReturnType<typeof apiClient.submitRunApproval>>;
@@ -123,6 +127,18 @@ function getSpendSourceContext(run: unknown): {
       | { required?: boolean; authorized?: boolean; reason?: string }
       | undefined,
   };
+}
+
+/** Rails that can carry a GovernanceProofV2 anchor, in display order. */
+const PROOF_ANCHOR_KEYS = ['zeroGProofV2', 'xlayerProofV2'] as const;
+
+function getProofAnchors(run: unknown): ProofAnchorReceipt[] {
+  const evidence = (run as { evidence?: Record<string, unknown> })?.evidence;
+  if (!evidence) return [];
+  return PROOF_ANCHOR_KEYS.map((key) => evidence[key]).filter(
+    (anchor): anchor is ProofAnchorReceipt =>
+      typeof anchor === 'object' && anchor !== null && typeof (anchor as ProofAnchorReceipt).txHash === 'string',
+  );
 }
 
 function getTransferExplorerUrl(chainId: number | undefined, txHash: string): string | undefined {
@@ -261,6 +277,7 @@ export function RunDetail({ runId }: { runId: string }) {
   const events = run.events || [];
   const sourceContext = getSpendSourceContext(run);
   const traceId = run.evidence?.traceId;
+  const proofAnchors = getProofAnchors(run);
   const transferExplorerUrl = approval?.transfer?.transferTxHash
     ? getTransferExplorerUrl(approval.transfer.transferChainId, approval.transfer.transferTxHash)
     : undefined;
@@ -336,9 +353,65 @@ export function RunDetail({ runId }: { runId: string }) {
           'Policy evaluation',
           ...(events.length > 0 ? ['Execution trace'] : []),
           ...(sourceContext.provenance ? ['Source authorization'] : []),
+          ...(proofAnchors.length > 0 ? ['On-chain proof anchors'] : []),
         ]}
         reviewPath={`/runs/${run.id}`}
       />
+
+      {proofAnchors.length > 0 && (
+        <div className="rounded-xl border bg-card p-5">
+          <div className="flex items-center gap-2 font-semibold">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            On-chain governance proofs
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            This decision&apos;s canonical commitments are anchored on{' '}
+            {proofAnchors.length > 1 ? `${proofAnchors.length} public chains` : 'a public chain'},
+            verifiable independently of Cognivern&apos;s audit store.
+          </p>
+          <div className="mt-3 space-y-3">
+            {proofAnchors.map((anchor) => {
+              const rail = getRailByChainId(anchor.chainId) ?? getRailById(anchor.network);
+              const txUrl = rail ? explorerTxUrl(rail.id, anchor.txHash) : undefined;
+              return (
+                <div
+                  key={anchor.proofId}
+                  className="flex flex-wrap items-center justify-between gap-3 border-t pt-3 first:border-0 first:pt-0"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {rail?.displayName ?? anchor.network}
+                      </span>
+                      <Badge variant="outline" className="text-[10px]">
+                        Chain {anchor.chainId}
+                      </Badge>
+                      {anchor.blockNumber !== null && (
+                        <span className="text-xs text-muted-foreground">
+                          Block {anchor.blockNumber}
+                        </span>
+                      )}
+                    </div>
+                    <code className="mt-1 block truncate text-[11px] text-muted-foreground">
+                      proof {anchor.proofId.slice(0, 12)}…{anchor.proofId.slice(-8)}
+                    </code>
+                  </div>
+                  {txUrl && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open(txUrl, '_blank', 'noopener,noreferrer')}
+                    >
+                      View proof
+                      <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {traceId && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-800 dark:bg-emerald-950/20">

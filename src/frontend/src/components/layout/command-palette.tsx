@@ -10,12 +10,18 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { Settings, ShieldCheck } from "lucide-react";
+import { Bot, ListChecks, Settings, ShieldCheck } from "lucide-react";
 import { ALL_NAV_ITEMS, DEMO_NAV_ITEMS } from "@/lib/nav-items";
 
+// Views that are deliberately NOT sidebar items (docs/UX_IA_REVIEW.md: one
+// rule — an item names its stage of the loop or it is a view inside an
+// existing destination). The palette is the discovery surface for them.
 const EXTRA_ITEMS = [
   { id: "settings", label: "Settings", href: "/settings", icon: Settings },
   { id: "onboarding", label: "Set Up Treasury", href: "/onboarding", icon: ShieldCheck },
+  { id: "runs", label: "Runs", href: "/capital?view=runs", icon: ListChecks },
+  { id: "governance-check", label: "Governance Check", href: "/governance/check", icon: ShieldCheck },
+  { id: "copilot", label: "Copilot", href: "/copilot", icon: Bot },
   ...DEMO_NAV_ITEMS,
 ];
 
