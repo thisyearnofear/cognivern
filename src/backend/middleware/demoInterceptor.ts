@@ -10,7 +10,7 @@ import {
   DEMO_HARD_LIMIT,
   resolveDemoDecision,
 } from "@cognivern/shared";
-import { hashPolicyContent } from "../../shared/zerog-proof-v2.js";
+import { hashPolicyContent } from "../../shared/governance-proof-v2.js";
 
 function resolveJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;

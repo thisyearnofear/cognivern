@@ -1,0 +1,29 @@
+{
+  "chainId": 1952,
+  "railId": "xlayer-testnet",
+  "displayName": "X Layer Testnet",
+  "explorerAddressBase": "https://www.oklink.com/xlayer-test",
+  "explorerTxBase": "https://www.oklink.com/xlayer-test",
+  "contracts": [
+    {
+      "name": "GovernanceContract",
+      "purpose": "demo_governance_path",
+      "address": "0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6",
+      "deployTx": null,
+      "schemaVersion": 1,
+      "status": "active",
+      "roles": {},
+      "notes": "Legacy Filecoin-era demo path (policies/agents/actions). Testnet-only; not carried to mainnet — mainnet anchoring uses GovernanceProofV2 on chain 196."
+    },
+    {
+      "name": "AIGovernanceStorage",
+      "purpose": "demo_audit_storage",
+      "address": "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D",
+      "deployTx": null,
+      "schemaVersion": 1,
+      "status": "active",
+      "roles": {},
+      "notes": "Legacy FVM-era audit storage. Testnet-only; not carried to mainnet."
+    }
+  ]
+}

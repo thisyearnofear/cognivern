@@ -48,14 +48,16 @@ and are intentionally **not** carried to mainnet.
    ```bash
    XLAYER_MAINNET_ENV_FILE=.env.xlayer-mainnet \
    pnpm exec hardhat --config contracts/hardhat.config.cjs \
-     run contracts/scripts/deploy-xlayer-governance-proof-v2.ts \
+     run contracts/scripts/deploy-governance-proof-v2.ts \
      --network xlayerMainnet
    ```
 
    The script refuses any chain other than X Layer Mainnet (196) and refuses
    to redeploy while `XLAYER_MAINNET_PROOF_CONTRACT` is already set.
 4. Record the contract address, deploy transaction, admin, and poster in the
-   table above.
+   table above **and** in `contracts/deployments/196.json` (flip `status`
+   from `planned` to `active`) — the registry is the machine-readable record
+   the receipt verifier cross-checks.
 
 ## Production configuration
 

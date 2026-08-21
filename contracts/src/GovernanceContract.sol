@@ -13,7 +13,13 @@ interface IMessageRecipient {
 
 /**
  * @title GovernanceContract
- * @dev Core governance contract for AI agent policy enforcement on Filecoin
+ * @dev Core governance contract for AI agent policy enforcement.
+ *      Originally built for Filecoin; currently live on X Layer Testnet
+ *      (chain 1952) as the demo governance path (policies/agents/actions).
+ *
+ * STATUS: testnet demo path only. Deliberately NOT carried to X Layer
+ * Mainnet, where governance anchoring uses GovernanceProofV2.
+ * See contracts/deployments/1952.json.
  */
 contract GovernanceContract is IMessageRecipient {
     using CBOR for CBOR.CBORBuffer;

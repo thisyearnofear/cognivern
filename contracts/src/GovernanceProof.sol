@@ -11,6 +11,11 @@ pragma solidity ^0.8.19;
  *      only emits events. The event log IS the audit trail. This
  *      keeps gas costs low and makes proofs instantly verifiable
  *      on ChainScan without reading contract state.
+ *
+ * STATUS: superseded on mainnet by GovernanceProofV2 (typed decisions,
+ * commitment-only privacy, role separation). This V1 deployment on 0G
+ * Galileo remains only as the default anchor for environments without
+ * ZEROG_PROOF_VERSION=v2. See contracts/deployments/16602.json.
  */
 contract GovernanceProof {
     /// @notice Emitted when a governance decision is recorded

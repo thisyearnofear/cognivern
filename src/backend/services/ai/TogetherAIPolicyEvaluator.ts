@@ -11,7 +11,7 @@
 import type { Policy, PolicyRule, SharpContext } from "@backend/types/Policy.js";
 import type { AgentAction, PolicyCheck } from "@backend/types/Agent.js";
 import logger from "@backend/utils/logger.js";
-import { hashPolicyContent } from "../../../shared/zerog-proof-v2.js";
+import { hashPolicyContent } from "../../../shared/governance-proof-v2.js";
 
 const TOGETHER_API_URL = "https://api.together.xyz/v1/chat/completions";
 const DEFAULT_MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo";

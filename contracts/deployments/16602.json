@@ -1,0 +1,19 @@
+{
+  "chainId": 16602,
+  "railId": "zerog-galileo",
+  "displayName": "0G Galileo Testnet",
+  "explorerAddressBase": "https://chainscan-galileo.0g.ai",
+  "explorerTxBase": "https://chainscan-galileo.0g.ai",
+  "contracts": [
+    {
+      "name": "GovernanceProof",
+      "purpose": "governance_proof",
+      "address": "0x723e444ee6D7da19fADe372f85DA06dD849bF1E0",
+      "deployTx": null,
+      "schemaVersion": 1,
+      "status": "deprecated",
+      "roles": {},
+      "notes": "V1 event-log anchor; default only for environments without ZEROG_PROOF_VERSION=v2. Mainnet anchoring uses GovernanceProofV2 on chain 16661."
+    }
+  ]
+}

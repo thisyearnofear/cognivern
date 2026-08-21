@@ -6,6 +6,9 @@ policy engine.
 
 ## Deployment status
 
+Machine-readable record for this deployment: `contracts/deployments/16661.json`
+(kept in sync with the table below; the receipt verifier cross-checks it).
+
 The V2 contract is live on **0G Mainnet / Aristotle (chain ID `16661`)**:
 
 | Item | Verified value |

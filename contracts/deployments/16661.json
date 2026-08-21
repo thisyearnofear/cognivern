@@ -1,0 +1,22 @@
+{
+  "chainId": 16661,
+  "railId": "zerog-mainnet",
+  "displayName": "0G Mainnet (Aristotle)",
+  "explorerAddressBase": "https://chainscan.0g.ai",
+  "explorerTxBase": "https://chainscan.0g.ai",
+  "contracts": [
+    {
+      "name": "GovernanceProofV2",
+      "purpose": "governance_proof",
+      "address": "0xAAe217e0893934F7434bdDB27ce87C6e3246D960",
+      "deployTx": "0x93837e5e7c599093065300b50823d80f95b6522ecbd16f03deeb9da1f74f15a4",
+      "schemaVersion": 2,
+      "status": "active",
+      "roles": {
+        "admin": "0xEa480C8CD699B84C7775fe1b1878eBc3bCb1cb77",
+        "poster": "0xE5D1ef8F7bC8b2B045390406907Afb81dd4b1a43"
+      },
+      "notes": "Append-only governance proof anchor. See docs/ZEROG_PROOF_V2.md."
+    }
+  ]
+}

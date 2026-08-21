@@ -1,0 +1,22 @@
+{
+  "chainId": 196,
+  "railId": "xlayer-mainnet",
+  "displayName": "X Layer Mainnet",
+  "explorerAddressBase": "https://www.oklink.com/xlayer",
+  "explorerTxBase": "https://www.oklink.com/xlayer",
+  "contracts": [
+    {
+      "name": "GovernanceProofV2",
+      "purpose": "governance_proof",
+      "address": null,
+      "deployTx": null,
+      "schemaVersion": 2,
+      "status": "planned",
+      "roles": {
+        "admin": null,
+        "poster": null
+      },
+      "notes": "Deployment scripted and preflightable; awaiting funded keys. Fill address/deployTx/roles from the deploy output and flip status to active. See docs/XLAYER_PROOF_V2.md."
+    }
+  ]
+}

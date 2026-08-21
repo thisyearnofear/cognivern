@@ -16,7 +16,7 @@ import {
   policyViolationCounter,
   governanceLatencyHistogram,
 } from "@backend/observability/otel.js";
-import { hashPolicyContent } from "../../shared/zerog-proof-v2.js";
+import { hashPolicyContent } from "../../shared/governance-proof-v2.js";
 
 type Row = Record<string, unknown>;
 

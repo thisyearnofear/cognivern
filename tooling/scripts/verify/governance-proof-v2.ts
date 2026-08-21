@@ -5,7 +5,7 @@ import {
   buildCommitments,
   type ZeroGV2EvidenceBundle,
   type ZeroGV2PolicySet,
-} from '../../../src/shared/zerog-proof-v2.js';
+} from '../../../src/shared/governance-proof-v2.js';
 
 /**
  * Read-only GovernanceProofV2 receipt verifier. Rail-aware: the same contract
@@ -63,6 +63,26 @@ function readJson<T>(file: string): T {
   return JSON.parse(fs.readFileSync(file, 'utf8')) as T;
 }
 
+/**
+ * The deployments registry (contracts/deployments/<chainId>.json) records the
+ * known GovernanceProofV2 address for each rail. When an address is recorded,
+ * receipts must match it — verifying against a superseded or unknown
+ * deployment is an error. A `planned` entry (null address) only warns, since
+ * the receipt itself carries the address for first-verification flows.
+ */
+function registryEntryFor(chainId: bigint): { address: string | null; status: string } | null {
+  try {
+    const url = new URL(`../../../contracts/deployments/${chainId}.json`, import.meta.url);
+    const registry = JSON.parse(fs.readFileSync(url, 'utf8')) as {
+      contracts?: Array<{ name: string; address: string | null; status: string }>;
+    };
+    const entry = registry.contracts?.find((c) => c.name === 'GovernanceProofV2');
+    return entry ? { address: entry.address, status: entry.status } : null;
+  } catch {
+    return null;
+  }
+}
+
 function parseArgs(argv: string[]): { rail: RailId; files: string[] } {
   let rail: RailId = '0g-mainnet';
   const files: string[] = [];
@@ -116,6 +136,21 @@ async function main() {
   }
 
   const contractAddress = assertAddress('receipt.contractAddress', receipt.contractAddress);
+  const registryEntry = registryEntryFor(EXPECTED_CHAIN_ID);
+  if (registryEntry?.address) {
+    if (ethers.getAddress(registryEntry.address) !== contractAddress) {
+      throw new Error(
+        `Receipt contract ${contractAddress} does not match the deployments registry ` +
+          `(${registryEntry.address}, status "${registryEntry.status}") for chain ${EXPECTED_CHAIN_ID}`,
+      );
+    }
+  } else if (registryEntry) {
+    console.error(
+      `Note: deployments registry has no recorded GovernanceProofV2 address for chain ` +
+        `${EXPECTED_CHAIN_ID} (status "${registryEntry.status}") — verifying the receipt-supplied address only.`,
+    );
+  }
+
   const provider = new ethers.JsonRpcProvider(railConfig.rpcUrl, Number(EXPECTED_CHAIN_ID));
   const network = await provider.getNetwork();
   if (network.chainId !== EXPECTED_CHAIN_ID) {

@@ -9,7 +9,7 @@ import { ControlEvaluationService, SuspicionResult, AgentActionHistory } from ".
 import { tracer, meter, governanceDecisionCounter, policyViolationCounter, governanceLatencyHistogram } from "@backend/observability/otel.js";
 import logger from "@backend/utils/logger.js";
 import { Script } from "node:vm";
-import { hashPolicyContent } from "../../../shared/zerog-proof-v2.js";
+import { hashPolicyContent } from "../../../shared/governance-proof-v2.js";
 
 /**
  * Core policy enforcement engine.

@@ -5,7 +5,7 @@ import {
   policySetFromChecks,
   type ZeroGV2PolicySet,
   type ZeroGDecision,
-} from '../../../shared/zerog-proof-v2.js';
+} from '../../../shared/governance-proof-v2.js';
 
 /**
  * Rail-parameterized GovernanceProofV2 client.

@@ -27,6 +27,9 @@ module.exports = {
       accounts: process.env.FILECOIN_PRIVATE_KEY ? [process.env.FILECOIN_PRIVATE_KEY] : [],
       chainId: 314159,
     },
+    // DEPRECATED: legacy X Layer mainnet entry with the shared testnet key.
+    // Use xlayerMainnet (dedicated deployer key, scripted preflight) for all
+    // new mainnet work. Retained only so historical deploy commands still run.
     xlayer: {
       url: process.env.XLAYER_RPC_URL || 'https://rpc.xlayer.tech',
       accounts: process.env.XLAYER_PRIVATE_KEY ? [process.env.XLAYER_PRIVATE_KEY] : [],

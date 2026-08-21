@@ -5,6 +5,11 @@ pragma solidity ^0.8.19;
  * @title AI Governance Storage Contract
  * @dev Smart contract for storing AI agent governance data on Filecoin Virtual Machine (FVM)
  * @notice This contract provides immutable storage for AI agent decisions, policy checks, and audit trails
+ *
+ * STATUS: legacy FVM-era audit storage. Live on X Layer Testnet (chain 1952)
+ * as part of the demo path; deliberately NOT carried to X Layer Mainnet —
+ * mainnet anchoring uses GovernanceProofV2's commitment-only design instead
+ * of on-chain readable payloads. See contracts/deployments/1952.json.
  */
 contract AIGovernanceStorage {
 

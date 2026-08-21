@@ -5,7 +5,7 @@ import {
   hashCanonicalJson,
   hashPolicyContent,
   policySetFromChecks,
-} from '../../src/shared/zerog-proof-v2.js';
+} from '../../src/shared/governance-proof-v2.js';
 
 const contractAddress = '0x0000000000000000000000000000000000000001';
 const chainId = 16661n;

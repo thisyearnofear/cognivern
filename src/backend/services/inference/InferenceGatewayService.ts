@@ -61,7 +61,7 @@ import { ModelPricingService } from "./ModelPricingService.js";
 import { listBackends, resolveBackend } from "./backendRegistry.js";
 import { recordGatewayInference } from "@backend/observability/gateway.js";
 import { ZERO_USAGE, type InferenceBackend, type UpstreamUsage } from "./types.js";
-import { hashPolicyContent } from "../../../shared/zerog-proof-v2.js";
+import { hashPolicyContent } from "../../../shared/governance-proof-v2.js";
 
 const EXCERPT_MAX_CHARS = Number(process.env.GATEWAY_EXCERPT_MAX_CHARS || 500);
 /** Hard ceiling on requested output tokens when neither client nor program set one. */
