@@ -126,6 +126,19 @@ const PROOF_ABI = [
   },
 ];
 
+/**
+ * Normalize anchor inputs through a JSON round-trip before commitment
+ * building. Canonical JSON forbids `undefined`, and run evidence is persisted
+ * via JSON serialization anyway — so any receipt a verifier later reads has
+ * absent optional keys (e.g. `a2aTraceId`) dropped. Hashing the sanitized
+ * form keeps the posted commitment byte-identical to what verifiers recompute
+ * from stored artifacts.
+ */
+function anchorSafeJson(value: unknown): unknown {
+  if (value === undefined || value === null) return value ?? null;
+  return JSON.parse(JSON.stringify(value));
+}
+
 export class GovernanceProofV2Service {
   protected readonly config: GovernanceProofV2RailConfig;
   private readonly provider?: ethers.JsonRpcProvider;
@@ -199,9 +212,9 @@ export class GovernanceProofV2Service {
         chainId: BigInt(config.chainId),
         runId: input.runId,
         evidence: {
-          action: input.action as never,
-          policyChecks: input.policyChecks as never,
-          evidence: (input.evidence ?? {}) as never,
+          action: anchorSafeJson(input.action) as never,
+          policyChecks: anchorSafeJson(input.policyChecks) as never,
+          evidence: anchorSafeJson(input.evidence ?? {}) as never,
         },
         policySet: input.policySet || policySetFromChecks(input.policyChecks),
         decision: input.decision,
