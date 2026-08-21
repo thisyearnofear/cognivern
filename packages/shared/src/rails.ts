@@ -52,8 +52,8 @@ export const RAILS: readonly RailDescriptor[] = [
     explorerTxBase: "https://www.oklink.com/xlayer",
     explorerAddressBase: "https://www.oklink.com/xlayer",
     capabilities: ["native_transfer", "governance_anchor"],
-    status: "configured",
-    notes: "Mainnet execution rail (chainId 196); GovernanceProofV2 anchor pending deployment — see docs/XLAYER_PROOF_V2.md.",
+    status: "live",
+    notes: "Mainnet execution rail (chainId 196); GovernanceProofV2 anchor live at 0xCDb7aD5dF5295C35cfd872Ee01eA01D51EC185c1 — see docs/XLAYER_PROOF_V2.md.",
   },
   {
     id: "arbitrum-sepolia",

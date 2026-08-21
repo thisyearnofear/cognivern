@@ -8,15 +8,15 @@
     {
       "name": "GovernanceProofV2",
       "purpose": "governance_proof",
-      "address": null,
-      "deployTx": null,
+      "address": "0xCDb7aD5dF5295C35cfd872Ee01eA01D51EC185c1",
+      "deployTx": "0xd5c452ee8342532d0dee490d08cdc7637b61d621205fa4bdc9976f27d9e39cfb",
       "schemaVersion": 2,
-      "status": "planned",
+      "status": "active",
       "roles": {
-        "admin": null,
-        "poster": null
+        "admin": "0xEa480C8CD699B84C7775fe1b1878eBc3bCb1cb77",
+        "poster": "0xd0aeA50F5428b85f60f4F250d0978741af5D1a2a"
       },
-      "notes": "Deployment scripted and preflightable; awaiting funded keys. Fill address/deployTx/roles from the deploy output and flip status to active. See docs/XLAYER_PROOF_V2.md."
+      "notes": "Deployed 2026-08-21; admin matches the 0G Mainnet control address. Backend anchor pending XLAYER_PROOF_VERSION=v2 rollout. See docs/XLAYER_PROOF_V2.md."
     }
   ]
 }

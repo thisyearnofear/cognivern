@@ -9,18 +9,20 @@ rails can never collide.
 
 ## Deployment status
 
-**Planned — runbook complete, deployment pending.** Fill this table in at
-deploy time and mirror the verified values here before enabling the backend
-flag:
+Machine-readable record: `contracts/deployments/196.json` (kept in sync with
+the table below; the receipt verifier cross-checks it).
+
+The V2 contract is live on **X Layer Mainnet (chain ID `196`)**, deployed
+2026-08-21:
 
 | Item | Verified value |
 | --- | --- |
-| Contract | `<deployed-v2-address>` |
-| Deployment transaction | `<deploy-tx-hash>` |
-| Explorer | [OKLink](https://www.oklink.com/xlayer) |
+| Contract | `0xCDb7aD5dF5295C35cfd872Ee01eA01D51EC185c1` |
+| Deployment transaction | `0xd5c452ee8342532d0dee490d08cdc7637b61d621205fa4bdc9976f27d9e39cfb` |
+| Explorer | [OKLink](https://www.oklink.com/xlayer/address/0xCDb7aD5dF5295C35cfd872Ee01eA01D51EC185c1) |
 | Schema | `2` |
-| Admin | `<multisig-or-hardware-wallet-address>` |
-| Dedicated poster | `<dedicated-proof-poster-address>` |
+| Admin | `0xEa480C8CD699B84C7775fe1b1878eBc3bCb1cb77` |
+| Dedicated poster | `0xd0aeA50F5428b85f60f4F250d0978741af5D1a2a` |
 
 The deployer, admin, and poster must be separate addresses. Only the dedicated
 poster key is installed in the backend runtime; the admin is an infrequently
