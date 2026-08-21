@@ -148,6 +148,17 @@ export interface ZeroGProofV2Receipt {
   network: "0g-mainnet";
 }
 
+export interface XLayerProofV2Receipt {
+  proofId: string;
+  runIdHash: string;
+  evidenceHash: string;
+  policySetHash: string;
+  txHash: string;
+  blockNumber: number | null;
+  chainId: number;
+  network: "xlayer-mainnet";
+}
+
 export interface CreRun {
   runId: string;
   projectId: string;
@@ -211,6 +222,7 @@ export interface CreRun {
     };
     traceId?: string;
     zeroGProofV2?: ZeroGProofV2Receipt;
+    xlayerProofV2?: XLayerProofV2Receipt;
   };
   events?: CreRunEvent[];
   steps: CreStepLog[];

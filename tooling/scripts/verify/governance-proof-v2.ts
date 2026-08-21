@@ -7,6 +7,37 @@ import {
   type ZeroGV2PolicySet,
 } from '../../../src/shared/zerog-proof-v2.js';
 
+/**
+ * Read-only GovernanceProofV2 receipt verifier. Rail-aware: the same contract
+ * and canonicalization run on 0G Mainnet and X Layer Mainnet, with the proof
+ * ID domain-separated by chainId + contract address.
+ *
+ * Usage:
+ *   pnpm zerog:proof:verify <evidence.json> <policy-set.json> <receipt.json>
+ *   pnpm xlayer:proof:verify <evidence.json> <policy-set.json> <receipt.json>
+ */
+
+type RailId = '0g-mainnet' | 'xlayer-mainnet';
+
+const RAILS: Record<RailId, { chainId: bigint; rpcUrl: string; label: string }> = {
+  '0g-mainnet': {
+    chainId: 16661n,
+    rpcUrl:
+      process.env.ZEROG_PROOF_V2_RPC_URL ||
+      process.env.ZEROG_MAINNET_RPC_URL ||
+      'https://evmrpc.0g.ai',
+    label: '0G Mainnet',
+  },
+  'xlayer-mainnet': {
+    chainId: 196n,
+    rpcUrl:
+      process.env.XLAYER_PROOF_V2_RPC_URL ||
+      process.env.XLAYER_MAINNET_RPC_URL ||
+      'https://rpc.xlayer.tech',
+    label: 'X Layer Mainnet',
+  },
+};
+
 type Receipt = {
   chainId: number | string;
   contractAddress: string;
@@ -14,9 +45,6 @@ type Receipt = {
   txHash?: string;
 };
 
-const RPC_URL =
-  process.env.ZEROG_PROOF_V2_RPC_URL || process.env.ZEROG_MAINNET_RPC_URL || 'https://evmrpc.0g.ai';
-const EXPECTED_CHAIN_ID = 16661n;
 const PROOF_ABI = [
   'function SCHEMA_VERSION() view returns (uint8)',
   'function computeProofId(bytes32,bytes32,bytes32,uint8,uint64) view returns (bytes32)',
@@ -27,7 +55,7 @@ const PROOF_ABI = [
 
 function usage(): never {
   throw new Error(
-    'Usage: pnpm zerog:proof:verify <evidence.json> <policy-set.json> <receipt.json>',
+    'Usage: tsx governance-proof-v2.ts [--rail 0g-mainnet|xlayer-mainnet] <evidence.json> <policy-set.json> <receipt.json>',
   );
 }
 
@@ -35,9 +63,39 @@ function readJson<T>(file: string): T {
   return JSON.parse(fs.readFileSync(file, 'utf8')) as T;
 }
 
+function parseArgs(argv: string[]): { rail: RailId; files: string[] } {
+  let rail: RailId = '0g-mainnet';
+  const files: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--rail') {
+      const value = argv[++i];
+      if (value !== '0g-mainnet' && value !== 'xlayer-mainnet') {
+        throw new Error(`Unknown rail: ${value}. Expected one of: ${Object.keys(RAILS).join(', ')}`);
+      }
+      rail = value;
+      continue;
+    }
+    if (arg.startsWith('--rail=')) {
+      const value = arg.slice('--rail='.length);
+      if (value !== '0g-mainnet' && value !== 'xlayer-mainnet') {
+        throw new Error(`Unknown rail: ${value}. Expected one of: ${Object.keys(RAILS).join(', ')}`);
+      }
+      rail = value;
+      continue;
+    }
+    files.push(arg);
+  }
+  return { rail, files };
+}
+
 async function main() {
-  const [evidenceFile, policyFile, receiptFile] = process.argv.slice(2);
+  const { rail, files } = parseArgs(process.argv.slice(2));
+  const [evidenceFile, policyFile, receiptFile] = files;
   if (!evidenceFile || !policyFile || !receiptFile) usage();
+
+  const railConfig = RAILS[rail];
+  const EXPECTED_CHAIN_ID = railConfig.chainId;
 
   const evidence = readJson<ZeroGV2EvidenceBundle>(evidenceFile);
   const policySet = readJson<ZeroGV2PolicySet>(policyFile);
@@ -58,10 +116,12 @@ async function main() {
   }
 
   const contractAddress = assertAddress('receipt.contractAddress', receipt.contractAddress);
-  const provider = new ethers.JsonRpcProvider(RPC_URL, Number(EXPECTED_CHAIN_ID));
+  const provider = new ethers.JsonRpcProvider(railConfig.rpcUrl, Number(EXPECTED_CHAIN_ID));
   const network = await provider.getNetwork();
   if (network.chainId !== EXPECTED_CHAIN_ID) {
-    throw new Error(`Expected 0G Mainnet chain ${EXPECTED_CHAIN_ID}, got ${network.chainId}`);
+    throw new Error(
+      `Expected ${railConfig.label} chain ${EXPECTED_CHAIN_ID}, got ${network.chainId}`,
+    );
   }
 
   const contract = new ethers.Contract(contractAddress, PROOF_ABI, provider);
@@ -129,6 +189,7 @@ async function main() {
     JSON.stringify(
       {
         verified: true,
+        rail,
         chainId: Number(EXPECTED_CHAIN_ID),
         contractAddress,
         proofId: commitments.proofId,

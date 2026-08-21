@@ -10,6 +10,11 @@ if (process.env.ZEROG_MAINNET_ENV_FILE) {
     path: path.resolve(root, process.env.ZEROG_MAINNET_ENV_FILE),
   });
 }
+if (process.env.XLAYER_MAINNET_ENV_FILE) {
+  require('dotenv').config({
+    path: path.resolve(root, process.env.XLAYER_MAINNET_ENV_FILE),
+  });
+}
 require('dotenv').config({ path: path.resolve(root, '.env.local') });
 require('dotenv').config({ path: path.resolve(root, '.env') });
 
@@ -30,7 +35,17 @@ module.exports = {
     xlayerTestnet: {
       url: process.env.XLAYER_TESTNET_RPC_URL || 'https://testrpc.xlayer.tech',
       accounts: process.env.XLAYER_PRIVATE_KEY ? [process.env.XLAYER_PRIVATE_KEY] : [],
-      chainId: 195,
+      chainId: 1952,
+    },
+    xlayerMainnet: {
+      // X Layer Mainnet — chainId 196. The GovernanceProofV2 anchor requires
+      // an explicitly dedicated deployment key; never fall back to the shared
+      // XLAYER_PRIVATE_KEY used for testnet.
+      url: process.env.XLAYER_MAINNET_RPC_URL || 'https://rpc.xlayer.tech',
+      accounts: process.env.XLAYER_MAINNET_DEPLOYER_PRIVATE_KEY
+        ? [process.env.XLAYER_MAINNET_DEPLOYER_PRIVATE_KEY]
+        : [],
+      chainId: 196,
     },
     mantle: {
       url: process.env.MANTLE_RPC_URL || 'https://rpc.mantle.xyz',

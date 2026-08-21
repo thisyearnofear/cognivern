@@ -43,6 +43,7 @@ data/
 .env.production.local
 .env.vercel
 .env.0g-mainnet
+.env.xlayer-mainnet
 !.env.example
 *.pem
 *.key

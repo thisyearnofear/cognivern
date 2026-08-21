@@ -1,6 +1,7 @@
 import { AgentAction, PolicyCheck } from "@backend/types/Agent.js";
 import logger from "@backend/utils/logger.js";
 import { sharedZeroGProofService } from "@backend/services/blockchain/ZeroGProofService.js";
+import { sharedXLayerProofV2Service } from "@backend/services/blockchain/XLayerProofV2Service.js";
 import {
   defaultAuditEvidenceSinks,
   fanOutEvidenceAnchors,
@@ -548,6 +549,58 @@ export class AuditLogService {
         })
         .catch((error) => {
           logger.warn("0G GovernanceProofV2 anchor failed (non-fatal)", {
+            runId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+    }
+
+    // X Layer Mainnet anchor — the same canonical commitments on the
+    // GovernanceProofV2 deployment on chain 196. Opt-in, fire-and-forget, and
+    // independent of the 0G anchor so either rail can fail without affecting
+    // the other, governance, or audit persistence.
+    if (process.env.XLAYER_PROOF_VERSION === "v2" && sharedXLayerProofV2Service.isEnabled()) {
+      const decision =
+        options?.decision || inferGovernanceDecision(allowed, policyChecks);
+      const decisionTimestamp = Math.floor(
+        new Date(action.timestamp || now).getTime() / 1000,
+      );
+      sharedXLayerProofV2Service
+        .recordDecision({
+          runId,
+          decision,
+          decisionTimestamp,
+          action,
+          policyChecks,
+          evidence: {
+            workflow: run.workflow,
+            evidenceHash: evidence.hash,
+            signature: evidence.signature || null,
+            signer: evidence.signer || null,
+            suspicion: options?.suspicion || null,
+            aiUsage: options?.aiUsage || null,
+            ...(traceId ? { traceId } : {}),
+          },
+        })
+        .then(async (proof) => {
+          if (!proof || !("proofId" in proof)) return;
+          run.evidence = {
+            ...(run.evidence || { hash: evidence.hash }),
+            xlayerProofV2: {
+              proofId: proof.proofId,
+              runIdHash: proof.runIdHash,
+              evidenceHash: proof.evidenceHash,
+              policySetHash: proof.policySetHash,
+              txHash: proof.txHash,
+              blockNumber: proof.blockNumber,
+              chainId: proof.chainId,
+              network: proof.network,
+            },
+          };
+          await this.creStore.replace(run);
+        })
+        .catch((error) => {
+          logger.warn("X Layer GovernanceProofV2 anchor failed (non-fatal)", {
             runId,
             error: error instanceof Error ? error.message : String(error),
           });

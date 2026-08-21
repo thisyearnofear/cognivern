@@ -11,6 +11,7 @@ import {
 } from "@backend/services/governance/PolicyService.js";
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 import { sharedZeroGProofService } from "@backend/services/blockchain/ZeroGProofService.js";
+import { sharedXLayerProofV2Service } from "@backend/services/blockchain/XLayerProofV2Service.js";
 
 const logger = new Logger("GovernanceController");
 import { PolicyEnforcementService } from "@backend/services/governance/PolicyEnforcementService.js";
@@ -76,11 +77,16 @@ export class GovernanceController {
   /**
    * Get 0G Chain proof integration info.
    * Public endpoint — lets anyone verify where governance proofs are recorded.
+   * `xlayerProofV2` is additive: it reports the X Layer Mainnet anchor rail
+   * without changing the existing top-level 0G fields.
    */
   async getZeroGProofInfo(req: Request, res: Response): Promise<void> {
     res.json({
       success: true,
-      data: sharedZeroGProofService.getInfo(),
+      data: {
+        ...sharedZeroGProofService.getInfo(),
+        xlayerProofV2: sharedXLayerProofV2Service.getInfo(),
+      },
       timestamp: new Date().toISOString(),
     });
   }
