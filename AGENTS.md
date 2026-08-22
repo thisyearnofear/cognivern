@@ -37,10 +37,20 @@ templates are referenced as `#daml:Main:SealedBidAuction` / `:Main:Bid` /
 If you rebuild for Devnet, **keep the package name `daml`** or those `#daml:`
 references break.
 
-## Process lesson
+## Process lessons
 
 Verify the running system before claiming it is broken. Read the existing docs first.
 A wrong "it's broken" diagnosis wastes far more than the two minutes it takes to check.
+
+**Commit attribution matters beyond GitHub's UI.** The repo-local identity is
+`thisyearnofear <74209106+thisyearnofear@users.noreply.github.com>` — note the
+numeric ID prefix. The legacy unprefixed form (`user@users.noreply.github.com`)
+does NOT link commits to the account: GitHub's `?author=` filter, contribution
+graphs, and any scoring/reputation tooling reading the API will see the work as
+unattributed (we measured the cost — a talent engine scored 6 months of
+shipping at 5 commits until attribution was fixed, see
+`P-U-C/talent-engine#3`). Never switch the user.email back to the unprefixed
+form, and check `git config user.email` in any fresh clone of this repo.
 
 ## Hackathon state (Aug 9 2026)
 
