@@ -12,9 +12,26 @@
  *   4. Returns the escrow ID and transaction as the confidential transfer
  */
 
-import { ReineiraSDK } from "@reineira-os/sdk";
+import type { ReineiraSDK } from "@reineira-os/sdk";
+import { createRequire } from "node:module";
 import { ethers } from "ethers";
 import logger from "@backend/utils/logger.js";
+
+/**
+ * @reineira-os-sdk@0.3.2 bundles its FHE loader with a tsup-style `__require`
+ * shim that only resolves when a real CJS `require` exists; under pure ESM it
+ * throws `Dynamic require of "@cofhe/sdk/node" is not supported` (see
+ * FHEClient.loadSdk in the published dist). The runtime check in that shim
+ * re-reads the global `require`, so installing one (before the module's first
+ * loadSdk call) restores the intended behaviour. @cofhe/sdk ships `.cjs`
+ * builds for every subpath, so the CJS load works.
+ */
+function installCjsInteropForReineira(): void {
+  const g = globalThis as { require?: NodeRequire };
+  if (typeof g.require === "undefined") {
+    g.require = createRequire(import.meta.url);
+  }
+}
 
 export interface ConfidentialPayrollRequest {
   /** Fhenix decisionId from ConfidentialSpendPolicy (compliance proof) */
@@ -93,6 +110,8 @@ export class PrivaraPayrollService {
     }
 
     try {
+      installCjsInteropForReineira();
+      const { ReineiraSDK } = await import("@reineira-os/sdk");
       this.sdk = await ReineiraSDK.create({
         privateKey: this.config.privateKey,
         rpcUrl: this.config.rpcUrl || "https://sepolia-rollup.arbitrum.io/rpc",
