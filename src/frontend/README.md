@@ -60,12 +60,14 @@ src/frontend/
 │   └── page.tsx                  # Public landing route
 ├── src/
 │   ├── components/
-│   │   ├── audit/                # AuditPage, decision detail panel
-│   │   ├── dashboard/            # Dashboard, stat cards, charts, quick check
+│   │   ├── audit/                # AuditPage + timeline-node, metrics, proof details
+│   │   ├── brand/                # EvidenceChain brand motif
+│   │   ├── dashboard/            # Dashboard + stats, activity, insights, next action
 │   │   ├── governance/           # GovernanceCheck (NL input, voice, results)
 │   │   ├── sealed-bid/           # Canton/FHE sealed-bid UI + party view
 │   │   ├── demo/                 # SpendFlowDemo (governed/ungoverned toggle)
 │   │   ├── layout/               # AppSidebar, DemoBanner, CommandPalette
+│   │   ├── landing/              # LandingPage, SponsorLanding
 │   │   ├── onboarding/           # OnboardingWizard
 │   │   ├── settings/             # SettingsPage, API key management
 │   │   ├── policies/             # Policy CRUD
@@ -73,6 +75,7 @@ src/frontend/
 │   ├── hooks/
 │   │   ├── use-api.ts            # SWR hooks for identities, audit logs, policies
 │   │   ├── use-auth.ts           # Auth login/logout/session management
+│   │   ├── use-count-up.ts       # Shared animated-counter hook
 │   │   ├── use-event-stream.ts   # SSE event stream hook
 │   │   ├── use-demo-simulator.ts # Demo mode real-time simulation
 │   │   └── use-voice-input.ts    # Web Speech API voice input
@@ -80,6 +83,7 @@ src/frontend/
 │   │   ├── api-client.ts         # Typed fetch wrapper for all API endpoints
 │   │   ├── normalizers.ts        # Data normalization (audit logs, decisions)
 │   │   ├── nav-items.ts          # Sidebar navigation structure
+│   │   ├── workspace-state.ts    # Dashboard adaptive state machine (see docs/ADAPTIVE_UX.md)
 │   │   ├── demo-data.ts          # Static demo data (agents, logs, policies)
 │   │   └── swr-config.ts         # SWR global configuration
 │   └── stores/

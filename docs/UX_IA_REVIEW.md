@@ -16,6 +16,11 @@ Integrate, Observability) or it should be a *view inside* an existing
 destination. This single test resolves most drift and is the discipline that
 keeps future features from re-bloating the nav.
 
+Companion contract: [`ADAPTIVE_UX.md`](./ADAPTIVE_UX.md) — how the UI adapts
+to workspace state (bounded, explainable, auditable), and the single-source
+`deriveWorkspaceState` rule that keeps the dashboard's adaptive surfaces from
+contradicting each other.
+
 ## What is already strong
 
 The primitives are in good shape and should be reused, not replaced:
@@ -131,3 +136,11 @@ Second pass (2026-08-24) — closing the execution gap:
   the chain of evidence (mandate → action → spend → evidence → record shield).
   It appears under the landing hero demo and on the `/sponsor` hero, so the
   product is recognizable in a screenshot. Honors `prefers-reduced-motion`.
+- **Adaptive contract + reconciliation.** `docs/ADAPTIVE_UX.md` states the
+  adaptation rule (adapt to workspace state, never inferred preference;
+  bounded, explainable, auditable). The dashboard's state machine moved to
+  `lib/workspace-state.ts` (`deriveWorkspaceState`) as the single source of
+  truth; `WorkspaceNextAction` is now a pure function of that state and only
+  renders in `operating`, resolving the earlier overlap where it competed
+  with `SetupChecklist` and `AttentionSummary`. Each state now has exactly
+  one primary object and at most one action.

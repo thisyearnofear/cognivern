@@ -1,11 +1,11 @@
 'use client';
 
-import { ArrowRight, CircleAlert, FileCheck2, KeyRound, Landmark, PlayCircle, ShieldCheck, Users } from 'lucide-react';
+import { ArrowRight, FileCheck2, Landmark, PlayCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { trackUxEvent } from '@/lib/ux-events';
-import type { FundedMandate } from '@/lib/api-client';
+import type { WorkspaceState } from '@/lib/workspace-state';
 
 type NextAction = {
   eyebrow: string;
@@ -13,104 +13,54 @@ type NextAction = {
   description: string;
   button: string;
   href: string;
-  icon: typeof ShieldCheck;
-  tone: 'primary' | 'attention' | 'neutral';
+  icon: typeof FileCheck2;
 };
 
 interface WorkspaceNextActionProps {
+  /**
+   * The shared workspace state. This card is a pure function of it, so it can
+   * never contradict the AttentionSummary status object — both read the same
+   * derivation (docs/ADAPTIVE_UX.md, "Reconciliation rule").
+   */
+  state: WorkspaceState;
   demoMode: boolean;
-  hasPolicy: boolean;
-  hasAgent: boolean;
-  hasApiKey: boolean;
-  hasGovernedRequest: boolean;
-  mandates: FundedMandate[];
-  attentionCount: number;
+  /** Observable fact for the operating-state forward action. */
+  mandateCount: number;
 }
 
-function chooseNextAction({
-  demoMode,
-  hasPolicy,
-  hasAgent,
-  hasApiKey,
-  hasGovernedRequest,
-  mandates,
-  attentionCount,
-}: WorkspaceNextActionProps): NextAction {
+/**
+ * The dashboard's single forward-looking action card.
+ *
+ * Division of labor with the status object (exactly one action per state):
+ *  - `setup`     → null. SetupChecklist owns the first screen.
+ *  - `attention` → null. AttentionSummary is the primary object and already
+ *                  carries the one action ("review decisions").
+ *  - `operating` → the forward-looking review of what the mandate produced.
+ *
+ * The card never re-derives its own setup ladder — that was the old source of
+ * contradiction with the checklist.
+ */
+function chooseNextAction({ state, demoMode, mandateCount }: WorkspaceNextActionProps): NextAction | null {
+  if (state !== 'operating') return null;
+
   if (demoMode) {
     return {
       eyebrow: 'Sample workspace',
-      title: 'Try a governed spend preview',
-      description: 'Explore the approval boundary with sample data. Nothing in demo mode moves real funds.',
+      title: 'Explore a governed spend preview',
+      description: 'See the approval boundary with sample data. Nothing in demo mode moves real funds.',
       button: 'Try the demo check',
       href: '/governance/check',
       icon: PlayCircle,
-      tone: 'neutral',
     };
   }
-  if (!hasPolicy) {
-    return {
-      eyebrow: 'Start with control',
-      title: 'Set your spending rules',
-      description: 'Give every governed identity a clear boundary before it can request capital.',
-      button: 'Create a policy',
-      href: '/policies',
-      icon: ShieldCheck,
-      tone: 'primary',
-    };
-  }
-  if (!hasAgent) {
-    return {
-      eyebrow: 'Connect the actor',
-      title: 'Register the system that will spend',
-      description: 'Create an API identity for the bot, script, or agent so its actions have an accountable trail.',
-      button: 'Add an identity',
-      href: '/agents/workshop',
-      icon: Users,
-      tone: 'primary',
-    };
-  }
-  if (!hasApiKey) {
-    return {
-      eyebrow: 'Make it usable',
-      title: 'Create a workspace API key',
-      description: 'Your agent uses a scoped key to call Cognivern without sharing a human session.',
-      button: 'Generate a key',
-      href: '/integrate',
-      icon: KeyRound,
-      tone: 'primary',
-    };
-  }
-  if (mandates.length === 0) {
+  if (mandateCount === 0) {
     return {
       eyebrow: 'Define the work',
       title: 'Create a spending mandate',
-      description: 'A mandate connects an objective, budget, agents, and success measures so spend can be reviewed as accountable work.',
+      description: 'A mandate connects an objective, budget, identities, and success measures so spend reviews as accountable work.',
       button: 'Open Spend & Outcomes',
       href: '/spend',
       icon: Landmark,
-      tone: 'primary',
-    };
-  }
-  if (!hasGovernedRequest) {
-    return {
-      eyebrow: 'Prove the loop',
-      title: 'Run your first governed check',
-      description: 'Preview one request through the policy boundary before connecting a production agent.',
-      button: 'Run a governance check',
-      href: '/governance/check',
-      icon: PlayCircle,
-      tone: 'primary',
-    };
-  }
-  if (attentionCount > 0) {
-    return {
-      eyebrow: 'Needs your review',
-      title: 'Resolve held or denied decisions',
-      description: 'Clear the decisions waiting for an operator before you allocate more capital.',
-      button: 'Review decisions',
-      href: '/audit?status=needs_attention',
-      icon: CircleAlert,
-      tone: 'attention',
     };
   }
   return {
@@ -120,29 +70,24 @@ function chooseNextAction({
     button: 'Open Spend & Outcomes',
     href: '/spend',
     icon: FileCheck2,
-    tone: 'neutral',
   };
 }
 
 export function WorkspaceNextAction(props: WorkspaceNextActionProps) {
   const router = useRouter();
   const action = chooseNextAction(props);
+  if (!action) return null;
   const Icon = action.icon;
-  const toneClasses = action.tone === 'attention'
-    ? 'border-amber-500/30 bg-amber-500/5'
-    : action.tone === 'primary'
-      ? 'border-primary/25 bg-primary/[.035]'
-      : 'border-border bg-card';
 
   return (
-    <section aria-label="Next workspace action" aria-live="polite" className={`rounded-xl border p-4 sm:p-5 ${toneClasses}`}>
+    <section aria-label="Next workspace action" aria-live="polite" className="rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${action.tone === 'attention' ? 'bg-amber-500/10 text-amber-600' : 'bg-primary/10 text-primary'}`}>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={action.tone === 'attention' ? 'outline' : 'secondary'}>{action.eyebrow}</Badge>
+            <Badge variant="secondary">{action.eyebrow}</Badge>
             <span className="text-[11px] text-muted-foreground">One next step</span>
           </div>
           <h2 className="mt-2 text-base font-semibold">{action.title}</h2>
@@ -150,7 +95,7 @@ export function WorkspaceNextAction(props: WorkspaceNextActionProps) {
         </div>
         <Button
           size="sm"
-          variant={action.tone === 'attention' ? 'outline' : 'default'}
+          variant="default"
           className="shrink-0 gap-1.5"
           onClick={() => {
             trackUxEvent('primary_action_clicked', 'workspace_next_action', action.title);

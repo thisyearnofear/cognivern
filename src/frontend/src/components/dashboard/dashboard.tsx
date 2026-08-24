@@ -6,15 +6,17 @@ import type { AuditLog } from '@cognivern/shared';
 import { Button } from '@/components/ui/button';
 import { AttentionSummary } from '@/components/ui/attention-summary';
 import { useRouter } from 'next/navigation';
-import { useAgents, useAuditLogs, usePolicies, useNetworkStatus } from '@/hooks/use-api';
+import { useAgents, useAuditLogs, usePolicies, useMandates, useNetworkStatus } from '@/hooks/use-api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useDemoStore } from '@/stores/demo-store';
 import useSWR from 'swr';
 import { apiClient } from '@/lib/api-client';
 import { trackUxEvent } from '@/lib/ux-events';
+import { deriveWorkspaceState } from '@/lib/workspace-state';
 import { QuickCheck } from './quick-check';
 import { normalizeAuditLogs, computeAverageLatency } from '@/lib/normalizers';
 import { SetupChecklist } from './setup-checklist';
+import { WorkspaceNextAction } from './workspace-next-action';
 import { DashboardStats } from './dashboard-stats';
 import { RecentActivity } from './recent-activity';
 import { OperatingInsights } from './operating-insights';
@@ -22,10 +24,12 @@ import type { DecisionFilter } from './decision-chart';
 
 /**
  * Dashboard home. The first screen has one job at a time: finish setup,
- * resolve attention, or confirm that governance is steady. Detailed operating
- * data (charts, identities, technical signals) lives behind the Operating
- * insights disclosure so it never competes with that job.
- * See docs/UX_IA_REVIEW.md.
+ * resolve attention, or confirm that governance is steady. The state machine
+ * is derived once via deriveWorkspaceState (lib/workspace-state) and every
+ * adaptive surface on this page consumes it, so they can never contradict
+ * each other. Detailed operating data (charts, identities, technical signals)
+ * lives behind the Operating insights disclosure so it never competes with
+ * that job. See docs/ADAPTIVE_UX.md and docs/UX_IA_REVIEW.md.
  */
 export function Dashboard() {
   const router = useRouter();
@@ -43,6 +47,7 @@ export function Dashboard() {
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
   const { data: logs, isLoading: logsLoading, error: logsError } = useAuditLogs();
   const { data: policies, isLoading: policiesLoading } = usePolicies();
+  const { data: mandates } = useMandates();
   const { data: apiKeysResponse, isLoading: apiKeysLoading } = useSWR(
     isAuthenticated ? 'dashboard-api-keys' : null,
     () => apiClient.getApiKeys(),
@@ -90,25 +95,25 @@ export function Dashboard() {
   const decisions = normalizedLogs.length;
   const blockedCount = normalizedLogs.filter((l) => l.decision === 'denied').length;
   const heldCount = normalizedLogs.filter((l) => l.decision === 'held').length;
-  const attentionCount = blockedCount + heldCount;
   const avgLatency = computeAverageLatency(normalizedLogs);
   const hasActivePolicy = (policies || []).some((policy) => policy.status === 'active');
   const hasActiveAgent = agentList.some((agent) => agent.status !== 'inactive');
   const hasApiKey = (apiKeysResponse?.data || []).some((key) => !key.revokedAt);
   const setupLoading = agentsLoading || policiesLoading || logsLoading || apiKeysLoading;
-  // Setup is the primary journey only until the workspace has proved the
-  // loop end-to-end. Once policy, identity, key, and first decision exist,
-  // hand the first screen back to operating status and the next useful review.
-  // This prevents the checklist and WorkspaceNextAction from competing.
-  const showSetup =
-    isAuthenticated &&
-    !setupLoading &&
-    (!hasActivePolicy || !hasActiveAgent || !hasApiKey || normalizedLogs.length === 0);
-  const workspaceState = showSetup
-    ? 'setup'
-    : attentionCount > 0
-      ? 'attention'
-      : 'operating';
+  // The single adaptive source of truth for this page (docs/ADAPTIVE_UX.md).
+  // SetupChecklist, AttentionSummary, and WorkspaceNextAction all consume this
+  // one derivation so the first screen always has exactly one job.
+  const workspaceState = deriveWorkspaceState({
+    isAuthenticated,
+    loading: setupLoading,
+    hasActivePolicy,
+    hasActiveAgent,
+    hasApiKey,
+    hasGovernedRequest: normalizedLogs.length > 0,
+    heldCount,
+    blockedCount,
+  });
+  const showSetup = workspaceState === 'setup';
 
   // Count decisions carrying a real on-chain governance-record tx (mirrors the
   // audit page's getOnChainTxHash: top-level or nested data.txHash). Real data
@@ -217,6 +222,16 @@ export function Dashboard() {
           }
         />
       )}
+
+      {/* The single forward-looking action card. It is a pure function of
+          workspaceState: rendered only in `operating` (setup and attention
+          each have their own primary object), so the first screen never
+          shows two competing actions. */}
+      <WorkspaceNextAction
+        state={workspaceState}
+        demoMode={demoMode}
+        mandateCount={(mandates || []).length}
+      />
 
       {/* Operational overview */}
       <DashboardStats

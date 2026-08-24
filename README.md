@@ -61,6 +61,8 @@ For the public/demo path, most optional integrations can remain disabled. See th
 - [Developer Guide](./docs/DEV.md) — full architecture, API reference, integrations, and limitations
 - [Deployment](./docs/DEPLOYMENT.md) — generic deployment and production configuration
 - [Tester Guide](./docs/TESTER_GUIDE.md) — canonical live/demo product walkthrough
+- [UX & IA Review](./docs/UX_IA_REVIEW.md) — information architecture rules and applied changes
+- [Adaptive UX](./docs/ADAPTIVE_UX.md) — how the UI adapts to workspace state (bounded, explainable, auditable)
 - [Canton](./docs/CANTON.md) — Canton/Daml model and DevNet runbook
 - [HydraDB](./docs/HYDRADB.md) — optional cross-source retrieval integration
 - [Agentic capital thesis](./docs/AGENTIC_CAPITAL_THESIS.md) — funded mandates, attribution, outcomes, and capital allocation roadmap
