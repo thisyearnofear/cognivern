@@ -16,6 +16,29 @@ This directory contains Cognivern's Solidity projects and Hardhat configuration.
 
 The root `contracts/`, `contracts/fhenix/`, and `contracts/flare/` Hardhat projects use different compiler/plugin configurations. Use the matching config explicitly.
 
+## Contract test suites — current state (2026-08-24 triage)
+
+The `fhenix/` and `flare/` suites are **dormant**: no CI workflow runs them
+(CI covers backend + frontend only), and they have not executed since the
+August submissions. Triage found two breakages, both fixed:
+
+1. `chai` was never a root dependency, and with pnpm's isolated linker the
+   test files' bare `import { expect } from "chai"` could not resolve it.
+   Pinned `chai@^4` + `@types/chai@^4` as root devDependencies (matching
+   `hardhat-chai-matchers`' peer range).
+2. `@nomicfoundation/hardhat-toolbox@6` dropped the
+   `hardhat-toolbox/network-helpers` subpath; tests now import
+   `@nomicfoundation/hardhat-network-helpers` directly (added as a root
+   devDependency).
+
+**Remaining known gap:** `hardhat-network-helpers` performs a legacy
+`hardhat/plugins` directory import that Node rejects because the repo root is
+`"type": "module"`. Suites therefore still fail at module load. To revive
+them: run the tests in CJS mode (e.g. a contracts-scoped `tsconfig` with
+`module: commonjs` and `.cts`/`.cjs` test files, mirroring the flare suite's
+`.cjs` shape) or pin the hardhat+toolbox pair to the last-known-good set from
+the August submissions. Not prioritized — CI never gated on these suites.
+
 ## Validate changes
 
 Core contracts:

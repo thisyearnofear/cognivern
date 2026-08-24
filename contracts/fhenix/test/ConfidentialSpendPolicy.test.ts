@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import hre from "hardhat";
-import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("ConfidentialSpendPolicy", function () {
   async function deployFixture() {

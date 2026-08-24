@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const hre = require("hardhat");
 const {
   loadFixture,
-} = require("@nomicfoundation/hardhat-toolbox/network-helpers");
+} = require("@nomicfoundation/hardhat-network-helpers");
 
 const OP_TYPE_SPEND_POLICY = hre.ethers.encodeBytes32String("SPEND_POLICY");
 const OP_REGISTER = hre.ethers.encodeBytes32String("REGISTER_POLICY");
