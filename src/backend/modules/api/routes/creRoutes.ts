@@ -31,19 +31,12 @@ export function createCreRoutes(
   router.post("/cre/runs/:runId/cancel", (req, res) =>
     creController.cancelRun(req, res),
   );
-  router.post("/cre/runs/:runId/retry", (req, res) =>
-    creController.retryRun(req, res),
-  );
   router.post("/cre/runs/:runId/approval", (req, res) =>
     creController.submitApproval(req, res),
   );
   router.post("/cre/runs/:runId/plan", (req, res) =>
     creController.updateRunPlan(req, res),
   );
-  router.post("/cre/forecast", (req, res) =>
-    creController.triggerForecast(req, res),
-  );
-
   // Project discovery routes — aliased under /cre/projects for the CRE
   // namespace. These delegate to IngestController which owns the project
   // registry. Listed in PUBLIC_API_PATHS as /cre/projects.

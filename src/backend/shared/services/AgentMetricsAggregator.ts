@@ -270,7 +270,7 @@ export class AgentMetricsAggregator {
         agentName: agent.name,
         agentType: agent.type,
         status: agent.status,
-        ecosystem: ((agent as Record<string, unknown>).ecosystem as string) || "sapience",
+        ecosystem: ((agent as Record<string, unknown>).ecosystem as string) || "cognivern",
 
         // Performance metrics from trading history
         totalTrades: performance.totalTrades,

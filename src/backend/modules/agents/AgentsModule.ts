@@ -123,43 +123,6 @@ export class AgentsModule extends BaseService {
     // Load persisted agents from database first
     await this.loadAgentsFromDb();
 
-    const sapienceEnabled =
-      (process.env.SAPIENCE_ENABLED || "false").toLowerCase() === "true";
-
-    if (sapienceEnabled) {
-      try {
-        const { SapienceTradingAgent } = await import(
-          "./implementations/SapienceTradingAgent.js"
-        );
-
-        // Initialize Sapience Trading Agent — every external action
-        // (forecast, trade) now goes through Cognivern's governance pipeline.
-        const sapienceAgent = new SapienceTradingAgent(
-          "Sapience Forecasting Agent",
-          {
-            maxTradeSize: 1000,
-            riskTolerance: 0.1,
-            tradingPairs: ["ETH/USD", "BTC/USD"], // Can be market IDs
-            strategies: ["forecasting"],
-            governanceRules: [],
-          },
-        );
-
-        // Register agents
-        this.agents.set(sapienceAgent.getId(), sapienceAgent);
-        this.logger.info(
-          "SapienceTradingAgent initialized and added to registry",
-        );
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        this.logger.error("Failed to lazy-load SapienceTradingAgent:", err);
-      }
-    } else {
-      this.logger.info(
-        "SapienceTradingAgent disabled (set SAPIENCE_ENABLED=true to enable)",
-      );
-    }
-
     // Initialize all agents
     for (const [agentId, agent] of this.agents) {
       try {

@@ -401,34 +401,19 @@ Dependencies: `@ledgerhq/device-management-kit`, `@ledgerhq/device-signer-kit-et
 
 ### Native Agents
 
-Cognivern's native agents, including `SapienceTradingAgent` and
-`UserTradingAgent`, route actions through the same
-`/api/governance/evaluate → /api/spend/preview → /api/spend` flow used by
-external API callers. Trading is one implementation example, not the strategic
-center of the product. The durable abstraction is a funded mandate whose actions
-share one policy engine, one execution boundary, and one evidence trail.
-
-#### Sapience Trading Cycle
-
-`SapienceTradingAgent.runCycleWithGovernance()` is the canonical entry point:
-
-1. **Fetch condition** — Sapience GraphQL for an open, public condition
-2. **Generate forecast** — multi-provider LLM produces probability + reasoning
-3. **Governance: forecast attestation** — `GovernanceClient.evaluate()` posts to `/api/governance/evaluate`. Policy blocks if gas cost > $1
-4. **Submit attestation** — on approval, EAS attestation published on Arbitrum
-5. **Fetch market price** — if confidence ≥ 0.6, get YES/NO price from Sapience
-6. **Compute edge** — if `|edge| ≤ 0.1`, skip trade
-7. **Governance: trade preview** — `GovernanceClient.previewSpend()` with 10 USDe. Policy enforces vendor, asset, per-trade cap (50 USDe), daily cap (200 USDe), confidence ≥ 0.3, forecast < 1h old, human confirm for ≥ 10 USDe
-8. **Human confirmation gate** — if required, looks for `SAPIENCE_HUMAN_CONFIRM_TOKEN`. Absent → trade held
-9. **Execute on Sapience** — `SapienceService.executeTrade()` calls `prepareForTrade` then `mint`
-10. **Verify audit** — `GovernanceClient.recentAudit()` confirms trade was logged
+Cognivern's native agents, including `UserTradingAgent`, route actions through
+the same `/api/governance/evaluate → /api/spend/preview → /api/spend` flow used
+by external API callers. Trading is one implementation example, not the
+strategic center of the product. The durable abstraction is a funded mandate
+whose actions share one policy engine, one execution boundary, and one evidence
+trail.
 
 #### Failure Modes
 
-- **Governance API unreachable** — agent fails closed. No trade executes.
-- **Preview denied** — trade not executed, denial recorded in audit log
-- **Held for confirmation** — trade not executed, hold recorded. Operator sets `SAPIENCE_HUMAN_CONFIRM_TOKEN` or confirms via UI
-- **LLM providers exhausted** — falls back to 50% probability, typically no edge → no trade
+- **Governance API unreachable** — agent fails closed. No action executes.
+- **Preview denied** — action not executed, denial recorded in audit log
+- **Held for confirmation** — action not executed, hold recorded. Operator sets
+  `COGNIVERN_HUMAN_CONFIRM_TOKEN` or confirms via UI
 
 #### Configuration
 
@@ -436,8 +421,8 @@ share one policy engine, one execution boundary, and one evidence trail.
 | ------------------------------ | ----------------------- | ----------------------------------------------- |
 | `COGNIVERN_SELF_BASE_URL`      | `http://localhost:3000` | URL agents use to call their own governance API |
 | `COGNIVERN_SERVICE_API_KEY`    | unset                   | Scoped cvn_ key for agents' governance calls    |
-| `SAPIENCE_HUMAN_CONFIRM_TOKEN` | unset                   | Static token for trades ≥ 10 USDe               |
-| `SAPIENCE_ENABLED`             | `false`                 | Toggle Sapience agent registration on startup   |
+| `COGNIVERN_HUMAN_CONFIRM_TOKEN` | unset                  | Static token for spends requiring human confirm |
+| `AGENTS_ENABLED`               | `false`                 | Toggle background native agent loops on startup |
 
 ### Mode System
 
@@ -500,7 +485,6 @@ OTLP-compatible backend).
 | LLM provider call        | `llm.provider.<name>`           | `MultiModelRouter.ts`         |
 | Governance decision      | `governance.evaluate_decision`  | `PolicyEnforcementService.ts` |
 | Audit log entry          | `audit.log_action`              | `AuditLogService.ts`          |
-| Agent cycle              | `agent.sapience.forecast_cycle` | `SapienceTradingAgent.ts`     |
 
 Each span carries attributes (provider, model, tokens, cost, outcome,
 suspicion score, etc.) and the trace is nested so a governance decision

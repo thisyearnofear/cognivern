@@ -207,7 +207,7 @@ export class SpendController {
     }
 
     const configuredToken =
-      process.env.COGNIVERN_HUMAN_CONFIRM_TOKEN || process.env.SAPIENCE_HUMAN_CONFIRM_TOKEN;
+      process.env.COGNIVERN_HUMAN_CONFIRM_TOKEN;
     const token = payload.humanConfirmationToken;
     const tokenVerified = Boolean(
       token &&

@@ -1,5 +1,4 @@
 import logger from "@backend/utils/logger.js";
-import { MarketCondition } from "./ai/AutomatedForecastingService.js";
 
 export interface MarketData {
   symbol: string;
@@ -350,28 +349,4 @@ export class MarketDataService {
     });
   }
 
-  /**
-   * Convert Sapience market conditions to standardized format
-   */
-  sapienceConditionToMarketData(condition: MarketCondition): MarketData {
-    return {
-      symbol: condition.id.substring(0, 8).toUpperCase(), // Shorten condition ID
-      price: 1, // Prediction markets typically have $1 face value
-      volume: Math.random() * 100000 + 10000, // $10K-$110K volume
-      change24h: (Math.random() - 0.5) * 5, // ±2.5%
-      marketCap: 0, // Prediction markets don't have market cap
-      timestamp: new Date(condition.endTime * 1000).toISOString(),
-    };
-  }
-
-  /**
-   * Get market data for all active Sapience conditions
-   */
-  async getSapienceMarketData(
-    conditions: MarketCondition[],
-  ): Promise<MarketData[]> {
-    return conditions.map((condition) =>
-      this.sapienceConditionToMarketData(condition),
-    );
-  }
 }

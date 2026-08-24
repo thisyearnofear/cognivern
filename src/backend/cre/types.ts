@@ -112,9 +112,6 @@ export interface CreRunPlan {
 export interface CreArtifact {
   id: string;
   type:
-    | 'sapience_conditions'
-    | 'chainlink_price_feeds'
-    | 'llm_forecast'
     | 'attestation_request'
     | 'attestation_result'
     | 'receipt_verification'
@@ -227,33 +224,6 @@ export interface CreRun {
   events?: CreRunEvent[];
   steps: CreStepLog[];
   artifacts: CreArtifact[];
-}
-
-export interface SapienceCondition {
-  id: string;
-  question: string;
-  shortName?: string | null;
-  endTime: number;
-}
-
-export interface PriceFeedReading {
-  feedName: string;
-  feedAddress: `0x${string}`;
-  value: string;
-  decimals?: number;
-  updatedAt?: string;
-}
-
-export interface ForecastInput {
-  condition: SapienceCondition;
-  priceFeeds: PriceFeedReading[];
-}
-
-export interface ForecastOutput {
-  probability: number; // 0-100
-  reasoning: string;
-  model: string;
-  provider: string;
 }
 
 export interface AttestationRequest {

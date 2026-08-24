@@ -68,13 +68,6 @@ interface ControllerRegistry {
   agents: AgentsController;
   governance: GovernanceController;
   metrics: MetricsController;
-  sapience?: {
-    getStatus(req: express.Request, res: express.Response): Promise<void>;
-    submitForecast(req: express.Request, res: express.Response): Promise<void>;
-    submitAutomatedForecast(req: express.Request, res: express.Response): Promise<void>;
-    getWallet(req: express.Request, res: express.Response): Promise<void>;
-    getDecisions(req: express.Request, res: express.Response): Promise<void>;
-  };
   auditLog: AuditLogController;
   cre: CreController;
   copilot: CopilotController;
@@ -506,8 +499,6 @@ export class ApiModule extends BaseService {
       );
     }
 
-    const sapienceEnabled = (process.env.SAPIENCE_ENABLED || 'false').toLowerCase() === 'true';
-
     // Initialize shared services for controllers (CONSOLIDATION & DRY)
     const { sharedPolicyService } = await import('../../services/governance/PolicyService.js');
     const policyService = sharedPolicyService;
@@ -522,12 +513,6 @@ export class ApiModule extends BaseService {
     );
     this.controllers.governance = new GovernanceController(policyService, undefined);
     this.controllers.metrics = new MetricsController();
-    if (sapienceEnabled) {
-      const { SapienceController } = await import('./controllers/SapienceController.js');
-      this.controllers.sapience = new SapienceController();
-    } else {
-      this.logger.info('SapienceController disabled (set SAPIENCE_ENABLED=true to enable)');
-    }
     this.controllers.auditLog = new AuditLogController();
     this.controllers.cre = new CreController();
     this.controllers.copilot = new CopilotController();
@@ -691,25 +676,6 @@ export class ApiModule extends BaseService {
     apiRouter.use(createMandateRoutes(this.ctrl('mandate')));
     apiRouter.use(createOutcomeObservationRoutes(this.ctrl('outcomeObservation')));
     apiRouter.use(createCreditProgramRoutes(this.ctrl('creditProgram')));
-
-    // Sapience routes (conditional)
-    if (this.controllers.sapience) {
-      apiRouter.get('/sapience/status', (req, res) => {
-        this.ctrl('sapience').getStatus(req, res);
-      });
-      apiRouter.post('/sapience/forecast', (req, res) => {
-        this.ctrl('sapience').submitForecast(req, res);
-      });
-      apiRouter.post('/sapience/forecast/auto', (req, res) => {
-        this.ctrl('sapience').submitAutomatedForecast(req, res);
-      });
-      apiRouter.get('/sapience/wallet', (req, res) => {
-        this.ctrl('sapience').getWallet(req, res);
-      });
-      apiRouter.get('/sapience/decisions', (req, res) => {
-        this.ctrl('sapience').getDecisions(req, res);
-      });
-    }
 
     // Serve the OpenAPI spec at /api/docs/openapi.json so external agents
     // and the integrate page can self-discover the governance API shape.

@@ -1,14 +1,14 @@
 /**
  * GovernanceClient
  *
- * The bridge that lets internal agents (Sapience, User, etc.) route their
+ * The bridge that lets internal agents (user-owned agents, etc.) route their
  * actions through Cognivern's own governance pipeline — the SAME pipeline
  * the Cognivern Copilot uses, the SAME pipeline external agents use.
  *
- * Why this exists: the trading agents used to call Sapience / RPC / etc.
- * directly, bypassing Cognivern's policy engine. That made the
+ * Why this exists: trading agents used to call protocols / RPC directly,
+ * bypassing Cognivern's policy engine. That made the
  * "governed spend" story incoherent. Now every spend — whether made by
- * the Sapience agent, a user-owned agent, or an external API caller —
+ * an internal agent, a user-owned agent, or an external API caller —
  * goes through /api/governance/evaluate, /api/spend/preview, and
  * /api/spend. The audit trail is consistent end-to-end.
  *

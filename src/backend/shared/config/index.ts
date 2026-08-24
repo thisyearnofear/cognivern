@@ -29,16 +29,6 @@ const baseConfigSchema = z.object({
     .transform((v) => (v || "").toLowerCase() === "true"),
 });
 
-// Sapience configuration
-const sapienceConfigSchema = z.object({
-  ARBITRUM_RPC_URL: z.string().default("https://arb1.arbitrum.io/rpc"),
-  ETHEREAL_RPC_URL: z.string().default("https://mainnet.ethereal.xyz/rpc"),
-  SAPIENCE_PRIVATE_KEY: z.string().optional(),
-  EAS_CONTRACT_ADDRESS: z
-    .string()
-    .default("0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458"),
-});
-
 // API configuration
 const apiConfigSchema = z.object({
   // Scoped cvn_ key used by backend-internal HTTP callers (agents, copilot)
@@ -117,7 +107,6 @@ const cleanverseConfigSchema = z.object({
 
 // Combined configuration schema
 const configSchema = baseConfigSchema
-  .merge(sapienceConfigSchema)
   .merge(apiConfigSchema)
   .merge(aiConfigSchema)
   .merge(cantonConfigSchema)
@@ -160,13 +149,6 @@ export const apiConfig = {
     maxRequests: config.RATE_LIMIT_MAX_REQUESTS || 100,
   },
   requestTimeout: config.REQUEST_TIMEOUT || 30000,
-};
-
-export const sapienceConfig = {
-  arbitrumRpcUrl: config.ARBITRUM_RPC_URL,
-  etherealRpcUrl: config.ETHEREAL_RPC_URL,
-  privateKey: config.SAPIENCE_PRIVATE_KEY,
-  easAddress: config.EAS_CONTRACT_ADDRESS,
 };
 
 // Legacy stubs to prevent import errors in other modules

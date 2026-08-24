@@ -800,14 +800,6 @@ describe("CreController", () => {
     );
     expect(cancelRes.statusCode).toBe(409);
     expect(cancelRes.payload?.error).toMatch(/reconciliation/i);
-
-    const retryRes = new MockRes();
-    await controller.retryRun(
-      makeReq({ params: { runId: run.runId }, body: {}, workspaceId: "workspace-1" } as any) as any,
-      retryRes as any,
-    );
-    expect(retryRes.statusCode).toBe(409);
-    expect(retryRes.payload?.error).toMatch(/reconciliation/i);
     expect((await creRunStore.get(run.runId))?.status).toBe("running");
   });
 
@@ -1543,17 +1535,6 @@ describe("CreController", () => {
       // Verify run is unchanged
       const persisted = await creRunStore.get(run.runId);
       expect(persisted?.status).toBe("running");
-    });
-
-    it("retryRun: foreign workspace receives 404", async () => {
-      const run = await seedOwnerRun("paused_for_approval");
-      const controller = new CreController();
-      const res = new MockRes();
-      await controller.retryRun(
-        foreignReq(run.runId, { body: {} }) as any,
-        res as any,
-      );
-      expect(res.statusCode).toBe(404);
     });
 
     it("submitApproval: foreign workspace receives 404", async () => {

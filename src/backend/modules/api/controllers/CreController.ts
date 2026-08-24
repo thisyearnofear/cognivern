@@ -3,7 +3,6 @@ import crypto from 'node:crypto';
 import { ethers } from 'ethers';
 import { enrichCreRunEvidence } from '@backend/shared/utils/evidence.js';
 import { z } from 'zod';
-import { runForecastingWorkflow } from '@backend/cre/workflows/forecasting.js';
 import { creRunStore } from '@backend/cre/storage/CreRunStore.js';
 import { creLedgerChain, hashRun } from '@backend/cre/persistence/CreLedgerChain.js';
 import { CreRun } from '@backend/cre/types.js';
@@ -23,16 +22,6 @@ import {
   IdempotencyRecord,
   idempotencyStore,
 } from '@backend/modules/api/storage/IdempotencyStore.js';
-
-const triggerForecastSchema = z.object({
-  writeAttestation: z.boolean().optional(),
-  requireApproval: z.boolean().optional(),
-});
-
-const retryRunSchema = z.object({
-  writeAttestation: z.boolean().optional(),
-  fromStep: z.number().int().min(0).max(1000).optional(),
-});
 
 const submitApprovalSchema = z.object({
   approve: z.boolean(),
@@ -936,82 +925,6 @@ export class CreController {
     });
   }
 
-  async triggerForecast(req: Request, res: Response) {
-    if (!req.workspaceId) {
-      res.status(401).json({
-        success: false,
-        error: 'Workspace authentication is required to trigger forecasts.',
-      });
-      return;
-    }
-
-    const parse = triggerForecastSchema.safeParse(req.body || {});
-    if (!parse.success) {
-      res.status(400).json({ success: false, error: 'Invalid trigger payload' });
-      return;
-    }
-    const { writeAttestation = false, requireApproval = false } = parse.data;
-
-    const idemKey = this.makeIdempotencyKey(req, 'cre:triggerForecast');
-    if (idemKey) {
-      const cached = await this.getCachedIdempotentResponse(idemKey);
-      if (cached) {
-        res.status(cached.statusCode).json(cached.body);
-        return;
-      }
-    }
-
-    try {
-      const run = await runForecastingWorkflow({
-        mode: 'local',
-        projectId: req.workspaceId,
-        // If approval is required, hold before any attestation side effects.
-        writeAttestation: requireApproval ? false : writeAttestation,
-        arbitrumRpcUrl: process.env.ARBITRUM_RPC_URL,
-        signer: getCreSigner(),
-      });
-
-      const normalized = normalizeRun(run);
-      if (requireApproval) {
-        normalized.status = 'paused_for_approval';
-        normalized.requiresApproval = true;
-        normalized.approvalState = 'pending';
-        normalized.ok = false;
-        normalized.finishedAt = undefined;
-        normalized.controls = {
-          canCancel: true,
-          canRetry: false,
-          canApprove: true,
-        };
-        await pushRunEvent(normalized, {
-          type: 'run_paused_for_approval',
-          payload: {
-            reason: 'manual_approval_required',
-            pendingAction: writeAttestation ? 'attestation' : 'run_finalize',
-          },
-        });
-      }
-      const storedRun = normalizeRun(normalized);
-      await creRunStore.add(storedRun);
-
-      const responseBody = {
-        success: storedRun.ok,
-        runId: storedRun.runId,
-        run: storedRun,
-      };
-      if (idemKey) {
-        await this.setCachedIdempotentResponse(
-          idemKey,
-          200,
-          responseBody as Record<string, unknown>,
-        );
-      }
-      res.json(responseBody);
-    } catch (err) {
-      res.status(500).json({ success: false, error: 'Failed to trigger forecast' });
-    }
-  }
-
   async cancelRun(req: Request, res: Response) {
     // Ownership check BEFORE idempotency cache to prevent cross-workspace leaks.
     const run = await this.verifyRunOwnership(req, res, req.params.runId);
@@ -1074,91 +987,6 @@ export class CreController {
       res.json(responseBody);
     } catch (err) {
       res.status(500).json({ success: false, error: 'Failed to cancel run' });
-    }
-  }
-
-  async retryRun(req: Request, res: Response) {
-    const parse = retryRunSchema.safeParse(req.body || {});
-    if (!parse.success) {
-      res.status(400).json({ success: false, error: 'Invalid retry payload' });
-      return;
-    }
-    const { writeAttestation = false, fromStep = 0 } = parse.data;
-
-    // Ownership check BEFORE idempotency cache to prevent cross-workspace leaks.
-    const run = await this.verifyRunOwnership(req, res, req.params.runId);
-    if (!run) return;
-
-    const idemKey = this.makeIdempotencyKey(req, `cre:retryRun:${req.params.runId}`);
-    if (idemKey) {
-      const cached = await this.getCachedIdempotentResponse(idemKey);
-      if (cached) {
-        res.status(cached.statusCode).json(cached.body);
-        return;
-      }
-    }
-
-    try {
-      if (hasExecutionUncertainty(run)) {
-        res.status(409).json({
-          success: false,
-          error: 'Run requires execution reconciliation before it can be retried',
-          run: normalizeRun(run),
-        });
-        return;
-      }
-      const original = normalizeRun(run);
-      await pushRunEvent(original, {
-        type: 'run_retry_requested',
-        payload: { requestedBy: 'user' },
-      });
-      await creRunStore.replace(normalizeRun(original));
-
-      const newRun = normalizeRun(
-        await runForecastingWorkflow({
-          mode: 'local',
-          projectId: run.projectId ?? req.workspaceId ?? '',
-          writeAttestation,
-          arbitrumRpcUrl: process.env.ARBITRUM_RPC_URL,
-          signer: getCreSigner(),
-        }),
-      );
-      newRun.parentRunId = original.runId;
-      newRun.retryCount = (original.retryCount || 0) + 1;
-      if (fromStep > 0) {
-        newRun.provenance = {
-          ...(newRun.provenance || { source: 'cognivern' }),
-          citations: [
-            ...((newRun.provenance?.citations || []) as Array<{
-              label: string;
-              value: string;
-            }>),
-            { label: 'retry_from_step', value: String(fromStep) },
-          ],
-        };
-        await pushRunEvent(newRun, {
-          type: 'run_retry_requested',
-          payload: { retriedFromRunId: original.runId, fromStep },
-        });
-      }
-      const storedRun = normalizeRun(newRun);
-      await creRunStore.add(storedRun);
-      const responseBody = {
-        success: true,
-        runId: newRun.runId,
-        run: storedRun,
-        retriedFrom: original.runId,
-      };
-      if (idemKey) {
-        await this.setCachedIdempotentResponse(
-          idemKey,
-          200,
-          responseBody as Record<string, unknown>,
-        );
-      }
-      res.json(responseBody);
-    } catch (err) {
-      res.status(500).json({ success: false, error: 'Failed to retry run' });
     }
   }
 

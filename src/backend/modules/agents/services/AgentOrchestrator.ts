@@ -16,28 +16,6 @@ import {
 import { TradingScheduler } from "./TradingScheduler.js";
 import { tradingConfig } from "@backend/shared/config/index.js";
 
-/** Agents that implement governed/legacy forecast cycles. */
-interface GovernedAgent extends TradingAgent {
-  runCycleWithGovernance?(): Promise<{
-    success: boolean;
-    forecastSubmitted: boolean;
-    tradeSubmitted: boolean;
-    decisionId?: string;
-    attestationHash?: string;
-    auditLogId?: string;
-    reason?: string;
-  }>;
-  performForecastCycle?(): Promise<{
-    success: boolean;
-    forecastTxHash?: string;
-    tradeTxHash?: string;
-    decisionId?: string;
-    attestationHash?: string;
-    governanceStatus?: string;
-    error?: string;
-  }>;
-}
-
 export interface OrchestrationConfig {
   maxConcurrentTrades: number;
   riskAllocationPerAgent: number;
@@ -136,35 +114,6 @@ export class AgentOrchestrator extends BaseService {
       name: agent.name,
       trade: async () => {
         try {
-          // Sapience agents must run the governed cycle, which routes every
-          // external action (forecast attestation, trade) through
-          // Cognivern's policy engine. There is intentionally NO fallback to
-          // an ungoverned cycle.
-          if (agent.type === "sapience") {
-            const governedAgent = agent as GovernedAgent;
-            if (typeof governedAgent.runCycleWithGovernance === "function") {
-              this.logger.info(
-                `Starting governed forecast cycle for ${agent.name}`,
-              );
-              const result = await governedAgent.runCycleWithGovernance();
-              if (!result.success) {
-                this.logger.warn(
-                  `Governed cycle for ${agent.name} did not succeed: ${result.reason}`,
-                );
-              } else {
-                this.logger.info(
-                  `Governed cycle for ${agent.name} complete: forecast=${result.forecastSubmitted} trade=${result.tradeSubmitted}`,
-                );
-              }
-              return;
-            }
-            this.logger.warn(
-              `Agent ${agent.name} has no governed cycle; skipping (ungoverned execution is not permitted)`,
-            );
-            return;
-          }
-
-          // Fallback for other agent types
           const decision: TradingDecision = {
             id: `auto-${Date.now()}`,
             agentId: agent.id,

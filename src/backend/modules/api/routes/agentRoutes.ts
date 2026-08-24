@@ -51,14 +51,6 @@ export function createAgentRoutes(agentsController: AgentsController): Router {
     (req.params as Record<string, string>).agentType = "portfolio";
     agentsController.getAgentDecisions(req, res);
   });
-  router.get("/agents/sapience/status", (req, res) => {
-    (req.params as Record<string, string>).agentType = "sapience";
-    agentsController.getAgentStatus(req, res);
-  });
-  router.get("/agents/sapience/decisions", (req, res) => {
-    (req.params as Record<string, string>).agentType = "sapience";
-    agentsController.getAgentDecisions(req, res);
-  });
 
   // Parameterized routes come after specific routes
   router.get("/agents/:id", (req, res) => agentsController.getAgent(req, res));

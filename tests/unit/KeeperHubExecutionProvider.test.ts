@@ -12,7 +12,7 @@ vi.mock('@backend/shared/config/index.js', () => ({
   keeperHubConfig: mockConfig,
   config: { NODE_ENV: 'test', LOG_LEVEL: 'error' as const, PORT: 3000 },
   apiConfig: { port: 3000, apiKey: 'test', corsOrigin: '*', rateLimit: {}, requestTimeout: 30000 },
-  sapienceConfig: {},
+
   databaseConfig: {},
   cacheConfig: {},
   tradingConfig: {},

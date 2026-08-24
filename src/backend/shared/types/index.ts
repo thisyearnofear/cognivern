@@ -9,7 +9,6 @@
 export type AgentType =
   | "governance"
   | "portfolio"
-  | "sapience"
   | "recall"
   | "vincent"
   | "trading"
@@ -246,9 +245,6 @@ export interface SystemHealth {
   uptime: number;
   version: string;
   components: {
-    arbitrum: "online" | "degraded" | "offline";
-    eas: "operational" | "delayed" | "failed";
-    ethereal: "online" | "degraded" | "offline";
     policies: "active" | "warning" | "error";
   };
   metrics: DashboardMetrics;

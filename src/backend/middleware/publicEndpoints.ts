@@ -38,8 +38,6 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   '/agents/governance/decisions',
   '/agents/portfolio/status',
   '/agents/portfolio/decisions',
-  '/agents/sapience/status',
-  '/agents/sapience/decisions',
   // Tenant audit and insights data must be authenticated and scoped to a
   // workspace. They are intentionally NOT public — unauthenticated or
   // invalid-token requests must not fall through to global CRE data.

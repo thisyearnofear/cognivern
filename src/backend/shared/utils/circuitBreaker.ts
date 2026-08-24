@@ -138,10 +138,6 @@ export class CircuitBreaker {
  * Circuit breaker instances for common external services
  */
 export const circuitBreakers = {
-  sapience: new CircuitBreaker("SapienceProtocol", {
-    threshold: 3,
-    resetAfterMs: 60000,
-  }),
   blockchain: new CircuitBreaker("BlockchainRPC", {
     threshold: 5,
     resetAfterMs: 45000,

@@ -66,11 +66,13 @@ thresholdable), with `GAS_PRICE` as a fallback if a miner is thin in that intent
 ## 4. The end-to-end flow (existing primitives → new glue)
 
 The plan is to **reuse the governed-spend pipeline end-to-end** and add a thin
-Telegraph consumption layer in front of it. The closest existing reference is the
-Sapience rebalance path (`SapienceTradingAgent` → `GovernanceClient.previewSpend`
-→ operator approval → `executeSpend` → `OwsWalletService.finalizeApprovedSpend` →
-execution provider), and the Cleanverse/KeeperHub rails that already plug
-providers into that same path.
+Telegraph consumption layer in front of it. The pipeline
+(`GovernanceClient.previewSpend` → operator approval →
+`GovernanceClient.executeSpend` → `OwsWalletService.finalizeApprovedSpend` →
+execution provider) is independent of any single-agent implementation — the
+KeeperHub submission documents it end-to-end (rebalance cycle anchored at
+`f21bf50`), and the Cleanverse/KeeperHub rails already plug providers into that
+same path.
 
 ```text
 [Telegraph Miner]  →  (new) TelegraphMinerClient   // consume ranked reply + confidence
@@ -97,9 +99,9 @@ providers into that same path.
 2. **New CRE artifact type** — `telegraph.signal` (add to the `CreArtifact` type
    union in `src/backend/cre/types.ts`) to store the raw Miner reply + confidence
    + minerId, so the signal that justified the action is verifiable.
-3. **A small orchestration script** (mirrors
-   `tooling/scripts/demo/run-keeperhub-rebalance.ts`) that drives the flow:
-   signal → threshold → preview → (operator confirm) → execute → evidence.
+3. **A small orchestration script** under `tooling/scripts/demo/` that drives
+   the flow: signal → threshold → preview → (operator confirm) → execute →
+   evidence (same shape as the KeeperHub rebalance rig, archived at `f21bf50`).
 4. **(Optional) a UI surface** reusing the existing capital/governance components
    (e.g. a `/telegraph` page mirroring `/verified-capital`) so the demo is
    walkable by judges without reading code.

@@ -270,12 +270,11 @@ export class AgentsController {
       const agentId = id || agentType; // Support both :id and :agentType parameters
 
       // Demo agent names retained only for the landing-page flow where
-      // there is no real agent. The real Sapience / User agents are
-      // fetched from the agents module below.
+      // there is no real agent. Real agents are fetched from the agents
+      // module below.
       const demoAgentNames: Record<string, string> = {
         governance: "Spend Governance Agent",
         portfolio: "Portfolio Agent",
-        sapience: "Sapience Forecasting Agent",
       };
       if (agentType && agentType in demoAgentNames) {
         res.json({
@@ -397,7 +396,7 @@ export class AgentsController {
       const limit = parseInt(req.query.limit as string) || 10;
 
       // Return mock decisions for non-existent demo agents. The real
-      // Sapience / User agents are fetched from the agents module below.
+      // Real agents are fetched from the agents module below.
       if (agentType === "governance" || agentType === "portfolio") {
         const mockDecisions = [
           {
@@ -584,7 +583,7 @@ export class AgentsController {
           );
           const activityItems = decisions.map((d) => ({
             id: d.id || `action-${Date.now()}-${Math.random()}`,
-            type: agent.type === "sapience" ? "forecast" : "governance",
+            type: "governance",
             agent: agent.id,
             action: d.reasoning || `Action on ${d.symbol}`,
             amount: d.confidence || 0,

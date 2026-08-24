@@ -377,7 +377,7 @@ export class HealthController {
       try {
         const decisions = await this.agentsModule.getAgentDecisions(agent.id, 100);
         totalForecasts += decisions.filter(
-          (d) => d.agentType === 'sapience' || d.id?.startsWith('0x'),
+          (d) => d.id?.startsWith('0x'),
         ).length;
       } catch (e) {
         // Ignore
@@ -387,9 +387,6 @@ export class HealthController {
     res.json({
       overall: 'healthy',
       components: {
-        arbitrum: 'online',
-        eas: 'operational',
-        ethereal: 'online',
         policies: 'active',
       },
       metrics: {

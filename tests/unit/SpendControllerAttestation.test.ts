@@ -63,7 +63,7 @@ function makeReq(body: Record<string, unknown>): Request {
 }
 
 const basePayload = {
-  agentId: "sapience-agent-1",
+  agentId: "agent-1",
   recipient: "vendor.example",
   amount: "1000000000000000000",
   asset: "USDe",
@@ -85,7 +85,6 @@ beforeEach(() => {
     status: "approved",
   });
   delete process.env.COGNIVERN_HUMAN_CONFIRM_TOKEN;
-  delete process.env.SAPIENCE_HUMAN_CONFIRM_TOKEN;
 });
 
 afterEach(() => {
