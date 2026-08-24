@@ -28,7 +28,15 @@ pnpm deploy:hetzner
 This runs two scripts:
 
 1. `tooling/scripts/deploy/build-backend-artifact.sh` — compiles backend, bundles `dist/` + `config/` + `package.json` into a `.tgz`
-2. `tooling/scripts/deploy/deploy-backend-artifact-hetzner.sh` — uploads the tarball to an immutable timestamp/SHA-named release, installs production dependencies, validates the candidate, atomically switches `/opt/cognivern/app`, restarts PM2, and verifies liveness/readiness
+2. `tooling/scripts/deploy/deploy-backend-artifact-hetzner.sh` — uploads the tarball to an immutable timestamp/SHA-named release, installs production dependencies with `pnpm install --prod --frozen-lockfile`, validates the candidate, atomically switches `/opt/cognivern/app`, restarts PM2, and verifies liveness/readiness
+
+The artifact's dependency manifest is `ops/deploy/package.backend.json` with the
+committed lockfile `ops/deploy/pnpm-lock.backend.yaml` (regenerate with
+`tooling/scripts/deploy/regen-backend-lockfile.sh` after any manifest change).
+Frozen installs fail loudly if the manifest drifts from the lockfile. The
+security bar is `pnpm audit --prod` against the artifact manifest — currently
+zero advisories. See [`ops/deploy/README.md`](../ops/deploy/README.md) for the
+full dependency discipline.
 
 No build happens on the server — it only installs and validates the uploaded
 artifact. The active app path remains stable for PM2 and nginx, while the
