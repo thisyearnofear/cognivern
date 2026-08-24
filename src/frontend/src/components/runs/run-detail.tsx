@@ -258,7 +258,7 @@ export function RunDetail({ runId }: { runId: string }) {
   if (error || !run) {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/capital?view=runs')}>
+        <Button variant="ghost" size="icon" onClick={() => router.push('/spend?view=runs')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <PageState
@@ -266,7 +266,7 @@ export function RunDetail({ runId }: { runId: string }) {
           title="Could not load run details"
           message="This execution is unavailable right now. Try again or return to Runs."
           action={{ label: 'Retry', onClick: () => router.refresh() }}
-          secondaryAction={{ label: 'Back to Runs', onClick: () => router.push('/capital?view=runs') }}
+          secondaryAction={{ label: 'Back to Runs', onClick: () => router.push('/spend?view=runs') }}
         />
       </div>
     );
@@ -292,7 +292,7 @@ export function RunDetail({ runId }: { runId: string }) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/capital?view=runs')}>
+        <Button variant="ghost" size="icon" onClick={() => router.push('/spend?view=runs')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>

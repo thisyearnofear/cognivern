@@ -88,13 +88,31 @@ test.describe('Public commitment verification (/verify)', () => {
     await expect(page.getByText('No commitment with that id.')).toBeVisible();
   });
 
-  test('the landing page carries the sponsored-cohorts wedge section', async ({ page }) => {
+  test('the landing page fences the sponsored-cohorts wedge and links to /sponsor', async ({
+    page,
+  }) => {
     await page.goto('/');
+    // The wedge is a fenced teaser on the main landing, not a full section.
     await expect(
       page.getByRole('heading', { name: /Sponsor a cohort at cost/i, level: 2 }),
     ).toBeVisible();
-    await expect(page.getByText(/0% fees, pass-through pricing/)).toBeVisible();
+    await expect(page.getByRole('link', { name: /Sponsor a cohort/i })).toHaveAttribute(
+      'href',
+      '/sponsor',
+    );
     await expect(page.getByRole('link', { name: /Check your credits/i })).toHaveAttribute(
+      'href',
+      '/credits',
+    );
+  });
+
+  test('the dedicated /sponsor landing carries the full wedge', async ({ page }) => {
+    await page.goto('/sponsor');
+    await expect(
+      page.getByRole('heading', { name: /Sponsor a cohort at cost/i, level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByText(/0% fees, pass-through pricing/)).toBeVisible();
+    await expect(page.getByRole('link', { name: /Check your credits/i }).first()).toHaveAttribute(
       'href',
       '/credits',
     );

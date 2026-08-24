@@ -19,7 +19,7 @@ import { ALL_NAV_ITEMS, DEMO_NAV_ITEMS } from "@/lib/nav-items";
 const EXTRA_ITEMS = [
   { id: "settings", label: "Settings", href: "/settings", icon: Settings },
   { id: "onboarding", label: "Set Up Treasury", href: "/onboarding", icon: ShieldCheck },
-  { id: "runs", label: "Runs", href: "/capital?view=runs", icon: ListChecks },
+  { id: "runs", label: "Runs", href: "/spend?view=runs", icon: ListChecks },
   { id: "governance-check", label: "Governance Check", href: "/governance/check", icon: ShieldCheck },
   { id: "copilot", label: "Copilot", href: "/copilot", icon: Bot },
   ...DEMO_NAV_ITEMS,

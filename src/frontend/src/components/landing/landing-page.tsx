@@ -14,10 +14,10 @@ import {
   Eye,
   ExternalLink,
   Copy,
-  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
+import { EvidenceChain } from "@/components/brand/evidence-chain";
 import { useDemoStore } from "@/stores/demo-store";
 import { useAuthStore, useAuthHydrated } from "@/stores/auth-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -99,29 +99,6 @@ function FlowNode({
   );
 }
 
-/* ─── Counter animation hook ────────────────────────────────── */
-
-function useCountUp(target: number, duration = 2000, start = false) {
-  const [count, setCount] = useState(0);
-  const ref = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!start) return;
-    const startTime = performance.now();
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-      if (progress < 1) ref.current = requestAnimationFrame(animate);
-    };
-    ref.current = requestAnimationFrame(animate);
-    return () => { if (ref.current) cancelAnimationFrame(ref.current); };
-  }, [target, duration, start]);
-
-  return count;
-}
-
 /* ─── Main landing page ─────────────────────────────────────── */
 
 export function LandingPage() {
@@ -135,9 +112,7 @@ export function LandingPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [demoAmount, setDemoAmount] = useState(50);
   const [copyFeedback, setCopyFeedback] = useState(false);
-  const statsRef = useRef<HTMLDivElement>(null);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [statsVisible, setStatsVisible] = useState(false);
 
   const { scrollYProgress } = useScroll();
   const heroOpacity = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
@@ -152,19 +127,6 @@ export function LandingPage() {
       router.push("/dashboard");
     }
   }, [hasHydrated, isAppAuthenticated, demoMode, onboardingCompleted, router]);
-
-  useEffect(() => {
-    if (!statsRef.current) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setStatsVisible(true); },
-      { threshold: 0.3 },
-    );
-    obs.observe(statsRef.current);
-    return () => obs.disconnect();
-  }, []);
-
-  const txCount = useCountUp(18, 2500, statsVisible);
-  const policiesCount = useCountUp(3, 1500, statsVisible);
 
   const handleTryDemo = () => {
     // Start in the denied band so the visitor immediately sees one of
@@ -400,6 +362,14 @@ export function LandingPage() {
               </div>
             </div>
           </motion.div>
+
+          {/* Brand motif: every governed action is a link in a chain of
+              evidence that ends in a tamper-evident record. */}
+          <EvidenceChain
+            stages={["Mandate", "Action", "Spend", "Evidence"]}
+            labeled
+            className="mt-10"
+          />
         </div>
       </motion.section>
 
@@ -511,8 +481,11 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── Stats ── */}
-      <section ref={statsRef} className="border-t border-border">
+      {/* ── What you can count on ──
+          Capability claims, not usage counters: these stay true whether ten
+          or ten thousand decisions have run, so the section never argues
+          from a small number. */}
+      <section className="border-t border-border">
         <div className="max-w-4xl mx-auto px-6 py-16">
           <div className="flex justify-center gap-12 sm:gap-24 flex-wrap">
             <motion.div
@@ -525,10 +498,12 @@ export function LandingPage() {
                 className="text-4xl font-bold text-primary"
                 style={{ fontFamily: "var(--font-space-grotesk)" }}
               >
-                {txCount}
+                {"<"}1min
               </div>
-              <div className="text-sm text-muted-foreground mt-1">Agent decisions recorded</div>
-              <div className="text-[11px] text-muted-foreground/60 mt-0.5">A clear record for review</div>
+              <div className="text-sm text-muted-foreground mt-1">Time to first governed action</div>
+              <div className="text-[11px] text-muted-foreground/60 mt-0.5">
+                Sign in → set a policy → try a scenario
+              </div>
             </motion.div>
 
             <motion.div
@@ -542,11 +517,11 @@ export function LandingPage() {
                 className="text-4xl font-bold text-primary"
                 style={{ fontFamily: "var(--font-space-grotesk)" }}
               >
-                {policiesCount}
+                3
               </div>
-              <div className="text-sm text-muted-foreground mt-1">Active policies</div>
+              <div className="text-sm text-muted-foreground mt-1">Decision outcomes</div>
               <div className="text-[11px] text-muted-foreground/60 mt-0.5">
-                Enforcing spend rules in real-time
+                Approved, held, or stopped — nothing ambiguous
               </div>
             </motion.div>
 
@@ -561,11 +536,11 @@ export function LandingPage() {
                 className="text-4xl font-bold text-primary"
                 style={{ fontFamily: "var(--font-space-grotesk)" }}
               >
-                {"<"}1min
+                100%
               </div>
-              <div className="text-sm text-muted-foreground mt-1">Time to first governed action</div>
+              <div className="text-sm text-muted-foreground mt-1">Decisions recorded</div>
               <div className="text-[11px] text-muted-foreground/60 mt-0.5">
-                Sign up → set a policy → try a scenario
+                Each carries the rule that applied and the evidence
               </div>
             </motion.div>
           </div>
@@ -785,91 +760,52 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
         </div>
       </section>
 
-      {/* ── Sponsor a cohort — the 0%-fees wedge ── */}
-      <section id="sponsor-a-cohort" className="border-t border-border bg-muted/30">
-        <div className="max-w-5xl mx-auto px-6 py-20">
+      {/* ── For organisers — fenced teaser ──
+          The sponsored-cohorts wedge serves a different buyer (hackathon /
+          workshop organisers) than the governance narrative above, so it gets
+          one clearly fenced banner here and a full landing of its own at
+          /sponsor instead of interrupting the main story. */}
+      <section className="border-t border-border bg-muted/30">
+        <div className="max-w-5xl mx-auto px-6 py-14">
           <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="flex flex-col md:flex-row md:items-center gap-6 rounded-xl border border-border bg-card p-6"
           >
-            <span
-              className="text-xs font-semibold text-primary uppercase tracking-widest"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              For organisers
-            </span>
-            <h2
-              className="text-3xl font-bold text-foreground mt-3"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              Sponsor a cohort at cost. Prove every cent.
-            </h2>
-            <p className="text-muted-foreground mt-3 max-w-xl mx-auto leading-relaxed">
-              Hand out inference budgets for your hackathon or workshop. Cognivern
-              charges 0% on the throughput — you pay inference at provider cost —
-              because the product is the evidence of what that spend did, not a
-              take-rate on a commodity.
-            </p>
-          </motion.div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {[
-              {
-                title: "Keys in one paste",
-                desc: "Paste a participant list, mint every budgeted key in one atomic batch, hand them out with one CSV.",
-                icon: Users,
-              },
-              {
-                title: "0% fees, pass-through pricing",
-                desc: "Every call is metered at provider pricing into an append-only ledger. No markup, no spread — reconcilable at any time.",
-                icon: Eye,
-              },
-              {
-                title: "A receipt anyone can check",
-                desc: "Balances are committed to a Merkle root anchored on public networks. Drop the verification link in your recap.",
-                icon: Shield,
-              },
-            ].map((card, i) => (
-              <motion.div
-                key={card.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="rounded-xl border border-border bg-card p-5"
+            <div className="flex-1 min-w-0">
+              <span
+                className="text-xs font-semibold text-primary uppercase tracking-widest"
+                style={{ fontFamily: "var(--font-space-grotesk)" }}
               >
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                  <card.icon size={18} />
-                </div>
-                <h3 className="font-semibold text-foreground text-sm mt-3">{card.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{card.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button
-              size="lg"
-              onClick={() =>
-                hasHydrated && (isAppAuthenticated || walletConnected)
-                  ? router.push("/sponsor/credits")
-                  : setShowAuthModal(true)
-              }
-            >
-              Open the sponsor console <ArrowRight className="h-4 w-4 ml-1" />
-            </Button>
-            <Link
-              href="/credits"
-              className="inline-flex h-11 items-center rounded-md bg-secondary px-8 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-            >
-              Have a key? Check your credits
-            </Link>
-          </div>
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            Participants need no account — balance, disclosure and receipts are self-service.
-          </p>
+                For organisers
+              </span>
+              <h2
+                className="text-xl font-semibold text-foreground mt-2"
+                style={{ fontFamily: "var(--font-space-grotesk)" }}
+              >
+                Running a hackathon or workshop? Sponsor a cohort at cost.
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                Hand out metered inference budgets at 0% throughput fees, with
+                receipts anyone can verify. Separate console, same evidence model.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
+              <Link
+                href="/sponsor"
+                className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Sponsor a cohort <ArrowRight className="h-4 w-4 ml-1.5" />
+              </Link>
+              <Link
+                href="/credits"
+                className="inline-flex h-10 items-center rounded-md bg-secondary px-5 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
+              >
+                Have a key? Check your credits
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </section>
 

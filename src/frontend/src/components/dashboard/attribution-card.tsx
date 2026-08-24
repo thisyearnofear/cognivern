@@ -49,7 +49,7 @@ export function AttributionCard({ onOpen }: { onOpen: () => void }) {
     return (
       <div className="rounded-xl border bg-card p-5">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading capital attribution…
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading spend attribution…
         </div>
       </div>
     );
@@ -61,9 +61,9 @@ export function AttributionCard({ onOpen }: { onOpen: () => void }) {
   if (failed) {
     return (
       <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5">
-        <div className="text-sm font-medium">Capital attribution unavailable</div>
-        <p className="mt-1 text-xs text-muted-foreground">The ledger could not be loaded. Open Capital to retry.</p>
-        <Button className="mt-3" size="sm" variant="outline" onClick={onOpen}>Open capital ledger</Button>
+        <div className="text-sm font-medium">Spend attribution unavailable</div>
+        <p className="mt-1 text-xs text-muted-foreground">The ledger could not be loaded. Open Spend &amp; Outcomes to retry.</p>
+        <Button className="mt-3" size="sm" variant="outline" onClick={onOpen}>Open Spend &amp; Outcomes</Button>
       </div>
     );
   }
@@ -76,7 +76,7 @@ export function AttributionCard({ onOpen }: { onOpen: () => void }) {
             <CircleDollarSign className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="font-semibold">Agentic capital</h2>
+            <h2 className="font-semibold">Spend &amp; Outcomes</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               See what was allocated, consumed, and produced by governed agents.
             </p>

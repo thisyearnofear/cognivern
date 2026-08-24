@@ -367,12 +367,12 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
             className="text-3xl font-semibold tracking-tight"
             style={{ fontFamily: "var(--font-space-grotesk)" }}
           >
-            Verified Capital
+            Verified rail
           </h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
             Screen identities (CVI), preview policy with A-Pass risk signals, then settle{" "}
             <strong className="font-medium text-foreground">{assetSymbol}</strong> on Monad
-            (CVA). Evidence lands in CRE runs and Capital statements.
+            (CVA). Evidence lands in CRE runs and Spend &amp; Outcomes statements.
           </p>
         </header>
       )}
@@ -506,7 +506,7 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
               Open Settings
             </Link>
             <Link
-              href="/capital"
+              href="/spend"
               className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[0.8rem] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               Capital / allocate
@@ -820,7 +820,7 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
                 </a>
               )}
               <Link
-                href="/capital"
+                href="/spend"
                 className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[0.8rem] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 Review on Capital

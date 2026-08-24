@@ -85,8 +85,8 @@ function chooseNextAction({
       eyebrow: 'Define the work',
       title: 'Create a spending mandate',
       description: 'A mandate connects an objective, budget, agents, and success measures so spend can be reviewed as accountable work.',
-      button: 'Open Capital',
-      href: '/capital',
+      button: 'Open Spend & Outcomes',
+      href: '/spend',
       icon: Landmark,
       tone: 'primary',
     };
@@ -114,11 +114,11 @@ function chooseNextAction({
     };
   }
   return {
-    eyebrow: 'Capital review',
+    eyebrow: 'Spend review',
     title: 'Review what your mandate produced',
     description: 'Connect governed spend, receipts, measured results, and cited evidence before the next allocation.',
-    button: 'Open Capital',
-    href: '/capital',
+    button: 'Open Spend & Outcomes',
+    href: '/spend',
     icon: FileCheck2,
     tone: 'neutral',
   };

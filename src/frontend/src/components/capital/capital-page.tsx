@@ -398,7 +398,7 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')}><ArrowLeft className="h-4 w-4" /></Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Agentic capital</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Spend &amp; Outcomes</h1>
             <p className="mt-1 text-sm text-muted-foreground">A first attribution ledger for governed agent spend, shown in asset base units.</p>
           </div>
         </div>
@@ -481,7 +481,7 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
             <div className="bg-muted/40 p-3"><div className="text-lg font-semibold">{Object.entries(selectedMandate.budget.byAsset).map(([asset, budget]) => `${asset} ${formatAmount(budget.consumedAmount)} / ${formatAmount(budget.authorizedAmount)}`).join(' · ') || '—'}</div><div className="text-xs text-muted-foreground">Budget position</div></div>
             <div className="bg-muted/40 p-3"><div className="text-lg font-semibold">{report.totalRecords}</div><div className="text-xs text-muted-foreground">Governed spends</div></div>
             <div className="bg-muted/40 p-3"><div className="text-lg font-semibold">{observations.length}</div><div className="text-xs text-muted-foreground">Outcomes recorded</div></div>
-            <div className="bg-muted/40 p-3"><div className="text-lg font-semibold">{selectedMandate.agentIds.length}</div><div className="text-xs text-muted-foreground">Governed identities</div></div>
+            <div className="bg-muted/40 p-3"><div className="text-lg font-semibold">{selectedMandate.agentIds.length}</div><div className="text-xs text-muted-foreground">Identities</div></div>
           </div>
         </section>
       )}

@@ -104,3 +104,30 @@ Implemented alongside this review:
 - Landing compressed from 13 sections to the 6-section spine; sealed-bid CTA
   moved out of the hero; hover-only personas replaced with static cards;
   sticky anchor nav added.
+
+Second pass (2026-08-24) — closing the execution gap:
+
+- **Landing stats no longer argue from small numbers.** The animated
+  "18 decisions / 3 policies" counters were replaced with capability claims
+  that stay true at any scale: `<1min` to first governed action, 3 decision
+  outcomes, 100% of decisions recorded with rule + evidence.
+- **The sponsored-cohorts wedge has its own landing.** `/sponsor` carries the
+  full organiser narrative (hero, console cards, 4-step flow, verify link);
+  the main landing keeps one clearly fenced teaser banner linking to it.
+  Separate buyer, separate page.
+- **Terminology unified.** Surface name is "Identities" (nav, page header,
+  dashboard section); "API identity" stays the object term. "Agentic capital"
+  / "Verified Capital" / "Capital" collapsed into the surface name "Spend &
+  Outcomes" and tab name "Verified rail". The route is now `/spend` to match
+  the nav and page title; `/capital` redirects preserving the query string so
+  HydraDB `canonical_url` deep links keep working.
+- **Monoliths split.** `audit-page.tsx` (1,650 → 623) now composes
+  `timeline-node`, `audit-evidence` (pure detection helpers), `audit-metrics`,
+  `empty-audit-state`, and `proof-details`. `dashboard.tsx` (899 → 264)
+  composes `dashboard-stats`, `recent-activity`, `operating-insights`,
+  `ai-spend-card`, `control-score-card`, and `observability-strip`. The
+  duplicated count-up hook is shared at `hooks/use-count-up.ts`.
+- **One signature visual motif.** `components/brand/evidence-chain.tsx` draws
+  the chain of evidence (mandate → action → spend → evidence → record shield).
+  It appears under the landing hero demo and on the `/sponsor` hero, so the
+  product is recognizable in a screenshot. Honors `prefers-reduced-motion`.

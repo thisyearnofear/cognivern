@@ -44,10 +44,10 @@ test.describe('Authenticated user-testing smoke', () => {
     await expect(page.getByRole('heading', { name: 'Runs', level: 1 })).toBeVisible();
 
     await page.goto('/agents');
-    await expect(page.getByRole('heading', { name: /API Identities/i, level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Identities/i, level: 1 })).toBeVisible();
 
-    await page.goto('/capital');
-    await expect(page.getByRole('heading', { name: 'Agentic capital', level: 1 })).toBeVisible();
+    await page.goto('/spend');
+    await expect(page.getByRole('heading', { name: 'Spend & Outcomes', level: 1 })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Evidence sync health', level: 2 })).toBeVisible();
 
     const mandateSelect = page.getByLabel('Filter by funded mandate');

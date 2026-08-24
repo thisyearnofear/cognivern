@@ -281,7 +281,7 @@ export function AgentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="API Identities"
+        title="Identities"
         description="Connect the bots, scripts, and workflows that may act through Cognivern."
         action={
           <>
@@ -420,8 +420,8 @@ export function AgentsPage() {
       ) : error ? (
         <PageState
           variant="error"
-          title="Could not load API identities"
-          message={error?.message || 'Your governed identities are unavailable right now.'}
+          title="Could not load identities"
+          message={error?.message || 'Your identities are unavailable right now.'}
           action={{ label: 'Retry', onClick: () => router.refresh() }}
         />
       ) : agentList.length === 0 ? (

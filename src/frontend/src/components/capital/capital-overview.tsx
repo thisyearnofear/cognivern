@@ -23,7 +23,8 @@ function isSpendView(value: string | null): value is SpendView {
  * Spend & Outcomes — the attributable-spend stage of the vision loop, as one
  * surface with three views: executions (Runs), attribution (Capital), and the
  * Cleanverse verified rail. Deep links use ?view=; /runs and /verified-capital
- * redirect into the matching tab.
+ * redirect into the matching tab. The route is /spend (matching the nav and
+ * page title); /capital redirects here preserving the query string.
  */
 export function CapitalOverview() {
   const router = useRouter();
@@ -33,9 +34,9 @@ export function CapitalOverview() {
 
   const onViewChange = (value: string) => {
     if (value === "attribution") {
-      router.replace("/capital", { scroll: false });
+      router.replace("/spend", { scroll: false });
     } else {
-      router.replace(`/capital?view=${value}`, { scroll: false });
+      router.replace(`/spend?view=${value}`, { scroll: false });
     }
   };
 
