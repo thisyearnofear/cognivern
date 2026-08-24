@@ -85,7 +85,15 @@ fi
 cd "$TMP_DIR"
 export CI=true
 echo "== installing production dependencies"
-pnpm install --prod --config.confirmModulesPurge=false
+if [ -f pnpm-lock.yaml ]; then
+  # Frozen install: exact reproduction of the resolved tree committed via
+  # tooling/scripts/deploy/regen-backend-lockfile.sh. Fails loudly if the
+  # manifest drifted from the lockfile instead of silently re-resolving.
+  pnpm install --prod --frozen-lockfile --config.confirmModulesPurge=false
+else
+  echo "  (no pnpm-lock.yaml shipped — resolving fresh; regenerate with tooling/scripts/deploy/regen-backend-lockfile.sh)"
+  pnpm install --prod --config.confirmModulesPurge=false
+fi
 echo "== rebuilding native modules"
 pnpm rebuild better-sqlite3
 

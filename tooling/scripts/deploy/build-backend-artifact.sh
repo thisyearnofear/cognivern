@@ -32,10 +32,10 @@ mkdir -p "$TMP/app"
 
 cp -R dist "$TMP/app/dist"
 cp ops/deploy/package.backend.json "$TMP/app/package.json"
-if [ -f ops/deploy/package-lock.backend.json ]; then
-  cp ops/deploy/package-lock.backend.json "$TMP/app/package-lock.json"
+if [ -f ops/deploy/pnpm-lock.backend.yaml ]; then
+  cp ops/deploy/pnpm-lock.backend.yaml "$TMP/app/pnpm-lock.yaml"
 else
-  echo "  (no lock file — server will resolve on first install)"
+  echo "  (no lock file — server will resolve on first install; run tooling/scripts/deploy/regen-backend-lockfile.sh to generate one)"
 fi
 cp ops/deploy/.npmrc.backend "$TMP/app/.npmrc"
 
