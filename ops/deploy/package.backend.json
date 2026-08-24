@@ -49,7 +49,8 @@
   "pnpm": {
     "peerDependencyRules": {
       "allowedVersions": {
-        "ethers": "6.x"
+        "ethers": "6.x",
+        "@ledgerhq/device-management-kit": "1.6.0"
       }
     },
     "onlyBuiltDependencies": [
