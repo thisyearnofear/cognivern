@@ -4,6 +4,7 @@ import {
   OutcomeObservationService,
   type CreateOutcomeObservationInput,
 } from "@backend/services/governance/OutcomeObservationService.js";
+import { syncMandateOutcomes } from "@backend/services/outcomes/GitHubOutcomeConnector.js";
 import { hydraDbMandateContext } from "@backend/services/hydradb/HydraDbMandateContextService.js";
 
 const evidenceSchema = z.object({
@@ -97,6 +98,31 @@ export class OutcomeObservationController {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Invalid outcome observation request";
       const status = /not found/i.test(message) ? 404 : /idempotency/i.test(message) ? 409 : 400;
+      res.status(status).json({ success: false, error: message });
+    }
+  }
+
+  /**
+   * POST /mandates/:mandateId/outcomes/sync — operator-triggered ingestion of
+   * verified outcomes from the mandate's configured GitHub sources. Per-source
+   * failures surface inside the report instead of failing the whole sync, so a
+   * single unreachable repo never blocks ingestion from the others.
+   */
+  async syncFromSources(req: Request, res: Response): Promise<void> {
+    const workspaceId = requireOperator(req, res);
+    if (!workspaceId) return;
+    try {
+      const result = await syncMandateOutcomes(workspaceId, req.params.mandateId);
+      const allFailed =
+        result.sources.length > 0 && result.sources.every((source) => Boolean(source.error));
+      res.status(allFailed ? 502 : 200).json({ success: !allFailed, data: result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Outcome source sync failed";
+      const status = /not found/i.test(message)
+        ? 404
+        : /no outcome sources/i.test(message)
+          ? 409
+          : 500;
       res.status(status).json({ success: false, error: message });
     }
   }

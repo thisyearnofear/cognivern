@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "@backend/db/index.js";
+import {
+  normalizeOutcomeSources,
+  type OutcomeSource,
+} from "../outcomes/outcomeSourceConfig.js";
 
 export type FundedMandateStatus = "draft" | "active" | "paused" | "closed";
 
@@ -38,6 +42,7 @@ export interface FundedMandate {
     target?: string;
   }>;
   settlement?: MandateSettlementConstraints;
+  outcomeSources?: OutcomeSource[];
   createdAt: string;
   updatedAt: string;
 }
@@ -52,6 +57,7 @@ export interface CreateFundedMandateInput {
   measurementWindow?: { startsAt: string; endsAt?: string };
   successMetrics?: FundedMandate["successMetrics"];
   settlement?: MandateSettlementConstraints;
+  outcomeSources?: OutcomeSource[];
 }
 
 export type UpdateFundedMandateInput = Partial<CreateFundedMandateInput>;
@@ -143,6 +149,7 @@ function rowToMandate(row: Row): FundedMandate {
     measurementWindow: parseJson(row.measurement_window, undefined),
     successMetrics: parseJson(row.success_metrics, []),
     settlement: normalizeSettlement(parseJson(row.settlement, undefined)),
+    outcomeSources: parseJson(row.outcome_sources, undefined),
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };
@@ -204,13 +211,18 @@ export const FundedMandateService = {
     validateWorkspaceReferences(workspaceId, agentIds, policyIds);
     const budget = normalizeBudget(input.budget);
     const settlement = normalizeSettlement(input.settlement);
+    const successMetrics = input.successMetrics || [];
+    const outcomeSources = normalizeOutcomeSources(
+      input.outcomeSources,
+      successMetrics.map((metric) => metric.id),
+    );
     const id = `mandate-${randomUUID().slice(0, 12)}`;
     const now = new Date().toISOString();
     getDb()
       .prepare(
         `INSERT INTO funded_mandates
-          (id, workspace_id, name, objective, agent_ids, status, budget_by_asset, policy_ids, measurement_window, success_metrics, settlement, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, workspace_id, name, objective, agent_ids, status, budget_by_asset, policy_ids, measurement_window, success_metrics, settlement, outcome_sources, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -222,8 +234,9 @@ export const FundedMandateService = {
         JSON.stringify(budget.byAsset),
         JSON.stringify(policyIds),
         input.measurementWindow ? JSON.stringify(input.measurementWindow) : null,
-        JSON.stringify(input.successMetrics || []),
+        JSON.stringify(successMetrics),
         settlement ? JSON.stringify(settlement) : null,
+        outcomeSources ? JSON.stringify(outcomeSources) : null,
         now,
         now,
       );
@@ -245,6 +258,14 @@ export const FundedMandateService = {
       updates.settlement !== undefined
         ? normalizeSettlement(updates.settlement)
         : existing.settlement;
+    const successMetrics = updates.successMetrics ?? existing.successMetrics;
+    const outcomeSources =
+      updates.outcomeSources !== undefined
+        ? normalizeOutcomeSources(
+            updates.outcomeSources,
+            successMetrics.map((metric) => metric.id),
+          )
+        : existing.outcomeSources;
     const next: FundedMandate = {
       ...existing,
       name: updates.name?.trim() || existing.name,
@@ -254,14 +275,15 @@ export const FundedMandateService = {
       budget,
       policyIds,
       measurementWindow: updates.measurementWindow ?? existing.measurementWindow,
-      successMetrics: updates.successMetrics ?? existing.successMetrics,
+      successMetrics,
       settlement,
+      outcomeSources,
       updatedAt: new Date().toISOString(),
     };
     if (!next.name || !next.objective) throw new Error("Mandate name and objective are required");
     getDb()
       .prepare(
-        `UPDATE funded_mandates SET name = ?, objective = ?, agent_ids = ?, status = ?, budget_by_asset = ?, policy_ids = ?, measurement_window = ?, success_metrics = ?, settlement = ?, updated_at = ? WHERE id = ? AND workspace_id = ?`,
+        `UPDATE funded_mandates SET name = ?, objective = ?, agent_ids = ?, status = ?, budget_by_asset = ?, policy_ids = ?, measurement_window = ?, success_metrics = ?, settlement = ?, outcome_sources = ?, updated_at = ? WHERE id = ? AND workspace_id = ?`,
       )
       .run(
         next.name,
@@ -273,6 +295,7 @@ export const FundedMandateService = {
         next.measurementWindow ? JSON.stringify(next.measurementWindow) : null,
         JSON.stringify(next.successMetrics),
         next.settlement ? JSON.stringify(next.settlement) : null,
+        next.outcomeSources ? JSON.stringify(next.outcomeSources) : null,
         next.updatedAt,
         mandateId,
         workspaceId,

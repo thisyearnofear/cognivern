@@ -7,5 +7,6 @@ export function createOutcomeObservationRoutes(
   const router = Router();
   router.get("/mandates/:mandateId/outcomes", (req, res) => controller.list(req, res));
   router.post("/mandates/:mandateId/outcomes", (req, res) => controller.create(req, res));
+  router.post("/mandates/:mandateId/outcomes/sync", (req, res) => controller.syncFromSources(req, res));
   return router;
 }

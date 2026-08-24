@@ -68,6 +68,7 @@ describe("OutcomeObservationController", () => {
     expect(routes).toEqual([
       { path: "/mandates/:mandateId/outcomes", methods: { get: true } },
       { path: "/mandates/:mandateId/outcomes", methods: { post: true } },
+      { path: "/mandates/:mandateId/outcomes/sync", methods: { post: true } },
     ]);
   });
 

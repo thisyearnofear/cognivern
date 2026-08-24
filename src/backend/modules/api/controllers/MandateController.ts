@@ -18,6 +18,17 @@ const metricSchema = z.object({
   target: z.string().max(160).optional(),
 });
 
+const outcomeSourceSchema = z.object({
+  type: z.literal("github"),
+  repo: z.string().min(3).max(200),
+  mode: z.enum(["pr", "commits"]),
+  branch: z.string().min(1).max(120).optional(),
+  labels: z.array(z.string().min(1).max(80)).max(10).optional(),
+  pathFilter: z.string().min(1).max(300).optional(),
+  since: z.string().datetime().optional(),
+  metricId: z.string().min(1).max(120).optional(),
+});
+
 const bodySchema = z.object({
   name: z.string().min(1).max(160),
   objective: z.string().min(1).max(2000),
@@ -50,6 +61,7 @@ const bodySchema = z.object({
       chainIds: z.array(z.number().int()).max(20).optional(),
     })
     .optional(),
+  outcomeSources: z.array(outcomeSourceSchema).max(10).optional(),
 });
 
 function workspaceId(req: Request, res: Response): string | undefined {

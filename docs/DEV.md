@@ -660,9 +660,8 @@ POST body includes optional `fhirContext` for HIPAA-aware governance evaluation 
 
 ### Current Limitations
 
-- Funded mandate identity and outcome ingestion are the next implementation layers; the current Capital surface reports governed spend attribution but does not yet generate mandate statements
-- Funded mandates and outcome ingestion are strategic product layers; current APIs primarily govern and record agent actions
-- Complete ROI/P&L accounting and causal attribution are not implemented; AI telemetry is not business accounting
+- Funded mandates, outcome ingestion, statement generation/publish/export, and the bounded next-allocation recommendation are implemented; the GitHub outcome connector (`services/outcomes/`) ingests `verified_external_state` outcomes from merged PRs / branch commits via `POST /api/mandates/:mandateId/outcomes/sync` — see [OUTCOME_EVIDENCE_PLAN.md](./OUTCOME_EVIDENCE_PLAN.md)
+- Complete ROI/P&L accounting and causal attribution are not implemented; verified outcomes (e.g. from the GitHub connector) are not causal claims, and AI telemetry is not business accounting
 - External agent financing, investment, and credit underwriting are not implemented
 - File-backed stores are single-instance — need Redis/Postgres before horizontal scaling
 - Email auth supported alongside SIWE; SIWE path is more battle-tested

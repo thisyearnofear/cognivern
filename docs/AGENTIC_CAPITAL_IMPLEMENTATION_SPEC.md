@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase 4/5 foundation implemented, publication shipping.** Funded mandate identity and links, operator-authenticated outcome observation ingestion, a hashed statement candidate, bounded allocation recommendations, and immutable published statement snapshots with permissioned redacted export are implemented. Financing, automatic execution, and ROI claims remain out of scope. This document turns the agentic capital thesis
+**Phase 4/5 foundation implemented, publication shipping.** Funded mandate identity and links, operator-authenticated outcome observation ingestion, a hashed statement candidate, bounded allocation recommendations, and immutable published statement snapshots with permissioned redacted export are implemented. The first non-self-reported outcome source — a GitHub connector (merged PRs / branch commits, `POST /api/mandates/:mandateId/outcomes/sync`, mandate-level `outcomeSources` config) — is also implemented; see `docs/OUTCOME_EVIDENCE_PLAN.md` for its design and milestones. Financing, automatic execution, and ROI claims remain out of scope. This document turns the agentic capital thesis
 into an implementation boundary without claiming complete ROI accounting, causal
 attribution, external financing, or automatic capital deployment.
 

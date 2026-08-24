@@ -221,6 +221,7 @@ function migrate(db: Database.Database): void {
       measurement_window TEXT,
       success_metrics TEXT NOT NULL DEFAULT '[]',
       settlement TEXT,
+      outcome_sources TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY (workspace_id) REFERENCES workspaces(id)
@@ -355,6 +356,13 @@ function migrate(db: Database.Database): void {
   // Migration: funded_mandates.settlement (Cleanverse / verified-capital constraints)
   try {
     db.exec(`ALTER TABLE funded_mandates ADD COLUMN settlement TEXT`);
+  } catch {
+    /* already exists */
+  }
+
+  // Migration: funded_mandates.outcome_sources (GitHub outcome connector)
+  try {
+    db.exec(`ALTER TABLE funded_mandates ADD COLUMN outcome_sources TEXT`);
   } catch {
     /* already exists */
   }
