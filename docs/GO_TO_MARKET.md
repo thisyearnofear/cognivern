@@ -126,3 +126,43 @@ Open items if hosted mode is chosen: per-tenant funding view (organisers
 must not see the shared upstream account), an explicit markup multiplier in
 pricing, and the gateway per-key rate limiting noted as a gap in
 `SPONSORED_CREDITS.md`.
+
+## 6. Adjacent markets we are deliberately not building toward
+
+Purpose: record markets that look adjacent and lucrative but would dilute
+focus, so the next shiny object gets the same treatment instead of a fresh
+debate. The standing filter: **does it produce outcome-bearing mandate
+records on rails we already have?** If not, it is a distraction.
+
+### AI training-data monetization (assessed 2026-08-24, passed on)
+
+Context: micro1 opened a program paying companies for anonymized data to
+train models (1,000+ signups in weeks); Google bid $10M for Spirit Airlines'
+email/Teams archive in bankruptcy court; the Palantir–USA Today data deal
+drew an 800-journalist revolt. Dataset licensing for AI training is sized at
+roughly $4.8B (2025) → $22.6B (2034). The trend is real and large.
+
+Why we are not building toward it:
+
+- The money flows to **marketplaces/brokers** (micro1, Troveo, Mercor),
+  **labeling/structuring shops**, and **frontier labs** — none of which is
+  our layer.
+- The hard problems (anonymization quality, data valuation, consent) are
+  ML/legal problems, not governance problems we already solve.
+- It would mean a new buyer, a new sales motion, and a multi-team business
+  started from zero against funded incumbents — the exact execution sprawl
+  this roadmap is trying to avoid.
+
+How we capture value from it instead:
+
+- **Tailwind.** The gold rush means more agentic workflows spending real
+  money to prepare, clean, and license data. That is governed agentic spend
+  needing observability — precisely the wedge in §3.
+- **Additive vertical, not a product line.** If a data-licensing workflow
+  ever arrives as a design partner, run it as a funded mandate on existing
+  rails (mandate → governed spend → outcome observation → statement). See
+  `AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md`.
+- **Long-term option, not a current bet:** neutral attestation of
+  provenance / consent / anonymization compliance. Consistent with the
+  neutrality moat (§2, §4), and only becomes real once outcome-bearing
+  statements exist to point at.
