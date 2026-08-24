@@ -37,7 +37,7 @@ Standard policies return sync decisions. Confidential (FHE) policies return `202
 | Decision        | Meaning           | What Happens                                                      |
 | --------------- | ----------------- | ----------------------------------------------------------------- |
 | **Approved** ✅ | Spend fits policy | Native-token transfer broadcast on X Layer testnet                |
-| **Held** ⏸     | Needs review      | Approve/Deny in dashboard. Failed broadcasts leave run retryable. |
+| **Held** ⏸     | Needs review      | Approve/Deny in dashboard. Failed broadcasts surface via reconciliation. |
 | **Denied** ❌   | Violates policy   | Money does not move                                               |
 
 Each decision includes a Decision ID, attestation hash, matched policy rules, and on-chain tx hash (if approved).

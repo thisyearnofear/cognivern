@@ -10,7 +10,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@0gfoundation/0g-storage-ts-sdk": "1.2.9",
+    "@0gfoundation/0g-storage-ts-sdk": "1.2.11",
     "@cofhe/sdk": "0.5.2",
     "@ledgerhq/context-module": "^2.0.0",
     "@ledgerhq/device-management-kit": "1.6.0",
@@ -31,7 +31,7 @@
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
-    "drizzle-orm": "^0.38.0",
+    "drizzle-orm": "^0.45.2",
     "ethers": "^6.11.1",
     "event-source-polyfill": "^1.0.31",
     "express": "^4.18.2",
@@ -52,6 +52,11 @@
         "ethers": "6.x",
         "@ledgerhq/device-management-kit": "1.6.0"
       }
+    },
+    "overrides": {
+      "open-jsonrpc-provider>axios": "^1.13.2",
+      "ws": "^8.21.0",
+      "uuid": "^11.1.1"
     },
     "onlyBuiltDependencies": [
       "better-sqlite3",
