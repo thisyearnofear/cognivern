@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageState } from "@/components/ui/error-state";
 import { useSealedBidRounds } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
+import { useDemoStore } from "@/stores/demo-store";
 import { mutate } from "swr";
 import { AgentCreateRound } from "./agent-create-round";
 import { RoundDetail } from "./round-detail";
@@ -29,6 +30,7 @@ function defaultDeadline(): string {
 }
 
 export function SealedBidPage() {
+  const demoMode = useDemoStore((s) => s.demoMode);
   const { data: rounds, isLoading, error } = useSealedBidRounds();
   const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -136,6 +138,18 @@ export function SealedBidPage() {
         />
       )}
 
+      {demoMode && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
+          <Shield className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>
+            <span className="font-semibold">Demo data.</span> These rounds are
+            sample vendor selections so you can explore the sealed-bid and
+            atomic-settlement flow without connecting a wallet. Create a real
+            round to see it live on Canton Devnet.
+          </span>
+        </div>
+      )}
+
       {showCreate && (
         <motion.form
           onSubmit={handleCreate}
@@ -198,7 +212,7 @@ export function SealedBidPage() {
 
       {!isLoading && !error && rounds && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="popLayout">
             {rounds.length === 0 ? (
               <PageState
                 variant="empty"

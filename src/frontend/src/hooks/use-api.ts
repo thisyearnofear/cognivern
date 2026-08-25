@@ -8,6 +8,10 @@ import {
   type GovernanceTimeline,
   type CreLedgerVerifyResponse,
 } from "@/lib/api-client";
+import {
+  DEMO_SEALED_BID_ROUNDS,
+  DEMO_SEALED_BID_ROUND_SUMMARIES,
+} from "@/lib/demo-data";
 import { useDemoStore } from "@/stores/demo-store";
 import { useAuthStore } from "@/stores/auth-store";
 import {
@@ -201,7 +205,7 @@ export function useSealedBidRounds() {
     async () =>
       ((await apiClient.getSealedBidRounds()).data ||
         []) as SealedBidRoundSummary[],
-    [],
+    DEMO_SEALED_BID_ROUND_SUMMARIES,
   );
 }
 
@@ -213,7 +217,10 @@ export function useSealedBidRound(roundId: string | null) {
       const res = await apiClient.getSealedBidRound(roundId);
       return (res.data ?? null) as SealedBidRound | null;
     },
-    null,
+    // Fallback for demo mode: find the round in the demo collection.
+    roundId
+      ? (DEMO_SEALED_BID_ROUNDS.find((r) => r.roundId === roundId) ?? null)
+      : null,
   );
 }
 

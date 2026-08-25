@@ -5,6 +5,8 @@ import useSWR from "swr";
 import { motion, AnimatePresence } from "motion/react";
 import { Eye, Lock, Loader2, Database } from "lucide-react";
 import { apiClient, type SealedBidRound } from "@/lib/api-client";
+import { useDemoStore } from "@/stores/demo-store";
+import { DEMO_SEALED_BID_PARTY_VIEW } from "@/lib/demo-data";
 
 // The demo parties allocated on Devnet. Toggling one re-queries the Canton
 // participant ACTING AS that party — the visible-bid count is whatever the
@@ -32,6 +34,7 @@ interface PartyViewProps {
 // in the response — Canton's disclosure model, proven live, not a UI filter.
 export function PartyView({ round }: PartyViewProps) {
   const [asParty, setAsParty] = useState<PartyName>("Auctioneer");
+  const demoMode = useDemoStore((s) => s.demoMode);
 
   // Re-query the participant on party switch (and when the round's bids change).
   // SWR keys on all of these, so switching identity fires a fresh ledger read.
@@ -41,12 +44,22 @@ export function PartyView({ round }: PartyViewProps) {
     { revalidateOnFocus: false },
   );
 
-  const view = data?.success ? data.data : undefined;
+  // In demo mode we can't hit the live Canton participant (no auth), so use the
+  // curated per-party view that mirrors what the ledger would disclose.
+  const demoView = demoMode
+    ? DEMO_SEALED_BID_PARTY_VIEW[`${round.roundId}::${asParty}`]
+    : undefined;
+
+  const view = demoMode && demoView
+    ? { supported: true, party: asParty, partyId: demoView.party, visibleBids: demoView.visibleBids }
+    : data?.success
+      ? data.data
+      : undefined;
   const supported = view?.supported ?? true;
   const partyId = view?.partyId ?? "";
   const bids = view?.visibleBids ?? null;
-  const error = data && !data.success ? (data.error ?? "Ledger query failed") : null;
-  const loading = isLoading;
+  const error = !demoMode && data && !data.success ? (data.error ?? "Ledger query failed") : null;
+  const loading = isLoading && !demoMode;
   const count = bids?.length ?? 0;
 
   return (

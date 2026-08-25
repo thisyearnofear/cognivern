@@ -5,7 +5,9 @@ import {
   DEMO_POLICIES,
   DEMO_AUDIT_LOGS,
   DEMO_RUNS,
+  DEMO_SEALED_BID_ROUNDS,
 } from "@/lib/demo-data";
+import type { SealedBidRound } from "@/lib/api-client";
 
 interface DemoState {
   demoMode: boolean;
@@ -14,6 +16,7 @@ interface DemoState {
     auditLogs: AuditLog[];
     policies: Policy[];
     runs: Run[];
+    sealedBidRounds: SealedBidRound[];
   };
   enableDemoMode: () => void;
   exitDemoMode: () => void;
@@ -27,6 +30,7 @@ export const useDemoStore = create<DemoState>((set, get) => ({
     auditLogs: DEMO_AUDIT_LOGS,
     policies: DEMO_POLICIES,
     runs: DEMO_RUNS,
+    sealedBidRounds: DEMO_SEALED_BID_ROUNDS,
   },
   enableDemoMode: () =>
     set({
@@ -36,6 +40,7 @@ export const useDemoStore = create<DemoState>((set, get) => ({
         auditLogs: DEMO_AUDIT_LOGS,
         policies: DEMO_POLICIES,
         runs: DEMO_RUNS,
+        sealedBidRounds: DEMO_SEALED_BID_ROUNDS,
       },
     }),
   // Note: callers are responsible for not clearing auth state on demo exit.

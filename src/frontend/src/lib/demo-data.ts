@@ -7,6 +7,232 @@ import type {
   Run,
   Workspace,
 } from "@cognivern/shared";
+import type {
+  SealedBidRound,
+  SealedBidRoundSummary,
+  PartyVisibleBid,
+} from "@/lib/api-client";
+
+// ── Sealed-bid demo rounds ────────────────────────────────────────────
+// The sealed-bid surface needs live-looking sample state so the page is not
+// an empty list for guests / demo-tier workspaces (the API list is empty on
+// a fresh ledger). Same shape as SealedBidRoundSummary; detail-view fields
+// (bids, winner, settlement) are mirrored for the representative round so the
+// round detail page renders fully.
+
+// Each round carries the detail-view fields (bids, settlement) where they
+// belong so both list projections and the round-detail page render fully.
+export const DEMO_SEALED_BID_ROUNDS: SealedBidRound[] = [
+  {
+    roundId: "demo-sb-001",
+    description: "Q3 security audit RFP — vendor selection",
+    serviceCategory: "security-audit",
+    status: "open",
+    manager: "Auctioneer",
+    deadline: new Date(Date.now() + 2 * 3600_000).toISOString(),
+    maxBids: 5,
+    bids: [
+      {
+        bidder: "Alice::demo",
+        encryptedAmount: "enc:0",
+        proposalHash: "0xaaa…",
+        status: "pending",
+        submittedAt: new Date(Date.now() - 3 * 3600_000).toISOString(),
+        index: 0,
+      },
+      {
+        bidder: "Bob::demo",
+        encryptedAmount: "enc:0",
+        proposalHash: "0xbbb…",
+        status: "pending",
+        submittedAt: new Date(Date.now() - 2 * 3600_000).toISOString(),
+        index: 1,
+      },
+    ],
+    winner: null,
+    winningBid: null,
+    winningProposalHash: null,
+    createdAt: new Date(Date.now() - 5 * 3600_000).toISOString(),
+    backend: "canton",
+    createdByAgent: "agent-alpha-001",
+  },
+  {
+    roundId: "demo-sb-002",
+    description: "Smart contract audit — ERC-4626 vault",
+    serviceCategory: "smart-contract",
+    status: "closed",
+    manager: "Auctioneer",
+    deadline: new Date(Date.now() - 2 * 3600_000).toISOString(),
+    maxBids: 5,
+    bids: [
+      {
+        bidder: "Alice::demo",
+        encryptedAmount: "enc:0",
+        proposalHash: "0xaaa…",
+        status: "pending",
+        submittedAt: new Date(Date.now() - 24 * 3600_000).toISOString(),
+        index: 0,
+      },
+    ],
+    winner: null,
+    winningBid: null,
+    winningProposalHash: null,
+    createdAt: new Date(Date.now() - 26 * 3600_000).toISOString(),
+    backend: "canton",
+  },
+  {
+    roundId: "demo-sb-003",
+    description: "Yield strategy research — RWA pools",
+    serviceCategory: "research",
+    status: "revealed",
+    manager: "Auctioneer",
+    deadline: new Date(Date.now() - 50 * 3600_000).toISOString(),
+    maxBids: 5,
+    bids: [],
+    winner: "Alice::demo",
+    winningBid: 12400,
+    winningProposalHash: "0xabc…",
+    createdAt: new Date(Date.now() - 74 * 3600_000).toISOString(),
+    backend: "canton",
+    settledAssetCid: "demo-settled-001",
+    settlementAmount: 12400,
+    settlementAssetTag: "USDC",
+  },
+  {
+    roundId: "demo-sb-004",
+    description: "KYC/AML compliance workflow build",
+    serviceCategory: "compliance",
+    status: "open",
+    manager: "Auctioneer",
+    deadline: new Date(Date.now() + 12 * 3600_000).toISOString(),
+    maxBids: 4,
+    bids: [],
+    winner: null,
+    winningBid: null,
+    winningProposalHash: null,
+    createdAt: new Date(Date.now() - 1 * 3600_000).toISOString(),
+    createdByAgent: "agent-beta-002",
+  },
+  {
+    roundId: "demo-sb-005",
+    description: "AI agent data-labeling vendor RFP",
+    serviceCategory: "data-services",
+    status: "revealed",
+    manager: "Auctioneer",
+    deadline: new Date(Date.now() - 30 * 3600_000).toISOString(),
+    maxBids: 5,
+    bids: [],
+    winner: "Charlie::demo",
+    winningBid: 9800,
+    winningProposalHash: "0xdef…",
+    createdAt: new Date(Date.now() - 54 * 3600_000).toISOString(),
+    backend: "canton",
+    settledAssetCid: "demo-settled-002",
+    settlementAmount: 9800,
+    settlementAssetTag: "USDC",
+  },
+  {
+    roundId: "demo-sb-006",
+    description: "On-chain analytics provider evaluation",
+    serviceCategory: "analytics",
+    status: "open",
+    manager: "Auctioneer",
+    deadline: new Date(Date.now() + 24 * 3600_000).toISOString(),
+    maxBids: 5,
+    bids: [],
+    winner: null,
+    winningBid: null,
+    winningProposalHash: null,
+    createdAt: new Date(Date.now() - 30 * 60_000).toISOString(),
+    backend: "canton",
+  },
+];
+
+// Summary projection of the demo rounds — the list page consumes summaries.
+export const DEMO_SEALED_BID_ROUND_SUMMARIES: SealedBidRoundSummary[] =
+  DEMO_SEALED_BID_ROUNDS.map((r) => ({
+    roundId: r.roundId,
+    description: r.description,
+    serviceCategory: r.serviceCategory,
+    status: r.status,
+    bidCount: r.bids.length,
+    maxBids: r.maxBids,
+    deadline: r.deadline,
+    winner: r.winner,
+    winningBid: r.winningBid,
+    createdAt: r.createdAt,
+    backend: r.backend,
+    createdByAgent: r.createdByAgent,
+    governanceRunId: r.governanceRunId,
+  }));
+
+// Party-view truth for demo rounds: for a revealed round each party sees
+// exactly what the ledger would disclose (per-party disclosure model).
+export const DEMO_SEALED_BID_PARTY_VIEW: Record<
+  string,
+  { party: string; visibleBids: PartyVisibleBid[] }
+> = {
+  "demo-sb-003::Auctioneer": {
+    party: "Auctioneer",
+    visibleBids: [
+      {
+        bidder: "Alice::demo",
+        amountUsd: 12400,
+        proposalHash: "0xabc…",
+        index: 0,
+      },
+    ],
+  },
+  "demo-sb-003::Alice": {
+    party: "Alice::demo",
+    visibleBids: [
+      {
+        bidder: "Alice::demo",
+        amountUsd: 12400,
+        proposalHash: "0xabc…",
+        index: 0,
+      },
+    ],
+  },
+  "demo-sb-003::Bob": {
+    party: "Bob",
+    visibleBids: [],
+  },
+  "demo-sb-003::Charlie": {
+    party: "Charlie",
+    visibleBids: [],
+  },
+  "demo-sb-005::Auctioneer": {
+    party: "Auctioneer",
+    visibleBids: [
+      {
+        bidder: "Charlie::demo",
+        amountUsd: 9800,
+        proposalHash: "0xdef…",
+        index: 0,
+      },
+    ],
+  },
+  "demo-sb-005::Charlie": {
+    party: "Charlie::demo",
+    visibleBids: [
+      {
+        bidder: "Charlie::demo",
+        amountUsd: 9800,
+        proposalHash: "0xdef…",
+        index: 0,
+      },
+    ],
+  },
+  "demo-sb-005::Alice": {
+    party: "Alice",
+    visibleBids: [],
+  },
+  "demo-sb-005::Bob": {
+    party: "Bob",
+    visibleBids: [],
+  },
+};
 
 function hoursAgo(h: number): string {
   return new Date(Date.now() - h * 3600_000).toISOString();
