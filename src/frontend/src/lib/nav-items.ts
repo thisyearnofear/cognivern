@@ -135,4 +135,11 @@ export const DEMO_NAV_ITEMS: NavItem[] = [
     href: '/demo/spend',
     description: 'Watch the spend flow in action',
   },
+  {
+    id: 'demo-attribution',
+    label: 'Funded Mandate Demo',
+    icon: CircleDollarSign,
+    href: '/demo/attribution',
+    description: 'See the full mandate loop: fund, act, spend, outcome',
+  },
 ];

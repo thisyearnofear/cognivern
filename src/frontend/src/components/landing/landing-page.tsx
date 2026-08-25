@@ -14,6 +14,11 @@ import {
   Eye,
   ExternalLink,
   Copy,
+  Target,
+  CircleDollarSign,
+  ShieldCheck,
+  Receipt,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
@@ -96,6 +101,76 @@ function FlowNode({
         </motion.div>
       )}
     </div>
+  );
+}
+
+/* ─── The loop card (landing section) ──────────────────────── */
+
+const LOOP_STAGES: Array<{
+  icon: React.ElementType;
+  title: string;
+  subtitle: string;
+}> = [
+  {
+    icon: CircleDollarSign,
+    title: "Fund",
+    subtitle: "A mandate sets the budget, boundary, and success metric for a piece of agentic work.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Act",
+    subtitle: "Agents work under governed policy — every action approved, held, or stopped with a reason.",
+  },
+  {
+    icon: Receipt,
+    title: "Spend",
+    subtitle: "Every dollar attributed to a mandate, with receipt-backed evidence your team can verify.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Outcome",
+    subtitle: "Business results recorded and independently verified where the source allows.",
+  },
+  {
+    icon: Target,
+    title: "Allocate",
+    subtitle: "Evidence gating the next tranche — advisory guidance, never automatic execution.",
+  },
+];
+
+function LoopCard({
+  icon: Icon,
+  title,
+  subtitle,
+  index,
+}: {
+  icon: React.ElementType;
+  title: string;
+  subtitle: string;
+  index: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.08, duration: 0.4 }}
+      className="relative rounded-xl border border-border bg-card p-5"
+    >
+      <span className="absolute top-4 right-4 text-xs font-mono text-muted-foreground/50">
+        0{index + 1}
+      </span>
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
+        <Icon size={18} />
+      </div>
+      <h3
+        className="mt-4 font-semibold"
+        style={{ fontFamily: "var(--font-space-grotesk)" }}
+      >
+        {title}
+      </h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{subtitle}</p>
+    </motion.div>
   );
 }
 
@@ -197,6 +272,9 @@ export function LandingPage() {
           </span>
         </div>
         <nav className="hidden lg:flex items-center gap-6 text-sm text-muted-foreground" aria-label="Landing sections">
+          <a href="#the-loop" className="transition-colors hover:text-foreground">
+            The loop
+          </a>
           <a href="#how-it-works" className="transition-colors hover:text-foreground">
             How it works
           </a>
@@ -288,12 +366,20 @@ export function LandingPage() {
               <Button
                 variant="secondary"
                 size="lg"
+                onClick={() => router.push("/demo/attribution")}
+              >
+                <Target className="h-4 w-4 mr-1.5" />
+                See a funded mandate
+              </Button>
+              <Button
+                variant="ghost"
+                size="lg"
                 onClick={() =>
                   document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })
                 }
               >
                 <ArrowRight className="h-4 w-4 mr-1.5 rotate-90" />
-                See how it works
+                How it works
               </Button>
             </motion.div>
           </div>
@@ -372,6 +458,65 @@ export function LandingPage() {
           />
         </div>
       </motion.section>
+
+      {/* ── The loop ──
+          The vision in one line: funded → governed action → attributed spend
+          → measured outcome → next allocation. This is the growth story
+          (capital following provable agentic outcomes); the CTA drops the
+          visitor straight into the guest attribution demo (/demo/attribution)
+          so they see it with real-looking numbers, not just prose. */}
+      <section id="the-loop" className="border-t border-border scroll-mt-24">
+        <div className="max-w-5xl mx-auto px-6 py-24">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mb-14"
+          >
+            <span
+              className="text-xs font-semibold text-primary uppercase tracking-widest"
+              style={{ fontFamily: "var(--font-space-grotesk)" }}
+            >
+              The loop
+            </span>
+            <h2
+              className="text-3xl font-bold text-foreground mt-3"
+              style={{ fontFamily: "var(--font-space-grotesk)" }}
+            >
+              From funded mandate to measured outcome
+            </h2>
+            <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
+              Capital meets a mandate. Agents act inside a governed boundary, every dollar
+              leaves a receipt, and the evidence decides what gets funded next.
+            </p>
+          </motion.div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {LOOP_STAGES.map((stage, index) => (
+              <LoopCard
+                key={stage.title}
+                icon={stage.icon}
+                title={stage.title}
+                subtitle={stage.subtitle}
+                index={index}
+              />
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <Button
+              variant="default"
+              size="lg"
+              onClick={() => router.push("/demo/attribution")}
+            >
+              See a funded mandate <ArrowRight className="h-4 w-4 ml-1.5" />
+            </Button>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Sample data, no wallet needed — watch the loop run end to end
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* ── How it works ── */}
       <section id="how-it-works" className="max-w-5xl mx-auto px-6 py-24 scroll-mt-24">
