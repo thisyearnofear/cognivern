@@ -2,13 +2,13 @@ import { test, expect } from '@playwright/test';
 
 /**
  * Sealed-bid vendor selection surface. Without a session the rounds hook
- * falls back to demo data (empty list), so this spec covers rendering and
- * form interaction only. It deliberately never submits: creating a round
- * posts to the live Canton DevNet participant, and ops policy (AGENTS.md)
- * bans probe rounds because they cannot be cancelled.
+ * falls back to the demo round collection, so this spec covers the guest
+ * (demo-data) render and form interaction only. It deliberately never
+ * submits: creating a round posts to the live Canton backend, and ops
+ * policy (AGENTS.md) bans probe rounds because they cannot be cancelled.
  */
 test.describe('Sealed-bid vendor selection', () => {
-  test('renders the surface with create actions and the empty state', async ({ page }) => {
+  test('renders the surface with create actions and seeded demo rounds', async ({ page }) => {
     await page.goto('/sealed-bid');
 
     await expect(
@@ -19,15 +19,16 @@ test.describe('Sealed-bid vendor selection', () => {
     ).toBeVisible();
     await expect(page.getByRole('button', { name: /Create agent round/i }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /Create manually/i }).first()).toBeVisible();
-    await expect(page.getByText('No vendor selection rounds')).toBeVisible();
+    // Guest fallback shows the seeded demo rounds instead of the empty state.
+    await expect(page.getByText(/Q3 security audit RFP/i).first()).toBeVisible();
+    await expect(page.getByText('No vendor selection rounds')).toHaveCount(0);
   });
 
-  test('agent round form opens from the empty state and cancels cleanly', async ({ page }) => {
+  test('agent round form opens from the header and cancels cleanly', async ({ page }) => {
     await page.goto('/sealed-bid');
 
-    // The empty-state action is the lowest-friction path into the form.
-    const emptyStateAction = page.getByRole('button', { name: /Create agent round/i }).last();
-    await emptyStateAction.click();
+    // The header action is the lowest-friction path into the form.
+    await page.getByRole('button', { name: /Create agent round/i }).first().click();
 
     await expect(page.getByText('Agent-initiated round')).toBeVisible();
     await expect(page.getByText(/policy-governed/)).toBeVisible();
