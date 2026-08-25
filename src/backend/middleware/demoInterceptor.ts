@@ -341,6 +341,15 @@ function serveDemoData(
     if (run) return { success: true, data: run };
   }
 
+  // Sealed-bid vendor selection — sandbox serves the same curated demo rounds
+  // the frontend shows for guests, so authed sandbox users never see an empty
+  // ledger. The list endpoint is public (publicEndpoints), but with a Bearer
+  // token the interceptor runs first and would otherwise fall through to the
+  // real (empty on a fresh ledger) Canton list.
+  if (path === "/vendor/sealed-bid/rounds" || path === "/vendor/sealed-bid/rounds/") {
+    return { success: true, data: DemoDataService.getSealedBidRounds() };
+  }
+
   return null;
 }
 

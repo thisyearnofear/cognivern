@@ -272,6 +272,96 @@ function demoPolicies(): Policy[] {
   ];
 }
 
+function demoSealedBidRounds() {
+  return [
+    {
+      roundId: "demo-sb-001",
+      description: "Q3 security audit RFP — vendor selection",
+      serviceCategory: "security-audit",
+      status: "open",
+      bidCount: 2,
+      maxBids: 5,
+      deadline: new Date(Date.now() + 2 * 3600_000).toISOString(),
+      winner: null,
+      winningBid: null,
+      createdAt: new Date(Date.now() - 5 * 3600_000).toISOString(),
+      backend: "canton",
+      createdByAgent: "agent-alpha-001",
+    },
+    {
+      roundId: "demo-sb-002",
+      description: "Smart contract audit — ERC-4626 vault",
+      serviceCategory: "smart-contract",
+      status: "closed",
+      bidCount: 4,
+      maxBids: 5,
+      deadline: new Date(Date.now() - 2 * 3600_000).toISOString(),
+      winner: null,
+      winningBid: null,
+      createdAt: new Date(Date.now() - 26 * 3600_000).toISOString(),
+      backend: "canton",
+    },
+    {
+      roundId: "demo-sb-003",
+      description: "Yield strategy research — RWA pools",
+      serviceCategory: "research",
+      status: "revealed",
+      bidCount: 5,
+      maxBids: 5,
+      deadline: new Date(Date.now() - 50 * 3600_000).toISOString(),
+      winner: "Alice::demo",
+      winningBid: 12400,
+      createdAt: new Date(Date.now() - 74 * 3600_000).toISOString(),
+      backend: "canton",
+      settledAssetCid: "demo-settled-001",
+      settlementAmount: 12400,
+      settlementAssetTag: "USDC",
+    },
+    {
+      roundId: "demo-sb-004",
+      description: "KYC/AML compliance workflow build",
+      serviceCategory: "compliance",
+      status: "open",
+      bidCount: 1,
+      maxBids: 4,
+      deadline: new Date(Date.now() + 12 * 3600_000).toISOString(),
+      winner: null,
+      winningBid: null,
+      createdAt: new Date(Date.now() - 1 * 3600_000).toISOString(),
+      createdByAgent: "agent-beta-002",
+    },
+    {
+      roundId: "demo-sb-005",
+      description: "AI agent data-labeling vendor RFP",
+      serviceCategory: "data-services",
+      status: "revealed",
+      bidCount: 3,
+      maxBids: 5,
+      deadline: new Date(Date.now() - 30 * 3600_000).toISOString(),
+      winner: "Charlie::demo",
+      winningBid: 9800,
+      createdAt: new Date(Date.now() - 54 * 3600_000).toISOString(),
+      backend: "canton",
+      settledAssetCid: "demo-settled-002",
+      settlementAmount: 9800,
+      settlementAssetTag: "USDC",
+    },
+    {
+      roundId: "demo-sb-006",
+      description: "On-chain analytics provider evaluation",
+      serviceCategory: "analytics",
+      status: "open",
+      bidCount: 0,
+      maxBids: 5,
+      deadline: new Date(Date.now() + 24 * 3600_000).toISOString(),
+      winner: null,
+      winningBid: null,
+      createdAt: new Date(Date.now() - 30 * 60_000).toISOString(),
+      backend: "canton",
+    },
+  ];
+}
+
 function demoRuns(): Run[] {
   return [
     {
@@ -348,4 +438,5 @@ export const DemoDataService = {
   getRun(id: string): Run | undefined {
     return demoRuns().find((r) => r.id === id);
   },
+  getSealedBidRounds: demoSealedBidRounds,
 };

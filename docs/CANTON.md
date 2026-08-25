@@ -2,6 +2,8 @@
 
 > **Status (Aug 9 2026):** HackCanton S2 has **concluded**. The Canton **DevNet backend stays live** and the sealed-bid path is unchanged. The team plans to **re-apply for the next HackCanton round in September**. Canton is not the current active hackathon target (Flare Summer Signal is — see `docs/FLARE_SUMMER_SIGNAL.md`); keep Canton working but do not gate new work on it.
 
+> **Update (Aug 25 2026):** the shared HackCanton S2 DevNet node has been **unreachable** since Aug 21 (TCP `connection reset` from Hetzner and local probes; `hydrate from ledger failed` on every boot), and the live backend's round list is empty because of it. The **Hetzner sandbox has been restored** as a fallback ledger while the DevNet is down — see [Production state](#production-state--devnet-unreachable-sandbox-restored-aug-25-2026). The env cutover is still **in progress**.
+
 Cognivern's sealed-bid vendor selection runs on a pluggable backend interface. The **Canton** backend uses a Daml sandbox to give sealed-bid auctions structural sub-transaction privacy and atomic multi-party reveal — capabilities the FHE backend can't provide.
 
 ## Why Canton
@@ -63,7 +65,7 @@ Every lifecycle step (create, submit, close, reveal) also fires `AuditLogService
 
 **Hetzner** — Daml SDK at `/home/deploy/.daml/`, `daml/` project synced to `/opt/cognivern/daml/`, launched via `pm2 start /opt/cognivern/daml/start-sandbox.sh --name cognivern-canton --interpreter bash`. Localhost-bound.
 
-**Canton DevNet** — the required final-submission target. We use the shared HackCanton S2 DevNet node (`https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`). The current DAR (`d62e13ab174d8da690a44c6dd354a223f8c70e43a0ac7e17b8385bfd8b291fad`, upgrading `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454`) is uploaded, demo parties were allocated with the `-cognivern` suffix, and the authenticated Daml user is `e6c5f9fc-98ed-491f-b228-00cf931a05cc`. The backend is participant-agnostic, but final judging requires contract/transaction evidence from a real DevNet round. A sandbox-only run is not enough.
+**Canton DevNet** — the required final-submission target. We use the shared HackCanton S2 DevNet node (`https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`). The current DAR (`d62e13ab174d8da690a44c6dd354a223f8c70e43a0ac7e17b8385bfd8b291fad`, upgrading `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454`) is uploaded, demo parties were allocated with the `-cognivern` suffix, and the authenticated Daml user is `e6c5f9fc-98ed-491f-b228-00cf931a05cc`. The backend is participant-agnostic, but final judging requires contract/transaction evidence from a real DevNet round. A sandbox-only run is not enough. **Reachability (Aug 25 2026):** the node currently does not answer — TCP connect is reset from both this machine and the Hetzner box, and the backend logs `hydrate from ledger failed … fetch failed` on every boot since Aug 21. See "Production state" below for the fallback while it is down.
 
 ## Demo state on boot
 
@@ -94,6 +96,40 @@ The `SealedBidService` dispatcher's `resolveBackend(roundId)` falls back to prob
 
 Startup log to confirm: `SealedBid[canton]: hydrated N open + M revealed round(s) from ledger`.
 
+## Production state — DevNet unreachable, sandbox restored (Aug 25 2026)
+
+**The live list being empty was a dead-ledger issue, not a mis-config.** `CANTON_FEATURED_ROUNDS` was already set on the Hetzner box (three DevNet round ids), but the backend logs `SealedBid[canton]: hydrate from ledger failed — pre-seeded rounds will not appear until first HTTP request retries: fetch failed` on **every boot since Aug 21**, and the round list stays empty. The shared DevNet JSON endpoint (`ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`) resolves but resets TCP (`Connection reset by peer`, TLS write errors) from the box and from any laptop. The featured filter only narrows whatever the backend has hydrated; it cannot conjure rounds from an unreachable ledger.
+
+**Fallback — restored the Hetzner sandbox** (chosen instead of waiting on the DevNet team):
+
+1. **The Daml SDK was missing on the box** (`/home/deploy/.daml/bin` absent) — that is why `cognivern-canton` was not running. Installed **SDK 2.10.4** under `/home/deploy/.daml/` (Java 17 present, ~12G free, network fine), then rebuilt the DAR: `daml build` → package `daml-0.0.1-b0b4084a792687fe394df79f5e1c1ea31d316f78a68e605b93c481c2879c5128` (stable id).
+2. **Sandbox relaunched via pm2**: `pm2 start /opt/cognivern/daml/start-sandbox.sh --name cognivern-canton --interpreter bash`. JSON API is **UP on `http://127.0.0.1:7575`** (`/readyz` 200, `Main:setup` ran) and seeds `demo-round-open/closed/revealed` (the table above).
+3. **Env cutover — NOT yet applied.** The backend env still points at the dead DevNet (OIDC/bearer config ⇒ v2 client mode, which cannot talk to a v1 sandbox). Batch of changes for the cutover (`/opt/cognivern/shared/.env` + restart):
+
+```env
+CANTON_JSON_API_URL=http://127.0.0.1:7575
+CANTON_LEDGER_ID=sandbox
+CANTON_JWT_SECRET=
+# unset the OIDC_* / BEARER vars (removes v2 mode)
+CANTON_TEMPLATE_AUCTION=b0b4084a792687fe394df79f5e1c1ea31d316f78a68e605b93c481c2879c5128:Main:SealedBidAuction
+CANTON_TEMPLATE_BID=b0b4084a792687fe394df79f5e1c1ea31d316f78a68e605b93c481c2879c5128:Main:Bid
+CANTON_TEMPLATE_RESULT=b0b4084a792687fe394df79f5e1c1ea31d316f78a68e605b93c481c2879c5128:Main:AuctionResult
+CANTON_TEMPLATE_DEPOSIT=            # unset — the box DAR (v0.0.1) has NO PaymentDeposit template
+CANTON_FEATURED_ROUNDS=demo-round-open,demo-round-closed,demo-round-revealed
+```
+
+   then `pm2 restart cognivern-canton && pm2 restart cognivern-backend --update-env`, and verify:
+
+```bash
+curl -sf https://api.cognivern.persidian.com/api/vendor/sealed-bid/rounds | jq '.data[] | {roundId, backend, status}'
+```
+
+   Expect the three demo rounds with `"backend":"canton"`. If the backend reports `401` from the sandbox JSON API (ledger-id JWT mismatch), read the actual ledger id in the `cognivern-canton` boot log and set `CANTON_LEDGER_ID` accordingly.
+
+4. **Revert path:** when the DevNet node (or a next-season node) is reachable again, restore the `.env.example` DevNet values, `pm2 restart cognivern-backend --update-env`, and re-run `pnpm canton:proof` against the live API.
+
+**Settlement note for the sandbox fallback:** the box's Daml project is the older **v0.0.1-era** build (`version 0.0.1`, `sdk-version 2.10.4`) — it has no `PaymentDeposit` template, so the escrow-settlement banner is unavailable on the sandbox. The settlement DAR (`daml-0.0.2`, package `d62e13ab…`, repo `daml.yaml` SDK 3.4.11) was uploaded to DevNet but never synced to the box; syncing it (runbook: Daml model change) is what restores settlement on the sandbox.
+
 ## Environment variables
 
 All optional — omit `CANTON_JSON_API_URL` and the backend simply isn't registered, and cognivern behaves as it did pre-Canton.
@@ -108,6 +144,7 @@ CANTON_JWT_SECRET=                    # empty for sandbox (HS256 with empty secr
 CANTON_TEMPLATE_AUCTION=<pkgId>:Main:SealedBidAuction
 CANTON_TEMPLATE_BID=<pkgId>:Main:Bid
 CANTON_TEMPLATE_RESULT=<pkgId>:Main:AuctionResult
+CANTON_FEATURED_ROUNDS=demo-round-open,demo-round-closed,demo-round-revealed  # curated list; omit = every hydrated round
 ```
 
 The `<pkgId>` is the deterministic hash of the compiled `.dar`. Rebuild changes it; `daml damlc inspect-dar daml/.daml/dist/daml-0.0.1.dar` prints the current value.
