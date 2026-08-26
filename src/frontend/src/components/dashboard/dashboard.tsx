@@ -152,15 +152,15 @@ export function Dashboard() {
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           {!demoMode && !showSetup && (
             <p className="text-sm text-muted-foreground">
-              {blockedCount > 0
-                ? `${blockedCount} decision${blockedCount === 1 ? '' : 's'} needs your attention.`
-                : 'Your governed activity at a glance.'}
+              {heldCount + blockedCount > 0
+                ? `${heldCount + blockedCount} decision${heldCount + blockedCount === 1 ? '' : 's'} needs your attention.`
+                : 'Review governed activity and keep agent actions inside policy.'}
             </p>
           )}
           {demoMode && workspace && (
             <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
               <Sparkles className="h-3 w-3" />
-              <span>Sample data — explore freely, nothing here is real</span>
+              <span>Demo workspace · Sample data · No real funds can move</span>
             </div>
           )}
         </div>
@@ -198,11 +198,11 @@ export function Dashboard() {
       {workspaceState !== 'setup' && (
         <AttentionSummary
           tone={workspaceState === 'attention' ? 'attention' : 'healthy'}
-          title={workspaceState === 'attention' ? 'Governance needs attention' : 'Governance is steady'}
+          title={workspaceState === 'attention' ? 'Needs your attention' : 'Governance is steady'}
           description={
             workspaceState === 'attention'
-              ? 'Review held decisions and investigate stopped outcomes before they become operational surprises.'
-              : 'No decisions are waiting for operator action. Run a Quick Check or review recent activity below.'
+              ? 'Review held decisions and stopped outcomes before they become operational surprises.'
+              : 'No decisions are waiting for operator action. Run a governed request or review recent activity below.'
           }
           items={
             workspaceState === 'attention'
@@ -233,19 +233,21 @@ export function Dashboard() {
         mandateCount={(mandates || []).length}
       />
 
-      {/* Operational overview */}
-      <DashboardStats
-        loading={agentsLoading || logsLoading || policiesLoading}
-        activeCount={activeCount}
-        totalIdentities={agentList.length}
-        approvalRate={approvalRate}
-        approvalDelta={approvalDelta}
-        blockedCount={blockedCount}
-        decisions={decisions}
-        logs={Array.isArray(logs) ? logs : []}
-      />
+      {/* Operational overview: secondary to the attention state above. */}
+      <section aria-label="Operational overview">
+        <DashboardStats
+          loading={agentsLoading || logsLoading || policiesLoading}
+          activeCount={activeCount}
+          totalIdentities={agentList.length}
+          approvalRate={approvalRate}
+          approvalDelta={approvalDelta}
+          blockedCount={blockedCount}
+          decisions={decisions}
+          logs={Array.isArray(logs) ? logs : []}
+        />
+      </section>
 
-      {/* The sole primary task: run a spend through governance. */}
+      {/* A safe, repeatable way to test the control plane when nothing is waiting. */}
       <QuickCheck />
 
       {/* Recent Activity */}

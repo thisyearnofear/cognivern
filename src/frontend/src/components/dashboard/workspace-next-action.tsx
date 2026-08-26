@@ -58,7 +58,7 @@ function chooseNextAction({ state, demoMode, mandateCount }: WorkspaceNextAction
       eyebrow: 'Define the work',
       title: 'Create a spending mandate',
       description: 'A mandate connects an objective, budget, identities, and success measures so spend reviews as accountable work.',
-      button: 'Open Spend & Outcomes',
+      button: 'Open Activity',
       href: '/spend',
       icon: Landmark,
     };

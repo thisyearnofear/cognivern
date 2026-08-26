@@ -27,19 +27,19 @@ export interface NavGroup {
 }
 
 /**
- * Navigation grouped by job, mapped to the vision loop
- * (fund → act → spend → evidence → outcome):
+ * Navigation grouped by user job:
  *
- *   Operate     — the daily loop: what needs me, what happened, what was spent
- *   Configure   — the guardrails: who may spend, under what rules
- *   Developers  — the tooling: integrate, observe, drive from a terminal
+ *   Review      — what needs attention and what happened
+ *   Controls    — the guardrails and identities that govern actions
+ *   Programs    — funded workflows and private selections
+ *   Developers  — integration and technical operations
  *
  * One rule: an item must name which stage of the loop it serves, or it is a
  * view inside an existing destination. See docs/UX_IA_REVIEW.md.
  */
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Operate',
+    label: 'Review',
     items: [
       {
         id: 'dashboard',
@@ -53,18 +53,18 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Audit',
         icon: FileSearch,
         href: '/audit',
-        description: 'Investigate decisions and proof',
+        description: 'Investigate decisions and evidence',
       },
       {
         id: 'spend-outcomes',
-        label: 'Spend & Outcomes',
+        label: 'Activity',
         icon: CircleDollarSign,
         href: '/spend',
-        description: 'Runs, attribution, and verified spend',
+        description: 'Review governed actions and outcomes',
       },
       {
         id: 'sealed-bid',
-        label: 'Sealed Bids',
+        label: 'Sealed bids',
         icon: Gavel,
         href: '/sealed-bid',
         description: 'Run private vendor selections without exposing bids',
@@ -72,7 +72,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Configure',
+    label: 'Controls',
     items: [
       {
         id: 'policies',
@@ -83,7 +83,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         id: 'agents',
-        label: 'Identities',
+        label: 'Agent identities',
         icon: Users,
         href: '/agents',
         description: 'Connect the systems that may act',
@@ -112,7 +112,7 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Observability',
         icon: Radar,
         href: '/observability',
-        description: 'Traces, metrics, and dashboards',
+        description: 'Inspect traces, metrics, and health',
       },
       {
         id: 'os',
