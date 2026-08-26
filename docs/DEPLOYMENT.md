@@ -147,7 +147,7 @@ Canton (Daml) backend for confidential sealed-bid rounds — all optional, backe
 | `CANTON_TEMPLATE_AUCTION`  | `#daml:Main:SealedBidAuction` on DevNet; `<pkgId>:Main:SealedBidAuction` on sandbox                                                                                     |
 | `CANTON_TEMPLATE_BID`      | `#daml:Main:Bid` on DevNet; `<pkgId>:Main:Bid` on sandbox                                                                                                               |
 | `CANTON_TEMPLATE_RESULT`   | `#daml:Main:AuctionResult` on DevNet; `<pkgId>:Main:AuctionResult` on sandbox                                                                                           |
-| `CANTON_TEMPLATE_DEPOSIT`  | `#daml:Main:PaymentDeposit` on DevNet (settlement DAR); unset on the sandbox DAR (v0.0.1, no deposit template)                                                            |
+| `CANTON_TEMPLATE_DEPOSIT`  | Optional `#daml:Main:PaymentDeposit` on DevNet (required for value settlement); unset on the sandbox DAR (v0.0.1, no deposit template), which disables settlement safely |
 | `CANTON_DEMO_MANAGER_NAME` | Demo manager party name (`auctioner-cognivern` on the shared node)                                                                                                      |
 | `CANTON_DEMO_BIDDER_NAMES` | Comma-separated demo bidder names (`alice-cognivern,bob-cognivern,charlie-cognivern`)                                                                                   |
 | `CANTON_DEMO_PARTY_IDS`    | Static `name=partyId` map; required on shared DevNet nodes where the user cannot list/allocate parties                                                                  |

@@ -4,6 +4,9 @@ import type { ReactNode } from 'react';
 export interface AttentionSummaryItem {
   label: string;
   count: number;
+  /** When provided, the count chip becomes a direct action into the
+   *  filtered destination (e.g. the audit list for that decision state). */
+  onClick?: () => void;
 }
 
 interface AttentionSummaryProps {
@@ -61,14 +64,27 @@ export function AttentionSummary({
             <h2 className="text-sm font-semibold">{title}</h2>
             {items.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5" aria-label="Attention counts">
-                {items.map((item) => (
-                  <span
-                    key={item.label}
-                    className="rounded-full border border-current/15 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
-                  >
-                    {item.count} {item.label}
-                  </span>
-                ))}
+                {items.map((item) =>
+                  item.onClick ? (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.onClick}
+                      aria-label={`Review ${item.count} ${item.label} decision${item.count === 1 ? '' : 's'}`}
+                      className="inline-flex items-center gap-1 rounded-full border border-current/15 px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-foreground/25 hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                    >
+                      {item.count} {item.label}
+                      <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <span
+                      key={item.label}
+                      className="rounded-full border border-current/15 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                    >
+                      {item.count} {item.label}
+                    </span>
+                  ),
+                )}
               </div>
             )}
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +33,8 @@ import {
   type NormalizedAuditLog,
 } from '@/lib/normalizers';
 import { useAuditLogs } from '@/hooks/use-api';
-import { getOnChainTxHash } from './audit-evidence';
+import { getOnChainTxHash, getRunIdForAuditLog } from './audit-evidence';
+import { decisionNodeId, scrollDecisionIntoView } from '@/lib/deep-link';
 import { TimelineNode } from './timeline-node';
 import { EmptyAuditState } from './empty-audit-state';
 import { AuditMetrics } from './audit-metrics';
@@ -75,6 +76,10 @@ export function AuditPage() {
   type GroupBy = 'none' | 'decision' | 'agent' | 'chain';
   const rawFilter = searchParams.get('status') ?? 'all';
   const rawGroup = searchParams.get('group') ?? 'none';
+  // Deep link from the dashboard: ?id=<decision id> scrolls to and highlights
+  // that decision once the timeline renders. Kept in the URL so the view
+  // stays shareable; it is naturally preserved by updateUrl below.
+  const deepLinkId = searchParams.get('id');
   const [decisionFilter, setDecisionFilter] = useState<AuditFilter>(
     (['all', 'needs_attention', 'approved', 'held', 'denied'] as string[]).includes(rawFilter)
       ? (rawFilter as AuditFilter)
@@ -147,6 +152,14 @@ export function AuditPage() {
   }, []);
 
   const logs = normalizeAuditLogs(rawLogs);
+  const runBackedDecisionIds = useMemo(() => {
+    if (!Array.isArray(rawLogs)) return new Set<string>();
+    return new Set(
+      rawLogs
+        .map((rawLog) => getRunIdForAuditLog(rawLog))
+        .filter((runId): runId is string => Boolean(runId)),
+    );
+  }, [rawLogs]);
   const total = logs.length;
   const compliance = computeComplianceRate(logs);
   const avgLatency = computeAverageLatency(logs);
@@ -180,6 +193,17 @@ export function AuditPage() {
     }
     return Array.from(groups.entries());
   })();
+
+  // Scroll to the deep-linked decision exactly once, after the timeline has
+  // rendered. If the node is not in the DOM yet (filtered out or still
+  // loading), retry on the next filtered set; once found, stop.
+  const scrolledToDeepLink = useRef<string | null>(null);
+  useEffect(() => {
+    if (isLoading || !deepLinkId || scrolledToDeepLink.current === deepLinkId) return;
+    if (scrollDecisionIntoView(deepLinkId)) {
+      scrolledToDeepLink.current = deepLinkId;
+    }
+  }, [isLoading, deepLinkId, filteredLogs.length]);
   const selectedLogs = filteredLogs.filter((log) => selectedIds.has(log.id));
   const toggleSelected = (id: string) => {
     setSelectedIds((current) => {
@@ -233,10 +257,12 @@ export function AuditPage() {
     window.setTimeout(() => setReviewBriefCopied(false), 1800);
   };
 
-  // Only *held* decisions are operator-actionable in a batch. Approved and
-  // denied decisions represent a final outcome and must not be re-decided
-  // here — that would be a fabricated override of a recorded decision.
-  const selectedHeldLogs = selectedLogs.filter((log) => log.decision === 'held');
+  // Only run-backed *held* decisions are operator-actionable in a batch.
+  // Demo/synthetic logs and approved/denied decisions must not be sent to the
+  // CRE approval endpoint — that would either fail or fabricate an override.
+  const selectedHeldLogs = selectedLogs.filter(
+    (log) => log.decision === 'held' && runBackedDecisionIds.has(log.id),
+  );
   const selectedNonActionable = selectedLogs.length - selectedHeldLogs.length;
 
   const handleBatchAction = async () => {
@@ -519,7 +545,11 @@ export function AuditPage() {
                   {groupLogs.map((log, index) => {
                     const rawLogIndex = logs.findIndex((item) => item.id === log.id);
                     return (
-                      <div key={log.id} className="relative">
+                      <div
+                        key={log.id}
+                        id={decisionNodeId(log.id)}
+                        className="relative"
+                      >
                         <label
                           className="absolute left-0 top-4 z-20 flex h-5 w-5 items-center justify-center rounded border bg-background"
                           onClick={(event) => event.stopPropagation()}
@@ -536,6 +566,7 @@ export function AuditPage() {
                           log={log}
                           rawLog={Array.isArray(rawLogs) ? rawLogs[rawLogIndex] : log}
                           index={index}
+                          highlighted={deepLinkId === log.id}
                         />
                       </div>
                     );

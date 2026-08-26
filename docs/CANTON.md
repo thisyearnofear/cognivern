@@ -114,7 +114,7 @@ CANTON_JWT_SECRET=
 CANTON_TEMPLATE_AUCTION=b0b4084a792687fe394df79f5e1c1ea31d316f78a68e605b93c481c2879c5128:Main:SealedBidAuction
 CANTON_TEMPLATE_BID=b0b4084a792687fe394df79f5e1c1ea31d316f78a68e605b93c481c2879c5128:Main:Bid
 CANTON_TEMPLATE_RESULT=b0b4084a792687fe394df79f5e1c1ea31d316f78a68e605b93c481c2879c5128:Main:AuctionResult
-CANTON_TEMPLATE_DEPOSIT=            # unset — the box DAR (v0.0.1) has NO PaymentDeposit template
+CANTON_TEMPLATE_DEPOSIT=            # unset — the box DAR (v0.0.1) has NO PaymentDeposit template; settlement is disabled
 CANTON_DEMO_MANAGER_NAME=Auctioneer
 CANTON_DEMO_BIDDER_NAMES=Alice,Bob,Charlie
 CANTON_FEATURED_ROUNDS=demo-round-open,demo-round-closed,demo-round-revealed
@@ -131,7 +131,7 @@ curl -sf https://api.cognivern.persidian.com/api/vendor/sealed-bid/rounds | jq '
 
 4. **Revert path:** when the DevNet node (or a next-season node) is reachable again, restore the `.env.example` DevNet values, `pm2 restart cognivern-backend --update-env`, and re-run `pnpm canton:proof` against the live API.
 
-**Settlement note for the sandbox fallback:** the box's Daml project is the older **v0.0.1-era** build (`version 0.0.1`, `sdk-version 2.10.4`) — it has no `PaymentDeposit` template, so the escrow-settlement banner is unavailable on the sandbox. The settlement DAR (`daml-0.0.2`, package `d62e13ab…`, repo `daml.yaml` SDK 3.4.11) was uploaded to DevNet but never synced to the box; syncing it (runbook: Daml model change) is what restores settlement on the sandbox.
+**Settlement note for the sandbox fallback:** the box's Daml project is the older **v0.0.1-era** build (`version 0.0.1`, `sdk-version 2.10.4`) — it has no `PaymentDeposit` template. The agent-round UI therefore omits settlement in Demo/Sandbox, while Production requests that ask for settlement are rejected with a clear capability error until the settlement DAR is deployed. The settlement DAR (`daml-0.0.2`, package `d62e13ab…`, repo `daml.yaml` SDK 3.4.11) was uploaded to DevNet but never synced to the box; syncing it (runbook: Daml model change) is what restores settlement on the sandbox.
 
 ## Environment variables
 
@@ -147,6 +147,7 @@ CANTON_JWT_SECRET=                    # empty for sandbox (HS256 with empty secr
 CANTON_TEMPLATE_AUCTION=<pkgId>:Main:SealedBidAuction
 CANTON_TEMPLATE_BID=<pkgId>:Main:Bid
 CANTON_TEMPLATE_RESULT=<pkgId>:Main:AuctionResult
+CANTON_TEMPLATE_DEPOSIT=<pkgId>:Main:PaymentDeposit  # optional; omit to disable value settlement on older DARs
 CANTON_FEATURED_ROUNDS=demo-round-open,demo-round-closed,demo-round-revealed  # curated list; omit = every hydrated round
 ```
 
@@ -171,6 +172,7 @@ CANTON_OIDC_SCOPE=openid daml_ledger_api offline_access
 CANTON_TEMPLATE_AUCTION="#daml:Main:SealedBidAuction"
 CANTON_TEMPLATE_BID="#daml:Main:Bid"
 CANTON_TEMPLATE_RESULT="#daml:Main:AuctionResult"
+CANTON_TEMPLATE_DEPOSIT="#daml:Main:PaymentDeposit"  # required for agent-governed value settlement
 CANTON_DEMO_MANAGER_NAME=auctioner-cognivern
 CANTON_DEMO_BIDDER_NAMES=alice-cognivern,bob-cognivern,charlie-cognivern
 CANTON_DEMO_PARTY_IDS=auctioner-cognivern=auctioner-cognivern::122003aa7c491e00a453145c4d2cd3dbf5db8908b4e663c9944baed57fd66effa668,alice-cognivern=alice-cognivern::122003aa7c491e00a453145c4d2cd3dbf5db8908b4e663c9944baed57fd66effa668,bob-cognivern=bob-cognivern::122003aa7c491e00a453145c4d2cd3dbf5db8908b4e663c9944baed57fd66effa668,charlie-cognivern=charlie-cognivern::122003aa7c491e00a453145c4d2cd3dbf5db8908b4e663c9944baed57fd66effa668

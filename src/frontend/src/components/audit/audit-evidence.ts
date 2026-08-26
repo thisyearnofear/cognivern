@@ -143,6 +143,27 @@ export interface SuspicionData {
   reasoning: string[];
 }
 
+/**
+ * The CRE run id behind a real run-mapped audit log. In CRE-unified mode the
+ * audit log's id IS the run id (`mapCreRunToAuditLog` sets `id: run.runId`),
+ * so linking to `/runs/<id>` opens the canonical execution record for this
+ * decision. Demo/synthetic logs lack the run-shaped fields (details.stepCount,
+ * artifacts, evidence.hash) — return null so the UI never links to a run that
+ * does not exist.
+ */
+export function getRunIdForAuditLog(rawLog: unknown): string | null {
+  if (!rawLog || typeof rawLog !== 'object') return null;
+  const r = rawLog as Record<string, unknown>;
+  if (typeof r.id !== 'string' || r.id.length === 0) return null;
+  const details = r.details as Record<string, unknown> | undefined;
+  const evidence = r.evidence as Record<string, unknown> | undefined;
+  const isRunShaped =
+    (details && typeof details.stepCount === 'number') ||
+    (details && typeof details.artifactCount === 'number') ||
+    typeof evidence?.hash === 'string';
+  return isRunShaped ? r.id : null;
+}
+
 export function getSuspicionData(rawLog: unknown): SuspicionData | null {
   if (!rawLog || typeof rawLog !== 'object') return null;
   const r = rawLog as Record<string, unknown>;

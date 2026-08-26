@@ -21,6 +21,10 @@ export interface SealedBidBackend {
   getRound(roundId: string): Promise<SealedBidRound | null>;
   listRounds(): Promise<SealedBidRound[]>;
 
+  // Optional capability used to avoid sending settlement requests to an
+  // older Canton DAR that does not contain the PaymentDeposit template.
+  supportsSettlement?(): boolean;
+
   // Optional — query the ledger AS `party`, returning exactly the bids that
   // party can read on-ledger for this round. Only backends with real per-party
   // disclosure implement this (Canton). It is the anti-theater endpoint: the

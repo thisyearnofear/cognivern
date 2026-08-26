@@ -102,6 +102,10 @@ const DEFAULT_DEMO_MANAGER = process.env.CANTON_DEMO_MANAGER_NAME ?? "Auctioneer
 export class CantonSealedBidBackend implements SealedBidBackend {
   readonly name: BackendName = "canton";
   private rounds = new Map<string, CantonRoundState>();
+
+  supportsSettlement(): boolean {
+    return this.templates.deposit.length > 0;
+  }
   // Populated once at construction from the ledger — lets the backend
   // reflect auctions the Daml init-script pre-seeded on sandbox boot so
   // visitors land on a rich demo state rather than an empty round list.

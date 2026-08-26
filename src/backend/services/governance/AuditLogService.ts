@@ -21,12 +21,12 @@ export interface AuditLog {
   agent: string;
   actionType: string;
   description: string;
-  complianceStatus: "compliant" | "non-compliant" | "warning";
+  complianceStatus: "compliant" | "non-compliant" | "warning" | "pending";
   severity: "low" | "medium" | "high" | "critical";
   responseTime?: number;
   details: Record<string, any>;
   policyChecks: PolicyCheck[];
-  outcome: "allowed" | "denied";
+  outcome: "allowed" | "denied" | "held";
   metadata: Record<string, any>;
   signingProvider?: "local" | "ledger" | "speculos" | "ows_remote";
   evidence: {
@@ -195,6 +195,10 @@ export class AuditLogService {
     // log.aiUsage directly for the AI Spend insights endpoint.
     const aiUsage = run.evidence?.aiUsage;
 
+    const isHeld =
+      run.status === "paused_for_approval" ||
+      (run.requiresApproval === true && run.approvalState === "pending");
+
     // Build the base AuditLog, then attach the rich fields the frontend
     // audit page renders. We cast through Record<string, unknown> because
     // the legacy AuditLog interface doesn't declare confidential / txHash
@@ -205,7 +209,7 @@ export class AuditLogService {
       agent: run.provenance?.model || "governance-agent",
       actionType: run.workflow,
       description: lastStep?.summary || `${run.workflow} execution`,
-      complianceStatus: run.ok ? "compliant" : "non-compliant",
+      complianceStatus: isHeld ? "pending" : run.ok ? "compliant" : "non-compliant",
       severity: run.ok ? "low" : "medium",
       responseTime: run.metrics?.latencyMs,
       details: {
@@ -215,7 +219,7 @@ export class AuditLogService {
         workflowVersion: run.provenance?.workflowVersion,
       },
       policyChecks,
-      outcome: run.ok ? "allowed" : "denied",
+      outcome: isHeld ? "held" : run.ok ? "allowed" : "denied",
       signingProvider: extractSigningProvider(run),
       metadata: {
         mode: run.mode,

@@ -72,8 +72,17 @@ export function RecentActivity({
             </span>
           )}
         </div>
-        <Button variant="ghost" size="sm" onClick={() => router.push('/audit')}>
-          View All <ArrowRight className="h-3.5 w-3.5" />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            router.push(decisionFilter ? `/audit?status=${decisionFilter}` : '/audit')
+          }
+        >
+          {decisionFilter
+            ? `View ${decisionFilter === 'denied' ? 'stopped' : decisionFilter}`
+            : 'View All'}
+          <ArrowRight className="h-3.5 w-3.5" />
         </Button>
       </div>
       {loading ? (
@@ -101,9 +110,13 @@ export function RecentActivity({
       ) : (
         <div className="rounded-xl border border-border divide-y divide-border">
           {visible.map((item) => (
-            <div
+            <button
               key={item.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between p-3 text-sm hover:bg-muted/50 transition-colors gap-2 sm:gap-0"
+              type="button"
+              onClick={() =>
+                router.push(`/audit?id=${encodeURIComponent(item.id)}`)
+              }
+              className="flex w-full cursor-pointer flex-col justify-between gap-2 p-3 text-left text-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:flex-row sm:items-center sm:gap-0"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div
@@ -145,7 +158,7 @@ export function RecentActivity({
                 </Badge>
                 <span className="text-xs text-muted-foreground">{item.time}</span>
               </div>
-            </div>
+            </button>
           ))}
           {items.length > ACTIVITY_PAGE_SIZE && (
             <button

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useAgents } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
+import { useWorkspaceMode } from "@/hooks/use-workspace-mode";
 import { mutate } from "swr";
 
 function defaultDeadline(): string {
@@ -43,6 +44,9 @@ export function AgentCreateRound({
   onCancel: () => void;
 }) {
   const { data: agents, isLoading: agentsLoading } = useAgents();
+  const { mode, isConnected } = useWorkspaceMode();
+  const environment = !isConnected ? "Demo" : mode === "production" ? "Production" : "Sandbox";
+  const isProduction = environment === "Production";
   const [agentId, setAgentId] = useState<string>("");
   const [description, setDescription] = useState("");
   const [serviceCategory, setServiceCategory] = useState("security-audit");
@@ -50,6 +54,8 @@ export function AgentCreateRound({
   const [settlementAmount, setSettlementAmount] = useState<number>(50000);
   const [settlementAssetTag, setSettlementAssetTag] = useState("USDC");
   const [creating, setCreating] = useState(false);
+  const [productionConfirmationVisible, setProductionConfirmationVisible] = useState(false);
+  const [productionAcknowledged, setProductionAcknowledged] = useState(false);
 
   // Only active agents can create rounds — paused/inactive agents are
   // governance-locked out of initiating commercial actions.
@@ -64,6 +70,10 @@ export function AgentCreateRound({
       return;
     }
     if (!description.trim()) return;
+    if (isProduction && !productionAcknowledged) {
+      setProductionConfirmationVisible(true);
+      return;
+    }
     setCreating(true);
     try {
       const res = await apiClient.createSealedBidRound({
@@ -74,8 +84,10 @@ export function AgentCreateRound({
         backend: "canton",
         manager: "Auctioneer",
         agentId,
-        settlementAmount,
-        settlementAssetTag,
+        // The current Demo/Sandbox fallback DAR does not include the optional
+        // PaymentDeposit template. Production sends settlement explicitly
+        // after the operator confirms the exact value being reserved.
+        ...(isProduction ? { settlementAmount, settlementAssetTag } : {}),
       });
       if (!res.success) throw new Error(res.error || "Failed to create round");
       const agent = activeAgents.find((a) => a.id === agentId);
@@ -98,6 +110,7 @@ export function AgentCreateRound({
   return (
     <motion.form
       onSubmit={handleCreate}
+      aria-label="Agent round creation"
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-4 space-y-4"
@@ -118,10 +131,17 @@ export function AgentCreateRound({
         checks all pass. Every event is hash-signed in a tamper-evident run
         ledger.
       </p>
+      <p className="text-[11px] text-muted-foreground">
+        {environment} workspace ·{" "}
+        {isProduction
+          ? "settlement can move real value at reveal"
+          : "no real funds can move"}
+        {"."}
+      </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2 md:col-span-2">
-          <label className="text-xs font-medium">Agent</label>
+          <label htmlFor="agent-id" className="text-xs font-medium">Agent</label>
           {agentsLoading ? (
             <div className="h-10 rounded-md border bg-muted/40 animate-pulse" />
           ) : activeAgents.length === 0 ? (
@@ -130,7 +150,7 @@ export function AgentCreateRound({
             </div>
           ) : (
             <Select value={agentId} onValueChange={(v) => setAgentId(v ?? "")}>
-              <SelectTrigger>
+              <SelectTrigger id="agent-id">
                 <SelectValue placeholder="Select an agent" />
               </SelectTrigger>
               <SelectContent>
@@ -145,8 +165,9 @@ export function AgentCreateRound({
         </div>
 
         <div className="space-y-2 md:col-span-2">
-          <label className="text-xs font-medium">RFP description</label>
+          <label htmlFor="agent-round-description" className="text-xs font-medium">RFP description</label>
           <Input
+            id="agent-round-description"
             placeholder="Q3 security audit RFP — vendor selection"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -155,15 +176,17 @@ export function AgentCreateRound({
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-medium">Category</label>
+          <label htmlFor="agent-round-category" className="text-xs font-medium">Category</label>
           <Input
+            id="agent-round-category"
             value={serviceCategory}
             onChange={(e) => setServiceCategory(e.target.value)}
           />
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-medium">Max bids</label>
+          <label htmlFor="agent-round-max-bids" className="text-xs font-medium">Max bids</label>
           <Input
+            id="agent-round-max-bids"
             type="number"
             min={3}
             max={50}
@@ -173,44 +196,83 @@ export function AgentCreateRound({
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-medium">Settlement amount (USD)</label>
+          <label htmlFor="agent-round-settlement-amount" className="text-xs font-medium">Settlement amount (USD)</label>
           <Input
+            id="agent-round-settlement-amount"
             type="number"
             min={1}
             value={settlementAmount}
-            onChange={(e) =>
-              setSettlementAmount(parseFloat(e.target.value) || 0)
-            }
+            disabled={!isProduction}
+            onChange={(e) => {
+              setSettlementAmount(parseFloat(e.target.value) || 0);
+              setProductionAcknowledged(false);
+            }}
           />
           <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 flex items-start gap-2">
             <ShieldCheck className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
             <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-400">
-              <strong className="font-semibold">Test the policy gate:</strong>{" "}
-              Set this above $100,000 to demo a blocked close by the agent
-              governance layer.
+              <strong className="font-semibold">Settlement:</strong>{" "}
+              {isProduction
+                ? "this round escrows the amount on Canton and transfers it to the winner at reveal — real value is reserved."
+                : "settlement is disabled in Demo/Sandbox; no funds are reserved and no real value can move."}{" "}
+              {isProduction && "Set it above $100,000 to demo a blocked check by the agent governance layer."}
             </p>
           </div>
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-medium">Asset tag</label>
+          <label htmlFor="agent-round-asset-tag" className="text-xs font-medium">Asset tag</label>
           <Input
+            id="agent-round-asset-tag"
             value={settlementAssetTag}
-            onChange={(e) => setSettlementAssetTag(e.target.value)}
+            disabled={!isProduction}
+            onChange={(e) => {
+              setSettlementAssetTag(e.target.value);
+              setProductionAcknowledged(false);
+            }}
           />
         </div>
       </div>
 
+      {isProduction && productionConfirmationVisible && (
+        <div
+          role="alert"
+          className="rounded-md border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-700 dark:text-red-300"
+        >
+          <p className="font-semibold">Confirm production settlement</p>
+          <p className="mt-1">
+            Creating this round will reserve {settlementAmount.toLocaleString()} {settlementAssetTag || "USDC"} on Canton now.
+            The amount is transferred to the revealed winner later.
+          </p>
+          <label className="mt-2 flex items-start gap-2">
+            <input
+              type="checkbox"
+              checked={productionAcknowledged}
+              onChange={(e) => setProductionAcknowledged(e.target.checked)}
+              className="mt-0.5 accent-primary"
+            />
+            <span>I understand that this production action reserves real value.</span>
+          </label>
+        </div>
+      )}
+
       <div className="flex justify-end">
         <Button
           type="submit"
-          disabled={creating || !agentId || !description.trim()}
+          disabled={
+            creating ||
+            !agentId ||
+            !description.trim() ||
+            (isProduction && productionConfirmationVisible && !productionAcknowledged)
+          }
         >
           {creating ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
             <Gavel className="h-4 w-4 mr-2" />
           )}
-          Create governed round
+          {isProduction && productionConfirmationVisible
+            ? "Create and reserve value"
+            : "Create governed round"}
         </Button>
       </div>
     </motion.form>

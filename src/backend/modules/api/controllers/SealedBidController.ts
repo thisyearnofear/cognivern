@@ -143,6 +143,21 @@ export class SealedBidController {
         settlementAssetTag,
         agentId,
       } = parse.data;
+      const workspaceMode =
+        (req.headers["x-workspace-mode"] as string)?.toLowerCase() || "sandbox";
+      const settlementSupported =
+        backend === "canton" && this.sealedBidService.supportsSettlement("canton");
+      if (settlementAmount && backend === "canton" && !settlementSupported && workspaceMode === "production") {
+        res.status(409).json({
+          success: false,
+          error: "Value settlement is unavailable: the configured Canton DAR has no PaymentDeposit template.",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const effectiveSettlementAmount = settlementSupported ? settlementAmount : undefined;
+      const effectiveSettlementAssetTag = settlementSupported ? settlementAssetTag : undefined;
       const manager =
         req.body.manager ||
         (backend === "canton"
@@ -157,8 +172,8 @@ export class SealedBidController {
         deadline,
         maxBids,
         backend,
-        settlementAmount,
-        settlementAssetTag,
+        settlementAmount: effectiveSettlementAmount,
+        settlementAssetTag: effectiveSettlementAssetTag,
       };
       const round = await this.sealedBidService.createRound(request, manager);
 
@@ -174,8 +189,8 @@ export class SealedBidController {
             serviceCategory,
             maxBids,
             deadline,
-            settlementAmount,
-            settlementAssetTag,
+            settlementAmount: effectiveSettlementAmount,
+            settlementAssetTag: effectiveSettlementAssetTag,
           },
         });
         this.sealedBidService.setGovernance(round.roundId, {

@@ -10,11 +10,14 @@ import {
   ExternalLink,
   ChevronDown,
   Shield,
-  Link,
+  Link as LinkIcon,
   Activity,
   AlertTriangle,
   KeyRound,
+  ArrowRight,
+  PlayCircle,
 } from 'lucide-react';
+import NextLink from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { DecisionReceipt } from '@/components/ui/decision-receipt';
 import { decisionLabel } from '@/lib/decision-language';
@@ -35,6 +38,7 @@ import {
   getPolicyId,
   getAnchoringData,
   getSuspicionData,
+  getRunIdForAuditLog,
 } from './audit-evidence';
 
 /* ─── Helper: CheckItem ──────────────────────────────────────── */
@@ -70,10 +74,13 @@ export function TimelineNode({
   log,
   rawLog,
   index,
+  highlighted = false,
 }: {
   log: NormalizedAuditLog;
   rawLog: unknown;
   index: number;
+  /** True when the URL deep-linked to this specific decision (?id=…). */
+  highlighted?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [permitOpen, setPermitOpen] = useState(false);
@@ -100,6 +107,9 @@ export function TimelineNode({
     ...(isFhe ? ['Encrypted evaluation'] : []),
     ...(isLedger ? ['Hardware signed'] : []),
   ];
+  // The CRE run behind this decision, when it is a real run-mapped log
+  // (CRE-unified mode: audit log id = run id). Demo logs return null.
+  const runId = getRunIdForAuditLog(rawLog);
 
   useEffect(() => {
     if (!expanded || timelineEvents.length > 0 || timelineLoading) return;
@@ -146,20 +156,15 @@ export function TimelineNode({
         onClick={() => setExpanded(!expanded)}
         className={`absolute left-[9px] sm:left-[13px] top-[5px] w-[13px] h-[13px] rounded-full ring-4 ${statusRingColor} ring-background z-10 cursor-pointer ${statusColor}`}
         aria-label={`${decisionLabel(log.decision)} decision`}
+        aria-expanded={expanded}
       />
 
       {/* Content */}
       <div
-        className="rounded-xl border border-border bg-card hover:bg-muted/30 transition-colors cursor-pointer"
+        className={`rounded-xl border border-border bg-card hover:bg-muted/30 transition-colors cursor-pointer ${
+          highlighted ? 'border-primary/40 ring-2 ring-primary/20' : ''
+        }`}
         onClick={() => setExpanded(!expanded)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setExpanded(!expanded);
-          }
-        }}
       >
         <div className="p-4">
           <div className="flex items-start justify-between gap-3">
@@ -208,6 +213,19 @@ export function TimelineNode({
                 <span>{log.chain}</span>
                 <span>{log.time}</span>
                 {log.latency !== '—' && <span className="font-mono">{log.latency}</span>}
+                {/* Fast path to the execution record without expanding.
+                    stopPropagation keeps the node from toggling. */}
+                {runId && (
+                  <NextLink
+                    href={`/runs/${encodeURIComponent(runId)}`}
+                    onClick={(event) => event.stopPropagation()}
+                    className="inline-flex items-center gap-0.5 font-medium text-primary hover:underline"
+                    aria-label={`Open run ${runId} for this decision`}
+                  >
+                    <PlayCircle className="h-3 w-3" />
+                    run {runId.slice(0, 8)}…
+                  </NextLink>
+                )}
               </div>
             </div>
 
@@ -308,6 +326,31 @@ export function TimelineNode({
                 evidence={evidence}
                 timestamp={log.timestamp}
               />
+
+              {/* Execution run deep link — only for run-backed decisions.
+                  stopPropagation keeps the node from collapsing when the
+                  operator navigates to the run record. */}
+              {runId && (
+                <div className="rounded-lg border border-primary/20 bg-primary/[.04] p-3 space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs font-medium text-primary">
+                    <PlayCircle className="h-3.5 w-3.5" />
+                    Execution run
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    This decision was produced by a governed execution run. Open
+                    the run record for the step timeline, artifacts,
+                    reconciliation, and settlement evidence.
+                  </p>
+                  <NextLink
+                    href={`/runs/${encodeURIComponent(runId)}`}
+                    onClick={(event) => event.stopPropagation()}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                  >
+                    View run {runId.slice(0, 8)}…
+                    <ArrowRight className="h-3 w-3" />
+                  </NextLink>
+                </div>
+              )}
 
               {/* On-chain tx link */}
               {txHash && (
@@ -487,7 +530,7 @@ export function TimelineNode({
                     )}
                     {anchoring.filecoinCid && (
                       <div className="flex items-center gap-2 text-[11px]">
-                        <Link className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                        <LinkIcon className="h-3 w-3 text-blue-500 flex-shrink-0" />
                         <span className="text-muted-foreground">Filecoin:</span>
                         <code className="font-mono text-foreground/70 truncate">
                           {anchoring.filecoinCid.slice(0, 20)}...

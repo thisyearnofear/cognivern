@@ -27,6 +27,7 @@ vi.mock("@backend/utils/logger.js", () => ({
 import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
 import { CreRunStore } from "@backend/cre/storage/CreRunStore.js";
 import { JsonlCreRunPersistence } from "@backend/cre/persistence/CreRunPersistence.js";
+import type { CreRun } from "@backend/cre/types.js";
 
 describe("AuditLogService persists logs deterministically via CRE store", () => {
   it("persisted logs survive a new service instance", async () => {
@@ -67,6 +68,30 @@ describe("AuditLogService persists logs deterministically via CRE store", () => 
     expect(logs[0].complianceStatus).toBe("compliant");
 
     await fs.promises.rm(tempDir, { recursive: true, force: true });
+  });
+});
+
+describe("AuditLogService preserves pending approval state", () => {
+  it("maps paused CRE runs to held audit decisions", () => {
+    const service = new AuditLogService(undefined, []);
+    const run: CreRun = {
+      runId: "run-held",
+      projectId: "workspace-held",
+      workflow: "spend",
+      mode: "cre",
+      startedAt: "2026-08-26T12:00:00.000Z",
+      ok: false,
+      status: "paused_for_approval",
+      requiresApproval: true,
+      approvalState: "pending",
+      steps: [],
+      artifacts: [],
+    };
+
+    const log = service.mapCreRunToAuditLog(run);
+
+    expect(log.outcome).toBe("held");
+    expect(log.complianceStatus).toBe("pending");
   });
 });
 

@@ -207,8 +207,24 @@ export function Dashboard() {
           items={
             workspaceState === 'attention'
               ? [
-                  ...(heldCount > 0 ? [{ label: 'held', count: heldCount }] : []),
-                  ...(blockedCount > 0 ? [{ label: 'stopped', count: blockedCount }] : []),
+                  ...(heldCount > 0
+                    ? [
+                        {
+                          label: 'held',
+                          count: heldCount,
+                          onClick: () => router.push('/audit?status=held'),
+                        },
+                      ]
+                    : []),
+                  ...(blockedCount > 0
+                    ? [
+                        {
+                          label: 'stopped',
+                          count: blockedCount,
+                          onClick: () => router.push('/audit?status=denied'),
+                        },
+                      ]
+                    : []),
                 ]
               : []
           }
