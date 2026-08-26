@@ -38,6 +38,8 @@ The client speaks both JSON Ledger API v1 (local/Hetzner sandbox) and v2 (Canton
 
 Every lifecycle step (create, submit, close, reveal) also fires `AuditLogService.logEvent` so the CRE run ledger has a hash-signed evidence record.
 
+The read-only `GET /api/vendor/sealed-bid/capabilities` endpoint reports the effective `X-Workspace-Mode` (`sandbox` or `production`), whether Canton is configured, and whether the configured DAR exposes `PaymentDeposit`. The agent-round UI uses this response before showing or submitting a value-settlement request; Demo/Sandbox always report settlement as disabled.
+
 ## Files
 
 | Path                                                                   | Purpose                                                           |

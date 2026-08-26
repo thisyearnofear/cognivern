@@ -118,6 +118,41 @@ export class SealedBidController {
   }
 
   /**
+   * GET /api/vendor/sealed-bid/capabilities
+   * Report the effective workspace mode and capabilities of the configured
+   * Canton backend without mutating ledger or round state.
+   */
+  async getCapabilities(req: Request, res: Response) {
+    const workspaceMode =
+      (req.headers["x-workspace-mode"] as string)?.toLowerCase() === "production"
+        ? "production"
+        : "sandbox";
+    const backendConfigured = this.sealedBidService.hasBackend("canton");
+    const settlementTemplateConfigured =
+      backendConfigured && this.sealedBidService.supportsSettlement("canton");
+    const settlementSupported =
+      workspaceMode === "production" && settlementTemplateConfigured;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        workspaceMode,
+        backend: "canton",
+        backendConfigured,
+        settlementSupported,
+        settlementReason: settlementSupported
+          ? undefined
+          : workspaceMode !== "production"
+            ? "Settlement is disabled in Demo/Sandbox; no funds are reserved."
+            : backendConfigured
+              ? "Value settlement is unavailable: the configured Canton DAR has no PaymentDeposit template."
+              : "The Canton backend is not configured on this server.",
+      },
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
    * POST /api/vendor/sealed-bid/rounds
    * Create a new sealed-bid round.
    */

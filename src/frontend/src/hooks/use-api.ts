@@ -5,6 +5,7 @@ import {
   type FundedMandate,
   type SealedBidRound,
   type SealedBidRoundSummary,
+  type SealedBidCapabilities,
   type GovernanceTimeline,
   type CreLedgerVerifyResponse,
 } from "@/lib/api-client";
@@ -198,6 +199,23 @@ export function useIntentMetrics() {
 }
 
 /* ── Sealed-bid vendor selection ── */
+
+export function useSealedBidCapabilities() {
+  return useApiWithDemo<SealedBidCapabilities>(
+    "/api/vendor/sealed-bid/capabilities",
+    async () => {
+      const response = await apiClient.getSealedBidCapabilities();
+      return response.data as SealedBidCapabilities;
+    },
+    {
+      workspaceMode: "sandbox",
+      backend: "canton",
+      backendConfigured: false,
+      settlementSupported: false,
+      settlementReason: "Demo workspace — no funds are reserved.",
+    },
+  );
+}
 
 export function useSealedBidRounds() {
   return useApiWithDemo<SealedBidRoundSummary[]>(

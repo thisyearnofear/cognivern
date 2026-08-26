@@ -1436,6 +1436,10 @@ class ApiClient {
   }
 
   // ── Sealed-bid vendor selection ─────────────────────────────────────────
+  async getSealedBidCapabilities(): Promise<ApiResponse<SealedBidCapabilities>> {
+    return this.fetch('/api/vendor/sealed-bid/capabilities');
+  }
+
   async getSealedBidRounds(): Promise<ApiResponse<SealedBidRoundSummary[]>> {
     return this.fetch('/api/vendor/sealed-bid/rounds');
   }
@@ -1797,6 +1801,14 @@ export interface SealedBidRoundSummary {
   backend?: SealedBidBackendName;
   createdByAgent?: string;
   governanceRunId?: string;
+}
+
+export interface SealedBidCapabilities {
+  workspaceMode: "sandbox" | "production";
+  backend: SealedBidBackendName;
+  backendConfigured: boolean;
+  settlementSupported: boolean;
+  settlementReason?: string;
 }
 
 // ── Agent governance types ──────────────────────────────────────────────

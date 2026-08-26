@@ -14,6 +14,15 @@ vi.mock("@/lib/api-client", () => ({
 }));
 
 vi.mock("@/hooks/use-api", () => ({
+  useSealedBidCapabilities: () => ({
+    data: {
+      workspaceMode: "production",
+      backend: "canton",
+      backendConfigured: true,
+      settlementSupported: true,
+    },
+    isLoading: false,
+  }),
   useAgents: () => ({
     data: [
       {

@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAgents } from "@/hooks/use-api";
+import { useAgents, useSealedBidCapabilities } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
 import { useWorkspaceMode } from "@/hooks/use-workspace-mode";
 import { mutate } from "swr";
@@ -44,9 +44,22 @@ export function AgentCreateRound({
   onCancel: () => void;
 }) {
   const { data: agents, isLoading: agentsLoading } = useAgents();
+  const {
+    data: capabilities,
+    isLoading: capabilitiesLoading,
+    error: capabilitiesError,
+  } = useSealedBidCapabilities();
   const { mode, isConnected } = useWorkspaceMode();
   const environment = !isConnected ? "Demo" : mode === "production" ? "Production" : "Sandbox";
   const isProduction = environment === "Production";
+  const settlementSupported = isProduction && capabilities?.settlementSupported === true;
+  const settlementUnavailable =
+    isProduction && !capabilitiesLoading && !settlementSupported;
+  const backendUnavailable =
+    isProduction && !capabilitiesLoading && capabilities?.backendConfigured === false;
+  const productionCapabilityBlocked =
+    isProduction &&
+    (capabilitiesLoading || Boolean(capabilitiesError) || backendUnavailable);
   const [agentId, setAgentId] = useState<string>("");
   const [description, setDescription] = useState("");
   const [serviceCategory, setServiceCategory] = useState("security-audit");
@@ -70,7 +83,15 @@ export function AgentCreateRound({
       return;
     }
     if (!description.trim()) return;
-    if (isProduction && !productionAcknowledged) {
+    if (productionCapabilityBlocked) {
+      toast.info(
+        capabilitiesError
+          ? "Canton settlement capability could not be verified — try again in a moment"
+          : "Checking Canton settlement capability — try again in a moment",
+      );
+      return;
+    }
+    if (settlementSupported && !productionAcknowledged) {
       setProductionConfirmationVisible(true);
       return;
     }
@@ -87,7 +108,7 @@ export function AgentCreateRound({
         // The current Demo/Sandbox fallback DAR does not include the optional
         // PaymentDeposit template. Production sends settlement explicitly
         // after the operator confirms the exact value being reserved.
-        ...(isProduction ? { settlementAmount, settlementAssetTag } : {}),
+        ...(settlementSupported ? { settlementAmount, settlementAssetTag } : {}),
       });
       if (!res.success) throw new Error(res.error || "Failed to create round");
       const agent = activeAgents.find((a) => a.id === agentId);
@@ -133,11 +154,33 @@ export function AgentCreateRound({
       </p>
       <p className="text-[11px] text-muted-foreground">
         {environment} workspace ·{" "}
-        {isProduction
-          ? "settlement can move real value at reveal"
-          : "no real funds can move"}
+        {capabilitiesLoading && isProduction
+          ? "checking Canton settlement capability"
+          : settlementSupported
+            ? "settlement can move real value at reveal"
+            : "no real funds can move"}
         {"."}
       </p>
+
+      {settlementUnavailable && (
+        <div
+          role="status"
+          className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300"
+        >
+          <p className="font-semibold">Production settlement unavailable</p>
+          <p className="mt-1">
+            {capabilitiesError
+              ? "Canton capability could not be verified."
+              : backendUnavailable
+                ? "The Canton backend is not configured on this server."
+                : capabilities?.settlementReason ||
+                  "The configured Canton DAR does not expose PaymentDeposit."}{" "}
+            {capabilitiesError || backendUnavailable
+              ? "Creation is paused until the capability is available."
+              : "You can still create a governed round, but it will not reserve funds."}
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2 md:col-span-2">
@@ -202,7 +245,7 @@ export function AgentCreateRound({
             type="number"
             min={1}
             value={settlementAmount}
-            disabled={!isProduction}
+            disabled={!settlementSupported}
             onChange={(e) => {
               setSettlementAmount(parseFloat(e.target.value) || 0);
               setProductionAcknowledged(false);
@@ -212,10 +255,12 @@ export function AgentCreateRound({
             <ShieldCheck className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
             <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-400">
               <strong className="font-semibold">Settlement:</strong>{" "}
-              {isProduction
+              {settlementSupported
                 ? "this round escrows the amount on Canton and transfers it to the winner at reveal — real value is reserved."
-                : "settlement is disabled in Demo/Sandbox; no funds are reserved and no real value can move."}{" "}
-              {isProduction && "Set it above $100,000 to demo a blocked check by the agent governance layer."}
+                : isProduction
+                  ? "value settlement is unavailable for this Canton DAR; no funds are reserved."
+                  : "settlement is disabled in Demo/Sandbox; no funds are reserved and no real value can move."}{" "}
+              {settlementSupported && "Set it above $100,000 to demo a blocked check by the agent governance layer."}
             </p>
           </div>
         </div>
@@ -224,7 +269,7 @@ export function AgentCreateRound({
           <Input
             id="agent-round-asset-tag"
             value={settlementAssetTag}
-            disabled={!isProduction}
+            disabled={!settlementSupported}
             onChange={(e) => {
               setSettlementAssetTag(e.target.value);
               setProductionAcknowledged(false);
@@ -233,7 +278,7 @@ export function AgentCreateRound({
         </div>
       </div>
 
-      {isProduction && productionConfirmationVisible && (
+      {settlementSupported && productionConfirmationVisible && (
         <div
           role="alert"
           className="rounded-md border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-700 dark:text-red-300"
@@ -262,7 +307,8 @@ export function AgentCreateRound({
             creating ||
             !agentId ||
             !description.trim() ||
-            (isProduction && productionConfirmationVisible && !productionAcknowledged)
+            productionCapabilityBlocked ||
+            (settlementSupported && productionConfirmationVisible && !productionAcknowledged)
           }
         >
           {creating ? (
@@ -270,7 +316,7 @@ export function AgentCreateRound({
           ) : (
             <Gavel className="h-4 w-4 mr-2" />
           )}
-          {isProduction && productionConfirmationVisible
+          {settlementSupported && productionConfirmationVisible
             ? "Create and reserve value"
             : "Create governed round"}
         </Button>

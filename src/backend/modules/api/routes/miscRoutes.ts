@@ -64,6 +64,9 @@ export function createMiscRoutes(
   // demo personas; production mode requires a verified wallet JWT and binds the
   // acting identity to it. GET routes stay open (landing/demo read views).
   // Idempotency-Key replays prior successes so timeout retries do not double-submit.
+  router.get("/vendor/sealed-bid/capabilities", (req, res) =>
+    sealedBidController.getCapabilities(req, res),
+  );
   router.post(
     "/vendor/sealed-bid/rounds",
     sealedBidWriteAuth,

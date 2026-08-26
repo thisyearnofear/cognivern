@@ -96,6 +96,7 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   '/docs/openapi.json',
   // Sealed-bid vendor selection — vendors submit bids without workspace auth.
   // The controller manages round state and bid encryption internally.
+  '/vendor/sealed-bid/capabilities',
   '/vendor/sealed-bid/rounds',
   '/vendor/sealed-bid/rounds/:roundId',
   '/vendor/sealed-bid/rounds/:roundId/party-view',

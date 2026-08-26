@@ -26,6 +26,12 @@ describe('publicEndpoints — auth bypass list', () => {
     expect(PUBLIC_API_PATHS.has('/cleanverse/deposit-address')).toBe(false);
   });
 
+  it('exposes sealed-bid capabilities without bypassing write protections', () => {
+    expect(isPublicApiPath('/vendor/sealed-bid/capabilities')).toBe(true);
+    expect(isPublicApiPath('/vendor/sealed-bid/rounds')).toBe(true);
+    expect(isPublicApiPath('/vendor/sealed-bid/rounds/:roundId/approval')).toBe(false);
+  });
+
   it('still bypasses the signed news webhook only', () => {
     expect(isPublicApiPath('/webhooks/chain-gpt-news')).toBe(true);
     expect(isPublicApiPath('/webhooks/holds')).toBe(false);

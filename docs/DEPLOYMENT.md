@@ -153,6 +153,8 @@ Canton (Daml) backend for confidential sealed-bid rounds — all optional, backe
 | `CANTON_DEMO_PARTY_IDS`    | Static `name=partyId` map; required on shared DevNet nodes where the user cannot list/allocate parties                                                                  |
 | `CANTON_FEATURED_ROUNDS`   | Comma-separated roundIds pinned for the public list; omit to list everything hydrated (currently `demo-round-open,demo-round-closed,demo-round-revealed`)                   |
 
+The read-only `GET /api/vendor/sealed-bid/capabilities` endpoint accepts the optional `X-Workspace-Mode: sandbox|production` header and returns the effective mode, Canton backend availability, and `settlementSupported`. It is public like the round list; it does not create rounds or touch the ledger.
+
 > **Status (Aug 25 2026):** the shared HackCanton S2 DevNet node is **currently unreachable** (TCP reset since Aug 21), so production has been cut over to the local Hetzner sandbox (`CANTON_JSON_API_URL=http://127.0.0.1:7575`, v1 mode, templates with the `b0b4084a…` pkgId, bearer/OIDC and `CANTON_DEMO_PARTY_IDS` commented out). The live list now returns the three seeded demo rounds with `backend: "canton"`. See `docs/CANTON.md` -> "Production state" for the applied cutover and revert path. A sandbox does not satisfy the final-submission DevNet requirement — that must be re-validated when a DevNet node is reachable again.
 
 See [`.env.example`](../.env.example) for the exact DevNet values and [`docs/CANTON.md`](./CANTON.md) for the model-change and DevNet-migration runbooks.
