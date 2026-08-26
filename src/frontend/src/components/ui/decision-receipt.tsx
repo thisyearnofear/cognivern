@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, ShieldCheck } from "lucide-react";
+import { Check, CheckCircle2, Copy, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { trackUxEvent } from "@/lib/ux-events";
@@ -20,6 +20,13 @@ interface DecisionReceiptProps {
 /** A deliberately compact, copyable proof artifact for an operator review. */
 export function DecisionReceipt({ decision, subject, summary, reference, evidence, timestamp, reviewPath = "/audit" }: DecisionReceiptProps) {
   const [copied, setCopied] = useState(false);
+  const lifecycle = [
+    { label: "Request", detail: "Intent received" },
+    { label: "Policy", detail: "Boundary evaluated" },
+    { label: "Decision", detail: decisionLabel(decision) },
+    { label: "Evidence", detail: `${evidence.length} signal${evidence.length === 1 ? "" : "s"}` },
+    { label: "Record", detail: "Reference available" },
+  ];
 
   const copyReceipt = async () => {
     const receipt = [
@@ -53,8 +60,25 @@ export function DecisionReceipt({ decision, subject, summary, reference, evidenc
       <div className="space-y-3 px-4 py-3 text-sm">
         <p className="font-medium">{subject}</p>
         <p className="text-xs leading-relaxed text-muted-foreground">{summary}</p>
-        <div className="flex flex-wrap gap-1.5">
-          {evidence.map((item) => <span key={item} className="rounded-full border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">{item}</span>)}
+        <ol
+          aria-label="Decision lifecycle"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-5"
+        >
+          {lifecycle.map((step) => (
+            <li key={step.label} className="min-w-0 rounded-lg border bg-muted/20 px-2.5 py-2">
+              <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-500" aria-hidden="true" />
+                <span className="truncate">{step.label}</span>
+              </div>
+              <div className="mt-0.5 truncate text-[10px] text-muted-foreground">{step.detail}</div>
+            </li>
+          ))}
+        </ol>
+        <div>
+          <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">Evidence recorded</p>
+          <div className="flex flex-wrap gap-1.5">
+            {evidence.length > 0 ? evidence.map((item) => <span key={item} className="rounded-full border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">{item}</span>) : <span className="text-[11px] text-muted-foreground">No supporting evidence attached.</span>}
+          </div>
         </div>
         <div className="flex items-center justify-between gap-2 border-t border-border/70 pt-3">
           <code className="max-w-[15rem] truncate text-[11px] text-muted-foreground">{reference}</code>
