@@ -43,7 +43,7 @@ jobs:
 
       - name: Upload failure bundles
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: testsprite-failures
           path: .testsprite/runs/
