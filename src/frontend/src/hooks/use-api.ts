@@ -288,3 +288,79 @@ export function useWallets() {
     ],
   );
 }
+
+/* ── Telegraph / Verified Intelligence Signals ── */
+
+export function useTelegraphStatus() {
+  return useApiWithDemo(
+    "/api/telegraph/status",
+    async () => (await apiClient.getTelegraphStatus()).data,
+    {
+      enabled: false,
+      healthy: false,
+      nodeUrl: "http://localhost:7044",
+      engineUrl: "http://localhost:7044/engine",
+      daemonUrl: "http://localhost:7044/daemon",
+      minersAvailable: 0,
+      lastRefresh: new Date().toISOString(),
+      confidenceThreshold: 0.35,
+      network: "base-sepolia",
+      paymentReady: false,
+      paymentError: "Demo workspace — no EVM signer configured.",
+      daemon: { healthy: false, status: "unavailable", time: new Date().toISOString() },
+    },
+  );
+}
+
+export function useTelegraphCategories() {
+  return useApiWithDemo(
+    "/api/telegraph/daemon/categories",
+    async () => (await apiClient.getTelegraphDaemonCategories()).data,
+    {
+      categories: ["security", "compliance", "market", "operations"],
+      stats: [
+        { name: "security", count: 24, avgInterest: 0.74, maxInterest: 0.92 },
+        { name: "compliance", count: 18, avgInterest: 0.68, maxInterest: 0.85 },
+        { name: "market", count: 31, avgInterest: 0.82, maxInterest: 0.97 },
+        { name: "operations", count: 12, avgInterest: 0.55, maxInterest: 0.71 },
+      ],
+      count: 4,
+    },
+  );
+}
+
+export function useTelegraphQuestions(params: {
+  category?: string;
+  source?: string;
+  sort?: string;
+  since_hours?: number;
+  min_interest?: number;
+  limit?: number;
+} = {}) {
+  const key = `/api/telegraph/daemon/questions?${JSON.stringify(params)}`;
+  return useApiWithDemo(
+    key,
+    async () => (await apiClient.getTelegraphDaemonQuestions(params)).data,
+    {
+      questions: [
+        {
+          id: "q-1",
+          source: "eigen8",
+          status: "unread",
+          created_at: new Date().toISOString(),
+          question: { text: "Is the Audius protocol vulnerable to a sybil attack on its staking mechanism?", category: "security", interest_score: 0.88 },
+          routing: { subnet_id: "subnet-1", miner_slug: "miner-alpha" },
+        },
+        {
+          id: "q-2",
+          source: "eigen8",
+          status: "unread",
+          created_at: new Date().toISOString(),
+          question: { text: "What is the current regulatory stance on AI-generated content disclosure in the EU AI Act?", category: "compliance", interest_score: 0.76 },
+          routing: { subnet_id: "subnet-2", miner_slug: "miner-beta" },
+        },
+      ],
+      count: 2,
+    },
+  );
+}

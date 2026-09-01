@@ -11,6 +11,7 @@ import {
   Users,
   CreditCard,
   PlayCircle,
+  RadioTower,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -113,6 +114,13 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Radar,
         href: '/observability',
         description: 'Inspect traces, metrics, and health',
+      },
+      {
+        id: 'telegraph-signals',
+        label: 'Telegraph signals',
+        icon: RadioTower,
+        href: '/telegraph',
+        description: 'Verify miner intelligence before governed action',
       },
       {
         id: 'os',

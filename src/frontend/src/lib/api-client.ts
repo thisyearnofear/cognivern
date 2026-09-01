@@ -1731,6 +1731,61 @@ class ApiClient {
       `/api/credit-programs/${encodeURIComponent(programId)}/participants/${encodeURIComponent(participantId)}/ledger`,
     );
   }
+
+  // ── Telegraph Protocol / Verified Intelligence Signals ────────────────
+
+  async getTelegraphStatus(): Promise<
+    ApiResponse<{
+      enabled: boolean;
+      healthy: boolean;
+      nodeUrl: string;
+      engineUrl: string;
+      daemonUrl: string;
+      minersAvailable: number;
+      lastRefresh: string;
+      confidenceThreshold: number;
+      network: string;
+      paymentReady: boolean;
+      paymentError: string | null;
+      daemon: { healthy: boolean; status?: string; time?: string };
+    }>
+  > {
+    return this.fetch('/api/telegraph/status');
+  }
+
+  async getTelegraphDaemonCategories(): Promise<
+    ApiResponse<{
+      categories: string[];
+      stats: Array<{ name: string; count?: number; avgInterest?: number; maxInterest?: number }>;
+      count: number;
+    }>
+  > {
+    return this.fetch('/api/telegraph/daemon/categories');
+  }
+
+  async getTelegraphDaemonQuestions(params: {
+    category?: string;
+    source?: string;
+    sort?: string;
+    since_hours?: number;
+    min_interest?: number;
+    limit?: number;
+  } = {}): Promise<
+    ApiResponse<{
+      questions: Array<Record<string, unknown>>;
+      count: number;
+    }>
+  > {
+    const q = new URLSearchParams();
+    if (params.category) q.set('category', params.category);
+    if (params.source) q.set('source', params.source);
+    if (params.sort) q.set('sort', params.sort);
+    if (params.since_hours !== undefined) q.set('since_hours', String(params.since_hours));
+    if (params.min_interest !== undefined) q.set('min_interest', String(params.min_interest));
+    if (params.limit !== undefined) q.set('limit', String(params.limit));
+    const suffix = q.toString() ? `?${q.toString()}` : '';
+    return this.fetch(`/api/telegraph/daemon/questions${suffix}`);
+  }
 }
 
 // Types for the sealed-bid endpoints. Kept in this file so both apiClient
