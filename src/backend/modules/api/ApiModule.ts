@@ -40,6 +40,7 @@ import { McpGovernanceController } from './controllers/McpGovernanceController.j
 import { PayrollController } from './controllers/PayrollController.js';
 import { SealedBidController } from './controllers/SealedBidController.js';
 import { SpeechController } from './controllers/SpeechController.js';
+import { TelegraphController } from './controllers/TelegraphController.js';
 import { WebhookController } from './controllers/WebhookController.js';
 import { AuthController } from './controllers/AuthController.js';
 import { WorkspaceController } from './controllers/WorkspaceController.js';
@@ -84,6 +85,7 @@ interface ControllerRegistry {
   payroll: PayrollController;
   sealedBid: SealedBidController;
   speech: SpeechController;
+  telegraph: TelegraphController;
   webhook: WebhookController;
   auth: AuthController;
   workspace: WorkspaceController;
@@ -529,6 +531,7 @@ export class ApiModule extends BaseService {
     this.controllers.payroll = new PayrollController();
     this.controllers.sealedBid = new SealedBidController();
     this.controllers.speech = new SpeechController();
+    this.controllers.telegraph = new TelegraphController();
     this.controllers.webhook = new WebhookController();
     this.controllers.auth = new AuthController();
     this.controllers.workspace = new WorkspaceController();
@@ -668,6 +671,7 @@ export class ApiModule extends BaseService {
         this.ctrl('payroll'),
         this.ctrl('sealedBid'),
         this.ctrl('speech'),
+        this.ctrl('telegraph'),
       ),
     );
     apiRouter.use(createWebhookRoutes(this.ctrl('webhook')));

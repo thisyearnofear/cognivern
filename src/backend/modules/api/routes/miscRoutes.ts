@@ -5,6 +5,7 @@ import type { IntentController } from "@backend/modules/api/controllers/IntentCo
 import type { PayrollController } from "@backend/modules/api/controllers/PayrollController.js";
 import type { SealedBidController } from "@backend/modules/api/controllers/SealedBidController.js";
 import type { SpeechController } from "@backend/modules/api/controllers/SpeechController.js";
+import type { TelegraphController } from "@backend/modules/api/controllers/TelegraphController.js";
 import { sealedBidWriteAuth } from "@backend/middleware/sealedBidAuthMiddleware.js";
 import { idempotencyMiddleware } from "@backend/middleware/idempotencyMiddleware.js";
 
@@ -15,6 +16,7 @@ export function createMiscRoutes(
   payrollController: PayrollController,
   sealedBidController: SealedBidController,
   speechController: SpeechController,
+  telegraphController: TelegraphController,
 ): Router {
   const router = Router();
 
@@ -41,6 +43,26 @@ export function createMiscRoutes(
   );
   router.post("/fhenix/encrypt", (req, res) =>
     fhenixController.encrypt(req, res),
+  );
+
+  // Telegraph Protocol routes
+  router.get("/telegraph/status", (req, res) =>
+    telegraphController.getStatus(req, res),
+  );
+  router.get("/telegraph/miners", (req, res) =>
+    telegraphController.getMiners(req, res),
+  );
+  router.get("/telegraph/miners/:minerId", (req, res) =>
+    telegraphController.getMiner(req, res),
+  );
+  router.get("/telegraph/intents", (req, res) =>
+    telegraphController.getIntents(req, res),
+  );
+  router.get("/telegraph/daemon/categories", (req, res) =>
+    telegraphController.getDaemonCategories(req, res),
+  );
+  router.get("/telegraph/daemon/questions", (req, res) =>
+    telegraphController.getDaemonQuestions(req, res),
   );
 
   // Intent / Natural Language Processing routes

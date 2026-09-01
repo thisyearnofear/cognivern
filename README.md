@@ -68,6 +68,7 @@ For the public/demo path, most optional integrations can remain disabled. See th
 - [Agentic capital thesis](./docs/AGENTIC_CAPITAL_THESIS.md) — funded mandates, attribution, outcomes, and capital allocation roadmap
 - [Agentic capital implementation spec](./docs/AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md) — mandate, outcome, statement, and evidence invariants
 - [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md) — sealed-bid and governance integration details
+- [Telegraph integration](./docs/TELEGRAPH.md) — verified AI intelligence with confidence-based governance
 - [Cleanverse hackathon submission](./docs/HACKATHON_SUBMISSION_CLEANVERSE.md) — CVI/CVA verified agent capital rail
 - [Telegraph Track 3 proposal](./docs/TELEGRAPH_TRACK3_PROPOSAL.md) — verified-intelligence → governed on-chain action application concept
 
@@ -75,6 +76,7 @@ For the public/demo path, most optional integrations can remain disabled. See th
 
 - **Funded mandates (strategic direction):** define the objective, budget, permissions, evidence requirements, and release conditions for autonomous work.
 - **Governed spend (available today):** policy evaluation, approval workflows, wallet execution, and audit evidence.
+- **Telegraph verified intelligence (available today):** confidence-gated AI miner consumption with x402 micropayments, full audit trail, and governed spend tracking — see [Telegraph integration](./docs/TELEGRAPH.md).
 - **Verified agent capital rail (optional):** Cleanverse CVI (A-Pass) identity gate + CVA (aUSD-D) settlement on Monad — see [/verified-capital](https://cognivern.persidian.com/verified-capital) and [hackathon submission](./docs/HACKATHON_SUBMISSION_CLEANVERSE.md).
 - **Attributable execution (available today in substrate form):** agent, run, action, wallet, vendor, and transaction evidence can be linked through the CRE/run ledger when those fields are supplied by the workflow. A universal mandate/purpose/outcome graph is a roadmap layer.
 - **Confidential policy evaluation:** Fhenix-backed encrypted budgets and spend counters.

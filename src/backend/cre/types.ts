@@ -120,6 +120,7 @@ export interface CreArtifact {
     | 'cleanverse_apass'
     | 'flare.confidential'
     | 'confidential_eval'
+    | 'telegraph.signal'
     | 'error';
   createdAt: string;
   data: unknown;
