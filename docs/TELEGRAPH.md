@@ -496,6 +496,41 @@ carries the miner the daemon would route it to and the source of the signal.
 }
 ```
 
+### GET /api/telegraph/stats
+
+Returns **governed consumption stats** accumulated by the signal digest: real
+paid miner calls with approve/hold decisions. Read live from
+`data/telegraph-stats.json` (the file the digest writes on the VPS). Free — no
+payment. Returns `available: false` (with a reason) before the first digest run.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "available": true,
+    "totalCalls": 32,
+    "approved": 3,
+    "held": 29,
+    "failed": 9,
+    "totalSpendUsd": 0.32,
+    "lastRun": "2026-09-01T13:22:06.897Z",
+    "calls": [
+      {
+        "status": "approved",
+        "signal": { "text": "Will Pentagon execute limited nuclear war plans?", "category": "GEOPOLITICS", "interest": 10 },
+        "minerId": "20260821",
+        "minerName": "Telegraph Groq LPU",
+        "confidence": 0.95,
+        "costUsd": "0.0100",
+        "timestamp": "2026-09-01T12:10:00.000Z"
+      }
+    ]
+  },
+  "timestamp": "2026-09-01T12:34:56Z"
+}
+```
+
 ---
 
 ## Signal Digest (Governed Intelligence Consumption)
@@ -893,9 +928,10 @@ Total Consumed: $75.47 / $100.00
   real daemon signals, routes each to the daemon-recommended miner, and records governed
   approve/hold decisions from the miner's own confidence signal (`pnpm telegraph:digest`)
 - **Telegraph signal dashboard** at `cognivern.persidian.com/telegraph` (live in the product)
+- **Governed consumption stats** — `GET /api/telegraph/stats` + dashboard panel showing
+  real paid calls, approve/hold decisions, spend, and last digest run
 
 ### Next Steps (Track 3 Submission)
-- [ ] Metrics dashboard (calls/spend/miners used)
 - [ ] Demo video for submission
 - [ ] X threads showcasing governed intelligence consumption
 

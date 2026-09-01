@@ -64,6 +64,9 @@ export function createMiscRoutes(
   router.get("/telegraph/daemon/questions", (req, res) =>
     telegraphController.getDaemonQuestions(req, res),
   );
+  router.get("/telegraph/stats", (req, res) =>
+    telegraphController.getStats(req, res),
+  );
 
   // Intent / Natural Language Processing routes
   router.post("/intent", (req, res) =>

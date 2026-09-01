@@ -5,10 +5,13 @@
  */
 
 import { Request, Response } from "express";
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import { Logger } from "@backend/shared/logging/Logger.js";
 import { telegraphService } from "@backend/services/telegraph/index.js";
 
 const logger = new Logger("TelegraphController");
+const STATS_FILE = join(process.cwd(), "data", "telegraph-stats.json");
 
 export class TelegraphController {
   /**
@@ -290,6 +293,76 @@ export class TelegraphController {
       res.status(500).json({
         success: false,
         error: error.message || "Failed to get daemon questions",
+      });
+    }
+  }
+
+  /**
+   * GET /api/telegraph/stats
+   *
+   * Returns governed consumption stats accumulated by the signal digest
+   * (real paid miner calls with approve/hold decisions). Read from
+   * data/telegraph-stats.json, which the digest writes on the VPS.
+   */
+  async getStats(_req: Request, res: Response) {
+    try {
+      if (!telegraphService.getEnabled()) {
+        res.status(503).json({
+          success: false,
+          error: "Telegraph integration is not enabled",
+        });
+        return;
+      }
+
+      if (!existsSync(STATS_FILE)) {
+        res.json({
+          success: true,
+          data: {
+            available: false,
+            reason: "No digest run yet — stats accumulate when the signal digest runs",
+            totalCalls: 0,
+            approved: 0,
+            held: 0,
+            failed: 0,
+            totalSpendUsd: 0,
+            lastRun: null,
+            calls: [],
+          },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const raw = readFileSync(STATS_FILE, "utf-8");
+      const stats = JSON.parse(raw) as {
+        totalCalls?: number;
+        approved?: number;
+        held?: number;
+        failed?: number;
+        totalSpendUsd?: number;
+        lastRun?: string | null;
+        calls?: Array<Record<string, unknown>>;
+      };
+
+      res.json({
+        success: true,
+        data: {
+          available: true,
+          totalCalls: stats.totalCalls ?? 0,
+          approved: stats.approved ?? 0,
+          held: stats.held ?? 0,
+          failed: stats.failed ?? 0,
+          totalSpendUsd: stats.totalSpendUsd ?? 0,
+          lastRun: stats.lastRun ?? null,
+          calls: stats.calls ?? [],
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error("Failed to get Telegraph stats", { error });
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to get Telegraph stats",
       });
     }
   }

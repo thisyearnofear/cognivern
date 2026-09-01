@@ -1786,6 +1786,22 @@ class ApiClient {
     const suffix = q.toString() ? `?${q.toString()}` : '';
     return this.fetch(`/api/telegraph/daemon/questions${suffix}`);
   }
+
+  async getTelegraphStats(): Promise<
+    ApiResponse<{
+      available: boolean;
+      reason?: string;
+      totalCalls: number;
+      approved: number;
+      held: number;
+      failed: number;
+      totalSpendUsd: number;
+      lastRun: string | null;
+      calls: Array<Record<string, unknown>>;
+    }>
+  > {
+    return this.fetch('/api/telegraph/stats');
+  }
 }
 
 // Types for the sealed-bid endpoints. Kept in this file so both apiClient

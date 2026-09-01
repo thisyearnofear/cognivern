@@ -9,6 +9,7 @@ import {
   useTelegraphStatus,
   useTelegraphCategories,
   useTelegraphQuestions,
+  useTelegraphStats,
 } from "@/hooks/use-api";
 import {
   Activity,
@@ -19,6 +20,11 @@ import {
   Network,
   ArrowUpRight,
   AlertTriangle,
+  ShieldCheck,
+  ShieldAlert,
+  Clock,
+  DollarSign,
+  Layers,
 } from "lucide-react";
 
 /**
@@ -60,6 +66,7 @@ export function TelegraphPage() {
             <StatusCard status={status} />
             {status.enabled ? (
               <>
+                <ConsumptionSection />
                 <CategoriesSection />
                 <QuestionsSection />
               </>
@@ -201,6 +208,174 @@ function StatusCard({ status }: { status: NonNullable<ReturnType<typeof useTeleg
         <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-3 text-xs text-amber-700 dark:text-amber-400">
           {status.paymentError}
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Governed consumption ──────────────────────────────────── */
+
+function timeAgo(iso: string | null | undefined): string {
+  if (!iso) return "never";
+  const ms = Date.now() - new Date(iso).getTime();
+  if (Number.isNaN(ms) || ms < 0) return "recently";
+  const mins = Math.floor(ms / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "approved") {
+    return (
+      <Badge className="bg-emerald-600 hover:bg-emerald-600 gap-1">
+        <ShieldCheck className="h-3 w-3" />
+        Approved
+      </Badge>
+    );
+  }
+  if (status === "held") {
+    return (
+      <Badge variant="secondary" className="gap-1">
+        <ShieldAlert className="h-3 w-3" />
+        Held
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="destructive" className="gap-1">
+      <XCircle className="h-3 w-3" />
+      Failed
+    </Badge>
+  );
+}
+
+function ConsumptionSection() {
+  const { data, isLoading, error } = useTelegraphStats();
+
+  return (
+    <div className="rounded-xl border bg-card p-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <ShieldCheck className="h-5 w-5 text-primary" />
+        <h2
+          className="text-lg font-semibold"
+          style={{ fontFamily: "var(--font-space-grotesk)" }}
+        >
+          Governed consumption
+        </h2>
+        {data?.available && data.totalCalls > 0 ? (
+          <Badge variant="outline">{data.totalCalls} paid calls</Badge>
+        ) : null}
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
+      ) : error ? (
+        <PageState
+          variant="error"
+          title="Could not load consumption stats"
+          message={error instanceof Error ? error.message : "Request failed"}
+        />
+      ) : !data?.available ? (
+        <p className="text-sm text-muted-foreground">
+          {data?.reason ||
+            "No governed calls recorded yet — stats accumulate when the signal digest consumes real daemon signals."}
+        </p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Layers className="h-3 w-3" /> Calls
+              </p>
+              <p className="text-2xl font-semibold mt-1">{data.totalCalls}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Approved
+              </p>
+              <p className="text-2xl font-semibold mt-1 text-emerald-600 dark:text-emerald-400">
+                {data.approved}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <ShieldAlert className="h-3 w-3" /> Held
+              </p>
+              <p className="text-2xl font-semibold mt-1">{data.held}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <DollarSign className="h-3 w-3" /> Spend
+              </p>
+              <p className="text-2xl font-semibold mt-1">
+                ${data.totalSpendUsd.toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          {data.calls?.length ? (
+            <div className="divide-y divide-border rounded-lg border border-border">
+              {data.calls.slice(-8).reverse().map((c, i) => {
+                const call = c as Record<string, unknown>;
+                const signal = (call.signal as Record<string, unknown>) ?? {};
+                return (
+                  <div
+                    key={i}
+                    className="p-4 flex items-start justify-between gap-4"
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-sm font-medium leading-snug">
+                        {typeof signal.text === "string"
+                          ? signal.text
+                          : "Untitled signal"}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                        {typeof signal.category === "string" ? (
+                          <Badge variant="outline">{signal.category}</Badge>
+                        ) : null}
+                        {typeof call.minerName === "string" ? (
+                          <span className="inline-flex items-center gap-1">
+                            <ArrowUpRight className="h-3 w-3" />
+                            {call.minerName as string}
+                          </span>
+                        ) : null}
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {timeAgo(call.timestamp as string)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 space-y-0.5">
+                      <div className="flex justify-end">
+                        <StatusBadge status={String(call.status)} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        {typeof call.confidence === "number"
+                          ? `confidence ${call.confidence.toFixed(2)}`
+                          : "no confidence"}
+                        {typeof call.costUsd === "string"
+                          ? ` · $${call.costUsd}`
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No individual calls recorded yet.
+            </p>
+          )}
+        </>
       )}
     </div>
   );

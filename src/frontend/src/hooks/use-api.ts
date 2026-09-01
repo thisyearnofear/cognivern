@@ -364,3 +364,20 @@ export function useTelegraphQuestions(params: {
     },
   );
 }
+
+export function useTelegraphStats() {
+  return useApiWithDemo(
+    "/api/telegraph/stats",
+    async () => (await apiClient.getTelegraphStats()).data,
+    {
+      available: true,
+      totalCalls: 0,
+      approved: 0,
+      held: 0,
+      failed: 0,
+      totalSpendUsd: 0,
+      lastRun: null,
+      calls: [],
+    },
+  );
+}
