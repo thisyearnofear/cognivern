@@ -932,8 +932,8 @@ Total Consumed: $75.47 / $100.00
   real paid calls, approve/hold decisions, spend, and last digest run
 
 ### Next Steps (Track 3 Submission)
-- [ ] Demo video for submission
-- [ ] X threads showcasing governed intelligence consumption
+- [ ] Demo video for submission (15s spot drafted in `.artifacts/telegraph-video/gate-spot-hf/`, not shipped)
+- ✅ X post showcasing governed intelligence consumption — https://x.com/cognivern/status/2094861075464249758
 
 ### Future Enhancements
 - [ ] Solana (SVM) x402 scheme registration (add `@x402/svm`)
@@ -982,9 +982,11 @@ Total Consumed: $75.47 / $100.00
 - ✅ **Unit tests:** `tests/unit/TelegraphService.test.ts` (15 tests, passing)
 - ✅ **Demo script:** `pnpm demo:telegraph` shows full flow with real x402 payments
 - ✅ **API endpoints:** Live at `/api/telegraph/*`
-- [ ] **Production deployment:** Telegraph page on cognivern.persidian.com
+- ✅ **Production deployment:** Telegraph page on cognivern.persidian.com/telegraph
+  — signal categories, questions, and governed consumption stats live
 - [ ] **Demo video:** 60-90s showing governed intelligence → action
-- [ ] **Twitter thread:** Real usage metrics + audit trail screenshots
+- ✅ **X post:** Live metrics + governed-consumption positioning — [posted 2026-09-01](https://x.com/cognivern/status/2094861075464249758)
+  (32 calls, $0.32 spend, 29 low-confidence signals held, every decision auditable)
 
 ---
 
