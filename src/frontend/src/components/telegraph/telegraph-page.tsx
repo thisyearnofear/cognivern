@@ -258,16 +258,16 @@ function CategoriesSection() {
                 <p className="text-sm font-medium">
                   avg{" "}
                   {c.avgInterest !== undefined
-                    ? (c.avgInterest * 100).toFixed(0)
+                    ? c.avgInterest.toFixed(1)
                     : "—"}
-                  %
+                  /10
                 </p>
                 <p className="text-xs text-muted-foreground">
                   peak{" "}
                   {c.maxInterest !== undefined
-                    ? (c.maxInterest * 100).toFixed(0)
+                    ? c.maxInterest.toFixed(1)
                     : "—"}
-                  %
+                  /10
                 </p>
               </div>
             </div>
@@ -344,7 +344,7 @@ function QuestionsSection() {
               | undefined;
             const score =
               typeof question?.interest_score === "number"
-                ? (question.interest_score * 100).toFixed(0)
+                ? question.interest_score.toFixed(1)
                 : null;
             return (
               <div key={i} className="p-4 flex items-start justify-between gap-4">
@@ -374,7 +374,7 @@ function QuestionsSection() {
                 </div>
                 {score !== null && (
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-semibold">{score}%</p>
+                    <p className="text-sm font-semibold">{score}/10</p>
                     <p className="text-[10px] text-muted-foreground">interest</p>
                   </div>
                 )}

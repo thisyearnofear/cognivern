@@ -319,10 +319,10 @@ export function useTelegraphCategories() {
     {
       categories: ["security", "compliance", "market", "operations"],
       stats: [
-        { name: "security", count: 24, avgInterest: 0.74, maxInterest: 0.92 },
-        { name: "compliance", count: 18, avgInterest: 0.68, maxInterest: 0.85 },
-        { name: "market", count: 31, avgInterest: 0.82, maxInterest: 0.97 },
-        { name: "operations", count: 12, avgInterest: 0.55, maxInterest: 0.71 },
+        { name: "security", count: 24, avgInterest: 7.4, maxInterest: 9.2 },
+        { name: "compliance", count: 18, avgInterest: 6.8, maxInterest: 8.5 },
+        { name: "market", count: 31, avgInterest: 8.2, maxInterest: 9.7 },
+        { name: "operations", count: 12, avgInterest: 5.5, maxInterest: 7.1 },
       ],
       count: 4,
     },
@@ -348,7 +348,7 @@ export function useTelegraphQuestions(params: {
           source: "eigen8",
           status: "unread",
           created_at: new Date().toISOString(),
-          question: { text: "Is the Audius protocol vulnerable to a sybil attack on its staking mechanism?", category: "security", interest_score: 0.88 },
+          question: { text: "Is the Audius protocol vulnerable to a sybil attack on its staking mechanism?", category: "security", interest_score: 8.8 },
           routing: { subnet_id: "subnet-1", miner_slug: "miner-alpha" },
         },
         {
@@ -356,7 +356,7 @@ export function useTelegraphQuestions(params: {
           source: "eigen8",
           status: "unread",
           created_at: new Date().toISOString(),
-          question: { text: "What is the current regulatory stance on AI-generated content disclosure in the EU AI Act?", category: "compliance", interest_score: 0.76 },
+          question: { text: "What is the current regulatory stance on AI-generated content disclosure in the EU AI Act?", category: "compliance", interest_score: 7.6 },
           routing: { subnet_id: "subnet-2", miner_slug: "miner-beta" },
         },
       ],
