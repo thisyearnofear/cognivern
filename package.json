@@ -79,6 +79,7 @@
     "demo:fhenix": "tsx tooling/scripts/demo/demo-fhenix.ts",
     "demo:telegraph": "tsx tooling/scripts/demo/demo-telegraph.ts",
     "telegraph:loop": "tsx tooling/scripts/agents/telegraph-governed-loop.ts",
+    "telegraph:digest": "tsx tooling/scripts/agents/telegraph-signal-digest.ts",
     "pitch-deck": "/usr/local/bin/python3.13 tooling/scripts/create-pitch-deck.py",
     "demo:fhe": "tsx tooling/scripts/demo/demo-fhe-spend.ts",
     "signoz:seed": "tsx tooling/scripts/signoz/seed-telemetry.ts",

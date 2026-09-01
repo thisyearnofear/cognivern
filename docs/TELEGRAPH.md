@@ -498,6 +498,62 @@ carries the miner the daemon would route it to and the source of the signal.
 
 ---
 
+## Signal Digest (Governed Intelligence Consumption)
+
+The **signal digest** is the production consumption pattern for Telegraph: instead of
+a timer blasting canned queries at the engine, it lets the daemon's real organic
+signals drive consumption and routes each one to the miner the daemon recommends.
+
+**How it works:**
+
+1. **Pull real signals** from the daemon question feed — `GET /api/telegraph/daemon/questions`
+   with `sort=interest&min_interest=6` — surfacing the genuinely high-interest questions
+   the daemon's collectors (GDELT, Hacker News, Polymarket, etc.) are tracking.
+2. **Filter noise** — signals with `source == "user"` (our own canned queries and other
+   user-submitted noise) are excluded.
+3. **Route to the recommended miner** — each signal carries the daemon's own `routing`
+   (`subnet_id`, `miner_slug`, `reasoning`). The digest follows that routing rather than
+   picking miners itself.
+4. **Pay & call the miner directly** — a real x402 micropayment (~$0.01) through
+   `/miner-dispatcher/v1/:id/:path`, with params built from the miner's schema (chat
+   miners get `messages`; `WEB_SEARCH` intents get `query` + `web_search_options`).
+5. **Govern on real confidence** — the decision comes from the miner's declared
+   `signal_mapping.confidence_field` (73 of 129 miners expose one), compared against the
+   threshold (default 0.7). No confidence signal → **hold** (fail-safe, no fabricated
+   scores). Real confidence ≥ threshold → **approve**.
+
+**Why direct miner calls and not the engine?** The engine-ask path wraps the response and
+strips the confidence field, so governance always holds. Direct miner calls return the
+miner's own confidence, which is what makes real approve/hold decisions possible.
+
+### Running it
+
+```bash
+# One-off digest: pull signals, route, call, decide
+pnpm telegraph:digest
+
+# Continuous mode (used by the VPS PM2 process)
+TELEGRAPH_LOOP_INTERVAL_MS=21600000 pnpm telegraph:digest   # every 6h
+```
+
+### Runtime tuning
+
+| Env var | Default | Meaning |
+|---------|---------|---------|
+| `TELEGRAPH_SIGNAL_MIN_INTEREST` | `6` | Only consume signals with interest ≥ this |
+| `TELEGRAPH_SIGNAL_LIMIT` | `5` | Max signals per digest run |
+| `TELEGRAPH_LOOP_INTERVAL_MS` | unset | Continuous-mode interval (digest cadence) |
+
+### Cadence philosophy
+
+The digest runs on a **modest cadence (6h on the VPS, or on-demand)** — it is a
+demand-driven consumption loop, not metric farming. Every call is a governed decision
+on a real daemon signal, recorded as a `telegraph.signal` CRE artifact with payment and
+confidence evidence, so the stats tell an honest story: real signals → real spend →
+real approve/hold outcomes.
+
+---
+
 ## Demo Walkthrough
 
 ### Run the Demo
@@ -833,11 +889,12 @@ Total Consumed: $75.47 / $100.00
 - Status & monitoring API endpoints (node, engine, daemon, payment readiness)
 - Unit tests for threshold routing, URL building, artifact creation
 - Demo script showing end-to-end flow with real x402 payments
+- **Signal digest agent** (`tooling/scripts/agents/telegraph-signal-digest.ts`) — consumes
+  real daemon signals, routes each to the daemon-recommended miner, and records governed
+  approve/hold decisions from the miner's own confidence signal (`pnpm telegraph:digest`)
+- **Telegraph signal dashboard** at `cognivern.persidian.com/telegraph` (live in the product)
 
 ### Next Steps (Track 3 Submission)
-- [ ] Production deployment at cognivern.persidian.com/telegraph
-- [ ] UI page showing Telegraph status + miner catalog
-- [ ] Real agent workflows consuming Telegraph miners
 - [ ] Metrics dashboard (calls/spend/miners used)
 - [ ] Demo video for submission
 - [ ] X threads showcasing governed intelligence consumption

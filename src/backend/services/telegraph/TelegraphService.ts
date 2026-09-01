@@ -646,11 +646,16 @@ export class TelegraphService {
     }
     const data = (await response.json()) as {
       categories?: string[];
-      stats?: TelegraphDaemonCategory[];
+      stats?: Array<{ category?: string; name?: string; count?: number; avg_interest?: number; max_interest?: number }>;
     };
     return {
       categories: data.categories ?? [],
-      stats: data.stats ?? [],
+      stats: (data.stats ?? []).map((s) => ({
+        name: s.name ?? s.category ?? "Unknown",
+        count: s.count,
+        avg_interest: s.avg_interest,
+        max_interest: s.max_interest,
+      })),
     };
   }
 
