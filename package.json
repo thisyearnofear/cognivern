@@ -19,7 +19,7 @@
     "build:shared": "tsc --project config/ts/tsconfig.shared.json",
     "build:modules": "tsc --project config/ts/tsconfig.modules.json",
     "build:api": "tsc --project tsconfig.api.json",
-    "build:agents": "tsc --project tsconfig.agents.json",
+    "build:agents": "tsc --project config/ts/tsconfig.agents.json",
     "build:workers": "esbuild src/backend/modules/cloudflare-agents/worker.ts --bundle --outfile=dist/worker.js --format=esm --platform=browser --target=es2022 --external:cloudflare:*",
     "build:frontend": "cd src/frontend && npm run build",
     "copy-config": "mkdir -p dist/config && cp -r config/* dist/config/",

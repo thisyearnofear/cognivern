@@ -3,6 +3,10 @@
 Guidance for AI agents (and humans) working in this repo. **Read this before making
 any claim about deployment or infrastructure state.**
 
+> **This file is committed to the repo. Do not add hostnames, IP addresses, ports,
+> SSH targets, private keys, or deployment paths here.** Put private operational
+> details in `docs/OPS.md` (already gitignored) or in `~/.config/devin/`.
+
 ## Canton / Devnet is LIVE — do not re-diagnose it as broken
 
 Cognivern's sealed-bid auctions run on the **HackCanton S2 Canton Devnet** and have
@@ -16,6 +20,8 @@ or the onboarded user id — they are all in those docs.
 
 ## Verifying runtime state (don't trust the misleading signals)
 
+- Current hostnames, SSH targets, ports, and deployment paths are in the gitignored
+  `docs/OPS.md` (or `~/.config/devin/`). **Do not put them in this public file.**
 - The live backend is on the Hetzner box (`ssh snel-bot`), pm2 process
   `cognivern-backend`, port **3087**.
 - The ACTIVE env file is `/opt/cognivern/app/.env` → symlink →
