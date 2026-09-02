@@ -13,17 +13,9 @@ const ALIASES = {
   "@cognivern/shared": "dist/packages/shared/src/index.js",
 };
 
-export async function resolve(specifier, context, nextResolve) {
-  for (const [alias, target] of Object.entries(ALIASES)) {
-    if (specifier.startsWith(alias + "/") || specifier === alias) {
-      const rest = specifier.slice(alias.length);
-      const filePath = pathResolve(APP_DIR, target + rest);
-      return nextResolve(new URL("file://" + filePath).href, context);
-    }
-  }
-
+async function resolveWithFallbacks(url, context, nextResolve) {
   try {
-    return await nextResolve(specifier, context);
+    return await nextResolve(url, context);
   } catch (err) {
     if (err.code === "ERR_UNSUPPORTED_DIR_IMPORT") {
       return nextResolve(new URL("./index.js", err.url).href, context);
@@ -37,4 +29,16 @@ export async function resolve(specifier, context, nextResolve) {
     }
     throw err;
   }
+}
+
+export async function resolve(specifier, context, nextResolve) {
+  for (const [alias, target] of Object.entries(ALIASES)) {
+    if (specifier.startsWith(alias + "/") || specifier === alias) {
+      const rest = specifier.slice(alias.length);
+      const filePath = pathResolve(APP_DIR, target + rest);
+      return resolveWithFallbacks(new URL("file://" + filePath).href, context, nextResolve);
+    }
+  }
+
+  return resolveWithFallbacks(specifier, context, nextResolve);
 }

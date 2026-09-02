@@ -17,6 +17,7 @@ mkdir -p "$ARTIFACT_DIR"
 echo "== building backend"
 pnpm -s install
 pnpm -s build:backend
+pnpm -s build:agents
 
 # Copy the OpenAPI spec into dist/ so /api/docs/openapi.json works in production
 # (the examples/copilot/ source directory is not included in the deployment artifact).

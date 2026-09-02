@@ -195,7 +195,7 @@ async function runDigest() {
         continue;
       }
       const endpoint = (miner.endpoints ?? [])[0];
-      const params = buildParams(endpoint, miner, routing, text);
+      const params = buildParams(endpoint, miner as any, routing, text);
 
       const result = await telegraphGovernanceHelper.governedMinerCall({
         agentId: `telegraph-digest-${Date.now()}`,

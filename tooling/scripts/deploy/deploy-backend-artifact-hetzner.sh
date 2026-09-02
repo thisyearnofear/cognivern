@@ -101,8 +101,10 @@ pnpm rebuild better-sqlite3
 test -f "$TMP_DIR/dist/src/index.js"
 test -f "$TMP_DIR/dist/config/mcp-config.json"
 test -f "$TMP_DIR/config/esm-dir-loader.mjs"
+test -f "$TMP_DIR/dist/tooling/scripts/agents/telegraph-signal-digest.js"
 node --check "$TMP_DIR/dist/src/index.js"
 node --check "$TMP_DIR/config/esm-dir-loader.mjs"
+node --check "$TMP_DIR/dist/tooling/scripts/agents/telegraph-signal-digest.js"
 
 if [ -n "$LEGACY_DIR" ]; then
   echo "== migrating legacy app directory to $LEGACY_DIR"
@@ -122,17 +124,30 @@ switch_to() {
 }
 
 restart_pm2() {
+  local current_backend=""
+  local current_telegraph=""
+  local expected_backend="$APP_LINK/dist/src/index.js"
+  local expected_telegraph="$APP_LINK/dist/tooling/scripts/agents/telegraph-signal-digest.js"
+
   if pm2 describe "$PM2_APP_NAME" >/dev/null 2>&1; then
-    CURRENT_SCRIPT="$(pm2 describe "$PM2_APP_NAME" | awk -F '│' '/script path/ {gsub(/^ +| +$/, "", $3); print $3; exit}')"
-    EXPECTED_SCRIPT="$APP_LINK/dist/src/index.js"
-    if [ "$CURRENT_SCRIPT" = "$EXPECTED_SCRIPT" ]; then
-      pm2 restart "$PM2_APP_NAME" --update-env
-    else
-      echo "== replacing stale PM2 entry ($CURRENT_SCRIPT)"
-      pm2 delete "$PM2_APP_NAME"
-      pm2 start "$APP_LINK/config/ecosystem.config.cjs"
-    fi
+    current_backend="$(pm2 describe "$PM2_APP_NAME" | awk -F '│' '/script path/ {gsub(/^ +| +$/, "", $3); print $3; exit}')"
+  fi
+  if pm2 describe cognivern-telegraph-digest >/dev/null 2>&1; then
+    current_telegraph="$(pm2 describe cognivern-telegraph-digest | awk -F '│' '/script path/ {gsub(/^ +| +$/, "", $3); print $3; exit}')"
+  fi
+
+  if [ "$current_backend" = "$expected_backend" ] && [ "$current_telegraph" = "$expected_telegraph" ]; then
+    pm2 restart "$PM2_APP_NAME" --update-env
+    pm2 restart cognivern-telegraph-digest --update-env
   else
+    if [ -n "$current_backend" ]; then
+      echo "== replacing stale PM2 backend entry ($current_backend)"
+      pm2 delete "$PM2_APP_NAME"
+    fi
+    if [ -n "$current_telegraph" ]; then
+      echo "== replacing stale PM2 telegraph entry ($current_telegraph)"
+      pm2 delete cognivern-telegraph-digest
+    fi
     pm2 start "$APP_LINK/config/ecosystem.config.cjs"
   fi
 }

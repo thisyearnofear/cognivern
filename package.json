@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build": "pnpm run build:clean && pnpm run build:backend",
+    "build": "pnpm run build:clean && pnpm run build:backend && pnpm run build:agents",
     "build:clean": "rm -rf dist && mkdir -p dist",
     "build:backend": "tsc --project tsconfig.json",
     "build:shared": "tsc --project config/ts/tsconfig.shared.json",
