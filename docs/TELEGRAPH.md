@@ -931,9 +931,24 @@ Total Consumed: $75.47 / $100.00
 - **Governed consumption stats** — `GET /api/telegraph/stats` + dashboard panel showing
   real paid calls, approve/hold decisions, spend, and last digest run
 
+### Operational status (2026-09-06)
+
+- Digest loop healthy: run at 13:15 UTC processed 4 signals — 4 calls, $0.04,
+  1 approved (confidence 0.95), 3 held, 0 failed.
+- **All-time: 151 governed calls, $1.51 spent.**
+- x402 payments run on **Base Sepolia** (`eip155:84532`); payer wallet
+  `0x688441bA6a6952c039E0836eDB5B46db090aBc3B` holds ~18.5 testnet USDC
+  (~1,800 calls of runway). No ETH needed — payments are EIP-3009 signatures.
+- Resolved incident: the 10:00 UTC run failed 5/5 calls with empty 402s traced to
+  two miners (`litellm`, `telegraph-chatbot`); config and wallet were verified
+  correct via a successful manual paid call, and a restart restored a clean cycle.
+  See `docs/HACKATHON_SUBMISSION_TELEGRAPH.md` for details.
+
 ### Next Steps (Track 3 Submission)
 - [ ] Demo video for submission (15s spot drafted in `.artifacts/telegraph-video/gate-spot-hf/`, not shipped)
+- [ ] Platform submission on hackathon.telegraphprotocol.com before **2026-09-07 23:59 UTC**
 - ✅ X post showcasing governed intelligence consumption — https://x.com/cognivern/status/2094861075464249758
+- ✅ Submission document: [HACKATHON_SUBMISSION_TELEGRAPH.md](./HACKATHON_SUBMISSION_TELEGRAPH.md)
 
 ### Future Enhancements
 - [ ] Solana (SVM) x402 scheme registration (add `@x402/svm`)
@@ -1057,6 +1072,6 @@ x402 is **designed for autonomous agents**. Traditional API keys were designed f
 
 ---
 
-**Last Updated:** September 1, 2026  
+**Last Updated:** September 6, 2026  
 **Integration Version:** 1.1.0  
 **Status:** ✅ Production-ready for Track 3 submission
