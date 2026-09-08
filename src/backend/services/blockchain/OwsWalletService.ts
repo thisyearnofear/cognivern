@@ -20,7 +20,7 @@ import { OwsWalletPolicyEvaluator } from './OwsWalletPolicy.js';
 import { OwsWalletOnChainManager } from './OwsWalletOnChain.js';
 import { cleanverseConfig, executionRails, keeperHubConfig } from '@backend/shared/config/index.js';
 import { resolveExecutionBackend } from './execution/index.js';
-import { getRailById } from '@cognivern/shared';
+import { getRailById } from '@cognivern/shared/rails';
 import { WorkspaceDataService } from '@backend/services/WorkspaceDataService.js';
 import {
   cleanverseIdentityService,

@@ -18,7 +18,12 @@
     "paths": {
       "@/*": ["src/*"],
       "@backend/*": ["src/backend/*"],
-      "@cognivern/shared": ["packages/shared/src/index.ts"]
+      "@cognivern/shared": ["packages/shared/src/index.ts"],
+      "@cognivern/shared/api": ["packages/shared/src/api.ts"],
+      "@cognivern/shared/cre": ["packages/shared/src/cre.ts"],
+      "@cognivern/shared/governance": ["packages/shared/src/governance.ts"],
+      "@cognivern/shared/rails": ["packages/shared/src/rails.ts"],
+      "@cognivern/shared/receipts": ["packages/shared/src/receipts.ts"]
     },
     "sourceMap": true,
     "declaration": false,

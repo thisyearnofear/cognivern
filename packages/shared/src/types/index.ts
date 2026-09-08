@@ -1,9 +1,21 @@
 // Shared type definitions for Cognivern frontend and backend
 
-export interface ApiResponse<T> {
+/**
+ * Canonical JSON envelope for every HTTP / agent response.
+ *
+ * This is the single source of truth for the wire response shape. Backend
+ * helpers (`sendSuccess` / `sendError`) always populate `timestamp` at runtime;
+ * the field is optional on the type so demo-mode shims and inline literals that
+ * omit it still satisfy the contract. Prefer `message` for human-readable
+ * success context and `error` for the error string — never both at once.
+ *
+ * @see src/backend/modules/api/response.ts (re-exports this type)
+ */
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
+  message?: string;
   timestamp?: string;
 }
 
@@ -48,10 +60,50 @@ export interface ProofAnchorReceipt {
   network: string;
 }
 
+/**
+ * Unified run lifecycle status. Superset of the backend `CreRunStatus` so the
+ * frontend read model never has to map away a value. `queued` and `cancelled`
+ * are valid terminal/pre-active states the UI should tolerate even if older
+ * data never produced them.
+ */
+export type RunStatus =
+  | 'queued'
+  | 'running'
+  | 'paused_for_approval'
+  | 'cancelled'
+  | 'completed'
+  | 'failed';
+
+/** Known status strings — shared with backend CreRunStatus by construction. */
+const RUN_STATUSES: readonly RunStatus[] = [
+  'queued',
+  'running',
+  'paused_for_approval',
+  'cancelled',
+  'completed',
+  'failed',
+];
+
+/**
+ * Coerce an arbitrary status string (e.g. from a backend `CreRun.status` or a
+ * stale API payload) into a valid `RunStatus`. Unknown values collapse to
+ * `'failed'` so the UI can never render an undefined badge. Use this at the
+ * API/normalizer boundary instead of re-deriving validity per component.
+ */
+export function normalizeRunStatus(
+  value: unknown,
+  fallback: RunStatus = 'failed',
+): RunStatus {
+  if (typeof value === 'string' && (RUN_STATUSES as readonly string[]).includes(value)) {
+    return value as RunStatus;
+  }
+  return fallback;
+}
+
 export interface Run {
   id: string;
   workflow: string;
-  status: "completed" | "running" | "failed" | "paused_for_approval";
+  status: RunStatus;
   mode: string;
   steps: number;
   duration: string;
@@ -80,7 +132,7 @@ export interface Policy {
   agents: number;
   violations: number;
   rules?: PolicyRule[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PolicyRule {

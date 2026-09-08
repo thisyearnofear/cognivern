@@ -10,7 +10,7 @@ import {
   executionRails,
   type EvmExecutionRailConfig,
 } from "@backend/shared/config/index.js";
-import { explorerTxUrl } from "@cognivern/shared";
+import { explorerTxUrl } from "@cognivern/shared/rails";
 
 /**
  * Local vault-signed native transfer. RPC / gas come from the configured

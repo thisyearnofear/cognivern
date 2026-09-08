@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useRun } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
+import { deriveRunState } from '@/lib/run-state';
 import { buildSignozTraceLink } from '@/lib/signoz';
 import { trackUxEvent } from '@/lib/ux-events';
 import {
@@ -88,6 +89,18 @@ const statusConfig = {
     color: 'text-amber-500',
     bg: 'bg-amber-100 dark:bg-amber-950',
     label: 'Awaiting Approval',
+  },
+  queued: {
+    icon: Loader2,
+    color: 'text-slate-500',
+    bg: 'bg-slate-100 dark:bg-slate-900',
+    label: 'Queued',
+  },
+  cancelled: {
+    icon: XCircle,
+    color: 'text-slate-500',
+    bg: 'bg-slate-100 dark:bg-slate-900',
+    label: 'Cancelled',
   },
 };
 
@@ -273,6 +286,10 @@ export function RunDetail({ runId }: { runId: string }) {
   }
 
   const status = statusConfig[run.status] || statusConfig.failed;
+  // Bounded adaptive state (active | paused_for_approval | awaiting_receipt |
+  // done) derived from run.status (+evidence). Single source of truth for any
+  // surface that adapts to a run, mirroring deriveWorkspaceState.
+  const runState = deriveRunState(run);
   const StatusIcon = status.icon;
   const events = run.events || [];
   const sourceContext = getSpendSourceContext(run);
@@ -607,7 +624,7 @@ export function RunDetail({ runId }: { runId: string }) {
             <PlayCircle className="h-4 w-4" /> Retry in Governance Check
           </Button>
         )}
-        {run.status === 'paused_for_approval' && (
+        {runState === 'paused_for_approval' && (
           <>
             <Button onClick={() => handleApproval(true)} disabled={submitting !== null}>
               {submitting === 'approve' ? (

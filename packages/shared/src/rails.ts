@@ -29,6 +29,47 @@ export interface RailDescriptor {
 }
 
 /**
+ * Uniform Rail adapter contract. Complexity belongs at the adapter boundary;
+ * orchestration stays pure and rail-agnostic. Every external system (xLayer,
+ * 0G, Fhenix, Canton, Cleanverse, Telegraph) is reached through a `Rail` so the
+ * decider/projector can be unit tested without a live contract.
+ *
+ * Existing domain backends (`ExecutionBackend`, `SealedBidBackend`,
+ * evidence sinks) expose richer, typed surfaces; a thin facade can adapt each
+ * to this contract without losing their specificity. The point is the boundary:
+ * orchestration depends on `Rail`, never on JSON Ledger / FHE ABI / x402 details.
+ *
+ * @see src/backend/services/blockchain/execution/ExecutionBackend.ts
+ * @see src/backend/services/blockchain/sealed-bid/SealedBidBackend.ts
+ */
+export interface RailCommand {
+  /** Matches a `RailDescriptor.id` in the registry. */
+  railId: string;
+  /** Run this command belongs to — echoed on the receipt for correlation. */
+  runId?: string;
+  /** Idempotency key shared between command and receipt. */
+  idempotencyKey: string;
+  /** Rail-specific payload; validated by the adapter, not by orchestration. */
+  payload: unknown;
+}
+
+export interface Rail {
+  readonly railId: string;
+  readonly plane: RailPlane;
+  readonly capabilities: readonly string[];
+  /** Validate + locally prepare a command without side effects. */
+  prepare(
+    command: RailCommand,
+  ): Promise<{ ok: true; prepared: unknown } | { ok: false; error: string }>;
+  /** Submit to the external system; returns a (possibly pending) receipt. */
+  submit(command: RailCommand): Promise<import("./receipts.js").RailReceiptBase>;
+  /** Resolve a pending receipt id to a final receipt — no polling loops. */
+  poll(receiptId: string): Promise<import("./receipts.js").RailReceiptBase>;
+  /** Best-effort cancellation; returns whether the rail guarantees it. */
+  cancel?(command: RailCommand): Promise<boolean>;
+}
+
+/**
  * Canonical rails Cognivern knows about. Defaults and workspace settings
  * pick among these; product copy should use `displayName`, never inline L2 brands.
  */
