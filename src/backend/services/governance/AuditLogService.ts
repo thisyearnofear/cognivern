@@ -11,6 +11,8 @@ import {
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 import { creRunStore, CreRunStore } from "@backend/cre/storage/CreRunStore.js";
 import { CreRun, CreArtifact } from "@backend/cre/types.js";
+import { receiptEmitter } from "@backend/services/ReceiptEmitter.js";
+import type { EvidenceAnchorReceipt } from "@cognivern/shared/receipts";
 import { tracer, meter, trace as otelTrace } from "@backend/observability/otel.js";
 import { ethers } from "ethers";
 import crypto from "node:crypto";
@@ -133,6 +135,18 @@ export class AuditLogService {
           ...result.evidencePatch,
         };
         await this.creStore.replace(run);
+        // Receipt-driven SSE: tell the UI this run's evidence landed on a
+        // storage rail so it can stop polling the runId. Fire-and-forget.
+        const anchorReceipt: EvidenceAnchorReceipt = {
+          type: "evidence.anchored",
+          status: "succeeded",
+          timestamp: new Date().toISOString(),
+          runId: run.runId,
+          ref: result.ref,
+          network: result.railId ?? result.sink,
+          message: `Evidence anchored on ${result.railId ?? result.sink}`,
+        };
+        receiptEmitter.emit(workspaceId, anchorReceipt);
       },
     );
   }
