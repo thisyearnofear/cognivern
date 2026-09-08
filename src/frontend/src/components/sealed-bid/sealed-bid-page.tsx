@@ -40,6 +40,7 @@ export function SealedBidPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="space-y-1">
+          <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-primary">Governed action</p>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Gavel className="h-6 w-6" /> Sealed-bid vendor selection
           </h1>

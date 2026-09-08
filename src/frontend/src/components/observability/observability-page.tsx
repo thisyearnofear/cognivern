@@ -139,6 +139,7 @@ export function ObservabilityPage() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
+            <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-primary">Measured performance</p>
             <div className="flex items-center gap-2">
               <Radar className="h-6 w-6 text-primary" />
               <h1
