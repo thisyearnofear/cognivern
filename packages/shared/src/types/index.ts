@@ -81,6 +81,14 @@ export interface Policy {
   violations: number;
   rules?: PolicyRule[];
   metadata?: Record<string, any>;
+  /**
+   * Spend amount (in the spend's smallest unit / wei) at or above which a
+   * spend is held pending explicit operator approval, then signed by the
+   * wallet's configured signing provider. Omit / unset = no threshold gating;
+   * spends below the threshold use the default (non-held) path. Optional so
+   * existing policies keep their current behaviour.
+   */
+  approvalThreshold?: string;
 }
 
 export interface PolicyRule {
@@ -373,4 +381,37 @@ export interface ApiKeyCreateResponse {
   createdAt: string;
   imported?: boolean;
   mandate?: ApiKeyMandate | null;
+}
+
+// ── Wallet signing config ──────────────────────────────────────────────────
+
+/**
+ * The signing providers a workspace wallet can be configured to use. Ledger is
+ * one *option* alongside the software/local providers — it is never a
+ * requirement. A wallet without an explicit signingProvider defaults to
+ * `"local"`.
+ *
+ * @see docs/DEV.md — Hardware-backed signing
+ */
+export type WalletSigningProviderId =
+  | "local"
+  | "speculos"
+  | "ledger"
+  | "ows_remote";
+
+/** Default BIP-44 Ethereum derivation path used by the Ledger provider. */
+export const DEFAULT_LEDGER_DERIVATION_PATH = "m/44'/60'/0'/0/0";
+
+/**
+ * Typed view of the signing-related fields that live on `OwsWallet.metadata`.
+ * The metadata bag is free-form (`Record<string, unknown>`); these accessors
+ * keep the signing config boundary typed so the spend flow and the frontend
+ * agree on the same vocabulary.
+ */
+export interface OwsWalletSigningConfig {
+  signingProvider?: WalletSigningProviderId;
+  /** BIP-44 derivation path; only meaningful for the Ledger provider. */
+  ledgerDerivationPath?: string;
+  /** External signing endpoint; only for speculos / ows_remote. */
+  externalSource?: string;
 }

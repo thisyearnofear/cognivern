@@ -34,6 +34,14 @@ const updateWalletSchema = z.object({
   keeperHubWalletAddress: z.string().optional(),
   cleanverseSenderAddress: z.string().optional(),
   requireCleanverseIdentity: z.boolean().optional(),
+  // ── Signing config ────────────────────────────────────────────────────
+  // Ledger is one option; "local" remains the default. Provider + derivation
+  // path live on wallet metadata and drive OwsWalletService's signing dispatch.
+  signingProvider: z
+    .enum(["local", "speculos", "ledger", "ows_remote"])
+    .optional(),
+  ledgerDerivationPath: z.string().optional(),
+  externalSource: z.string().optional(),
 });
 
 export class OwsWalletController {
@@ -212,6 +220,18 @@ export class OwsWalletController {
       }
       if (parse.data.requireCleanverseIdentity !== undefined) {
         metadata.requireCleanverseIdentity = parse.data.requireCleanverseIdentity;
+      }
+      // ── Signing config ──────────────────────────────────────────────────
+      if (parse.data.signingProvider !== undefined) {
+        metadata.signingProvider = parse.data.signingProvider;
+      }
+      if (parse.data.ledgerDerivationPath !== undefined) {
+        // Empty string clears the override (falls back to the default path).
+        metadata.ledgerDerivationPath =
+          parse.data.ledgerDerivationPath || undefined;
+      }
+      if (parse.data.externalSource !== undefined) {
+        metadata.externalSource = parse.data.externalSource || undefined;
       }
 
       const updated = await this.vaultService.updateWalletMetadata(id, metadata);

@@ -379,18 +379,29 @@ export class OwsLocalVaultService {
     walletId: string;
     message: string;
     apiKeyToken?: string | null;
+    /**
+     * Operator-approved signing (held-spend resume): skip the scoped-key
+     * access check and resolve the wallet by id directly, mirroring
+     * sendNativeTransfer. Only reachable from the JWT-authenticated held-spend
+     * approval handler — operator authority substitutes for the scoped key.
+     */
+    operatorApproved?: boolean;
   }): Promise<{ signature: string; signer: string }> {
-    const access = await this.resolveAccess({
-      walletId: params.walletId,
-      apiKeyToken: params.apiKeyToken,
-    });
-    if (!access) {
-      throw new Error("Wallet access not authorized");
+    let walletId = params.walletId;
+    if (!params.operatorApproved) {
+      const access = await this.resolveAccess({
+        walletId: params.walletId,
+        apiKeyToken: params.apiKeyToken,
+      });
+      if (!access) {
+        throw new Error("Wallet access not authorized");
+      }
+      walletId = access.wallet.id;
     }
 
     const vault = this.readVault();
     const storedWallet = vault.wallets.find(
-      (wallet) => wallet.id === access.wallet.id,
+      (wallet) => wallet.id === walletId,
     );
     if (!storedWallet) {
       throw new Error("Wallet not found in vault");

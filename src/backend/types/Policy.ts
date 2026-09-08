@@ -77,6 +77,12 @@ export interface Policy {
   createdAt: string;
   updatedAt: string;
   status: "active" | "draft" | "archived" | "held";
+  /**
+   * Spend amount (wei) at or above which a spend is held pending operator
+   * approval, then signed by the wallet's configured signing provider.
+   * Optional: unset = no threshold gating (existing behaviour preserved).
+   */
+  approvalThreshold?: string;
 }
 
 export interface PolicyRule {

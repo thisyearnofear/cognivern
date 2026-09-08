@@ -21,6 +21,10 @@ import { OwsWalletOnChainManager } from './OwsWalletOnChain.js';
 import { cleanverseConfig, executionRails, keeperHubConfig } from '@backend/shared/config/index.js';
 import { resolveExecutionBackend } from './execution/index.js';
 import { getRailById } from '@cognivern/shared';
+import {
+  resolveWalletSigningConfig,
+  DEFAULT_LEDGER_DERIVATION_PATH,
+} from '@backend/services/blockchain/walletSigningConfig.js';
 import { WorkspaceDataService } from '@backend/services/WorkspaceDataService.js';
 import {
   cleanverseIdentityService,
@@ -33,6 +37,24 @@ import {
   SpendSourceProvenance,
 } from '@backend/services/governance/SourceAwareSpendAuthorization.js';
 import { FundedMandateService, type FundedMandate } from '@backend/services/governance/FundedMandateService.js';
+import { meetsApprovalThreshold } from './spendThreshold.js';
+
+/**
+ * Thrown by {@link OwsWalletService.signSpendEnvelope} when a wallet's
+ * configured signing provider fails. Carries a hold-ready `holdReason` so the
+ * caller can route the spend to the approval queue with a human-readable
+ * message, and the `signingProvider` that was attempted (for audit).
+ */
+class SigningDispatchError extends Error {
+  readonly signingProvider: string;
+  constructor(holdReason: string, signingProvider: string) {
+    super(holdReason);
+    this.name = 'SigningDispatchError';
+    this.holdReason = holdReason;
+    this.signingProvider = signingProvider;
+  }
+  readonly holdReason: string;
+}
 
 export interface SpendIntent {
   id: string;
@@ -419,6 +441,33 @@ export class OwsWalletService {
         );
       }
 
+      // Threshold-gated approval: a policy can set approvalThreshold (wei). A
+      // spend at or above it is held pending explicit operator approval, then
+      // signed by the wallet's configured signing provider (local / speculos /
+      // ledger) before execution. Below the threshold the default approved
+      // path applies. An unset/invalid/zero threshold never gates — existing
+      // policies keep their current behaviour. Ledger is one option, not a
+      // requirement; the provider is whatever the wallet is configured with.
+      if (
+        meetsApprovalThreshold(intent.amount, activePolicy.approvalThreshold)
+      ) {
+        const signerLabel = resolveWalletSigningConfig(access?.wallet?.metadata).signingProvider;
+        return await this.handleHold(
+          intent,
+          recorder,
+          `Spend (${intent.amount}) meets the policy approval threshold ` +
+            `(${activePolicy.approvalThreshold}) and requires operator approval ` +
+            `before the wallet's signing provider (${signerLabel}) signs it.`,
+          activePolicy.id,
+          access,
+          {
+            holdReason: 'threshold',
+            approvalThreshold: activePolicy.approvalThreshold,
+            signingProvider: signerLabel,
+          },
+        );
+      }
+
       return await this.handleApprove(
         intent,
         recorder,
@@ -465,84 +514,32 @@ export class OwsWalletService {
       );
     }
 
-    const spendEnvelope = {
-      intentId: intent.id,
-      agentId: intent.agentId,
-      recipient: intent.recipient,
-      amount: intent.amount,
-      asset: intent.asset,
-      reason: intent.reason,
-      metadata: intent.metadata || {},
-      walletId: access.wallet.id,
-      walletAddress: access.wallet.accounts[0]?.address,
-      apiKeyId: access.apiKey?.id,
-    };
+    const spendEnvelope = this.buildSpendEnvelope(intent, access);
     const payload = JSON.stringify(spendEnvelope);
 
     let signature: string;
     let signer: string;
+    let signingProvider: string;
 
-    const metadata = access.wallet.metadata || {};
-    const provider =
-      (metadata.signingProvider as string) || (metadata.externalSource ? 'ows_remote' : 'local');
-
-    switch (provider) {
-      case 'ledger': {
-        try {
-          const result = await ledgerSigningProvider.sign({
-            walletId: access.wallet.id,
-            message: payload,
-          });
-          signature = result.signature;
-          signer = result.signer;
-        } catch (error) {
-          s.end({ ok: false, summary: 'Ledger hardware signing failed' });
-          const message = error instanceof Error ? error.message : 'Unknown Ledger error';
-          return await this.handleHold(
-            intent,
-            recorder,
-            `Ledger signing failed: ${message}. ` +
-              'Connect and unlock your Ledger device, open the Ethereum app, and try again.',
-            policyId,
-            access,
-          );
-        }
-        break;
-      }
-
-      case 'speculos':
-      case 'ows_remote': {
-        const externalResult = await owsLocalVaultService.signWithExternalWallet({
-          walletId: access.wallet.id,
-          message: payload,
-        });
-
-        if (!externalResult) {
-          s.end({ ok: false, summary: 'External wallet signing failed' });
-          return await this.handleHold(
-            intent,
-            recorder,
-            'External wallet signing failed. Spend held for manual review.',
-            policyId,
-            access,
-          );
-        }
-
-        signature = externalResult.signature;
-        signer = externalResult.signer;
-        break;
-      }
-
-      default: {
-        const localResult = await owsLocalVaultService.signMessage({
-          walletId: access.wallet.id,
-          message: payload,
-          apiKeyToken,
-        });
-        signature = localResult.signature;
-        signer = localResult.signer;
-        break;
-      }
+    try {
+      const signed = await this.signSpendEnvelope(access, payload, apiKeyToken);
+      signature = signed.signature;
+      signer = signed.signer;
+      signingProvider = signed.signingProvider;
+    } catch (error) {
+      s.end({ ok: false, summary: 'Wallet signing failed' });
+      const reason =
+        error instanceof SigningDispatchError
+          ? error.holdReason
+          : `Wallet signing failed: ${error instanceof Error ? error.message : String(error)}. Spend held for manual review.`;
+      return await this.handleHold(
+        intent,
+        recorder,
+        reason,
+        policyId,
+        access,
+        { holdReason: 'signing_failed' },
+      );
     }
 
     let valueWei: bigint;
@@ -577,11 +574,110 @@ export class OwsWalletService {
       access,
       signer,
       signature,
-      signingProvider: provider,
+      signingProvider,
       valueWei,
       apiKeyToken,
       operatorApproved: false,
     });
+  }
+
+  /**
+   * The spend envelope signed by the wallet's signing provider. Reconstructed
+   * identically on the held-spend resume path so the same message is signed
+   * before the threshold-gated spend executes.
+   */
+  private buildSpendEnvelope(
+    intent: SpendIntent,
+    access: OwsResolvedAccess,
+  ): Record<string, unknown> {
+    return {
+      intentId: intent.id,
+      agentId: intent.agentId,
+      recipient: intent.recipient,
+      amount: intent.amount,
+      asset: intent.asset,
+      reason: intent.reason,
+      metadata: intent.metadata || {},
+      walletId: access.wallet.id,
+      walletAddress: access.wallet.accounts[0]?.address,
+      apiKeyId: access.apiKey?.id,
+    };
+  }
+
+  /**
+   * Sign a spend envelope with the wallet's configured signing provider.
+   *
+   * Ledger is one option alongside `local` (default), `speculos`, and
+   * `ows_remote`; none is a requirement. `ledgerDerivationPath` from wallet
+   * metadata is forwarded to the Ledger provider (falling back to the BIP-44
+   * default). Throws `SigningDispatchError` on failure with a hold-ready reason
+   * so callers can route the spend to the approval queue.
+   */
+  private async signSpendEnvelope(
+    access: OwsResolvedAccess,
+    payload: string,
+    apiKeyToken?: string | null,
+    operatorApproved = false,
+  ): Promise<{ signature: string; signer: string; signingProvider: string }> {
+    const config = resolveWalletSigningConfig(access.wallet.metadata);
+    const signingProvider = config.signingProvider;
+
+    switch (signingProvider) {
+      case 'ledger': {
+        try {
+          const result = await ledgerSigningProvider.sign({
+            walletId: access.wallet.id,
+            message: payload,
+            derivationPath: config.ledgerDerivationPath,
+          });
+          return {
+            signature: result.signature,
+            signer: result.signer,
+            signingProvider,
+          };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown Ledger error';
+          throw new SigningDispatchError(
+            `Ledger signing failed: ${message}. ` +
+              'Connect and unlock your Ledger device, open the Ethereum app, and try again.',
+            signingProvider,
+          );
+        }
+      }
+
+      case 'speculos':
+      case 'ows_remote': {
+        const externalResult = await owsLocalVaultService.signWithExternalWallet({
+          walletId: access.wallet.id,
+          message: payload,
+        });
+        if (!externalResult) {
+          throw new SigningDispatchError(
+            'External wallet signing failed. Spend held for manual review.',
+            signingProvider,
+          );
+        }
+        return {
+          signature: externalResult.signature,
+          signer: externalResult.signer,
+          signingProvider,
+        };
+      }
+
+      default: {
+        const localResult = await owsLocalVaultService.signMessage({
+          walletId: access.wallet.id,
+          message: payload,
+          apiKeyToken,
+          operatorApproved,
+        });
+        return {
+          signature: localResult.signature,
+          signer: localResult.signer,
+          signingProvider,
+        };
+      }
+    }
   }
 
   /**
@@ -1074,15 +1170,48 @@ export class OwsWalletService {
     logger.info(`Operator ${operatorId} resuming held spend ${intent.id} (run ${runId})`);
 
     try {
+      // Threshold-gated holds must be signed by the wallet's configured
+      // signing provider (local / speculos / ledger) on resume — that is the
+      // human-in-the-loop primitive. Other hold reasons (no policy, signing
+      // failed, invalid amount) keep the existing operator-broadcast path.
+      const holdReason = typeof heldData.holdReason === 'string' ? heldData.holdReason : undefined;
+      let signature: string | undefined;
+      let signer: string = wallet.accounts[0]?.address || walletId;
+      let signingProvider = 'operator';
+
+      if (holdReason === 'threshold') {
+        try {
+          const payload = JSON.stringify(this.buildSpendEnvelope(intent, access));
+          const signed = await this.signSpendEnvelope(access, payload, null, true);
+          signature = signed.signature;
+          signer = signed.signer;
+          signingProvider = signed.signingProvider;
+          logger.info(
+            `Threshold-held spend ${intent.id} signed by ${signingProvider} on operator approval`,
+          );
+        } catch (signError) {
+          const msg =
+            signError instanceof Error ? signError.message : 'Signer unavailable';
+          s.end({ ok: false, summary: 'Signing on approval failed' });
+          await recorder.finish(false);
+          await this.persistRun(recorder);
+          return {
+            intentId: intent.id,
+            status: 'denied' as const,
+            error: `Operator approved, but signing via the configured provider failed: ${msg}. The spend remains unexecuted; approve again after resolving the signer.`,
+          };
+        }
+      }
+
       const result = await this.finalizeApprovedSpend({
         intent,
         recorder,
         step: s,
         policyId,
         access,
-        signer: wallet.accounts[0]?.address || walletId,
-        signature: undefined,
-        signingProvider: 'operator',
+        signer,
+        signature,
+        signingProvider,
         valueWei,
         apiKeyToken: null,
         operatorApproved: true,
@@ -1433,6 +1562,12 @@ export class OwsWalletService {
     reason: string,
     policyId?: string,
     access?: OwsResolvedAccess | null,
+    extra?: {
+      /** Why the hold happened; the resume path keys off this to re-sign. */
+      holdReason?: string;
+      approvalThreshold?: string;
+      signingProvider?: string;
+    },
   ): Promise<ExecutionResult> {
     const amountIsPositiveInteger = /^\d+$/.test(intent.amount) && BigInt(intent.amount) > 0n;
     await this.addSpendAttributionArtifact(recorder, intent, {
@@ -1448,6 +1583,9 @@ export class OwsWalletService {
         intentId: intent.id,
         status: 'held',
         reason,
+        holdReason: extra?.holdReason,
+        approvalThreshold: extra?.approvalThreshold,
+        signingProvider: extra?.signingProvider,
         policyId,
         walletId: access?.wallet.id,
         walletAddress: access?.wallet.accounts[0]?.address,
@@ -1458,6 +1596,7 @@ export class OwsWalletService {
     await recorder.pauseForApproval(reason, 'wallet_sign_and_broadcast', {
       intentId: intent.id,
       policyId,
+      holdReason: extra?.holdReason,
     });
     const run = await this.persistRun(recorder);
 
