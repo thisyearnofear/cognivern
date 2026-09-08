@@ -225,6 +225,11 @@ export class AuditLogService {
         mode: run.mode,
         source: run.provenance?.source,
         parentRunId: run.parentRunId,
+        // Why the run was held, so the audit / dashboard can distinguish a
+        // threshold-gated hold ("needs operator approval before signing") from
+        // a policy review hold or a signing-failure hold. Only present for
+        // paused/held runs (set by handleHold's holdReason).
+        holdReason: extractHoldReason(run),
       },
       evidence: {
         hash: run.evidence?.hash || "pending",
@@ -759,6 +764,23 @@ function extractSigningProvider(run: CreRun): AuditLog["signingProvider"] {
     return sp;
   }
   return undefined;
+}
+
+/**
+ * Extract the reason a run was held (e.g. "threshold", "signing_failed") from
+ * the held artifact written by `OwsWalletService.handleHold`. Lets the audit /
+ * dashboard distinguish a threshold-gated hold (needs operator approval
+ * before the wallet's signer signs) from other holds. Returns undefined when
+ * the run was not held or the reason wasn't recorded.
+ */
+function extractHoldReason(run: CreRun): string | undefined {
+  const artifact = run.artifacts.find(
+    (a) => a.type === "error" &&
+      (a.data as Record<string, unknown> | undefined)?.status === "held",
+  );
+  if (!artifact) return undefined;
+  const reason = (artifact.data as Record<string, unknown> | undefined)?.holdReason;
+  return typeof reason === "string" ? reason : undefined;
 }
 
 /**
