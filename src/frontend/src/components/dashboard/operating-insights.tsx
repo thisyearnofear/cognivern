@@ -25,6 +25,7 @@ import { AttributionCard } from './attribution-card';
 import { AiSpendCard } from './ai-spend-card';
 import { ControlScoreCard } from './control-score-card';
 import { ObservabilityStrip } from './observability-strip';
+import { RailCapabilities } from './rail-capabilities';
 
 const ActivityChart = dynamic(
   () => import('./activity-chart').then((m) => ({ default: m.ActivityChart })),
@@ -144,6 +145,7 @@ export function OperatingInsights({
                 onChainProofCount={onChainProofCount}
               />
               <AttributionCard onOpen={() => router.push('/spend')} />
+              <RailCapabilities />
             </div>
             <button
               type="button"
