@@ -5,6 +5,9 @@
  * and eliminate duplication between API, agents, and frontend.
  */
 
+import type { ApiResponse } from "@cognivern/shared";
+export type { ApiResponse };
+
 // ===== AGENT TYPES =====
 export type AgentType =
   | "governance"
@@ -204,15 +207,7 @@ export interface SpendRequest {
 }
 
 // ===== MONITORING & API TYPES =====
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-  timestamp: string;
-}
-
-export interface PaginatedResponse<T> extends ApiResponse<T[]> {
+export interface PaginatedResponse<T = unknown> extends ApiResponse<T[]> {
   pagination: {
     page: number;
     limit: number;

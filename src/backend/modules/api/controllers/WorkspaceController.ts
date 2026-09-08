@@ -2,12 +2,12 @@ import { Request, Response } from "express";
 import { randomUUID } from "node:crypto";
 import { SignJWT } from "jose";
 import { getDb } from "@backend/db/index.js";
-import type { Workspace, WorkspaceSettings } from "@cognivern/shared";
+import type { Workspace, WorkspaceSettings } from "@cognivern/shared/api";
 import {
   isSelectableExecutionRailId,
   isWorkspaceExecutionProviderId,
   normalizeWorkspaceEvidenceSinks,
-} from "@cognivern/shared";
+} from "@cognivern/shared/rails";
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 
 function getJwtSecret(): Uint8Array {

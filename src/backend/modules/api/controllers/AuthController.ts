@@ -19,7 +19,7 @@ import {
   arbitrumSepolia,
   sepolia,
 } from "viem/chains";
-import type { AuthUser, Workspace } from "@cognivern/shared";
+import type { AuthUser, Workspace } from "@cognivern/shared/api";
 import { getDb } from "@backend/db/index.js";
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 import {
