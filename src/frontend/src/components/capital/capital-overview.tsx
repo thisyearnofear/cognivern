@@ -43,6 +43,7 @@ export function CapitalOverview() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Attributable spend"
         title="Spend & Outcomes"
         description="Review what a mandate spent, what it produced, and whether the evidence supports another allocation."
       />

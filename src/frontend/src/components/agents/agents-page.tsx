@@ -281,6 +281,7 @@ export function AgentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Governed action"
         title="Identities"
         description="Connect the bots, scripts, and workflows that may act through Cognivern."
         action={

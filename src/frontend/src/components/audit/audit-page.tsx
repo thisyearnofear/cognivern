@@ -329,6 +329,7 @@ export function AuditPage() {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
+        eyebrow="Evidenced outcome"
         title="Audit logs"
         description="Review governance decisions, investigate exceptions, and export selected evidence."
       />

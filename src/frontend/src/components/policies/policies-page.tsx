@@ -281,6 +281,7 @@ export function PoliciesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Funded mandate"
         title="Policies"
         description="Set the boundaries that decide what systems can do automatically and what needs review."
         action={

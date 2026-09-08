@@ -471,6 +471,7 @@ export function GovernanceCheck() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Governed action"
         title="Governance Check"
         description="Run one action through your active policy boundary and see the decision before anything moves."
       />

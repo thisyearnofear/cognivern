@@ -355,6 +355,7 @@ export function IntegratePage() {
   return (
     <div className="max-w-4xl space-y-6">
       <PageHeader
+        eyebrow="Supporting"
         title="Integrate the Governance API"
         description="Connect one external system to Cognivern, generate a scoped key, and test its first governed request."
       />

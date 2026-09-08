@@ -101,6 +101,7 @@ export function RunsPage({ hideHeader = false }: { hideHeader?: boolean }) {
     <div className="space-y-6">
       {!hideHeader && (
         <PageHeader
+          eyebrow="Governed action"
           title="Runs"
           description={
             awaitingCount + failedCount > 0

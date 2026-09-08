@@ -45,6 +45,7 @@ export function CreditProgramsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Funded mandate"
         title="Sponsored Credits"
         description="Fund one upstream account, provision participants with cvk_ gateway keys, and watch every call land in the ledger. Credits are dead outside the program window — no config needed at the end."
         action={
