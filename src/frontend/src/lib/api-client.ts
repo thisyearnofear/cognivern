@@ -15,6 +15,7 @@ import type {
   ApiKeyCreateResponse,
   Workspace,
   PolicyVersion,
+  WalletSigningProviderId,
 } from '@cognivern/shared';
 
 // Read auth token from the persisted auth store. The store is the single
@@ -820,6 +821,12 @@ class ApiClient {
       keeperHubWalletAddress?: string;
       cleanverseSenderAddress?: string;
       requireCleanverseIdentity?: boolean;
+      // Threshold-gated signing config (lives on wallet.metadata). Optional —
+      // a wallet without these falls back to the local software key and the
+      // non-held spend path. See shared `OwsWalletSigningConfig`.
+      signingProvider?: WalletSigningProviderId;
+      ledgerDerivationPath?: string;
+      externalSource?: string;
     },
   ): Promise<ApiResponse<Record<string, unknown>>> {
     return this.fetch(`/api/ows/wallets/${encodeURIComponent(walletId)}`, {
@@ -1328,6 +1335,10 @@ class ApiClient {
     description: string;
     rules?: Array<Record<string, unknown>>;
     metadata?: Record<string, unknown>;
+    // Spend amount (wei) at or above which a spend is held pending explicit
+    // operator approval, then signed by the wallet's signing provider.
+    // Omitted/empty = no threshold gating (existing behaviour).
+    approvalThreshold?: string;
   }): Promise<ApiResponse<Policy>> {
     return this.fetch('/api/governance/policies', {
       method: 'POST',

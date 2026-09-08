@@ -378,7 +378,7 @@ Flow: agent submits spend targeting a contract → `PolicyEnforcementService` ev
 
 ### Ledger Integration
 
-The `SigningProvider` interface in `src/backend/signing/SigningProvider.ts` defines a 3-method contract. Dispatch happens in `OwsWalletService.handleApprove()` based on `wallet.metadata.signingProvider`:
+The `SigningProvider` interface in `src/backend/signing/SigningProvider.ts` defines a 3-method contract. Dispatch happens in `OwsWalletService.handleApprove()` (and, for threshold-held spends, `resumeHeldSpend()`) based on `wallet.metadata.signingProvider`. Ledger is one *option* alongside the software providers — it is **never a requirement**; a wallet with no `signingProvider` defaults to `"local"`.
 
 | Provider       | Value               | Backend                                                     | Use Case                              |
 | -------------- | ------------------- | ----------------------------------------------------------- | ------------------------------------- |
@@ -387,17 +387,35 @@ The `SigningProvider` interface in `src/backend/signing/SigningProvider.ts` defi
 | **Ledger DMK** | `"ledger"`          | `LedgerSigningProvider` (`@ledgerhq/device-management-kit`) | Production high-value, hardware-gated |
 | **Speculos**   | `"speculos"`        | `OwsLocalVaultService.signWithExternalWallet()` via HTTP    | Sandbox/CI                            |
 
-Wallet metadata:
+The configured provider is resolved through `resolveWalletSigningConfig()` (`src/backend/services/blockchain/walletSigningConfig.ts`), which is the single typed boundary over the free-form wallet `metadata` bag.
+
+#### Ledger derivation path
+
+`LedgerSigningProvider` accepts a `derivationPath` on `sign()` (default `m/44'/60'/0'/0/0`, exported as `DEFAULT_LEDGER_DERIVATION_PATH` from `@cognivern/shared`). Set a per-wallet override via wallet metadata:
 
 ```typescript
-{ metadata: {} }                                           // Local (default)
-{ metadata: { signingProvider: "ledger" } }                // Ledger hardware
-{ metadata: { signingProvider: "speculos", externalSource: "http://speculos:5000" } }  // Sandbox
+{ metadata: {} }                                                                // Local (default)
+{ metadata: { signingProvider: "ledger" } }                                     // Ledger, default derivation path
+{ metadata: { signingProvider: "ledger", ledgerDerivationPath: "m/44'/60'/1'/0/0" } }  // Ledger, custom path
+{ metadata: { signingProvider: "speculos", externalSource: "http://speculos:5000" } } // Sandbox
 ```
 
-Speculos runs as a Docker container (`ops/deploy/docker-compose.yml`, `profiles: ["sandbox"]`). This lets CI run full governance→signing→audit cycles with hardware-accurate signing but zero asset risk.
+Configure the provider and derivation path from the frontend: **Settings → Wallet execution → Signing** (provider dropdown + Ledger derivation path input), or `PATCH /api/ows/wallets/:id` with `signingProvider` / `ledgerDerivationPath` / `externalSource`.
 
-Dependencies: `@ledgerhq/device-management-kit`, `@ledgerhq/device-signer-kit-ethereum`, `@ledgerhq/device-transport-kit-node-hid`, `@ledgerhq/device-transport-kit-speculos`, `rxjs`
+#### Threshold-gated approval (human-in-the-loop)
+
+A policy can set `approvalThreshold` (a spend amount in the spend's smallest unit / **wei**, as a string to preserve precision). Any spend **at or above** the threshold is held pending explicit operator approval, then signed by the wallet's configured signing provider and executed. Below the threshold the default approved path applies. An unset, empty, zero, or malformed threshold **never gates** — existing policies keep their current behaviour.
+
+- Set it on a policy (`Policy.approvalThreshold`); configure it from the frontend policy editor or the governance API.
+- The gate lives in `OwsWalletService` after policy evaluation: an approved spend that meets the threshold is routed to `handleHold(..., { holdReason: "threshold" })`, surfacing in the approval queue.
+- On operator approval (`CreController.submitApproval → resumeHeldSpend`), a threshold-held spend is **re-signed by the wallet's configured provider** (`local` / `speculos` / `ledger`) before broadcast, and the signature + signer are recorded in the audit trail (`attestation_result` artifact). A signing failure denies the spend without executing it.
+- Spends held for other reasons (no policy, signing failure, invalid amount) keep the existing operator-broadcast path — this is additive and does not change existing approval behaviour.
+
+The threshold decision is a pure helper, `meetsApprovalThreshold(amountWei, threshold)` (`src/backend/services/blockchain/spendThreshold.ts`), unit-tested in isolation.
+
+Speculos runs as a Docker container (`ops/deploy/docker-compose.yml`, `profiles: ["sandbox"]`). This lets CI run full governance→signing→audit cycles with hardware-accurate signing but zero asset risk. `tests/unit/LedgerSigningProvider.test.ts` exercises the Ledger path with an injected speculos-style transport (DMK + signer mocked at the import boundary) so it passes in CI without a physical device.
+
+Dependencies: `@ledgerhq/device-management-kit`, `@ledgerhq/device-signer-kit-eth`, `@ledgerhq/device-transport-kit-node-hid`, `@ledgerhq/device-transport-kit-speculos`, `rxjs`
 
 ### Native Agents
 

@@ -44,5 +44,7 @@ interface SigningProvider {
 - If adding a new chain signer (e.g. Solana, Bitcoin), add the corresponding `@ledgerhq/device-signer-kit-*` package
 - The signing provider is per-wallet — different wallets can use different providers
 - Do NOT import node-hid statically — it requires native USB libraries and breaks in serverless
+- **Threshold-gated approval:** a policy `approvalThreshold` (wei string) holds spends at/above it for operator approval; on resume the wallet's configured provider signs (`handleHold` → `resumeHeldSpend`). See `docs/DEV.md` "Threshold-gated approval". `ledgerDerivationPath` is forwarded to the Ledger provider (default `m/44'/60'/0'/0/0`).
+- **Operator-approved signing:** `OwsLocalVaultService.signMessage({ operatorApproved: true })` skips the scoped-key check (JWT-held-spend resume only). Do not expose this flag on the public `/api/spend` path.
 
 <!-- END:signing-provider-rules -->

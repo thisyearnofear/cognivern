@@ -214,6 +214,7 @@ export function PoliciesPage() {
         desc: p.description,
         confidential: p.metadata?.confidential === true,
         rules: p.rules || [],
+        approvalThreshold: p.approvalThreshold,
       }))
     : [];
 
@@ -534,6 +535,17 @@ export function PoliciesPage() {
                       </span>
                     </div>
                   )}
+                  {policy.approvalThreshold && (
+                    <div title="Spends at/above this amount (wei) are held for operator approval before signing">
+                      <span className="text-muted-foreground text-xs">
+                        Approval ≥:
+                      </span>{" "}
+                      <span className="font-medium font-mono">
+                        {policy.approvalThreshold}
+                      </span>{" "}
+                      <span className="text-muted-foreground text-xs">wei</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <Button
@@ -721,6 +733,9 @@ function CreatePolicyForm({
   const [visualMode, setVisualMode] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Spend amount (wei) at/above which spend is held for operator approval
+  // before signing. Blank = no threshold gating (existing behaviour).
+  const [approvalThreshold, setApprovalThreshold] = useState<string>("");
 
   /** Apply a template chip: pre-fill name/type/description/rules and (for
    *  the FHE confidential template) toggle encryption on. User can still
@@ -793,6 +808,7 @@ function CreatePolicyForm({
           `${POLICY_TYPES.find((t) => t.id === type)?.label} policy`,
         rules: policyRules,
         metadata,
+        approvalThreshold: approvalThreshold.trim() || undefined,
       });
 
       if (res.success) {
@@ -822,7 +838,7 @@ function CreatePolicyForm({
     } finally {
       setCreating(false);
     }
-  }, [name, type, description, encrypted, rules, onClose, rail]);
+  }, [name, type, description, encrypted, rules, approvalThreshold, onClose, rail]);
 
   const selectedType = POLICY_TYPES.find((t) => t.id === type);
 
@@ -924,6 +940,24 @@ function CreatePolicyForm({
                 : "What does this policy enforce?"
             }
           />
+        </div>
+
+        {/* Approval threshold — spends at/above this amount (in wei) are held
+            pending explicit operator approval, then signed by the wallet's
+            configured signing provider. Blank = no threshold gating. */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Approval threshold (wei)</label>
+          <Input
+            inputMode="numeric"
+            value={approvalThreshold}
+            onChange={(e) => setApprovalThreshold(e.target.value.trim())}
+            placeholder="Optional — e.g. 1000000000000000000 (1 ETH, in wei)"
+            className="font-mono text-sm"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Spends at or above this amount (wei) are held for operator approval
+            before signing. Leave blank for no threshold gating.
+          </p>
         </div>
 
         {/* Encryption toggle */}

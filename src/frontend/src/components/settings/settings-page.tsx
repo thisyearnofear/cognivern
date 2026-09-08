@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { useTheme } from "next-themes";
 import { useConfidentialRail } from "@/hooks/use-confidential-rail";
-import { settingsRailRows, workspaceSelectableExecutionRails } from "@cognivern/shared";
+import { settingsRailRows, workspaceSelectableExecutionRails, DEFAULT_LEDGER_DERIVATION_PATH } from "@cognivern/shared";
 import {
   Sun,
   Moon,
@@ -50,7 +50,7 @@ import { useWallets } from "@/hooks/use-api";
 import { PageState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/ui/page-header";
 import type { ApiKey, ApiKeyCreateResponse } from "@/lib/api-client";
-import type { OwsWallet } from "@cognivern/shared";
+import type { OwsWallet, WalletSigningProviderId } from "@cognivern/shared";
 import useSWR, { mutate } from "swr";
 
 const AVAILABLE_SCOPES = [
@@ -126,6 +126,9 @@ function WalletsCard() {
         keeperHubWalletAddress?: string;
         cleanverseSenderAddress?: string;
         requireCleanverseIdentity?: boolean;
+        signingProvider?: WalletSigningProviderId;
+        ledgerDerivationPath?: string;
+        externalSource?: string;
       },
     ) => {
       setSavingId(walletId);
@@ -139,6 +142,9 @@ function WalletsCard() {
           keeperHubWalletAddress: updates.keeperHubWalletAddress,
           cleanverseSenderAddress: updates.cleanverseSenderAddress,
           requireCleanverseIdentity: updates.requireCleanverseIdentity,
+          signingProvider: updates.signingProvider,
+          ledgerDerivationPath: updates.ledgerDerivationPath,
+          externalSource: updates.externalSource,
         });
         if (res.success) {
           setSavedId(walletId);
@@ -276,6 +282,9 @@ interface WalletExecutionFormProps {
       keeperHubWalletAddress?: string;
       cleanverseSenderAddress?: string;
       requireCleanverseIdentity?: boolean;
+      signingProvider?: WalletSigningProviderId;
+      ledgerDerivationPath?: string;
+      externalSource?: string;
     },
   ) => void;
 }
@@ -293,6 +302,10 @@ function WalletExecutionForm({
     keeperHubWalletAddress?: string;
     cleanverseSenderAddress?: string;
     requireCleanverseIdentity?: boolean;
+    // Threshold-gated signing config (see shared OwsWalletSigningConfig).
+    signingProvider?: WalletSigningProviderId;
+    ledgerDerivationPath?: string;
+    externalSource?: string;
   };
   const initialProvider =
     meta.executionProvider === "keeperhub"
@@ -318,6 +331,14 @@ function WalletExecutionForm({
   );
   const [requireCleanverseIdentity, setRequireCleanverseIdentity] = useState(
     meta.requireCleanverseIdentity === true,
+  );
+  const [signingProvider, setSigningProvider] =
+    useState<WalletSigningProviderId>(meta.signingProvider ?? "local");
+  const [ledgerDerivationPath, setLedgerDerivationPath] = useState<string>(
+    meta.ledgerDerivationPath || DEFAULT_LEDGER_DERIVATION_PATH,
+  );
+  const [externalSource, setExternalSource] = useState<string>(
+    meta.externalSource || "",
   );
 
   const providerLabel =
@@ -387,6 +408,78 @@ function WalletExecutionForm({
         </div>
       </div>
 
+      {/* Signing — threshold-gated signing-provider config. Separate from
+          "Execution provider" above: execution decides *how* an approved
+          spend is broadcast; this decides *which key* signs it (and whether a
+          spend at/above the policy's approval threshold waits for a human). */}
+      <div className="space-y-3 pt-2">
+        <div className="flex items-center gap-2">
+          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Signing
+          </h4>
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          Ledger is optional. Wallets without a hardware signer use the local
+          software key. Spends at/above the policy&apos;s approval threshold are
+          held for operator approval, then signed by this provider.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs font-medium">Signing provider</label>
+            <select
+              value={signingProvider}
+              onChange={(e) =>
+                setSigningProvider(e.target.value as WalletSigningProviderId)
+              }
+              disabled={saving}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+            >
+              <option value="local">Local (software key)</option>
+              <option value="speculos">Speculos (sandbox)</option>
+              <option value="ledger">Ledger (hardware)</option>
+              <option value="ows_remote">OWS Remote</option>
+            </select>
+          </div>
+
+          {signingProvider === "ledger" && (
+            <div className="space-y-2">
+              <label className="text-xs font-medium">Ledger derivation path</label>
+              <Input
+                type="text"
+                placeholder={DEFAULT_LEDGER_DERIVATION_PATH}
+                value={ledgerDerivationPath}
+                onChange={(e) => setLedgerDerivationPath(e.target.value)}
+                disabled={saving}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                BIP-44 path used to derive the signing key on the Ledger device.
+                Default: {DEFAULT_LEDGER_DERIVATION_PATH}.
+              </p>
+            </div>
+          )}
+
+          {(signingProvider === "speculos" ||
+            signingProvider === "ows_remote") && (
+            <div className="space-y-2">
+              <label className="text-xs font-medium">
+                External signing endpoint (optional)
+              </label>
+              <Input
+                type="text"
+                placeholder="https://speculos.local:5001  /  wss://ows-remote…"
+                value={externalSource}
+                onChange={(e) => setExternalSource(e.target.value)}
+                disabled={saving}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Endpoint the wallet forwards signing requests to for this provider.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {provider === "keeperhub" && (
         <>
           <KeeperHubConsequences />
@@ -448,6 +541,14 @@ function WalletExecutionForm({
               cleanverseSenderAddress,
               requireCleanverseIdentity:
                 provider === "cleanverse" ? true : requireCleanverseIdentity,
+              signingProvider,
+              ledgerDerivationPath:
+                signingProvider === "ledger" ? ledgerDerivationPath : undefined,
+              externalSource:
+                signingProvider === "speculos" ||
+                signingProvider === "ows_remote"
+                  ? externalSource
+                  : undefined,
             })
           }
           disabled={saving}
