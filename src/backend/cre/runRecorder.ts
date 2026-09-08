@@ -7,6 +7,7 @@ import {
   CreStepKind,
   CreStepLog,
 } from "./types.js";
+import { CreRunDecider } from "./decider.js";
 
 function nowIso() {
   return new Date().toISOString();
@@ -35,32 +36,19 @@ export class CreRunRecorder {
     signer?: ethers.Signer;
   }) {
     this.signer = params.signer ?? getDefaultEvidenceSigner();
-    this.run = {
-      runId: crypto.randomUUID(),
-      workflow: params.workflow,
-      mode: params.mode,
-      projectId: params.projectId,
-      startedAt: nowIso(),
-      ok: false,
-      status: "running",
-      retryCount: 0,
-      approvalState: "not_required",
-      controls: {
-        canCancel: true,
-        canRetry: false,
-        canApprove: false,
+    // The run shape + the run_started event are owned by the (pure) decider;
+    // the recorder generates the runId (RNG) and injects the clock.
+    const { run, events } = CreRunDecider.start(
+      {
+        runId: crypto.randomUUID(),
+        workflow: params.workflow,
+        mode: params.mode,
+        projectId: params.projectId,
       },
-      provenance: {
-        source: "cognivern",
-      },
-      events: [],
-      steps: [],
-      artifacts: [],
-    };
-    this.pushEvent("run_started", {
-      workflow: params.workflow,
-      mode: params.mode,
-    });
+      nowIso,
+    );
+    this.run = run;
+    for (const spec of events) this.pushEvent(spec.type, spec.payload, spec.stepName);
   }
 
   private computeHash(data: unknown): string {
@@ -152,23 +140,12 @@ export class CreRunRecorder {
   }
 
   async finish(ok: boolean) {
-    this.run.finishedAt = nowIso();
-    this.run.ok = ok;
-    this.run.status = ok ? "completed" : "failed";
-    this.run.currentStepName = undefined;
-    this.run.controls = {
-      canCancel: false,
-      canRetry: true,
-      canApprove: false,
-    };
-    const latencyMs =
-      new Date(this.run.finishedAt).getTime() -
-      new Date(this.run.startedAt).getTime();
-    this.run.metrics = {
-      latencyMs: Math.max(0, latencyMs),
-      stepCount: this.run.steps.length,
-      artifactCount: this.run.artifacts.length,
-    };
+    // Pure transition: the decider decides the terminal status, controls,
+    // metrics, and the run_finished / run_failed event. The recorder applies
+    // the patch, appends the event, and performs the signing side effect.
+    const decision = CreRunDecider.finish(this.run, ok, nowIso);
+    for (const spec of decision.events) this.pushEvent(spec.type, spec.payload, spec.stepName);
+    Object.assign(this.run, decision.patch);
 
     // Sign the summary of the run
     const summaryToSign = {
@@ -180,12 +157,6 @@ export class CreRunRecorder {
     };
 
     this.run.evidence = await this.signEvidence(summaryToSign);
-
-    this.pushEvent(ok ? "run_finished" : "run_failed", {
-      latencyMs: this.run.metrics.latencyMs,
-      stepCount: this.run.metrics.stepCount,
-      artifactCount: this.run.metrics.artifactCount,
-    });
   }
 
   async pauseForApproval(
@@ -193,26 +164,18 @@ export class CreRunRecorder {
     pendingAction?: string,
     details?: Record<string, unknown>,
   ) {
-    this.run.finishedAt = undefined;
-    this.run.ok = false;
-    this.run.status = "paused_for_approval";
-    this.run.requiresApproval = true;
-    this.run.approvalState = "pending";
-    this.run.approvalReason = reason;
-    this.run.currentStepName = undefined;
-    this.run.controls = {
-      canCancel: true,
-      canRetry: false,
-      canApprove: true,
-    };
-    this.run.metrics = {
-      latencyMs: Math.max(
-        0,
-        Date.now() - new Date(this.run.startedAt).getTime(),
-      ),
-      stepCount: this.run.steps.length,
-      artifactCount: this.run.artifacts.length,
-    };
+    // Pure transition: the decider decides the paused status, approval state,
+    // metrics, and the run_paused_for_approval event. The recorder applies the
+    // patch, appends the event, and signs the evidence.
+    const decision = CreRunDecider.pauseForApproval(
+      this.run,
+      reason,
+      pendingAction,
+      details,
+      nowIso,
+    );
+    for (const spec of decision.events) this.pushEvent(spec.type, spec.payload, spec.stepName);
+    Object.assign(this.run, decision.patch);
 
     const summaryToSign = {
       runId: this.run.runId,
@@ -227,12 +190,6 @@ export class CreRunRecorder {
     };
 
     this.run.evidence = await this.signEvidence(summaryToSign);
-
-    this.pushEvent("run_paused_for_approval", {
-      reason,
-      pendingAction,
-      ...details,
-    });
   }
 
   getRun(): CreRun {
