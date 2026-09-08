@@ -63,3 +63,78 @@ form, and check `git config user.email` in any fresh clone of this repo.
 - **Cleanverse Build: Trusted Assets** — submission **due today Aug 9 ~23:59 UTC**. Active shipping target now.
 - **HackCanton S2** — **concluded**. The **Canton DevNet backend stays live** (see `docs/CANTON.md`), but the next HackCanton round is planned for **September**.
 - **Flare Summer Signal** — **now a top priority, additive**. See `docs/FLARE_SUMMER_SIGNAL.md`. Target Bounty 2 (Confidential Compute); must not regress the live Cleanverse rail or the Canton DevNet path.
+
+---
+
+## Agent workflow
+
+The following rules are for the agent (human or AI) editing this repo. They are defaults, not hard laws; if a rule fights the task in front of you, say so and get a human sign-off before breaking it.
+
+### Glossary
+
+Use these terms consistently in code, tests, docs, and commit messages.
+
+- **mandate** — a bounded objective, budget, permissions, and evidence requirements under which an agent operates.
+- **rail** — an execution or settlement pathway (e.g., x402, Canton, 0G, Fhenix, Cleanverse, xLayer).
+- **vendor** — a service or provider an agent may pay or call.
+- **action** — one step an agent takes; the unit of attribution.
+- **run** — a single agent execution session; contains actions, evidence, and outcomes.
+- **evidence** — the artifact produced to justify a spend or outcome.
+- **CRE** — the Cognivern Run/Evidence ledger.
+- **sealed-bid round** — a Canton/Daml confidential auction for vendor selection.
+- **policy** — the rules that determine whether a proposed spend is allowed.
+- **workspace** — a tenant/unit of isolation for users, agents, mandates, and runs.
+
+### The three ways to hurt yourself
+
+1. **Killing by pattern.** Never `pkill -f`, `pgrep | kill`, or `kill` a PID you found by matching a name, path, or port. The live backend, pm2, and local dev servers are shared with other work. Kill only a PID you captured at spawn, or the owner of a port after confirming `/proc/<pid>/cwd` or `pm2 list`.
+2. **Writing to the live install.** The active env is `/opt/cognivern/app/.env` → `/opt/cognivern/shared/.env`. Do not edit, restart, or migrate against live Hetzner or live Canton DevNet unless the user explicitly asked. Copy data/DB snapshots into a local or worktree sandbox; never symlink back.
+3. **Baking in origins.** Never set `VITE_API_URL`, `VITE_WS_URL`, or similar public origins into the frontend build for dev. Dev is single-origin and the Vite/Next dev server proxies. Baking origins into the bundle breaks remote/testing environments.
+
+### Hit every rail
+
+The most common defect in this repo is a change that works on one path and is missing across the others. Before calling a feature done, say which rails it touched.
+
+- **API contract.** Did the request/response shape in `packages/shared` and `src/backend/modules/api` change? Did `keyScopes.ts` need a new scope?
+- **Frontend.** Does the Next.js UI (or a Playwright test) reflect the new state and error paths?
+- **Agents / workers.** Does the copilot example, Cloudflare agent, or any `src/backend/modules/agents` code use the new payload?
+- **On-chain / Daml.** Did the Fhenix, 0G, xLayer, or Canton flows change? Are package refs (`#daml:Main:...`) and template IDs still valid?
+- **Reverse states.** If you added a way in, add the way out and the way to see it. Approve needs reject. Create needs archive/cancel where the model allows it. A one-way door is a bug.
+- **Observability / CRE.** Does the new flow emit the right run/evidence events for the audit ledger? Does it add an OpenTelemetry span or metric?
+- **Docs.** User-facing behavior goes in `docs/user/` or the relevant integration doc; architecture and constraint changes go in `docs/internals/`.
+
+### Dev and test discipline
+
+- Local dev: `pnpm dev` (backend) and `pnpm frontend` (Next.js) in separate terminals. Do not run the live Hetzner deployment for local testing.
+- For DB testing, use a known seed or a safe `VACUUM INTO` copy of a local SQLite file; do not copy live Mongo/Postgres files while a server holds them.
+- For Canton, use the sandbox or local Daml scripts. Do **not** create probe rounds on the live Devnet; they persist.
+- Use `cp .env.example .env` and keep secrets out of the repo.
+
+### Verifying
+
+- Smallest proof that works. Run tests, lint, or typecheck scoped to the files you touched.
+- For backend behavior changes, add or run a focused Vitest or Playwright test. For prompt-injection or security changes, run `pnpm test:prompt-injection`.
+- For UI changes, run the relevant Playwright spec.
+- Do not run repo-wide `pnpm test` or full `tsc` unless the user explicitly asks. CI owns the full suite.
+- For async flows (Canton, Fhenix, x402, Telegraph), wait on typed receipts or terminal events, not `setTimeout` or polling.
+
+### Taste
+
+- Complexity belongs at the adapter boundary. Orchestration stays pure; UI stays dumb.
+- Inferred types over annotations. `any` is the enemy. Prefer `unknown` + narrowing or Zod.
+- Comments describe how a thing is used, not what it does. Use them for functions and cross-rail invariants, not for every line.
+- No continuously repainting animations or unthrottled WebSocket/SSE traffic. Users notice a dropped frame, a lying spinner, and a stale label.
+- If a rule here conflicts with the task in front of you, say so loudly and get a human sign-off before breaking it.
+
+### Plans and work artifacts
+
+- Do not commit implementation plans, research notes, or agent scratch files. Keep temporary material outside the worktree or in a clearly gitignored path.
+- A merged PR is the implementation record. Track active work in the GitHub issue/project that owns it.
+- Durable architecture decisions go in `docs/internals/`; update them when the product changes.
+
+### Pull requests
+
+- Conventional commit titles, plain language: `fix(backend): reject spend when policy counter is exhausted`.
+- One concern per PR. If the description says "also", split it.
+- UI changes need before/after screenshots or a short video; backend behavior changes need a test or a Playwright trace.
+- Include the rails you hit in the PR body.
