@@ -1,0 +1,44 @@
+# syntax=docker/dockerfile:1.7
+
+# Next.js frontend for self-host. Builds with COGNIVERN_SELFHOST=1 so
+# `output: "standalone"` is enabled (Vercel builds leave that unset).
+# Browser stays same-origin; NEXT_PUBLIC_API_URL is rewrite-only (server).
+
+FROM node:22-bookworm-slim AS build
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      python3 make g++ git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
+COPY packages ./packages
+COPY src/frontend ./src/frontend
+COPY tsconfig.json ./
+
+RUN pnpm install --frozen-lockfile
+
+WORKDIR /app/src/frontend
+ENV COGNIVERN_SELFHOST=1 \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NODE_ENV=production
+ARG NEXT_PUBLIC_API_URL=http://backend:3001
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN pnpm build
+
+FROM node:22-bookworm-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
+
+COPY --from=build /app/src/frontend/dist/standalone ./
+# Static assets must sit next to the standalone server's expected distDir.
+COPY --from=build /app/src/frontend/dist/static ./src/frontend/dist/static
+COPY --from=build /app/src/frontend/public ./src/frontend/public
+COPY deploy/self-host/scripts/frontend-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 3000
+ENTRYPOINT ["/entrypoint.sh"]

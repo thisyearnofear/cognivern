@@ -6,7 +6,7 @@ This directory contains legacy Hetzner configuration. The frontend deploys via *
 
 | File/Dir             | Purpose                        |
 | -------------------- | ------------------------------ |
-| `docker-compose.yml` | Local dev environment          |
+| `docker-compose.yml` | Legacy Recall-era compose (stale ports/API_KEY). Prefer `deploy/self-host/` |
 | `nginx/`             | Nginx reverse proxy config     |
 | `kestra/`            | Governance workflow automation |
 

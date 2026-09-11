@@ -38,6 +38,20 @@ Most contributors only need one or two of these areas. The repository contains p
 
 ## Quick start
 
+### Docker (self-host)
+
+One-command local stack (API + UI + Jaeger + seeded demo mandate):
+
+```bash
+cd deploy/self-host
+cp .env.example .env
+docker compose --env-file .env up --build
+```
+
+Open http://localhost:8080 — see [`deploy/self-host/README.md`](./deploy/self-host/README.md).
+
+### Local (pnpm)
+
 Requirements: Node.js version from [`.nvmrc`](./.nvmrc) and pnpm 9.15.0.
 
 ```bash

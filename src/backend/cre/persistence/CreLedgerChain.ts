@@ -131,6 +131,26 @@ export class CreLedgerChain {
   }
 
   async verify(): Promise<CreLedgerVerification> {
+    const started = Date.now();
+    try {
+      const result = await this.verifyInner();
+      void import("@backend/services/SloMetricsService.js").then(({ sharedSloMetrics }) => {
+        sharedSloMetrics.recordOperation(
+          "ledger_verify",
+          Date.now() - started,
+          result.valid,
+        );
+      });
+      return result;
+    } catch (error) {
+      void import("@backend/services/SloMetricsService.js").then(({ sharedSloMetrics }) => {
+        sharedSloMetrics.recordOperation("ledger_verify", Date.now() - started, false);
+      });
+      throw error;
+    }
+  }
+
+  private async verifyInner(): Promise<CreLedgerVerification> {
     const entries = await this.readEntries();
     let prevHash = GENESIS_HASH;
     let prevSeq = 0;

@@ -200,6 +200,7 @@ export class GovernanceController {
       // confirmed an active policy exists via resolveWorkspacePolicy; the
       // evaluator should check ALL active policies so multiple policies
       // are enforced simultaneously.
+      const policyEvalStarted = Date.now();
       const evalResult = WorkspaceDataService.evaluateAction(
         workspaceId,
         {
@@ -211,6 +212,14 @@ export class GovernanceController {
             currency: action.currency,
           },
         },
+      );
+      const { sharedSloMetrics } = await import(
+        "@backend/services/SloMetricsService.js"
+      );
+      sharedSloMetrics.recordOperation(
+        "policy_eval",
+        Date.now() - policyEvalStarted,
+        true,
       );
 
       let allowed = evalResult.allowed;

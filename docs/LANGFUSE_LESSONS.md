@@ -68,9 +68,10 @@ merged PRs:
 Langfuse leaned into OSS early — docs, templates, deployment patterns —
 which bought trust, distribution, and talent signal at once.
 
-- Ship a one-command `docker-compose` (backend + frontend + SigNoz +
-  seeded demo mandate). Current story ("clone + `.env.example`") works
-  but is not a template.
+- Ship a one-command `docker-compose` (backend + frontend + queryable
+  OTel + seeded demo mandate). **Done (2026-09-11):**
+  `deploy/self-host/` — see its README. Default stack uses
+  otel-collector + Jaeger (SignOz/ClickHouse stays optional later).
 - Keep the license boring (MIT — already good). Their "no planned
   changes to licensing" is what enterprise buyers needed to hear; we can
   say it from day one.
@@ -94,7 +95,10 @@ Langfuse, shared customers, joint meetups.
 
 - Our `<100ms policy check` claim needs public instrumentation (p50/p99
   on the dashboard), the way they published the v3 migration deep-dive.
-  Same for CRE ledger verification numbers.
+  Same for CRE ledger verification numbers. **Done (2026-09-11):**
+  `GET /health/slo` now includes `operations.policy_eval` (claim p95 ≤
+  100ms) and `operations.ledger_verify` (claim p95 ≤ 500ms), recorded
+  from `GovernanceController.evaluateAction` and `CreLedgerChain.verify`.
 - Our evidence story (SHA-256 chain, Filecoin CID, 0G proofs, redacted
   statement exports) is further ahead than theirs was at our stage.
   Package it: the redacted mandate statement is the SOC-2-adjacent
@@ -113,12 +117,12 @@ Langfuse, shared customers, joint meetups.
 ## Sequencing
 
 ```text
-M1 (Langfuse connector, reuses GitHub-connector plumbing)
-  ──→ M2 (one-command docker-compose self-host template)
-    ──→ M3 (public p50/p99 policy-eval + ledger-verify numbers)
+M1 (Langfuse connector) ✓ 2026-09-11
+  ──→ M2 (one-command docker-compose self-host template) ✓ 2026-09-11
+    ──→ M3 (public p50/p99 policy-eval + ledger-verify numbers) ✓ 2026-09-11
 Parallel: rail partnership surfaces (joint demos/posts per rail)
 ```
 
-M1 is implemented (2026-09-11): `LangfuseOutcomeConnector.ts` +
-`type: "langfuse"` source config. Next: M2 (docker-compose self-host),
-then M3 (public policy-eval / ledger-verify latency numbers).
+M2: `deploy/self-host/`. M3: `/health/slo` → `operations.policy_eval` /
+`operations.ledger_verify`. Remaining work is dashboard polish and rail
+co-marketing, not more connector plumbing.

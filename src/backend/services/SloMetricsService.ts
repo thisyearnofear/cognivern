@@ -7,6 +7,13 @@ interface Sample {
   at: number;
 }
 
+interface OperationSample {
+  name: string;
+  ok: boolean;
+  durationMs: number;
+  at: number;
+}
+
 interface SloTarget {
   p95Ms: number;
   maxErrorRate: number;
@@ -22,10 +29,24 @@ export interface SloRouteSnapshot {
   sloMet: boolean;
 }
 
+export interface SloOperationSnapshot {
+  count: number;
+  errorCount: number;
+  p50Ms: number;
+  p95Ms: number;
+  p99Ms: number;
+  errorRate: number;
+  /** Marketing / product claim threshold (e.g. policy_eval < 100ms). */
+  claimP95Ms?: number;
+  claimMet: boolean;
+}
+
 export interface SloSnapshot {
   windowSeconds: number;
   capturedAt: string;
   routes: Record<string, SloRouteSnapshot>;
+  /** Named internal operations (policy_eval, ledger_verify, …). */
+  operations: Record<string, SloOperationSnapshot>;
   overall: {
     requestCount: number;
     errorCount: number;
@@ -46,8 +67,15 @@ const DEFAULT_TARGETS: Record<string, SloTarget> = {
   "/health/slo": { p95Ms: 200, maxErrorRate: 0.001 },
 };
 
+/** Product claims we publish on /health/slo (Langfuse lessons M3). */
+const OPERATION_CLAIMS: Record<string, number> = {
+  policy_eval: 100,
+  ledger_verify: 500,
+};
+
 export class SloMetricsService {
   private samples: Sample[] = [];
+  private operations: OperationSample[] = [];
   private readonly maxSamples: number;
   private readonly windowMs: number;
   private readonly targets: Record<string, SloTarget>;
@@ -91,7 +119,6 @@ export class SloMetricsService {
       this.samples.splice(0, this.samples.length - this.maxSamples);
     }
 
-    // Emit to OpenTelemetry for SigNoz dashboards.
     meter
       .createHistogram("cognivern.http.request.duration.ms")
       .record(durationMs, {
@@ -107,10 +134,31 @@ export class SloMetricsService {
       });
   }
 
+  /**
+   * Record a named internal operation (policy evaluation, ledger verify).
+   * Surfaced on GET /health/slo under `operations`.
+   */
+  recordOperation(name: string, durationMs: number, ok = true): void {
+    if (!name.trim() || !Number.isFinite(durationMs) || durationMs < 0) return;
+    this.operations.push({
+      name: name.trim(),
+      ok,
+      durationMs,
+      at: Date.now(),
+    });
+    if (this.operations.length > this.maxSamples) {
+      this.operations.splice(0, this.operations.length - this.maxSamples);
+    }
+    meter
+      .createHistogram("cognivern.operation.duration.ms")
+      .record(durationMs, { operation: name.trim(), ok: String(ok) });
+  }
+
   snapshot(): SloSnapshot {
     const now = Date.now();
     const cutoff = now - this.windowMs;
     this.samples = this.samples.filter((s) => s.at >= cutoff);
+    this.operations = this.operations.filter((s) => s.at >= cutoff);
 
     const byRoute = new Map<string, Sample[]>();
     for (const s of this.samples) {
@@ -123,12 +171,23 @@ export class SloMetricsService {
       routes[route] = this.summarize(samples, this.targets[route]);
     }
 
+    const byOp = new Map<string, OperationSample[]>();
+    for (const s of this.operations) {
+      if (!byOp.has(s.name)) byOp.set(s.name, []);
+      byOp.get(s.name)!.push(s);
+    }
+    const operations: Record<string, SloOperationSnapshot> = {};
+    for (const [name, samples] of byOp.entries()) {
+      operations[name] = this.summarizeOperation(samples, OPERATION_CLAIMS[name]);
+    }
+
     const all = this.samples;
     const overallErrors = all.filter((s) => s.status >= 500).length;
     return {
       windowSeconds: Math.round(this.windowMs / 1000),
       capturedAt: new Date().toISOString(),
       routes,
+      operations,
       overall: {
         requestCount: all.length,
         errorCount: overallErrors,
@@ -150,6 +209,25 @@ export class SloMetricsService {
       ? p.p95Ms <= target.p95Ms && errorRate <= target.maxErrorRate
       : true;
     return { count, errorCount, errorRate, ...p, sloMet };
+  }
+
+  private summarizeOperation(
+    samples: OperationSample[],
+    claimP95Ms?: number,
+  ): SloOperationSnapshot {
+    const count = samples.length;
+    const errorCount = samples.filter((s) => !s.ok).length;
+    const errorRate = count ? errorCount / count : 0;
+    const p = this.percentiles(samples.map((s) => s.durationMs));
+    const claimMet = claimP95Ms === undefined ? true : p.p95Ms <= claimP95Ms;
+    return {
+      count,
+      errorCount,
+      errorRate,
+      ...p,
+      ...(claimP95Ms !== undefined ? { claimP95Ms } : {}),
+      claimMet,
+    };
   }
 
   private percentiles(values: number[]): {

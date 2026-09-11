@@ -1,0 +1,83 @@
+# Cognivern self-host stack (M2 — see docs/LANGFUSE_LESSONS.md)
+#
+# One command from repo root:
+#   docker compose -f deploy/self-host/docker-compose.yml --env-file deploy/self-host/.env up --build
+#
+# Default services: backend + frontend + otel-collector + jaeger + seeded demo mandate.
+# Full SignOz is intentionally a profile (heavy ClickHouse stack), not the default.
+
+name: cognivern-selfhost
+
+services:
+  backend:
+    build:
+      context: ../..
+      dockerfile: deploy/self-host/Dockerfile.backend
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_PATH: /app/data/cognivern.db
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in deploy/self-host/.env}
+      OWS_VAULT_SECRET: ${OWS_VAULT_SECRET:?set OWS_VAULT_SECRET in deploy/self-host/.env}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      COGNIVERN_SELF_BASE_URL: http://backend:3001
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: cognivern-backend
+      SEED_DEMO: ${SEED_DEMO:-true}
+      MCP_ENABLED: "false"
+      FILECOIN_ENABLED: "false"
+      HYDRADB_ENABLED: "false"
+    volumes:
+      - cognivern-data:/app/data
+    depends_on:
+      - otel-collector
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 45s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../..
+      dockerfile: deploy/self-host/Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://backend:3001
+    ports:
+      - "${FRONTEND_PORT:-8080}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      # Rewrite target for the Next server; browser still uses relative /api paths.
+      NEXT_PUBLIC_API_URL: http://backend:3001
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "${OTLP_HTTP_PORT:-4318}:4318"
+    depends_on:
+      - jaeger
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.66
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"
+    restart: unless-stopped
+
+volumes:
+  cognivern-data:
