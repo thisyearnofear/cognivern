@@ -40,18 +40,33 @@ space constraint that already blocks SignOz/ClickHouse there.
 4. Optionally **split Cognivern onto its own Vercel team/account** so
    sibling apps cannot push you over quota.
 
-**Cognivern build slim (reduces per-deploy size)**
+**Cognivern build slim (reduces per-deploy size)** — audit 2026-09-11:
 
-- Root `vercel.json` currently runs `pnpm install --frozen-lockfile` on the
-  **whole monorepo** (~GBs of backend-native deps that the dashboard does
-  not need). Prefer a frontend-scoped install, e.g.
-  `pnpm install --frozen-lockfile --filter cognivern-frontend...`, or set
-  the Vercel project Root Directory to `src/frontend` with a matching
-  install/build.
-- Keep Next API routes minimal (only `app/api/os/*` today); every server
-  route multiplies function storage with traced deps (wagmi/viem stack is
-  heavy). Prefer proxying to the VPS API over new Next route handlers.
-- Continue prerendering static pages where possible (already in progress).
+Findings:
+
+- Root `vercel.json` previously set `outputDirectory: "src/frontend/dist"`
+  **without** stripping **`dist/cache/turbopack` (~302 MB)** after builds.
+  That cache is a local Turbopack artifact; packaging it into every
+  deployment multiplies Functions / Deployment storage. Build now ends with
+  `rm -rf …/dist/cache`, and `.vercelignore` excludes `**/dist/cache` and
+  `**/.next/cache`.
+- `installCommand` was full-monorepo `pnpm install` (backend natives the
+  dashboard never needs). Now
+  `pnpm install --frozen-lockfile --filter cognivern-frontend...`.
+- `.vercelignore` already skipped `node_modules` / `.git` / `dist`, and now
+  also excludes `src/backend`, `daml`, `contracts`, `ops`, `tooling`,
+  `tests`, `deploy-bundle`, uploads/DBs so they are not part of the upload
+  tarball.
+
+`outputDirectory` remains `src/frontend/dist` so the existing Vercel project
+(root = monorepo) keeps working; the important part is **never shipping the
+cache**. Optional: set Root Directory to `src/frontend` in the dashboard and
+use `src/frontend/vercel.json` instead — either path is fine, not both
+fighting.
+
+Still prefer fewer Next `app/api/*` routes (proxy to the VPS API) so NFT
+traces do not duplicate heavy client stacks (RainbowKit/viem) into every
+server function.
 
 **If Vercel stays untenable (still no Next on VPS)**
 

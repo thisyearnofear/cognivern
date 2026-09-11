@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "pnpm build",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "outputDirectory": "dist"
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile --filter cognivern-frontend...",
+  "buildCommand": "pnpm build"
 }

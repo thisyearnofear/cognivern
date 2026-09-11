@@ -1,26 +1,60 @@
-# Local dependency/build artifacts — Vercel reinstalls and rebuilds
+# Upload exclusions — Vercel reinstalls deps and rebuilds on the platform.
+# Keep this aggressive: team Functions/Deployment storage is shared & capped.
+
+# Dependencies & local builds (never upload)
 node_modules
 **/node_modules
+.pnp
+.pnp.js
 dist
 **/dist
 .next
 **/.next
+**/dist/cache
+**/.next/cache
 *.tsbuildinfo
+deploy-bundle
+src/frontend/dist
 
-# Source control / tooling
+# Source control / assistant / local tooling
 .git
 .github
 .husky
+.cursor
+.claude
+.agents
+.artifacts
+.blackbox
+.blackboxcli
+.openclaude
 
-# Local data & secrets — never ship these
+# Backend / rails / contracts — not needed for the dashboard build
+# (frontend only needs packages/shared via the filtered pnpm install)
+src/backend
+contracts
+daml
+ops
+examples
+tooling
+tests
+playwright-report
+test-results
+.testsprite
+coverage
+playwright/.cache
+
+# Runtime data & secrets
 .env
 .env.*
 !.env.example
 data
 logs
-.artifacts
-playwright-report
-test-results
-.testsprite
-playwright/.cache
-coverage
+uploads
+**/*.db
+**/*.db-*
+*.pem
+*.key
+.cognivern
+
+# Heavy / unused doc & media blobs (source docs stay small; skip generated)
+docs/OPS.md

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_ENV=production next build",
+    "build": "NODE_ENV=production next build && rm -rf dist/cache",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
