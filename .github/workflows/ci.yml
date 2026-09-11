@@ -163,3 +163,30 @@ jobs:
 
       - name: Build backend
         run: pnpm run build
+
+  build-frontend:
+    name: Build frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Runs `next build`: typecheck + static prerender. This is the only
+      # gate that catches missing-Suspense / force-dynamic regressions —
+      # tsc and eslint both pass on code that fails prerender (see
+      # 9aae6d6b → 9c4c3533, where unguarded useSearchParams broke the
+      # Vercel production build after force-dynamic was removed).
+      - name: Build frontend
+        working-directory: src/frontend
+        run: pnpm run build
