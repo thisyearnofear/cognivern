@@ -11,6 +11,8 @@ import {
   type ObservabilityStatus,
   type ObservabilityMetrics,
   type AuditLog,
+  type SloSnapshot,
+  type SloOperationSnapshot,
 } from "@/lib/api-client";
 import { buildSignozTraceLinkSync } from "@/lib/signoz";
 import { useAuthStore } from "@/stores/auth-store";
@@ -60,6 +62,8 @@ export function ObservabilityPage() {
   const [cloudUrl, setCloudUrl] = useState<string>("https://us.signoz.cloud");
   const [metrics, setMetrics] = useState<ObservabilityMetrics | null>(null);
   const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [slo, setSlo] = useState<SloSnapshot | null>(null);
+  const [sloError, setSloError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,11 +77,13 @@ export function ObservabilityPage() {
       setLoading(true);
       setError(null);
       setMetricsError(null);
+      setSloError(null);
       try {
-        const [statusRes, logsRes, metricsRes] = await Promise.all([
+        const [statusRes, logsRes, metricsRes, sloRes] = await Promise.all([
           apiClient.getObservabilityStatus(),
           apiClient.getAuditLogs(),
           apiClient.getObservabilityMetrics(range, workspaceId),
+          apiClient.getSloSnapshot(),
         ]);
         if (cancelled) return;
         if (statusRes.success && statusRes.data) {
@@ -101,6 +107,11 @@ export function ObservabilityPage() {
           setMetrics(metricsRes.data);
         } else {
           setMetricsError(metricsRes.error || "Failed to load metrics");
+        }
+        if (sloRes.success && sloRes.data) {
+          setSlo(sloRes.data);
+        } else {
+          setSloError(sloRes.error || "Failed to load governance SLO snapshot");
         }
       } catch (err) {
         if (!cancelled) {
@@ -151,8 +162,8 @@ export function ObservabilityPage() {
               {status && <ProvenanceBadge enabled={status.enabled} />}
             </div>
             <p className="text-sm text-muted-foreground max-w-2xl">
-              Every LLM call, governance decision, and agent cycle traced
-              end-to-end in SigNoz via OpenTelemetry.
+              Governance performance claims you can verify — policy eval and
+              CRE ledger verify — plus optional OTel traces when configured.
             </p>
           </div>
           <a
@@ -228,6 +239,7 @@ export function ObservabilityPage() {
           <PageState variant="error" title="Could not load observability" message={error} action={{ label: "Retry", onClick: () => window.location.reload() }} />
         ) : status ? (
           <div className="space-y-8">
+            <GovernancePerformanceSection slo={slo} error={sloError} />
             <StatusCard status={status} />
             <LiveMetricsSection metrics={metrics} error={metricsError} range={range} onRangeChange={setRange} />
             <TraceSearchSection
@@ -257,6 +269,137 @@ export function ObservabilityPage() {
           </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+/* ─── Governance performance (M3b — Cognivern-owned, rail-agnostic) ─ */
+
+const GOVERNANCE_OPS: Array<{
+  key: string;
+  label: string;
+  claimLabel: string;
+}> = [
+  { key: "policy_eval", label: "Policy evaluation", claimLabel: "p95 ≤ 100ms" },
+  { key: "ledger_verify", label: "CRE ledger verify", claimLabel: "p95 ≤ 500ms" },
+];
+
+function GovernancePerformanceSection({
+  slo,
+  error,
+}: {
+  slo: SloSnapshot | null;
+  error: string | null;
+}) {
+  if (error || !slo) {
+    return (
+      <Section
+        title="Governance performance"
+        icon={<Shield className="h-5 w-5 text-primary" />}
+        subtitle="In-process p50 / p95 / p99 from this backend — not a rail-specific metric."
+      >
+        <div className="rounded-lg border border-dashed p-6 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            SLO snapshot unavailable
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {error || "GET /health/slo returned no data. Run a governance evaluate or ledger verify to populate samples."}
+          </p>
+        </div>
+      </Section>
+    );
+  }
+
+  const windowMin = Math.round(slo.windowSeconds / 60);
+
+  return (
+    <Section
+      title="Governance performance"
+      icon={<Shield className="h-5 w-5 text-primary" />}
+      subtitle={`Rolling ${windowMin}m window from this process. Product claims, measured — not marketing copy.`}
+    >
+      <div className="grid gap-3 md:grid-cols-2">
+        {GOVERNANCE_OPS.map(({ key, label, claimLabel }) => (
+          <OperationClaimCard
+            key={key}
+            label={label}
+            claimLabel={claimLabel}
+            op={slo.operations[key]}
+          />
+        ))}
+      </div>
+      <p className="text-[10px] text-muted-foreground">
+        Source: <code className="font-mono">GET /health/slo</code>
+        {" · "}
+        captured {new Date(slo.capturedAt).toLocaleString()}
+        {" · "}
+        overall HTTP p95 {slo.overall.p95Ms} ms ({slo.overall.requestCount} requests)
+      </p>
+    </Section>
+  );
+}
+
+function OperationClaimCard({
+  label,
+  claimLabel,
+  op,
+}: {
+  label: string;
+  claimLabel: string;
+  op: SloOperationSnapshot | undefined;
+}) {
+  if (!op || op.count === 0) {
+    return (
+      <div className="rounded-xl border bg-card p-4 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-sm font-medium">{label}</div>
+          <Badge variant="outline" className="text-[10px]">
+            No samples
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Claim {claimLabel}. Samples appear after the matching operation runs
+          on this backend.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border bg-card p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-sm font-medium">{label}</div>
+        {op.claimMet ? (
+          <Badge className="bg-emerald-600 hover:bg-emerald-600 text-[10px] gap-1">
+            <CheckCircle2 className="h-3 w-3" />
+            Claim met
+          </Badge>
+        ) : (
+          <Badge variant="destructive" className="text-[10px] gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            Over claim
+          </Badge>
+        )}
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">p50</div>
+          <div className="text-lg font-semibold tabular-nums">{op.p50Ms} ms</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">p95</div>
+          <div className="text-lg font-semibold tabular-nums">{op.p95Ms} ms</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">p99</div>
+          <div className="text-lg font-semibold tabular-nums">{op.p99Ms} ms</div>
+        </div>
+      </div>
+      <p className="text-[10px] text-muted-foreground">
+        {op.count} samples · claim {claimLabel}
+        {op.claimP95Ms !== undefined ? ` (threshold ${op.claimP95Ms} ms)` : ""}
+      </p>
     </div>
   );
 }

@@ -3,6 +3,12 @@
 Cognivern is a **mandate control plane**. Chains are adapters for settlement,
 execution, and evidence — not the product vocabulary.
 
+**GTM corollary** (from `LANGFUSE_LESSONS.md` §4): adapters stay silent in
+the product; partnerships are loud outside it. Be rail-*fluent* in
+ecosystem demos and posts; stay rail-*agnostic* in UI, glossary, and first
+viewport. “Cognivern runs on X” is amplification of the same mandate
+story — never a rebrand as X’s sidecar.
+
 Four planes:
 
 | Plane | Owns | Chain policy |

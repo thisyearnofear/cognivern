@@ -78,27 +78,37 @@ which bought trust, distribution, and talent signal at once.
 - Publish build notes (`docs/history/LOOP.md`) in handbook style — their
   public handbook was a growth channel, not transparency theater.
 
-### 4. Partnership before paperwork (GTM)
+### 4. Rail-fluent GTM, rail-agnostic product
 
 The acquisition worked because they had operated as partners for years:
 Langfuse was a large ClickHouse Cloud customer, ClickHouse teams used
 Langfuse, shared customers, joint meetups.
 
-- Be a loud customer of our rails (Flare, Canton, Fhenix, 0G, Filecoin):
-  joint demos, joint posts, "Cognivern runs on X". Telegraph +
-  Cleanverse are already this pattern — treat each rail integration as a
-  partnership surface with co-marketing, not just a technical adapter.
+**Rule:** adapters stay silent in the product; partnerships are loud
+outside it.
+
+- **Product identity** stays rail-agnostic: mandate → policy → spend →
+  evidence → outcome. Rails are adapters (`ARCHITECTURE_RAILS.md`). The
+  UI, first viewport, and glossary must not read as “we are Flare / Canton /
+  Fhenix / 0G / Filecoin.” Prefer “settled on {rail}” from evidence
+  metadata over hardcoded rail brand copy.
+- **GTM** may be rail-*fluent*: joint demos, hackathon tracks, and
+  “Cognivern runs on X” posts when an ecosystem is already a live
+  distribution door. That is amplification under the agnostic frame —
+  same mandate story, different settlement surface — not a branding
+  program that picks a favorite.
 - When rail ecosystems offer distribution, weight learning + credibility,
-  not just the check.
+  not just the check. Never let a co-marketing surface become the
+  product vocabulary.
 
 ### 5. Performance and compliance as product features
 
 - Our `<100ms policy check` claim needs public instrumentation (p50/p99
   on the dashboard), the way they published the v3 migration deep-dive.
   Same for CRE ledger verification numbers. **Done (2026-09-11):**
-  `GET /health/slo` now includes `operations.policy_eval` (claim p95 ≤
-  100ms) and `operations.ledger_verify` (claim p95 ≤ 500ms), recorded
-  from `GovernanceController.evaluateAction` and `CreLedgerChain.verify`.
+  `GET /health/slo` includes `operations.policy_eval` (claim p95 ≤ 100ms)
+  and `operations.ledger_verify` (claim p95 ≤ 500ms); the Observability
+  page surfaces both under **Governance performance** (M3b).
 - Our evidence story (SHA-256 chain, Filecoin CID, 0G proofs, redacted
   statement exports) is further ahead than theirs was at our stage.
   Package it: the redacted mandate statement is the SOC-2-adjacent
@@ -120,9 +130,11 @@ Langfuse, shared customers, joint meetups.
 M1 (Langfuse connector) ✓ 2026-09-11
   ──→ M2 (one-command docker-compose self-host template) ✓ 2026-09-11
     ──→ M3 (public p50/p99 policy-eval + ledger-verify numbers) ✓ 2026-09-11
-Parallel: rail partnership surfaces (joint demos/posts per rail)
+      ──→ M3b (observability dashboard surfaces those numbers) ✓ 2026-09-11
+Parallel (outside product): rail-fluent GTM under an agnostic frame
 ```
 
 M2: `deploy/self-host/`. M3: `/health/slo` → `operations.policy_eval` /
-`operations.ledger_verify`. Remaining work is dashboard polish and rail
-co-marketing, not more connector plumbing.
+`operations.ledger_verify`. M3b: Observability page **Governance
+performance** section (rail-agnostic claims UI). Rail partnership posts
+stay outside the product surface — see §4.

@@ -580,6 +580,16 @@ class ApiClient {
     return this.fetch(`/api/observability/metrics?${params.toString()}`);
   }
 
+  /** Public in-process SLO snapshot (policy_eval / ledger_verify claims). */
+  async getSloSnapshot(): Promise<ApiResponse<SloSnapshot>> {
+    const raw = await this.fetch<SloSnapshot | ApiResponse<SloSnapshot>>('/health/slo');
+    if (raw && typeof raw === 'object' && 'success' in raw) {
+      return raw as ApiResponse<SloSnapshot>;
+    }
+    // /health/slo returns the snapshot body directly (no ApiResponse envelope).
+    return { success: true, data: raw as SloSnapshot };
+  }
+
   async getAuditInsights(): Promise<ApiResponse<AuditInsights>> {
     return this.fetch('/api/audit/insights');
   }
@@ -1972,6 +1982,33 @@ export interface ObservabilityMetrics {
   live: boolean;
   range?: '1h' | '24h' | '7d';
   message?: string;
+}
+
+/** Subset of GET /health/slo used by the Observability dashboard (M3b). */
+export interface SloOperationSnapshot {
+  count: number;
+  errorCount: number;
+  p50Ms: number;
+  p95Ms: number;
+  p99Ms: number;
+  errorRate: number;
+  claimP95Ms?: number;
+  claimMet: boolean;
+}
+
+export interface SloSnapshot {
+  windowSeconds: number;
+  capturedAt: string;
+  routes: Record<string, unknown>;
+  operations: Record<string, SloOperationSnapshot>;
+  overall: {
+    requestCount: number;
+    errorCount: number;
+    errorRate: number;
+    p50Ms: number;
+    p95Ms: number;
+    p99Ms: number;
+  };
 }
 
 // ── Sponsored credits types ─────────────────────────────────────────────
