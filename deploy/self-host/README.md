@@ -55,6 +55,8 @@ License remains MIT; no planned licensing change for self-host.
 
 ## Production note
 
-When Vercel Functions / Deployment storage quotas bind, prefer serving this
-same Next standalone + API pattern on the VPS (nginx) instead of Vercel.
-See `docs/DEPLOYMENT.md` and `docs/CAPITAL_AGENT_SURFACES.md`.
+The Cognivern **API** VPS is disk/RAM constrained — do not run Next there.
+`deploy/self-host/` is for local/demo machines with spare disk. Production
+dashboard stays on Vercel (or another CDN host); when Vercel Functions /
+Deployment storage quotas bind, prune team-wide deployments and slim the
+frontend install — see `docs/DEPLOYMENT.md`.

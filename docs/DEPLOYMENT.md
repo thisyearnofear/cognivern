@@ -7,27 +7,69 @@ private `OPS.md` that is not committed to the repository.
 ## Architecture
 
 ```text
-Internet → Frontend (prefer VPS / nginx; Vercel optional) → Express API (VPS / PM2)
-                              ↕
-                    Canton JSON API v2 (DevNet) + optional rails
+Internet → Frontend (Vercel / other CDN host) → Express API (VPS / PM2)
+                         ↕
+               Canton JSON API v2 (DevNet) + optional rails
 ```
 
-**Default posture (2026-09-11):** serve the Next.js dashboard from the same
-VPS as the API when practical. Vercel remains usable for previews, but
-production should not depend on it once Functions Storage / Deployment
-Storage quotas are under pressure (observed overages: Functions ~18.75 GB /
-10 GB, Deployment ~11.11 GB / 10 GB). Prefer:
+**Hosting split (updated 2026-09-11):**
 
-1. **VPS Next standalone** (same pattern as `deploy/self-host/Dockerfile.frontend`
-   — `COGNIVERN_SELFHOST=1`, nginx → Node on an internal port), or
-2. **Self-host compose** (`deploy/self-host/`) for full-stack demos.
+| Layer | Where | Why |
+|-------|--------|-----|
+| **API / CRE / rails** | VPS (PM2, nginx → `3087`) | Source of truth; already live |
+| **Next.js dashboard** | Vercel (or another CDN host) | VPS is disk/RAM constrained — do **not** run Next/standalone there |
+| **Local / demo full stack** | `deploy/self-host/` on a machine with disk | Dogfood / OSS template, not production VPS |
 
-Keep browser → API same-origin or nginx-proxied (`/api` → backend). Do **not**
-bake public API origins into the client bundle for local/dev
-(`AGENTS.md`).
+Vercel Functions Storage (~18.75 GB / 10 GB) and Deployment Storage
+(~11.11 GB / 10 GB) are **team-wide** (`papas-projects-5b188431`), shared
+with many other apps (writersarcade, tynf, …), not Cognivern alone. Moving
+Next onto the Cognivern VPS is the wrong fix — it would fight the same
+space constraint that already blocks SignOz/ClickHouse there.
 
-Historical note: many docs still mention “frontend on Vercel → API on VPS.”
-Treat that as the prior default; cut over when Vercel storage or cost bites.
+### Navigate Vercel quota without Next on the VPS
+
+**Immediate (ops, no architecture change)**
+
+1. **Prune old deployments** across the whole team — each Ready/Error
+   deployment retains artifacts. Keep last N production + last few
+   previews; delete the rest (`vercel rm <url>` or dashboard → Deployments).
+2. **Set retention** in project settings (shorter preview retention;
+   disable deploying every push to preview if unused).
+3. **Archive or pause dead projects** on the same team so they stop
+   counting toward the shared 10 GB caps.
+4. Optionally **split Cognivern onto its own Vercel team/account** so
+   sibling apps cannot push you over quota.
+
+**Cognivern build slim (reduces per-deploy size)**
+
+- Root `vercel.json` currently runs `pnpm install --frozen-lockfile` on the
+  **whole monorepo** (~GBs of backend-native deps that the dashboard does
+  not need). Prefer a frontend-scoped install, e.g.
+  `pnpm install --frozen-lockfile --filter cognivern-frontend...`, or set
+  the Vercel project Root Directory to `src/frontend` with a matching
+  install/build.
+- Keep Next API routes minimal (only `app/api/os/*` today); every server
+  route multiplies function storage with traced deps (wagmi/viem stack is
+  heavy). Prefer proxying to the VPS API over new Next route handlers.
+- Continue prerendering static pages where possible (already in progress).
+
+**If Vercel stays untenable (still no Next on VPS)**
+
+- Move the **dashboard only** to another CDN host that runs Next
+  (Cloudflare Pages / OpenNext, Netlify, etc.) — still not the Hetzner box.
+- Keep `api.cognivern.persidian.com` on the VPS; point
+  `NEXT_PUBLIC_API_URL` / nginx rewrites at it. Browser stays same-origin
+  relative where the host proxies `/api`.
+
+**Do not**
+
+- Install Next + `node_modules` + standalone on `snel-bot` without a disk
+  upgrade.
+- Re-enable SignOz/ClickHouse on the small VPS to “save Vercel” — that
+  already blew CPU/RAM (`docs/OPS.md`).
+
+Keep browser → API same-origin or host-proxied. Do **not** bake public API
+origins into the client bundle for local/dev (`AGENTS.md`).
 
 The Express backend runs as a PM2 fork-mode process on the VPS
 (`api.cognivern.persidian.com`, nginx → port `3087`). The optional local/Hetzner

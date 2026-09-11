@@ -135,5 +135,7 @@ Parallel: server MCP mandate tools; rail-fluent GTM outside product
 ```
 
 Next product work is **Capital completeness** (human path), then WebMCP as
-the in-browser agent adapter over the same APIs. Deployment default shifts
-toward the VPS when Vercel storage quotas bind — see `DEPLOYMENT.md`.
+the in-browser agent adapter over the same APIs. Frontend stays on Vercel
+(or another CDN host) — the Cognivern VPS is too space-constrained for
+Next; see `DEPLOYMENT.md` for quota navigation (team-wide prune + slim
+install), not “move the dashboard onto PM2.”
