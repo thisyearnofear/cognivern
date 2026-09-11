@@ -1,8 +1,8 @@
 # Outcome Evidence Plan — GitHub Connector, First Verified Statement, Key→Mandate
 
-Status: **M1 implemented (2026-08-24)**; Langfuse connector queued as next
-source (see `LANGFUSE_LESSONS.md` M1); M2+ pending. Builds on the
-implemented mandate foundation (`AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md`
+Status: **M1 GitHub implemented (2026-08-24)**; **Langfuse connector
+implemented (2026-09-11)** — see `LANGFUSE_LESSONS.md`; M2+ pending. Builds on
+the implemented mandate foundation (`AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md`
 Phases 2–5) and executes the outcome side of the strategy in
 `GO_TO_MARKET.md` / `AGENTIC_CAPITAL_THESIS.md`.
 
@@ -13,20 +13,27 @@ auth) ingests verified PR/commit outcomes. Auth reuses the existing
 `GITHUB_TOKEN` env var (documented in `.env.example`; the connector reads it,
 it is never stored). HydraDB evidence sync fires best-effort after new
 ingestions. Unit tests: `tests/unit/OutcomeSourceConfig.test.ts`,
-`tests/unit/GitHubOutcomeConnector.test.ts` (29 focused tests green; full
-suite 686 passing).
+`tests/unit/GitHubOutcomeConnector.test.ts`.
+
+Langfuse connector (2026-09-11): `LangfuseOutcomeConnector.ts` + `type:
+"langfuse"` in `outcomeSourceConfig.ts` / mandate Zod schema. Modes
+`scores` (NUMERIC/BOOLEAN via `GET /api/public/v3/scores`) and `traces`
+(`GET /api/public/traces`). Ingests as `observed` / `system_observed`
+(never `independently_verified` — score values are model/human-judged).
+Auth: `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY`. Same sync endpoint
+dispatches by source type. Tests:
+`tests/unit/LangfuseOutcomeConnector.test.ts`.
 
 ## The gap
 
 `AllocationRecommendationService` requires `independently_verified` outcomes
-to move a mandate from `hold` to `consider_next_allocation`. The outcome
-ingestion API exists and enforces the schema — but nothing populates
-`system_observed` or `independently_verified`. Every outcome today is
-operator-typed. **The pipe is built; it has no water.**
+to move a mandate from `hold` to `consider_next_allocation`. GitHub fills
+that tier; Langfuse fills `system_observed` (useful for statements and
+quality loops, not for flipping the recommendation stance alone).
 
-This plan fills the pipe with one connector (GitHub), runs one fully
-self-controlled cohort through it, and publishes the first statement with a
-verified outcome. That artifact then becomes the Prezenti onboarding evidence.
+This plan fills the pipe with connectors, runs one fully self-controlled
+cohort through GitHub, and publishes the first statement with a verified
+outcome. That artifact then becomes the Prezenti onboarding evidence.
 
 ## North star metric
 
@@ -167,8 +174,10 @@ M4 (metric) — after M2 produces the first data point
 
 ## Explicitly out of scope
 
-- Stripe, CRM, or any non-GitHub outcome connector.
+- Stripe, CRM, or prompt/eval product features (Langfuse owns that surface;
+  we only ingest their scores/traces as outcomes — see `LANGFUSE_LESSONS.md`).
 - Causal attribution or ROI computation (schema forbids it by design).
 - Automated capital deployment or tranche release.
 - Webhook infrastructure (poll + operator trigger suffices for v1).
-- Multi-repo or cross-org GitHub sources.
+- Multi-repo or cross-org GitHub sources; multi-project Langfuse key maps
+  (v1 = one `LANGFUSE_*` key pair per deployment).

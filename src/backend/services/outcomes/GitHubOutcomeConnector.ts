@@ -34,6 +34,10 @@ import {
 } from "../governance/OutcomeObservationService.js";
 import { hydraDbMandateContext } from "../hydradb/HydraDbMandateContextService.js";
 import type { GitHubOutcomeSource } from "./outcomeSourceConfig.js";
+import type { OutcomeSourceSyncReport, OutcomeSyncResult } from "./outcomeSyncTypes.js";
+import { syncLangfuseSource } from "./LangfuseOutcomeConnector.js";
+
+export type { OutcomeSourceSyncReport, OutcomeSyncResult } from "./outcomeSyncTypes.js";
 
 const GITHUB_API = "https://api.github.com";
 const PAGE_SIZE = 100;
@@ -65,22 +69,8 @@ interface GitHubPullFile {
   filename: string;
 }
 
-export interface OutcomeSourceSyncReport {
-  repo: string;
-  mode: "pr" | "commits";
-  fetched: number;
-  ingested: number;
-  replayed: number;
-  skipped: number;
-  error?: string;
-}
-
-export interface OutcomeSyncResult {
-  mandateId: string;
-  sources: OutcomeSourceSyncReport[];
-  totalIngested: number;
-  totalReplayed: number;
-}
+// OutcomeSourceSyncReport / OutcomeSyncResult live in outcomeSyncTypes.ts
+// (re-exported above for existing importers).
 
 // ── GitHub API client ───────────────────────────────────────────────────────
 
@@ -152,6 +142,8 @@ async function syncPrSource(
   );
 
   const report: OutcomeSourceSyncReport = {
+    sourceType: "github",
+    scope: source.repo,
     repo: source.repo,
     mode: "pr",
     fetched: pulls.length,
@@ -229,6 +221,8 @@ async function syncCommitSource(
   );
 
   const report: OutcomeSourceSyncReport = {
+    sourceType: "github",
+    scope: source.repo,
     repo: source.repo,
     mode: "commits",
     fetched: commits.length,
@@ -277,9 +271,9 @@ async function syncCommitSource(
 // ── Entry point ─────────────────────────────────────────────────────────────
 
 /**
- * Sync every GitHub outcome source configured on a mandate. Per-source
- * failures are captured in the report rather than aborting the whole sync;
- * the caller decides how to surface them.
+ * Sync every outcome source configured on a mandate (GitHub and/or Langfuse).
+ * Per-source failures are captured in the report rather than aborting the
+ * whole sync; the caller decides how to surface them.
  */
 export async function syncMandateOutcomes(
   workspaceId: string,
@@ -296,16 +290,29 @@ export async function syncMandateOutcomes(
   const reports: OutcomeSourceSyncReport[] = [];
   for (const source of sources) {
     try {
-      const report =
-        source.mode === "pr"
-          ? await syncPrSource(workspaceId, mandate, source)
-          : await syncCommitSource(workspaceId, mandate, source);
+      let report: OutcomeSourceSyncReport;
+      if (source.type === "langfuse") {
+        report = await syncLangfuseSource(workspaceId, mandate, source);
+      } else {
+        report =
+          source.mode === "pr"
+            ? await syncPrSource(workspaceId, mandate, source)
+            : await syncCommitSource(workspaceId, mandate, source);
+      }
       reports.push(report);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      logger.warn("Outcome source sync failed", { mandateId, repo: source.repo, error: message });
+      const scope = source.type === "langfuse" ? source.project : source.repo;
+      logger.warn("Outcome source sync failed", {
+        mandateId,
+        sourceType: source.type,
+        scope,
+        error: message,
+      });
       reports.push({
-        repo: source.repo,
+        sourceType: source.type,
+        scope,
+        ...(source.type === "github" ? { repo: source.repo } : {}),
         mode: source.mode,
         fetched: 0,
         ingested: 0,

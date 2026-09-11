@@ -48,6 +48,53 @@ describe("normalizeOutcomeSources", () => {
     ]);
   });
 
+  it("accepts a minimal langfuse scores source", () => {
+    const result = normalizeOutcomeSources(
+      [
+        {
+          type: "langfuse",
+          baseUrl: "https://cloud.langfuse.com/",
+          project: "prod-agents",
+          mode: "scores",
+          scoreNames: ["quality"],
+          metricId: "engagement_rate",
+        },
+      ],
+      METRIC_IDS,
+    );
+    expect(result).toEqual([
+      {
+        type: "langfuse",
+        baseUrl: "https://cloud.langfuse.com",
+        project: "prod-agents",
+        mode: "scores",
+        scoreNames: ["quality"],
+        metricId: "engagement_rate",
+      },
+    ]);
+  });
+
+  it("accepts a langfuse traces source", () => {
+    const result = normalizeOutcomeSources(
+      [
+        {
+          type: "langfuse",
+          baseUrl: "http://localhost:3000",
+          project: "self-hosted",
+          mode: "traces",
+          since: "2026-09-01T00:00:00Z",
+        },
+      ],
+      METRIC_IDS,
+    );
+    expect(result?.[0]).toMatchObject({
+      type: "langfuse",
+      baseUrl: "http://localhost:3000",
+      mode: "traces",
+      since: "2026-09-01T00:00:00.000Z",
+    });
+  });
+
   it("rejects malformed repos, modes, and source types", () => {
     expect(() =>
       normalizeOutcomeSources([{ type: "github", repo: "no-slash", mode: "pr" }], METRIC_IDS),
@@ -57,7 +104,27 @@ describe("normalizeOutcomeSources", () => {
     ).toThrow(/"pr" or "commits"/);
     expect(() =>
       normalizeOutcomeSources([{ type: "gitlab", repo: "owner/name", mode: "pr" }], METRIC_IDS),
-    ).toThrow(/only type "github"/);
+    ).toThrow(/"github" or "langfuse"/);
+    expect(() =>
+      normalizeOutcomeSources(
+        [{ type: "langfuse", baseUrl: "not-a-url", project: "p", mode: "scores" }],
+        METRIC_IDS,
+      ),
+    ).toThrow(/baseUrl/);
+    expect(() =>
+      normalizeOutcomeSources(
+        [
+          {
+            type: "langfuse",
+            baseUrl: "https://cloud.langfuse.com",
+            project: "p",
+            mode: "traces",
+            scoreNames: ["quality"],
+          },
+        ],
+        METRIC_IDS,
+      ),
+    ).toThrow(/scoreNames.*"scores"/i);
   });
 
   it("rejects labels in commits mode and bad since values", () => {

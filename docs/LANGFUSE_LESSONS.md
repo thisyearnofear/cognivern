@@ -51,10 +51,10 @@ merged PRs:
   `since`.
 - New `LangfuseOutcomeConnector.ts` mirroring the GitHub connector's
   contract: poll → verify against the Langfuse API (the API is the
-  attestor) → ingest as `verified_external_state` /
-  `system_observed` (scores are model-judged, not independently
-  attested — confidence must reflect that) through the existing
-  `OutcomeObservationService`, idempotent keys
+  attestor) → ingest as `observed` / `system_observed` (scores are
+  model-judged, not independently attested — never
+  `verified_external_state`, which requires `independently_verified`)
+  through the existing `OutcomeObservationService`, idempotent keys
   (`langfuse:{project}:{traceId}:{scoreId}`), operator-triggered sync
   via `POST /api/mandates/:mandateId/outcomes/sync`.
 - Example observation: "agent completed X traces, cost $Y, median quality
@@ -119,4 +119,6 @@ M1 (Langfuse connector, reuses GitHub-connector plumbing)
 Parallel: rail partnership surfaces (joint demos/posts per rail)
 ```
 
-M1 is the half-day design from 2026-09-11 and the execution start point.
+M1 is implemented (2026-09-11): `LangfuseOutcomeConnector.ts` +
+`type: "langfuse"` source config. Next: M2 (docker-compose self-host),
+then M3 (public policy-eval / ledger-verify latency numbers).

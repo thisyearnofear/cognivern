@@ -18,7 +18,7 @@ const metricSchema = z.object({
   target: z.string().max(160).optional(),
 });
 
-const outcomeSourceSchema = z.object({
+const githubOutcomeSourceSchema = z.object({
   type: z.literal("github"),
   repo: z.string().min(3).max(200),
   mode: z.enum(["pr", "commits"]),
@@ -28,6 +28,21 @@ const outcomeSourceSchema = z.object({
   since: z.string().datetime().optional(),
   metricId: z.string().min(1).max(120).optional(),
 });
+
+const langfuseOutcomeSourceSchema = z.object({
+  type: z.literal("langfuse"),
+  baseUrl: z.string().url().max(300),
+  project: z.string().min(1).max(160),
+  mode: z.enum(["scores", "traces"]),
+  scoreNames: z.array(z.string().min(1).max(120)).max(10).optional(),
+  since: z.string().datetime().optional(),
+  metricId: z.string().min(1).max(120).optional(),
+});
+
+const outcomeSourceSchema = z.discriminatedUnion("type", [
+  githubOutcomeSourceSchema,
+  langfuseOutcomeSourceSchema,
+]);
 
 const bodySchema = z.object({
   name: z.string().min(1).max(160),
