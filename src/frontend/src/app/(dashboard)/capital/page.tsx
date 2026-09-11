@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+// Static redirect rule — no per-request function needed for a qs-preserving
+// /capital -> /spend move.
 
 /**
  * /capital was renamed to /spend so the URL matches the nav and page title

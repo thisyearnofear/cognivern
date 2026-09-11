@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { CapitalOverview } from "@/components/capital/capital-overview";
 
-export const dynamic = "force-dynamic";
+// Client-rendered under <Suspense> (useSearchParams for ?view= deep links);
+// prerender the shell to CDN, hydrate the view client-side.
 
 export default function Page() {
   return (

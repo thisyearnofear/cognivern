@@ -1,7 +1,9 @@
 import { LandingPage } from "@/components/landing/landing-page";
 import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+// NOTE: static by default. This page is fully client-rendered ("use client"
+// tree, no server data fetch), so prerender it to CDN instead of paying for
+// a per-request Vercel Function.
 
 export const metadata: Metadata = {
   title: "Cognivern — AI Agent Governance",

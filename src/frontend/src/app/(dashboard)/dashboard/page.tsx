@@ -1,6 +1,7 @@
 import { Dashboard } from "@/components/dashboard/dashboard";
 
-export const dynamic = "force-dynamic";
+// Client-rendered (SWR data fetching in the "use client" tree); prerender the
+// shell to CDN, no per-request function needed.
 
 export default function DashboardPage() {
   return <Dashboard />;

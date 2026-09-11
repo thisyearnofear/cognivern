@@ -3,10 +3,12 @@ import { Geist, Geist_Mono, Space_Grotesk, JetBrains_Mono } from "next/font/goog
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-export const dynamic = "force-dynamic";
-export const dynamicParams = true;
+// NOTE: no `export const dynamic` here on purpose. A root `force-dynamic`
+// opts every route (29 pages) into a per-page Vercel Function. Pages that
+// need request-time data opt in locally; everything else prerenders to CDN
+// and costs zero function storage.
 
-// Canonical production origin — used for metadataBase so generated og:image /
+// Canonical production origin — used for metadataBase so static og:image /
 // twitter:image URLs are absolute (required for correct link previews everywhere).
 const siteUrl = (
   process.env.NEXT_PUBLIC_SITE_URL ||
@@ -16,6 +18,9 @@ const siteUrl = (
   "https://cognivern.persidian.com"
 );
 
+// Static social cards (public/opengraph-image.png + public/twitter-image.png)
+// — no next/og ImageResponse functions, so link previews cost zero Vercel
+// Function storage.
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "Cognivern — AI Agent Governance",
@@ -28,12 +33,14 @@ export const metadata: Metadata = {
     description:
       "Govern every agent transaction without slowing builders down. Policy checks in under 100ms, cryptographic audit evidence, multi-chain architecture.",
     url: siteUrl,
+    images: [{ url: "/opengraph-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Cognivern — AI Agent Governance",
     description:
       "Every approved agent spend writes a real transaction to a governed smart contract — on-chain, auditable, verifiable.",
+    images: ["/twitter-image.png"],
   },
 };
 
