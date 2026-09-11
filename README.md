@@ -67,6 +67,7 @@ For the public/demo path, most optional integrations can remain disabled. See th
 - [HydraDB](./docs/HYDRADB.md) — optional cross-source retrieval integration
 - [Agentic capital thesis](./docs/AGENTIC_CAPITAL_THESIS.md) — funded mandates, attribution, outcomes, and capital allocation roadmap
 - [Agentic capital implementation spec](./docs/AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md) — mandate, outcome, statement, and evidence invariants
+- [Langfuse lessons](./docs/LANGFUSE_LESSONS.md) — observability adjacency plan: what we adopt from Langfuse's trajectory, the outcome-connector integration, and what we deliberately do not build
 - [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md) — sealed-bid and governance integration details
 - [Telegraph integration](./docs/TELEGRAPH.md) — verified AI intelligence with confidence-based governance
 - [Cleanverse hackathon submission](./docs/HACKATHON_SUBMISSION_CLEANVERSE.md) — CVI/CVA verified agent capital rail

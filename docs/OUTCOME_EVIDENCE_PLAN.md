@@ -1,6 +1,7 @@
 # Outcome Evidence Plan — GitHub Connector, First Verified Statement, Key→Mandate
 
-Status: **M1 implemented (2026-08-24)**; M2+ pending. Builds on the
+Status: **M1 implemented (2026-08-24)**; Langfuse connector queued as next
+source (see `LANGFUSE_LESSONS.md` M1); M2+ pending. Builds on the
 implemented mandate foundation (`AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md`
 Phases 2–5) and executes the outcome side of the strategy in
 `GO_TO_MARKET.md` / `AGENTIC_CAPITAL_THESIS.md`.
