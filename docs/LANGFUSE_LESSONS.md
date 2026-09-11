@@ -127,14 +127,13 @@ outside it.
 ## Sequencing
 
 ```text
-M1 (Langfuse connector) ✓ 2026-09-11
-  ──→ M2 (one-command docker-compose self-host template) ✓ 2026-09-11
-    ──→ M3 (public p50/p99 policy-eval + ledger-verify numbers) ✓ 2026-09-11
-      ──→ M3b (observability dashboard surfaces those numbers) ✓ 2026-09-11
-Parallel (outside product): rail-fluent GTM under an agnostic frame
+M1–M3b (Langfuse adjacency + self-host + SLO UI) ✓ 2026-09-11
+  ──→ Capital UI: outcome sources + Sync (CAPITAL_AGENT_SURFACES.md A)
+    ──→ Dogfood mandate → first published statement
+      ──→ WebMCP on Capital (feature-detected) (CAPITAL_AGENT_SURFACES.md B)
+Parallel: server MCP mandate tools; rail-fluent GTM outside product
 ```
 
-M2: `deploy/self-host/`. M3: `/health/slo` → `operations.policy_eval` /
-`operations.ledger_verify`. M3b: Observability page **Governance
-performance** section (rail-agnostic claims UI). Rail partnership posts
-stay outside the product surface — see §4.
+Next product work is **Capital completeness** (human path), then WebMCP as
+the in-browser agent adapter over the same APIs. Deployment default shifts
+toward the VPS when Vercel storage quotas bind — see `DEPLOYMENT.md`.

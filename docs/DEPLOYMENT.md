@@ -7,12 +7,32 @@ private `OPS.md` that is not committed to the repository.
 ## Architecture
 
 ```text
-Internet → Vercel (Frontend) → Express API (VPS / PM2) → optional Filecoin / LLMs
-                                    ↕
-                          Canton JSON API v2 (DevNet)
+Internet → Frontend (prefer VPS / nginx; Vercel optional) → Express API (VPS / PM2)
+                              ↕
+                    Canton JSON API v2 (DevNet) + optional rails
 ```
 
-The frontend deploys to Vercel automatically on push to `main`. The Express backend runs as a PM2 fork-mode process on a VPS (`api.cognivern.persidian.com`, nginx → port `3087`). The optional local/Hetzner Daml sandbox is used only for staging and regression; final submission targets the shared HackCanton S2 Canton DevNet node directly.
+**Default posture (2026-09-11):** serve the Next.js dashboard from the same
+VPS as the API when practical. Vercel remains usable for previews, but
+production should not depend on it once Functions Storage / Deployment
+Storage quotas are under pressure (observed overages: Functions ~18.75 GB /
+10 GB, Deployment ~11.11 GB / 10 GB). Prefer:
+
+1. **VPS Next standalone** (same pattern as `deploy/self-host/Dockerfile.frontend`
+   — `COGNIVERN_SELFHOST=1`, nginx → Node on an internal port), or
+2. **Self-host compose** (`deploy/self-host/`) for full-stack demos.
+
+Keep browser → API same-origin or nginx-proxied (`/api` → backend). Do **not**
+bake public API origins into the client bundle for local/dev
+(`AGENTS.md`).
+
+Historical note: many docs still mention “frontend on Vercel → API on VPS.”
+Treat that as the prior default; cut over when Vercel storage or cost bites.
+
+The Express backend runs as a PM2 fork-mode process on the VPS
+(`api.cognivern.persidian.com`, nginx → port `3087`). The optional local/Hetzner
+Daml sandbox is used only for staging and regression; final submission targets
+the shared HackCanton S2 Canton DevNet node directly.
 
 ## Deploy
 

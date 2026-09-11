@@ -51,4 +51,10 @@ to `.env` and the backend service when you want them.
 - Do **not** use the demo secrets from `.env.example` on a public host.
 - Legacy `ops/deploy/docker-compose.yml` is Recall-era and is not this
   template — see `ops/deploy/DEPRECATED.md`.
-- License remains MIT; no planned licensing change for self-host.
+License remains MIT; no planned licensing change for self-host.
+
+## Production note
+
+When Vercel Functions / Deployment storage quotas bind, prefer serving this
+same Next standalone + API pattern on the VPS (nginx) instead of Vercel.
+See `docs/DEPLOYMENT.md` and `docs/CAPITAL_AGENT_SURFACES.md`.

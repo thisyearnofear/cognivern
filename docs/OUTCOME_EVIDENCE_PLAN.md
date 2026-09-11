@@ -1,10 +1,12 @@
 # Outcome Evidence Plan — GitHub Connector, First Verified Statement, Key→Mandate
 
 Status: **M1 GitHub implemented (2026-08-24)**; **Langfuse connector
-implemented (2026-09-11)** — see `LANGFUSE_LESSONS.md`; M2+ pending. Builds on
-the implemented mandate foundation (`AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md`
-Phases 2–5) and executes the outcome side of the strategy in
-`GO_TO_MARKET.md` / `AGENTIC_CAPITAL_THESIS.md`.
+implemented (2026-09-11)**; **Capital UI + WebMCP plan adopted** — see
+`CAPITAL_AGENT_SURFACES.md`; M2 dogfood (first verified statement) pending.
+Builds on the implemented mandate foundation
+(`AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md` Phases 2–5) and executes the
+outcome side of the strategy in `GO_TO_MARKET.md` /
+`AGENTIC_CAPITAL_THESIS.md`.
 
 M1 shipped: `src/backend/services/outcomes/` (source config + GitHub
 connector), `funded_mandates.outcome_sources` column, mandate API accepts
@@ -166,11 +168,20 @@ unit — every cohort accumulates mandate-shaped records automatically.
 ## Sequencing
 
 ```text
-M1 (GitHub connector) ──→ M2 (own-build mandate, publish first statement)
-                              └──→ M2b (Prezenti onboarding evidence)
-M3 (key→mandate) — parallel, independent of M1/M2
+Capital UI (outcome sources + Sync) ──→ M2 (own-build / Telegraph+0G mandate,
+                                           publish first statement)
+  └──→ WebMCP on Capital (feature-detected)     } see CAPITAL_AGENT_SURFACES.md
+Parallel: server MCP mandate tools (headless)
+
+Legacy connector milestones (done / pending):
+M1 (GitHub connector) ✓ ──→ M2 (statement) ──→ M2b (Prezenti evidence)
+M3 (key→mandate) — parallel
 M4 (metric) — after M2 produces the first data point
 ```
+
+UI completeness and WebMCP/server MCP layering live in
+`CAPITAL_AGENT_SURFACES.md`. Do not dogfood the first statement via curl if
+Capital Sync UI (Milestone A) can ship in the same window.
 
 ## Explicitly out of scope
 
