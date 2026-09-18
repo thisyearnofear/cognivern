@@ -411,7 +411,34 @@ export function AgentsPage() {
         </DialogContent>
       </Dialog>
 
-      <PasskeyVaultPanel agents={user.map((a) => ({ id: a.id, name: a.name }))} />
+      <DisclosureSection
+        title="Passkey vault"
+        description="Optional — one passkey wraps a root; derive per-agent spend keys when you need device-bound custody."
+        className="overflow-hidden"
+      >
+        <div className="p-4">
+          <PasskeyVaultPanel agents={user.map((a) => ({ id: a.id, name: a.name }))} />
+        </div>
+      </DisclosureSection>
+
+      <DisclosureSection
+        title="Onchain agent identity"
+        description="Optional — ERC-8004 identity and reputation when Monad registries are configured."
+      >
+        <div className="space-y-2 p-4 text-xs text-muted-foreground">
+          <p>
+            Register and score agent identities via{" "}
+            <code className="text-foreground">/api/erc8004/*</code>. The control
+            plane stays Cognivern; the registry is an evidence rail, not a
+            separate product surface.
+          </p>
+          <p className="text-[10px]">
+            Enable with <code className="font-mono">ERC8004_ENABLED=true</code>{" "}
+            and registry addresses in env. Status:{" "}
+            <code className="font-mono">GET /api/erc8004/status</code>.
+          </p>
+        </div>
+      </DisclosureSection>
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden">

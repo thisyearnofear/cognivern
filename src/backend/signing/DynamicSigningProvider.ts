@@ -36,10 +36,24 @@ export class DynamicSigningProvider implements SigningProvider {
 
   async sign(params: SigningParams): Promise<SigningResult> {
     const walletMetadata = await this.resolveWalletMetadata(params.walletId);
-    return this.signMessage({
-      message: params.message,
-      walletMetadata,
-    });
+    try {
+      return await this.signMessage({
+        message: params.message,
+        walletMetadata,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (
+        /walletMetadata is missing|account address is missing|not configured/i.test(
+          message,
+        )
+      ) {
+        throw new Error(
+          `Dynamic signing blocked: ${message}. Attach dynamicWalletMetadata (or provision via pnpm dynamic:provision) before signing.`,
+        );
+      }
+      throw error;
+    }
   }
 }
 

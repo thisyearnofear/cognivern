@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Activity,
   ExternalLink,
   Loader2,
   RefreshCw,
@@ -84,21 +83,20 @@ export function EnvioEvidencePanel() {
     }
   };
 
-  // Nothing to show until the indexer is configured — keep the page quiet.
-  if (status && !status.enabled) return null;
+  // Quiet empty state when the indexer is off — disclosure still explains the rail.
+  if (status && !status.enabled) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        Indexer not enabled. Set <code className="font-mono">ENVIO_ENABLED=true</code>{" "}
+        and <code className="font-mono">ENVIO_GRAPHQL_URL</code> to materialize
+        settlement evidence here.
+      </p>
+    );
+  }
 
   return (
-    <section className="relative rounded-xl border bg-card p-5 space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Activity className="h-4 w-4 text-teal-700 dark:text-teal-400" />
-          <h2
-            className="text-sm font-semibold"
-            style={{ fontFamily: "var(--font-space-grotesk)" }}
-          >
-            Indexed evidence
-          </h2>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-end gap-3">
         <Button
           size="sm"
           variant="outline"
@@ -134,6 +132,10 @@ export function EnvioEvidencePanel() {
         </div>
       )}
 
+      {!status && (
+        <p className="text-xs text-muted-foreground">Loading indexer status…</p>
+      )}
+
       {events.length > 0 && (
         <div className="divide-y rounded-lg border">
           {events.map((ev) => (
@@ -164,6 +166,6 @@ export function EnvioEvidencePanel() {
           ))}
         </div>
       )}
-    </section>
+    </div>
   );
 }

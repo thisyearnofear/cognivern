@@ -46,6 +46,8 @@ type ReconciliationResult = Awaited<ReturnType<typeof apiClient.getRunReconcilia
 interface UncertainExecution {
   transferExecutionId?: string;
   transferIdempotencyKey?: string;
+  transferTxHash?: string;
+  executionProvider?: string;
   expectedSender?: string;
   expectedRecipient?: string;
   expectedValueWei?: string;
@@ -571,7 +573,7 @@ export function RunDetail({ runId }: { runId: string }) {
         </details>
       )}
 
-      {/* Hosted-execution uncertainty / reconciliation */}
+      {/* Spend uncertainty / reconciliation (hosted execution, managed MPC, etc.) */}
       {uncertainExecution && (
         <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-5 dark:border-amber-800 dark:bg-amber-950/20">
           <div className="flex items-start gap-3">
@@ -580,20 +582,30 @@ export function RunDetail({ runId }: { runId: string }) {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="font-semibold text-amber-900 dark:text-amber-100">
-                    Hosted execution needs reconciliation
+                    {uncertainExecution.executionProvider === 'dynamic'
+                      ? 'Managed MPC spend needs reconciliation'
+                      : uncertainExecution.executionProvider === 'keeperhub'
+                        ? 'Hosted execution needs reconciliation'
+                        : 'Spend needs reconciliation'}
                   </h2>
                   <Badge variant="outline" className="border-amber-400 text-amber-700 dark:border-amber-700 dark:text-amber-300">
                     Retry locked
                   </Badge>
                 </div>
                 <p className="mt-1 text-sm text-amber-800/80 dark:text-amber-200/80">
-                  Cognivern will not broadcast again until the original execution is verified. Check the provider status first, then resolve only when the receipt matches the original intent.
+                  Cognivern will not broadcast again until the original execution is verified.
+                  {uncertainExecution.transferTxHash
+                    ? ' Check the on-chain receipt against the original intent, then resolve when it matches.'
+                    : ' Check the provider status first, then resolve only when the receipt matches the original intent.'}
                 </p>
               </div>
 
               <div className="grid gap-2 text-xs text-amber-950/80 dark:text-amber-100/80 sm:grid-cols-2">
                 {uncertainExecution.transferExecutionId && (
                   <div><span className="font-medium">Execution ID:</span> <code className="break-all">{uncertainExecution.transferExecutionId}</code></div>
+                )}
+                {uncertainExecution.transferTxHash && (
+                  <div><span className="font-medium">Tx hash:</span> <code className="break-all">{uncertainExecution.transferTxHash}</code></div>
                 )}
                 {uncertainExecution.transferIdempotencyKey && (
                   <div><span className="font-medium">Idempotency key:</span> <code className="break-all">{uncertainExecution.transferIdempotencyKey}</code></div>
@@ -611,10 +623,18 @@ export function RunDetail({ runId }: { runId: string }) {
                   size="sm"
                   variant="outline"
                   onClick={() => handleReconciliation(false)}
-                  disabled={reconciling !== null || !uncertainExecution.transferExecutionId}
+                  disabled={
+                    reconciling !== null ||
+                    (!uncertainExecution.transferExecutionId &&
+                      !uncertainExecution.transferTxHash)
+                  }
                 >
                   {reconciling === 'check' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SearchCheck className="h-3.5 w-3.5" />}
-                  {reconciling === 'check' ? 'Checking…' : 'Check hosted execution status'}
+                  {reconciling === 'check'
+                    ? 'Checking…'
+                    : uncertainExecution.transferExecutionId
+                      ? 'Check hosted execution status'
+                      : 'Check on-chain receipt'}
                 </Button>
                 <Button
                   size="sm"
@@ -626,9 +646,14 @@ export function RunDetail({ runId }: { runId: string }) {
                 </Button>
               </div>
 
-              {!uncertainExecution.transferExecutionId && (
+              {!uncertainExecution.transferExecutionId && !uncertainExecution.transferTxHash && (
                 <p className="text-xs text-amber-800/80 dark:text-amber-200/80">
-                  The hosted execution adapter returned no execution ID. Preserve the idempotency key and contact the provider or use an approved lookup; Cognivern intentionally cannot retry this transfer.
+                  No execution ID or transaction hash was returned. Preserve the idempotency key and contact the provider or use an approved lookup; Cognivern intentionally cannot retry this transfer.
+                </p>
+              )}
+              {!uncertainExecution.transferExecutionId && uncertainExecution.transferTxHash && (
+                <p className="text-xs text-amber-800/80 dark:text-amber-200/80">
+                  This spend path returns a transaction hash (e.g. managed MPC). Reconciliation verifies the chain receipt — do not retry until it matches.
                 </p>
               )}
 
@@ -641,7 +666,7 @@ export function RunDetail({ runId }: { runId: string }) {
                         {reconciliation.resolved ? 'Execution resolved and run unlocked' : reconciliation.matched ? 'Receipt matches the requested transfer' : 'Still recovery-required'}
                       </p>
                       <p className="mt-1 text-xs opacity-80">
-                        {reconciliation.message || (reconciliation.matched ? `Hosted execution status: ${reconciliationExecution?.status || 'verified'}${reconciliationExecution?.sponsored ? ' · sponsored' : ''}` : 'The provider response is pending, mismatched, or unavailable. Do not retry.')}
+                        {reconciliation.message || (reconciliation.matched ? `Status: ${reconciliationExecution?.status || 'verified'}${reconciliationExecution?.sponsored ? ' · sponsored' : ''}` : 'The provider response is pending, mismatched, or unavailable. Do not retry.')}
                       </p>
                       {reconciliationExecution?.transactionHash && (
                         <code className="mt-2 block break-all text-[11px]">{reconciliationExecution.transactionHash}</code>

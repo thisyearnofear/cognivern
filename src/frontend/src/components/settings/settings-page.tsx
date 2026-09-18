@@ -308,11 +308,22 @@ function ManagedMpcSetupHints() {
           Provision a server wallet (<code className="font-mono">pnpm dynamic:provision</code>
           ) or paste an existing account address.
         </li>
-        <li>Set chain ID for the rail you will fund.</li>
+        <li>
+          Attach <code className="font-mono">dynamicWalletMetadata</code> on the wallet
+          (or keep the provision file at{" "}
+          <code className="font-mono">DYNAMIC_WALLET_METADATA_PATH</code>) — spends fail
+          closed without it.
+        </li>
+        <li>
+          Set chain ID to a <strong>configured</strong> Cognivern rail (unknown chains
+          are rejected, not silently remapped).
+        </li>
         <li>Fund the address, then run a dust spend to confirm the path.</li>
       </ol>
       <p className="text-[10px] text-muted-foreground">
-        Details: <code className="font-mono">docs/DYNAMIC.md</code>
+        If a spend is uncertain after broadcast, reconcile via the run&apos;s on-chain
+        receipt — do not retry. Details:{" "}
+        <code className="font-mono">docs/DYNAMIC.md</code>
       </p>
     </div>
   );

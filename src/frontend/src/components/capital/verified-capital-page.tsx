@@ -29,6 +29,7 @@ import {
   type FundedMandate,
 } from "@/lib/api-client";
 import { trackUxEvent } from "@/lib/ux-events";
+import { DisclosureSection } from "@/components/ui/disclosure-section";
 import { EnvioEvidencePanel } from "@/components/capital/envio-evidence-panel";
 
 interface CleanverseStatus {
@@ -837,7 +838,14 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
         )}
       </section>
 
-      <EnvioEvidencePanel />
+      <DisclosureSection
+        title="Indexed evidence"
+        description="Optional — HyperIndex (Envio) settlements and identity events when the indexer is configured."
+      >
+        <div className="p-4">
+          <EnvioEvidencePanel />
+        </div>
+      </DisclosureSection>
 
       <p className="relative text-xs text-muted-foreground">
         Integration details:{" "}

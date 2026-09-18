@@ -86,6 +86,16 @@ DYNAMIC_DEMO_WALLET_ID=... DYNAMIC_DEMO_API_KEY=... DYNAMIC_DEMO_WORKSPACE_ID=..
 
 Switch back to `local` / KeeperHub / Cleanverse anytime via the same PATCH.
 
+## Failure modes
+
+| Condition | Behaviour |
+| --- | --- |
+| Missing `dynamicWalletMetadata` / provision file | **Failed** (`[dynamic:missing_metadata]`) — retryable after config |
+| Unknown / unconfigured wallet `chainId` | **Failed** (`[dynamic:wrong_chain]`) — no silent fallback to default rail |
+| Dynamic env not set | **Failed** (`[dynamic:not_configured]`) |
+| RPC / network timeout after possible broadcast | **Uncertain** (`[dynamic:network]`) — reconcile via run tx hash; do not retry |
+| Broadcast succeeded but receipt not verified | **Uncertain** — run detail → Check on-chain receipt → Resolve |
+
 ## Follow-ups (not in v1)
 
 - Telegraph x402 payer using a Dynamic `WalletClient` / EIP-3009 shim

@@ -234,13 +234,90 @@ export async function provisionDynamicServerWallet(opts?: {
   };
 }
 
-function resolveChainConfig(chainId: number): { chainId: number; rpcUrl: string; railId: string } {
+function resolveChainConfig(chainId: number): {
+  chainId: number;
+  rpcUrl: string;
+  railId: string;
+} {
+  if (!Number.isFinite(chainId) || chainId <= 0) {
+    throw new Error(
+      "Dynamic spend requires a positive wallet chainId. Set metadata.chainId to a configured execution rail.",
+    );
+  }
   const rail = executionRails.resolve(chainId);
+  // resolve() silently falls back to the default rail — refuse that for Dynamic
+  // so we never broadcast on the wrong chain.
+  if (rail.chainId !== chainId) {
+    throw new Error(
+      `No configured execution rail for chain ${chainId}. Pick a wallet chainId that matches a Cognivern rail (got fallback rail ${rail.railId} / chain ${rail.chainId}).`,
+    );
+  }
+  if (!rail.rpcUrl?.trim()) {
+    throw new Error(
+      `Execution rail ${rail.railId} (chain ${chainId}) has no RPC URL configured.`,
+    );
+  }
   return {
-    chainId: rail.chainId || chainId,
+    chainId: rail.chainId,
     rpcUrl: rail.rpcUrl,
     railId: rail.railId || executionRailIdForChainId(chainId),
   };
+}
+
+/**
+ * Fail loud before the Dynamic SDK when custody metadata or chain is missing.
+ * Used by execution + signing paths so operators get Cognivern errors, not MPC noise.
+ */
+export async function assertDynamicSpendReady(opts: {
+  walletMetadata?: DynamicWalletMetadata | null;
+  accountAddress?: string;
+  chainId?: number;
+  requireChain?: boolean;
+}): Promise<{
+  walletMetadata: DynamicWalletMetadata;
+  accountAddress: string;
+  chainId?: number;
+  railId?: string;
+  rpcUrl?: string;
+}> {
+  if (!isDynamicConfigured()) {
+    throw new Error(
+      "Dynamic is not configured. Set DYNAMIC_ENABLED=true, DYNAMIC_ENVIRONMENT_ID, and DYNAMIC_API_TOKEN.",
+    );
+  }
+
+  const walletMetadata = await loadDynamicWalletMetadata(opts.walletMetadata);
+  if (!walletMetadata) {
+    throw new Error(
+      "Dynamic walletMetadata is missing. Run `pnpm dynamic:provision`, attach metadata.dynamicWalletMetadata on the wallet, or set DYNAMIC_WALLET_METADATA_PATH.",
+    );
+  }
+
+  const accountAddress =
+    opts.accountAddress ||
+    (typeof walletMetadata.accountAddress === "string"
+      ? walletMetadata.accountAddress
+      : "") ||
+    defaultDynamicAccountAddress() ||
+    "";
+  if (!accountAddress) {
+    throw new Error(
+      "Dynamic account address is missing. Set metadata.dynamicAccountAddress or provision a server wallet.",
+    );
+  }
+
+  if (opts.requireChain !== false && opts.chainId !== undefined) {
+    const chain = resolveChainConfig(opts.chainId);
+    return {
+      walletMetadata,
+      accountAddress,
+      chainId: chain.chainId,
+      railId: chain.railId,
+      rpcUrl: chain.rpcUrl,
+    };
+  }
+
+  return { walletMetadata, accountAddress };
 }
 
 function buildViemChain(chainId: number, rpcUrl: string): Chain {
@@ -266,38 +343,34 @@ export async function getDynamicWalletClient(opts: {
   chainId: number;
   rpcUrl: string;
 }> {
+  const ready = await assertDynamicSpendReady({
+    walletMetadata: opts.walletMetadata,
+    accountAddress: opts.accountAddress,
+    chainId: opts.chainId,
+    requireChain: true,
+  });
   const client = await getAuthenticatedDynamicClient();
-  const walletMetadata = await loadDynamicWalletMetadata(opts.walletMetadata);
-  if (!walletMetadata) {
-    throw new Error(
-      "No Dynamic walletMetadata found. Run the provision script or set DYNAMIC_WALLET_METADATA_PATH / wallet metadata.dynamicWalletMetadata.",
-    );
-  }
-
-  const accountAddress =
-    opts.accountAddress ||
-    (typeof walletMetadata.accountAddress === "string"
-      ? walletMetadata.accountAddress
-      : "") ||
-    defaultDynamicAccountAddress() ||
-    "";
-  if (!accountAddress) {
-    throw new Error("Dynamic account address is missing from wallet metadata");
-  }
-
-  const { chainId, rpcUrl, railId } = resolveChainConfig(opts.chainId);
+  const chainId = ready.chainId!;
+  const rpcUrl = ready.rpcUrl!;
+  const railId = ready.railId!;
   const password = opts.password ?? defaultDynamicWalletPassword();
   const chain = buildViemChain(chainId, rpcUrl);
 
   const walletClient = await client.getWalletClient({
-    walletMetadata,
+    walletMetadata: ready.walletMetadata,
     password,
     chain,
     chainId,
     rpcUrl,
   });
 
-  return { walletClient, accountAddress, railId, chainId, rpcUrl };
+  return {
+    walletClient,
+    accountAddress: ready.accountAddress,
+    railId,
+    chainId,
+    rpcUrl,
+  };
 }
 
 export async function signDynamicMessage(opts: {
@@ -305,28 +378,16 @@ export async function signDynamicMessage(opts: {
   walletMetadata?: DynamicWalletMetadata | null;
   password?: string;
 }): Promise<{ signature: string; signer: string }> {
+  const ready = await assertDynamicSpendReady({
+    walletMetadata: opts.walletMetadata,
+    requireChain: false,
+  });
   const client = await getAuthenticatedDynamicClient();
-  const walletMetadata = await loadDynamicWalletMetadata(opts.walletMetadata);
-  if (!walletMetadata) {
-    throw new Error(
-      "No Dynamic walletMetadata found for signing. Provision a server wallet first.",
-    );
-  }
-  const signer =
-    (typeof walletMetadata.accountAddress === "string"
-      ? walletMetadata.accountAddress
-      : "") ||
-    defaultDynamicAccountAddress() ||
-    "";
-  if (!signer) {
-    throw new Error("Dynamic account address missing for signMessage");
-  }
-
   const signature = await client.signMessage({
     message: opts.message,
-    walletMetadata,
+    walletMetadata: ready.walletMetadata,
     password: opts.password ?? defaultDynamicWalletPassword(),
   });
 
-  return { signature, signer };
+  return { signature, signer: ready.accountAddress };
 }

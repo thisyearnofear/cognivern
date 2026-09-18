@@ -203,20 +203,8 @@ export function PasskeyVaultPanel({
   const unlocked = Boolean(status?.enrolled && !status?.locked);
 
   return (
-    <section className="rounded-xl border bg-card p-5 space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
-            <Fingerprint className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="font-semibold">Passkey vault</h2>
-            <p className="text-xs text-muted-foreground">
-              One passkey protects a root of trust; every agent spend key is
-              derived from it under a mandate context.
-            </p>
-          </div>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-start justify-end gap-3">
         {status?.enrolled && (
           <Badge variant={status.locked ? 'outline' : 'secondary'}>
             {status.locked ? 'locked' : 'unlocked'}
@@ -383,6 +371,6 @@ export function PasskeyVaultPanel({
           </p>
         </div>
       )}
-    </section>
+    </div>
   );
 }

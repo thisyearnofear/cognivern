@@ -30,6 +30,18 @@ describe("DynamicSigningProvider", () => {
     });
   });
 
+  it("wraps missing-metadata failures with operator guidance", async () => {
+    const provider = new DynamicSigningProvider(async () => {
+      throw new Error(
+        "Dynamic walletMetadata is missing. Run `pnpm dynamic:provision`.",
+      );
+    }, async () => null);
+
+    await expect(
+      provider.sign({ walletId: "w1", message: "hello" }),
+    ).rejects.toThrow(/Dynamic signing blocked:.*walletMetadata is missing/);
+  });
+
   it("propagates client failures", async () => {
     const provider = new DynamicSigningProvider(async () => {
       throw new Error("MPC ceremony failed");

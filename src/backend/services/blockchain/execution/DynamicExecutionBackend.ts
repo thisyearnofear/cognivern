@@ -18,6 +18,48 @@ type WalletClientLike = {
   }) => Promise<`0x${string}`>;
 };
 
+/** Classify Dynamic failures so operators know whether to fix config or reconcile. */
+export function classifyDynamicTransferError(message: string): {
+  status: "failed" | "uncertain";
+  uncertain: boolean;
+  code:
+    | "missing_metadata"
+    | "wrong_chain"
+    | "not_configured"
+    | "network"
+    | "broadcast";
+} {
+  if (
+    /not configured|DYNAMIC_ENABLED|DYNAMIC_ENVIRONMENT_ID|DYNAMIC_API_TOKEN/i.test(
+      message,
+    )
+  ) {
+    return { status: "failed", uncertain: false, code: "not_configured" };
+  }
+  if (
+    /walletMetadata is missing|account address is missing|DYNAMIC_WALLET_METADATA/i.test(
+      message,
+    )
+  ) {
+    return { status: "failed", uncertain: false, code: "missing_metadata" };
+  }
+  if (
+    /No configured execution rail|requires a positive wallet chainId|has no RPC URL/i.test(
+      message,
+    )
+  ) {
+    return { status: "failed", uncertain: false, code: "wrong_chain" };
+  }
+  if (
+    /timeout|timed out|network|ECONNRESET|ETIMEDOUT|ECONNREFUSED|fetch failed|socket/i.test(
+      message,
+    )
+  ) {
+    return { status: "uncertain", uncertain: true, code: "network" };
+  }
+  return { status: "failed", uncertain: false, code: "broadcast" };
+}
+
 /**
  * Dynamic server-wallet execution adapter.
  *
@@ -42,8 +84,18 @@ export class DynamicExecutionBackend implements ExecutionBackend {
   async transfer(
     req: ExecutionTransferRequest,
   ): Promise<ExecutionTransferResult> {
-    const chainId = req.chainId || this.defaultChainId;
+    const requestedChainId =
+      typeof req.chainId === "number" && Number.isFinite(req.chainId)
+        ? req.chainId
+        : this.defaultChainId;
+    const chainId = requestedChainId;
     try {
+      if (!Number.isFinite(chainId) || chainId <= 0) {
+        throw new Error(
+          "Dynamic spend requires a positive wallet chainId. Set metadata.chainId to a configured execution rail.",
+        );
+      }
+
       const meta = (req.metadata ?? {}) as Record<string, unknown>;
       const walletMetadata =
         (meta.dynamicWalletMetadata as DynamicWalletMetadata | undefined) ||
@@ -53,12 +105,16 @@ export class DynamicExecutionBackend implements ExecutionBackend {
           ? meta.dynamicAccountAddress
           : undefined) || req.fromAddress;
 
-      const { walletClient, accountAddress: signer, railId, chainId: resolvedChainId } =
-        await this.getClient({
-          walletMetadata,
-          accountAddress,
-          chainId,
-        });
+      const {
+        walletClient,
+        accountAddress: signer,
+        railId,
+        chainId: resolvedChainId,
+      } = await this.getClient({
+        walletMetadata,
+        accountAddress,
+        chainId,
+      });
 
       const hash = await (walletClient as WalletClientLike).sendTransaction({
         to: req.to as `0x${string}`,
@@ -77,15 +133,14 @@ export class DynamicExecutionBackend implements ExecutionBackend {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      const uncertain =
-        /timeout|timed out|network|ECONNRESET|ETIMEDOUT/i.test(message);
+      const classified = classifyDynamicTransferError(message);
       return {
-        status: uncertain ? "uncertain" : "failed",
+        status: classified.status,
         backend: this.name,
         chainId,
         railId: undefined,
-        error: message,
-        uncertain,
+        error: `[dynamic:${classified.code}] ${message}`,
+        uncertain: classified.uncertain,
         idempotencyKey: req.idempotencyKey,
       };
     }

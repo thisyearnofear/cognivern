@@ -938,6 +938,7 @@ export class OwsWalletService {
             receiptVerification.reason ||
             'Transfer was submitted but could not be independently verified',
           recoveryRequired: true,
+          executionProvider,
           transferExecutionId,
           transferIdempotencyKey,
           transferTxHash,
