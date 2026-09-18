@@ -1,5 +1,8 @@
 # Pitch Deck Source — Cognivern on Canton
 
+> **Historical — HackCanton S2 (concluded).** Kept for reference; not a live
+> status doc.
+
 **Generated file:** `docs/pitch-deck.pptx` (local, not in git — export to PDF for submission)
 **Generator script:** `tooling/scripts/create-pitch-deck.py`  
 **Regenerate:** `pnpm pitch-deck` (or `/usr/local/bin/python3.13 tooling/scripts/create-pitch-deck.py`)

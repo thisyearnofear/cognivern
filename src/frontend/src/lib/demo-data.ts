@@ -559,7 +559,7 @@ export const DEMO_RUNS = [
     duration: "12s",
     artifacts: 2,
     timestamp: hoursAgo(2),
-    // Real mainnet probe proofs (docs/XLAYER_PROOF_V2.md, run
+    // Real mainnet probe proofs (docs/GOVERNANCE_PROOFS.md, run
     // bcebcdef-43f5-44f9-b03c-ff1a635f7f2c) so demo-mode explorer links
     // resolve to genuine, verifiable transactions.
     evidence: {

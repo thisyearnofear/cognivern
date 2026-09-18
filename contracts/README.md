@@ -79,7 +79,7 @@ The poster key is the trust root for what gets anchored: the contract proves
 ordering, first-write uniqueness, and commitment integrity, but cannot prove
 that the off-chain evidence or policy set was truthful or correctly evaluated.
 The canonical preimages and read-only verification workflow are documented in
-[`docs/ZEROG_PROOF_V2.md`](../docs/ZEROG_PROOF_V2.md).
+[`docs/GOVERNANCE_PROOFS.md`](../docs/GOVERNANCE_PROOFS.md).
 
 Compile and run the focused test suite locally:
 
@@ -109,4 +109,4 @@ integrations. The V2 adapter is not enabled by the existing Galileo V1 service.
 - Fhenix service integration: `src/backend/services/blockchain/FhenixPolicyService.ts` (from the repository root)
 - Canton sealed-bid backend: `src/backend/services/blockchain/sealed-bid/`
 - Architecture reference: [Developer Guide](../docs/DEV.md)
-- Flare Summer Signal: [docs/FLARE_SUMMER_SIGNAL.md](../docs/FLARE_SUMMER_SIGNAL.md)
+- Flare Confidential Compute: [docs/FLARE.md](../docs/FLARE.md)

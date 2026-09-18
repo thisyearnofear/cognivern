@@ -1,5 +1,7 @@
 # Verification Loop
 
+> **Historical — build-window iteration log.** Archived; not a live status doc.
+
 Agent-written log of the write → verify → fix loop. One line per iteration.
 
 ## Iterations

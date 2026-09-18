@@ -1,5 +1,9 @@
 # Flare Summer Signal — Cognivern Submission Working Doc
 
+> **Historical — hackathon concluded Aug 14 2026.** The Flare integration it
+> produced is a live rail; see [`../FLARE.md`](../FLARE.md) for the current
+> reference. This doc is the submission record only.
+
 **Hackathon:** Flare Summer Signal (DoraHacks) · open online · **Aug 14 19:59 UTC** deadline
 **Target bounty:** Bounty 2 — **Confidential Compute Apps** (primary). Bounty 1 (Interoperable Asset Products) is a stretch/secondary.
 **Team:** thisyearnofear
@@ -48,7 +52,7 @@
 **Differentiator vs research-source conveyors:** cards are **FCC path stages** (not social APIs). One query threads every tile. Payoff is the **on-chain decision brief**, not a markdown blog.
 
 **Open for live B-roll / final click:** `https://cognivern.persidian.com/governance/check?confidential=1`  
-**Contact sheet (lock look before motion):** `docs/flare-demo/contact-sheet/index.html`
+**Contact sheet (lock look before motion):** `docs/history/flare-demo/contact-sheet/index.html`
 
 ### The idea
 Six cards fly through frame, each mid-work on the same evaluation — *Evaluate spend for agent 0xaa · policy 0x01* — and resolve into the `flare.confidential` brief (contract, extension, outcome, decision id).
@@ -90,7 +94,7 @@ Extension: 0x10238 · flare-tee.persidian.com
 3. **Never finish** — grow 1→1.05 into exit; crouch `scaleY` 0.93→1.05 then fire; outgoing `power4.in` / incoming `power4.out` on the same axis; harvest counters still counting when crouch starts. Cut the brief handoff on the **fastest** frame of the slide.
 
 ### HyperFrames + screenshots workflow
-1. Open `docs/flare-demo/contact-sheet/index.html` → screenshot each `.card` (or full grid).  
+1. Open `docs/history/flare-demo/contact-sheet/index.html` → screenshot each `.card` (or full grid).
 2. Iterate stills until anatomy is locked (reject conceptual poster cards).  
 3. Compose conveyor in HyperFrames from those stills; drive any shader/dot field off **timeline time**, not `requestAnimationFrame`.  
 4. Optional last 5s: screen-record the live Try panel for proof-of-life.

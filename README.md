@@ -79,22 +79,25 @@ For the public/demo path, most optional integrations can remain disabled. See th
 - [Adaptive UX](./docs/ADAPTIVE_UX.md) — how the UI adapts to workspace state (bounded, explainable, auditable)
 - [Canton](./docs/CANTON.md) — Canton/Daml model and DevNet runbook
 - [HydraDB](./docs/HYDRADB.md) — optional cross-source retrieval integration
-- [Agentic capital thesis](./docs/AGENTIC_CAPITAL_THESIS.md) — funded mandates, attribution, outcomes, and capital allocation roadmap
+- [Product strategy](./docs/PRODUCT_STRATEGY.md) — funded mandates, attribution, outcomes, GTM, and capital allocation roadmap
 - [Agentic capital implementation spec](./docs/AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md) — mandate, outcome, statement, and evidence invariants
-- [Langfuse lessons](./docs/LANGFUSE_LESSONS.md) — observability adjacency plan: what we adopt from Langfuse's trajectory, the outcome-connector integration, and what we deliberately do not build
-- [Capital + agent surfaces](./docs/CAPITAL_AGENT_SURFACES.md) — full Capital UI loop, WebMCP, and server MCP over one domain layer
+- [Outcome evidence plan](./docs/OUTCOME_EVIDENCE_PLAN.md) — outcome connectors, Capital UI, WebMCP, and server MCP over one domain layer
+- [Langfuse lessons](./docs/LANGFUSE_LESSONS.md) — observability adjacency plan: what we adopt from Langfuse's trajectory and what we deliberately do not build
 - [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md) — sealed-bid and governance integration details
 - [Telegraph integration](./docs/TELEGRAPH.md) — verified AI intelligence with confidence-based governance
+- [Cleanverse rail](./docs/CLEANVERSE.md) — CVI/CVA verified agent capital rail on Monad
+- [Flare rail](./docs/FLARE.md) — confidential spend-policy evaluation in a Flare Compute Extension
+- [KeeperHub rail](./docs/KEEPERHUB.md) — governed execution via KeeperHub keepers
+- [Governance proofs](./docs/GOVERNANCE_PROOFS.md) — append-only proof anchors on 0G and X Layer
 - [Dynamic server wallets](./docs/DYNAMIC.md) — MPC custody for agent signing / execution
-- [Cleanverse hackathon submission](./docs/HACKATHON_SUBMISSION_CLEANVERSE.md) — CVI/CVA verified agent capital rail
-- [Telegraph Track 3 proposal](./docs/TELEGRAPH_TRACK3_PROPOSAL.md) — verified-intelligence → governed on-chain action application concept
+- [Docs index](./docs/README.md) — full documentation index and program status
 
 ## Product surfaces
 
 - **Funded mandates (strategic direction):** define the objective, budget, permissions, evidence requirements, and release conditions for autonomous work.
 - **Governed spend (available today):** policy evaluation, approval workflows, wallet execution, and audit evidence.
 - **Telegraph verified intelligence (available today):** confidence-gated AI miner consumption with x402 micropayments, full audit trail, and governed spend tracking — see [Telegraph integration](./docs/TELEGRAPH.md).
-- **Verified agent capital rail (optional):** Cleanverse CVI (A-Pass) identity gate + CVA (aUSD-D) settlement on Monad — see [/verified-capital](https://cognivern.persidian.com/verified-capital) and [hackathon submission](./docs/HACKATHON_SUBMISSION_CLEANVERSE.md).
+- **Verified agent capital rail (optional):** Cleanverse CVI (A-Pass) identity gate + CVA (aUSD-D) settlement on Monad — see [/verified-capital](https://cognivern.persidian.com/verified-capital) and [rail doc](./docs/CLEANVERSE.md).
 - **Attributable execution (available today in substrate form):** agent, run, action, wallet, vendor, and transaction evidence can be linked through the CRE/run ledger when those fields are supplied by the workflow. A universal mandate/purpose/outcome graph is a roadmap layer.
 - **Confidential policy evaluation:** Fhenix-backed encrypted budgets and spend counters.
 - **Confidential vendor selection:** Canton/Daml sealed-bid rounds with role-based visibility and atomic reveal.

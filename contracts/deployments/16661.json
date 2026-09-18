@@ -16,7 +16,7 @@
         "admin": "0xEa480C8CD699B84C7775fe1b1878eBc3bCb1cb77",
         "poster": "0xE5D1ef8F7bC8b2B045390406907Afb81dd4b1a43"
       },
-      "notes": "Append-only governance proof anchor. See docs/ZEROG_PROOF_V2.md."
+      "notes": "Append-only governance proof anchor. See docs/GOVERNANCE_PROOFS.md."
     }
   ]
 }

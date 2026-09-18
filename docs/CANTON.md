@@ -1,6 +1,6 @@
 # Canton Backend
 
-> **Status (Aug 9 2026):** HackCanton S2 has **concluded**. The Canton **DevNet backend stays live** and the sealed-bid path is unchanged. The team plans to **re-apply for the next HackCanton round in September**. Canton is not the current active hackathon target (Flare Summer Signal is — see `docs/FLARE_SUMMER_SIGNAL.md`); keep Canton working but do not gate new work on it.
+> **Status:** HackCanton S2 has **concluded**; the Canton sealed-bid path is a permanent product rail, not tied to a live event. Keep it working — do not gate new work on it. For current hackathon/program status see [`README.md`](./README.md#program-status).
 
 > **Update (Aug 25 2026):** the shared HackCanton S2 DevNet node has been **unreachable** since Aug 21 (TCP `connection reset` from Hetzner and local probes; `hydrate from ledger failed` on every boot). The **Hetzner sandbox has been restored** as the live fallback ledger and the production env has been **cut over** — see [Production state](#production-state--devnet-unreachable-sandbox-restored-aug-25-2026). The live API returns the three seeded demo rounds with `backend: "canton"`.
 
@@ -182,11 +182,9 @@ CANTON_DEMO_PARTY_IDS=auctioner-cognivern=auctioner-cognivern::122003aa7c491e00a
 
 `CANTON_DEMO_PARTY_IDS` is required on shared DevNet nodes because the authenticated user typically lacks rights to list or allocate parties.
 
-## HackCanton S2 — value settlement, bounty lanes & demo rails
+## Value settlement — live on DevNet
 
-### Value settlement — live on DevNet
-
-`CloseAndReveal` now settles **value**, not just an informational record. A
+`CloseAndReveal` settles **value**, not just an informational record. A
 `PaymentDeposit` template (bearer instrument pattern — issuer is sole signatory,
 `owner` tracks the current holder) is escrowed before the auction opens and
 atomically transferred to the winner inside the same `CloseAndReveal`
@@ -203,52 +201,20 @@ backend produces `valueSettledAtomically: true` with an on-ledger
 backward-compatible — it sends `settlementAsset = null` when no deposit is
 escrowed, so the old DAR accepts non-settlement round creation without error.
 
-The deposit is a synthetic bearer instrument: today it carries a `Decimal`
-amount and `assetTag` ("USDC"). The atomicity pattern is designed to be
-asset-agnostic, but integrating a real CIP-0056 token (**CBTC** by BitSafe,
-**cETH** by OnRails) is not a one-line swap — see the bounty-lane scoping
-below for the actual integration path.
+The deposit is a synthetic bearer instrument (`Decimal` amount + `assetTag`).
+The atomicity pattern is asset-agnostic, but a real CIP-0056 token is **not**
+a one-line swap: the token DAR must be installed on the participant, added as
+a `daml.yaml` dependency (new package ID → re-upload), and `CloseAndReveal`
+must exercise `TransferFactory_Transfer` on the registry's factory contract.
+**Atomicity risk to verify first:** CIP-0056 transfers can be two-step (the
+receiver must `Accept` a `TransferInstruction`), which would break the
+single-transaction atomicity claim. Candidate tokens: CBTC (BitSafe, DevNet
+faucet available), cETH (OnRails, manual faucet). Deferred — the synthetic
+deposit proves the pattern end-to-end.
 
-Verified by `daml/scripts/daml/SettlementProof.daml` — a Daml Script that
-exercises the full flow (escrow → 3 bids → close → reveal → transfer) and
-asserts: winner is Bob (lowest bid), deposit owner changed from auctioneer
-to Bob, old deposit archived, losing bids archived, `AuctionResult.settledAsset`
-is `Some`. All assertions pass on the Daml IDE ledger.
-
-### Bounty-lane scoping (CBTC private OTC — documented next step, not built)
-
-- **CBTC (BitSafe) — best narrative fit.** The sealed-bid vendor-selection / OTC
-  flow is literally the "private OTC" lane the CBTC bounty names. CBTC is a
-  CIP-0056 token on Canton, available on DevNet via the
-  [CBTC faucet](https://cbtc-faucet.bitsafe.finance/). BitSafe provides a Rust
-  SDK (`cbtc-lib`) and DAR files.
-- **cETH (OnRails Finance) — also viable.** CIP-0056 compliant, 1:1 wrapped ETH.
-  Faucet is a [Google Form](https://forms.gle/qY1Eq4AxuTFrxf49A) (manual).
-- **Integration path (not a one-line swap):**
-  1. Install the CBTC (or cETH) DAR on our DevNet participant (NODERS admin).
-  2. Add it as a dependency in `daml.yaml` and rebuild our package (new package
-     ID → re-upload).
-  3. Rewrite `CloseAndReveal` to exercise `TransferFactory_Transfer` on the
-     registry's factory contract (a disclosed contract) instead of our
-     `PaymentDeposit.Transfer`.
-  4. **Atomicity risk:** CIP-0056 transfers can be one-step (settles in the same
-     Daml transaction) or two-step (creates a `TransferInstruction` the receiver
-     must `Accept`). If the registry's transfer is two-step, the
-     single-transaction atomicity claim breaks — the winner would need to
-     separately accept the transfer after reveal. This must be verified
-     experimentally before committing to the integration.
-  5. Fund the auctioneer party with CBTC from the faucet before escrow.
-- **Decision:** deferred to post-submission. The current synthetic deposit
-  proves the atomicity pattern end-to-end on DevNet. CBTC integration is the
-  strongest bounty-lane follow-up, but only if the registry's transfer is
-  one-step — otherwise the headline atomicity claim is weakened.
-
-### Demo rails (PixelPlex)
-
-- **Console Wallet** — sign `SubmitBid` / `CloseAndReveal` as a real party.
-- **CC View** — show the atomic reveal (bid archival + result) in a live explorer.
-- **CC Tag** — human-readable party names (Auctioneer / Alice / Bob / Charlie)
-  instead of opaque party IDs, so judges can follow the flow.
+**Demo rails (PixelPlex):** Console Wallet signs `SubmitBid`/`CloseAndReveal`
+as a real party; CC View shows the atomic reveal; CC Tag gives human-readable
+party names.
 
 ---
 
@@ -392,9 +358,9 @@ The team used the shared HackCanton S2 DevNet node. The DAR was uploaded and par
 
 The cognivern backend code is participant-agnostic — swapping from sandbox to DevNet is an env change, not a code change.
 
-### Final submission evidence checklist
+### DevNet evidence checklist (for any submission)
 
-Capture these before submitting so the deployment requirement is undeniable:
+Capture these so the deployment requirement is undeniable:
 
 - DevNet participant / validator identifier and JSON API base URL used by the submitted backend.
 - Uploaded DAR package ID and the four template IDs configured in production.

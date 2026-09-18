@@ -2,7 +2,7 @@
 
 Assessment of the landing page and dashboard against best-in-class progressive
 disclosure and UI/UX primitives, anchored to the product vision in
-[`AGENTIC_CAPITAL_THESIS.md`](./AGENTIC_CAPITAL_THESIS.md):
+[`PRODUCT_STRATEGY.md`](./PRODUCT_STRATEGY.md):
 
 ```text
 funded mandate → governed action → attributable spend → evidenced outcome → measured performance

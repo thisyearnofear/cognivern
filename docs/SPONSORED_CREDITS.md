@@ -6,7 +6,7 @@ budgets, metering every call into an append-only ledger with a full audit
 trail. Participants use any OpenAI SDK pointed at `https://your-host/v1`.
 
 > Strategy context for why this rail is free and where revenue lives instead:
-> [`GO_TO_MARKET.md`](./GO_TO_MARKET.md).
+> [`PRODUCT_STRATEGY.md`](./PRODUCT_STRATEGY.md).
 
 The default backend is the **0G Compute Router** (`ZEROG_ROUTER_BASE_URL`),
 but the gateway is provider-agnostic: see `services/inference/backendRegistry.ts`
@@ -83,7 +83,7 @@ unauthenticated `POST /verify/credit-commitment` (pure hash math), and can
 fetch the root from the anchors to check Cognivern itself. Its GET sibling
 `GET /verify/credit-commitment/:id` (also public, aggregates only) powers the
 shareable **`/verify?id=…` page** — the recap-dropping receipt from
-[`GO_TO_MARKET.md`](./GO_TO_MARKET.md), reachable from each commitment row in
+[`PRODUCT_STRATEGY.md`](./PRODUCT_STRATEGY.md), reachable from each commitment row in
 the program's Verification tab. See
 [`DATA_OWNERSHIP.md`](./DATA_OWNERSHIP.md) for the trust model and per-domain
 ownership map.

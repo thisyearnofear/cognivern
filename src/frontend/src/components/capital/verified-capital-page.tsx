@@ -851,11 +851,11 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
         Integration details:{" "}
         <a
           className="underline"
-          href="https://github.com/thisyearnofear/cognivern/blob/main/docs/HACKATHON_SUBMISSION_CLEANVERSE.md"
+          href="https://github.com/thisyearnofear/cognivern/blob/main/docs/CLEANVERSE.md"
           target="_blank"
           rel="noreferrer"
         >
-          docs/HACKATHON_SUBMISSION_CLEANVERSE.md
+          docs/CLEANVERSE.md
         </a>
       </p>
     </div>

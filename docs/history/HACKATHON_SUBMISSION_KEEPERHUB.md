@@ -1,5 +1,9 @@
 # KeeperHub — Agents Onchain Hackathon — Cognivern Submission
 
+> **Historical — hackathon concluded Aug 13 2026.** The KeeperHub integration
+> it produced is a live rail; see [`../KEEPERHUB.md`](../KEEPERHUB.md) for the
+> current reference. This doc is the submission record only.
+
 **Hackathon:** KeeperHub — Agents Onchain (DoraHacks)
 **Host:** KeeperHub
 **Window:** 2026-07-27 → 2026-08-13 submission deadline (12:00 UTC+2)

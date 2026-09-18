@@ -191,7 +191,7 @@ directly to the A-Pass wallet. Cleanverse credits Access USDC/aUSDC for settleme
    `pnpm tsx tooling/scripts/acceptance/cleanverse-live-negative-paths.ts`.
    It does not create wallets, rounds, or transactions.
 
-Details: [HACKATHON_SUBMISSION_CLEANVERSE.md](./HACKATHON_SUBMISSION_CLEANVERSE.md).
+Details: [CLEANVERSE.md](./CLEANVERSE.md).
 
 ## 10. Optional: Try the funded-mandate Capital flow (2 minutes)
 

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 /**
  * Unauthenticated visitors explore with demo data (useApiWithDemo falls back
  * when no session exists). run-001 carries the real dual-chain mainnet probe
- * proofs (docs/XLAYER_PROOF_V2.md), so this spec exercises the actual proof
+ * proofs (docs/GOVERNANCE_PROOFS.md), so this spec exercises the actual proof
  * surface without any backend dependency.
  */
 test.describe('Run detail — governance proof anchors', () => {

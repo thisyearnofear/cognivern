@@ -143,7 +143,7 @@ The strategic lifecycle is:
 funded mandate → governed actions → attributable spend → evidenced outcome → allocation decision
 ```
 
-See [`AGENTIC_CAPITAL_THESIS.md`](./AGENTIC_CAPITAL_THESIS.md) for the product
+See [`PRODUCT_STRATEGY.md`](./PRODUCT_STRATEGY.md) for the product
 and distribution strategy. See
 [`AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md`](./AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md)
 for the mandate, outcome, statement, and evidence invariants before extending
@@ -326,7 +326,7 @@ Code: `contracts/fhenix/src/ConfidentialSpendPolicy.sol`, `src/backend/services/
 
 ### Canton Integration — Confidential Vendor Selection
 
-Canton (Daml) is a swappable settlement backend for cognivern's sealed-bid vendor selection. The Fhenix-backed sealed-bid path holds bids as CoFHE ciphertext handles but can't complete the reveal; the Canton backend rewrites the settlement layer so the reveal actually works — atomically, in one transaction — while giving structural sub-transaction privacy that FHE alone can't. For HackCanton S2 the sealed-bid auction is the headline primitive (Track 1: Private DeFi & Capital Markets), and the agent-governance layer — which initiates rounds, records hash-signed bid/reveal events in the run ledger, and enforces policy before the auctioneer can close — is the Track 3 (Agentic Commerce) fit, not backdrop. The broader multi-chain stack (Fhenix/Filecoin/0G/ChainGPT/X Layer) is supporting context. Value settlement is live on DevNet: a `PaymentDeposit` template is escrowed before the auction and atomically transferred to the winner inside `CloseAndReveal`. The updated DAR (package `d62e13ab…`) is uploaded to the shared DevNet participant, and `pnpm canton:proof` produces `valueSettledAtomically: true` with an on-ledger `settledAssetCid` — see `.artifacts/canton-devnet-proof-latest.json`. `SettlementProof.daml` passes all 9 assertions on the IDE ledger.
+Canton (Daml) is a swappable settlement backend for cognivern's sealed-bid vendor selection. The Fhenix-backed sealed-bid path holds bids as CoFHE ciphertext handles but can't complete the reveal; the Canton backend rewrites the settlement layer so the reveal actually works — atomically, in one transaction — while giving structural sub-transaction privacy that FHE alone can't. Value settlement is live: a `PaymentDeposit` is escrowed before the auction and atomically transferred to the winner inside `CloseAndReveal`. See [`CANTON.md`](./CANTON.md) for the Daml model, settlement status, runbooks, and current ledger state.
 
 The Canton path is locked against future Daml refactors by a literal-value canary in the post-reveal `AuctionResult` assertion (`winningProposal === "0x2b"` for the bid whose `proposalHash` was pinned in `submitBid`). Four live-sandbox invariants in `tests/integration/canton-sealed-bid.test.ts` cover the settlement + privacy surface.
 
@@ -351,10 +351,9 @@ The Fhenix confidential-compute pipeline (`ConfidentialSpendPolicy` + `SealedBid
 - When the **cofhe-contracts library** ships `FHE.verifyDecryptResult`, only `publishWinner`'s ABI signature already carries the right shape — it accepts `uint256[] bidIndexes, bytes[] thresholdSignatures`, so verification can be layered on top of the manager-identity check additively without breaking callers. `publishSpendResult(bytes32 decisionId, uint8 plaintext)` would need a new function (e.g. `publishSpendResultWithVerification`) for the same upgrade — adding a parameter to the existing function changes the function selector and breaks current callers.
 - The **in-memory** `FheSealedBidBackend.revealWinner` is the backend-side counterpart of `publishWinner` and enforces an analogous (but contract-independent) trust model: it consumes `decryptionProof: Array<{bidder, plaintext}>` from the caller without any CoFHE-permit check on its own (there's no chain-side identity to mirror), but it structurally rejects proofs missing any bidder's plaintext so the manager can't silently drop a competitor from the proof. The on-chain `publishWinner` and the in-memory backend share the **same shape** of fail-loud guarantees; the cryptographic binding is enforced only at the chain layer.
 - The `requestDeFiAction` spend-policy path migrated to the same publish-then-dispatch pattern via `publishDeFiAction(decisionId, uint8 plaintext)`. `requestDeFiAction` now produces a `decisionId`, captures `submitter = msg.sender` in `pendingDecisions`, grants `FHE.allowTransient(notDenied, msg.sender)`, sets `resolvedOutcomes[decisionId] = Outcome.Pending` (same default-init fix as `evaluateSpend`), persists the encrypted `newSpent` in `pendingDecisions[decisionId].pendingNewSpent` with `FHE.allowThis` for cross-tx read, emits `DeFiActionRequested`, and does NOT synchronously dispatch + does NOT update the counter. Direct callers who want immediate execution then call `publishDeFiAction(decisionId, 2 /*Approve*/)` themselves, producing the effective downstream outcome for the GovernedVault on X Layer. Counter commit moved from request-time to publish-time on Approve: `publishDeFiAction` grants `FHE.allowTransient(pending.pendingNewSpent, address(this))`, assigns `c.spentToday = pending.pendingNewSpent`, then `FHE.allowThis` for persistence — closes the phantom-balance divergence surface where an evaluator could exhaust `dailyLimit` by request-spamming without publishing. `(target, data)` are captured at request time and replayed at publish time, so the publish-side signature shrinks to just `(decisionId, plaintext)` and the carry-through mismatch risk is gone. `publishDeFiAction` also requires `pending.isDeFi` to gate publish-time counter writes to DeFi-produced decisions (spend decisions carry `pendingNewSpent` as default uninitialised ciphertext, which would silently zero `c.spentToday` on Approve). Dedup via `delete pendingDecisions[decisionId]`; Deny/Hold emit the event but skip execution.
-- **Migration note (iter 27):** `publishDeFiAction` dispatches to `xLayerDeFiVault` via Hyperlane ONLY when `plaintext == Approve (2)`. Deny/Hold resolutions emit `DeFiActionPublished` on the Fhenix chain but do NOT cross the Hyperlane bridge — this is intentional. Deny/Hold have nothing to execute on X Layer, so the unconditional every-resolution-dispatch legacy from the synchronous baseline would be wasted Hyperlane gas.
-- **Architectural separation (who consumes what):** `publishSpendResult` and `resolveDecision` dispatch to `xLayerRecipient` (which `GovernanceContract.handle()` receives on X Layer, lines 133–162 of `contracts/src/GovernanceContract.sol` — decode → `bool approved = (outcome == 2)` → `_evaluateActionInternal(...)`). `publishDeFiAction` dispatches to a SEPARATE recipient, `xLayerDeFiVault`, which is a different contract entirely (`GovernedVault`, the specialized DeFi execution target). So `GovernanceContract.handle()` does not need to special-case the DeFi path at all — its semantics are unchanged.
-- **Audit result:** zero TypeScript event listeners for `DecisionPublished` / `DeFiActionPublished` / `DeFiActionRequested` in `src/` (the only match in `FhenixPolicyService.ts:108` is an ABI-constant reference, not a `viem.watchEvent` or `web3.eth.subscribe`). Zero telemetry counters anywhere matching "dispatches per agent" / "approvals by agent" / "dispatchCount". Zero FheDecisionWatcher references in any metric path (the watcher is referenced only in `HealthController.ts` for `isRunning()` + `getPendingCount()`, a pending-decision count, not a dispatch count).
-- **Future telemetry builders:** re-run a similar sweep at the time of building — pattern is `grep -rIn --include='*.ts' --include='*.tsx' --include='*.sol' --include='*.cjs' --include='*.js' --include='*.sh' --include='*.yml' --include='*.yaml' --include='*.toml' --include='*.env*' --include='*.json' 'DeFiActionPublished|DecisionPublished|xLayer\.\|mailbox\.dispatch' src tests deploy scripts monitoring`. **Off-chain observation**: standard `eth_getLogs` over the Fhenix RPC (chain id 421614), filtering on the `DeFiActionPublished(bytes32,uint8)` topic, returns the resolved `Outcome` for every decisionId including Deny/Hold — i.e. the Fhenix-side event stream remains the canonical surface for DeFi-action observability even though the cross-chain Hyperlane handler on X Layer doesn't see Deny/Hold.
+- **Approve-gated dispatch:** `publishDeFiAction` dispatches to `xLayerDeFiVault` via Hyperlane ONLY when `plaintext == Approve (2)`. Deny/Hold resolutions emit `DeFiActionPublished` on the Fhenix chain but do NOT cross the Hyperlane bridge — Deny/Hold have nothing to execute on X Layer, so dispatching would be wasted gas.
+- **Architectural separation (who consumes what):** `publishSpendResult` and `resolveDecision` dispatch to `xLayerRecipient` (`GovernanceContract.handle()` on X Layer — decode → `bool approved = (outcome == 2)` → `_evaluateActionInternal(...)`). `publishDeFiAction` dispatches to a SEPARATE recipient, `xLayerDeFiVault` (`GovernedVault`, the DeFi execution target), so `GovernanceContract.handle()` needs no DeFi special-casing.
+- **DeFi-action observability:** `eth_getLogs` over the Fhenix RPC (chain id 421614) on the `DeFiActionPublished(bytes32,uint8)` topic returns the resolved `Outcome` for every decisionId including Deny/Hold — the Fhenix-side event stream is the canonical observability surface, since the X Layer handler never sees Deny/Hold.
 
 ### ChainGPT Integration — Web3 AI Governance
 
@@ -600,7 +599,7 @@ Related: `GET /api/projects`, `GET /api/projects/:projectId/usage`
 
 ### Cleanverse (CVI / CVA)
 
-Optional Track 2 verified-agent capital rail. When a wallet has
+Optional verified-agent capital rail. When a wallet has
 `metadata.executionProvider: "cleanverse"`, spends are A-Pass gated (CVI)
 before policy evaluation and settle as Access USDC/aUSDC on Monad testnet (CVA).
 
@@ -610,29 +609,8 @@ before policy evaluation and settle as Access USDC/aUSDC on Monad testnet (CVA).
 | `/api/cleanverse/deposit-address` | GET    | Authenticated lookup of USDC deposit wallet (`?address=0x...&chain=monad`) |
 | `/api/cleanverse/screen` | POST   | Screen sender + recipient A-Pass (`{ sender, recipient, chain? }`) |
 
-Env: `CLEANVERSE_API_ID`, `CLEANVERSE_API_KEY`, `CLEANVERSE_API_URL`,
-`MONAD_RPC_URL`, `MONAD_CHAIN_ID`, `CLEANVERSE_ATOKEN_ADDRESS`,
-`CLEANVERSE_DEPOSIT_ADDRESS`, `CLEANVERSE_DEPOSIT_FOR_ADDRESS`. Optional
-institutional country rule on A-Pass country tags (v5.5):
-`CLEANVERSE_ALLOW_COUNTRIES` (comma-separated ISO 3166-1 alpha-2 whitelist;
-both parties must hold a tag, fail-closed on missing tags) or
-`CLEANVERSE_BLOCK_COUNTRIES` (blacklist; wins if both set). A configured rule
-is a hard deny gate (`cleanverse-country-rule`) alongside the CVI screen.
-The current disposable Monad testnet demo wallet is
-`0x2FeE0208c0d1598104f52fb55Dcc2811707c8879`; it is configured with
-`executionProvider: "cleanverse"`, `chainId: 10143`, and must never have its
-private key committed or shared. The configured Access USDC/aUSDC contract is
-`0xaC0893567D43C3E7e6e35a72803df05416C1f20D` with 6 decimals. Fund the
-Cleanverse deposit address—not the A-Pass wallet—by querying
-An authenticated `GET /api/cleanverse/deposit-address?address=0x...` lookup and sending Circle's Monad
-testnet USDC to the returned `depositAddress`.
-Product UI: `/verified-capital`. The read-only live acceptance smoke subset is
-`tooling/scripts/acceptance/cleanverse-live-negative-paths.ts`; it validates EVM
-fixture shape, the active country rule, an unregistered-address denial, and the
-known demo pair. Stale or inactive fixtures fail with an explicit diagnostic.
-Frozen, expired, missing-country, country-deny, and outage cases remain
-hermetic deterministic unit coverage rather than live mutations.
-See [HACKATHON_SUBMISSION_CLEANVERSE.md](./HACKATHON_SUBMISSION_CLEANVERSE.md).
+Env vars, country allow/deny rules, demo wallet, and acceptance smokes:
+[CLEANVERSE.md](./CLEANVERSE.md).
 
 ### Audit & Run Ledger
 
@@ -744,25 +722,19 @@ The write-verify-fix loop caught production issues during the build window; see 
 - Configure `SLACK_WEBHOOK_URL` or `PAGERDUTY_ROUTING_KEY` to forward critical
   denied/flagged governance decisions to an operator alert sink.
 
-### Completed
+### Shipped baseline
 
-- [x] Error boundaries, circuit breakers, code splitting
-- [x] Sensitive data redaction in public proofs
-- [x] Unit + integration tests, CI pipeline
-- [x] TestSprite integration suite (24 CLI + 30 MCP frontend tests) with direct Canton ledger assertions
-- [x] Multi-provider AI routing (6 providers)
-- [x] Rate limiting on public endpoints (configurable per-endpoint)
-- [x] SIWE wallet auth + JWT with nonce replay protection
-- [x] Workspace multi-tenancy with per-workspace SQLite tables
-- [x] Demo data from backend `DemoDataService` for sandbox mode
-- [x] Mode system: Demo → Sandbox → Production
+Error boundaries/circuit breakers, sensitive-data redaction in public proofs,
+unit + integration tests in CI, the TestSprite suite (with direct Canton ledger
+assertions), multi-provider AI routing, per-endpoint rate limiting, SIWE + JWT
+with nonce replay protection, per-workspace SQLite tenancy, backend
+`DemoDataService` demo data, and the Demo → Sandbox → Production mode system.
 
-### Remaining
+### Known gaps
 
-- [ ] Sentry integration for frontend error tracking
-- [ ] 80%+ test coverage for core business logic
-- [ ] Isolated staging/test environment with seeded states and a verified reset procedure for moderated user testing
-- [ ] Self-service workspace tier upgrade (demo → live)
+Sentry for frontend errors, 80%+ coverage on core business logic, an isolated
+staging environment with a verified reset procedure for moderated user testing,
+and self-service demo → live tier upgrade.
 
 ## Running with SigNoz (Observability)
 

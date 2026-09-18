@@ -3,8 +3,8 @@
 Flare Confidential Compute (FCC) port of Cognivern's confidential spend-policy
 paradigm. Target network: **Coston2** (chain id `114`).
 
-See [docs/FLARE_SUMMER_SIGNAL.md](../../docs/FLARE_SUMMER_SIGNAL.md) for the
-hackathon plan and [FCC overview](https://dev.flare.network/fcc/overview).
+See [docs/FLARE.md](../../docs/FLARE.md) for the integration reference and
+[FCC overview](https://dev.flare.network/fcc/overview) for the platform docs.
 
 ## Architecture (important)
 

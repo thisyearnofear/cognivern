@@ -1,194 +1,142 @@
-# Outcome Evidence Plan — GitHub Connector, First Verified Statement, Key→Mandate
+# Outcome Evidence Plan — connectors, first verified statement, agent surfaces
 
-Status: **M1 GitHub implemented (2026-08-24)**; **Langfuse connector
-implemented (2026-09-11)**; **Capital UI + WebMCP plan adopted** — see
-`CAPITAL_AGENT_SURFACES.md`; M2 dogfood (first verified statement) pending.
-Builds on the implemented mandate foundation
-(`AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md` Phases 2–5) and executes the
-outcome side of the strategy in `GO_TO_MARKET.md` /
-`AGENTIC_CAPITAL_THESIS.md`.
+> Merged doc: absorbs `CAPITAL_AGENT_SURFACES.md`. Interface invariants live in
+> [`AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md`](./AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md);
+> strategy in [`PRODUCT_STRATEGY.md`](./PRODUCT_STRATEGY.md).
 
-M1 shipped: `src/backend/services/outcomes/` (source config + GitHub
-connector), `funded_mandates.outcome_sources` column, mandate API accepts
-`outcomeSources`, and `POST /api/mandates/:mandateId/outcomes/sync` (operator
-auth) ingests verified PR/commit outcomes. Auth reuses the existing
-`GITHUB_TOKEN` env var (documented in `.env.example`; the connector reads it,
-it is never stored). HydraDB evidence sync fires best-effort after new
-ingestions. Unit tests: `tests/unit/OutcomeSourceConfig.test.ts`,
-`tests/unit/GitHubOutcomeConnector.test.ts`.
+Status: GitHub connector shipped 2026-08-24 · Langfuse connector shipped
+2026-09-11 · Capital UI + WebMCP plan adopted 2026-09-11 · **M2 dogfood (first
+verified statement) pending.**
 
-Langfuse connector (2026-09-11): `LangfuseOutcomeConnector.ts` + `type:
-"langfuse"` in `outcomeSourceConfig.ts` / mandate Zod schema. Modes
-`scores` (NUMERIC/BOOLEAN via `GET /api/public/v3/scores`) and `traces`
-(`GET /api/public/traces`). Ingests as `observed` / `system_observed`
-(never `independently_verified` — score values are model/human-judged).
-Auth: `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY`. Same sync endpoint
-dispatches by source type. Tests:
-`tests/unit/LangfuseOutcomeConnector.test.ts`.
+North-star metric: **published mandate statements containing at least one
+non-self-reported outcome.**
 
 ## The gap
 
 `AllocationRecommendationService` requires `independently_verified` outcomes
-to move a mandate from `hold` to `consider_next_allocation`. GitHub fills
-that tier; Langfuse fills `system_observed` (useful for statements and
-quality loops, not for flipping the recommendation stance alone).
+to move a mandate `hold` → `consider_next_allocation`. GitHub fills that
+tier; Langfuse fills `system_observed` (useful for statements and quality
+loops, insufficient alone to flip the recommendation).
 
-This plan fills the pipe with connectors, runs one fully self-controlled
-cohort through GitHub, and publishes the first statement with a verified
-outcome. That artifact then becomes the Prezenti onboarding evidence.
+## Outcome connectors (shipped)
 
-## North star metric
+`src/backend/services/outcomes/` — `outcomeSourceConfig.ts` (mandate-level
+`outcomeSources` on `funded_mandates.outcome_sources`) plus one connector per
+source type, all dispatched through
+`POST /api/mandates/:mandateId/outcomes/sync` (operator auth; idempotent keys;
+no webhook infra for v1). HydraDB evidence sync fires best-effort after
+ingestion.
 
-**Published mandate statements containing at least one non-self-reported
-outcome.** Revenue is treated as a byproduct of the wedge; this counter is
-the leading indicator of the allocator platform.
+- **`github`** — `GitHubOutcomeConnector.ts`. Merged PRs (`pr` mode:
+  `merged_at != null`, merge SHA confirmed on branch) or branch commits
+  (`commits` mode, for this repo's direct-commit flow), filtered by
+  branch/labels/path/since. Ingests `verified_external_state` /
+  `independently_verified` — the GitHub API is the verification oracle.
+  Key: `github:{repo}:{pr|commit}:{sha}`. Auth: `GITHUB_TOKEN` env (never
+  stored in the mandate payload).
+- **`langfuse`** — `LangfuseOutcomeConnector.ts`. Modes `scores`
+  (NUMERIC/BOOLEAN via `/api/public/v3/scores`) and `traces`
+  (`/api/public/traces`). Ingests `observed` / `system_observed` — never
+  `independently_verified` (scores are model/human-judged). Key:
+  `langfuse:{project}:{traceId}:{scoreId}`. Auth: `LANGFUSE_PUBLIC_KEY` +
+  `LANGFUSE_SECRET_KEY` (v1 = one key pair per deployment).
 
-## Milestone 1 — GitHub outcome connector
+## Four surfaces, one domain layer
 
-A new service that watches a configured GitHub repo for shipped work matching
-a mandate's scope, verifies it via the GitHub API, and ingests it as
-`verified_external_state` / `independently_verified` outcome observations.
-
-**Why GitHub first:** wedge users (hackathon builders, grant builders)
-produce their outcomes in public repos, and the GitHub API is the
-verification oracle — `merged_at` set, or a commit present on the target
-branch, is independent verification of external state. No human reviewer
-needed for the first tier. This extends the existing receipt brand
-(verify-without-trusting-us) to outcomes instead of inventing a new trust
-mechanism.
-
-### Design
+Operators should not need curl to attach a source, sync, or publish; agents
+should call the same contracts the UI uses. Domain ops implemented once,
+adapters thin:
 
 ```text
-src/backend/services/outcomes/
-  GitHubOutcomeConnector.ts    — poll/trigger, verify, ingest
-  outcomeSourceConfig.ts       — mandate-level source schema + validation
+createMandate / updateMandate
+setOutcomeSources          # github | langfuse
+syncOutcomes               # POST …/outcomes/sync
+listOutcomes / getRecommendation
+previewStatement / publishStatement / exportStatement
 ```
 
-Source config (new optional field on `FundedMandate`, stored as JSON in a new
-`outcome_sources TEXT` column on `funded_mandates` — additive migration):
+| Surface | Who | Role |
+| --- | --- | --- |
+| Capital UI | Human operators | Full mandate loop, no API required |
+| REST + API keys | Scripts / external agents | Automation, spend attribution |
+| Server MCP | Headless agents | `/api/mcp/governance-check` today; expand for mandate ops |
+| WebMCP | In-browser agents | Same actions via `document.modelContext` tools |
 
-```ts
-outcomeSources?: Array<{
-  type: 'github';
-  repo: string;            // "owner/name"
-  mode: 'pr' | 'commits';  // this repo ships direct commits → commit mode matters
-  branch?: string;         // default "main"
-  labels?: string[];       // pr mode: only PRs with these labels
-  pathFilter?: string;     // only work touching these paths
-  since?: string;          // ISO date; ignore work shipped before the mandate window
-  metricId?: string;       // link to one of the mandate's successMetrics
-}>;
-```
+Rail-agnostic rule applies (`ARCHITECTURE_RAILS.md`, `LANGFUSE_LESSONS.md`):
+tools describe **mandate / policy / outcome** verbs, not rail brands.
 
-Connector logic:
+### Milestone A — Capital UI completeness (ship first)
 
-1. **PR mode:** fetch closed PRs since last sync
-   (`GET /repos/{owner}/{repo}/pulls?state=closed&sort=updated`), filter by
-   branch/labels/path, require `merged_at != null`, fetch merge commit SHA,
-   confirm it exists on the target branch.
-2. **Commit mode:** fetch commits on the target branch since last sync
-   (`GET /repos/{owner}/{repo}/commits?sha={branch}&since=…`), filter by
-   path, verify each SHA is reachable from the branch head.
-3. Ingest via `OutcomeObservationService.create()` with:
-   - `kind: 'verified_external_state'`, `confidence: 'independently_verified'`
-     (satisfies the existing validation rule for verified external state);
-   - `evidence: [{ type: 'url', reference: prOrCommitUrl },
-     { type: 'external_record', reference: sha, hash: sha }]`;
-   - `source: 'github'`;
-   - idempotency key `github:{repo}:{pr|commit}:{sha}` — stable, replay-safe.
+Gap: Capital supports create → outcomes → recommendation → statement preview
+→ publish → export. Missing: editing `outcomeSources` in the UI, an operator
+**Sync outcomes** button, and clear empty states pre-sync. Acceptance: from
+the UI alone, create mandate → add GitHub source → Sync → see
+`independently_verified` outcomes → publish + export. Langfuse attaches the
+same way (`system_observed`). No secrets in the mandate payload.
 
-Auth: fine-grained GitHub PAT (read-only `contents` + `pull_requests` on the
-target repo), stored per-workspace, never inside the mandate payload.
+### Milestone B — WebMCP on Capital (feature-detected)
 
-Trigger: operator-initiated `POST /api/mandates/:mandateId/outcomes/sync`
-plus optional cron. No webhook infrastructure for v1.
+[WebMCP](https://webmachinelearning.github.io/webmcp/) (W3C WebML draft,
+Chrome origin trial): `document.modelContext.registerTool({ name, description,
+inputSchema, execute })` — prefer current draft; `navigator.modelContext` is
+legacy. Live tab only (not a substitute for server MCP, not headless).
+Mutating tools require user confirmation; read tools use `readOnlyHint`;
+untrusted payloads carry `untrustedContentHint`. Register the same domain ops
+on `/capital`; degrade gracefully when absent. Do not block the M2 dogfood on
+WebMCP or the origin trial.
 
-### Acceptance
+### Milestone C — server MCP mandate tools (parallel, headless)
 
-- A merged PR (pr mode) or branch commit (commit mode) appears as a
-  `verified_external_state` outcome with `independently_verified` confidence.
-- Re-running sync is idempotent (no duplicates).
-- With spend gates satisfied, the recommendation flips `hold` →
-  `consider_next_allocation`.
+Keep `/api/mcp/governance-check`; add discovery + tools for mandate
+list/get, outcome sync, statement preview/export — same domain ops, no forked
+business logic.
 
-## Milestone 2 — first cohort: Cognivern's own build, fully self-controlled
+## Milestone 2 — first cohort: dogfood our own build
 
-Decision (2026-08-24): do **not** gate the first verified statement on
-Prezenti acceptance or any external partner. Run Cognivern's own next build
-sprint (e.g. the September HackCanton round or the next hackathon entry) as
-a funded mandate:
-
-- **Budget:** the sprint's real governed inference/tooling spend.
-- **Success metrics:** shipped deliverables, e.g.
-  `{ id: 'deliverables-shipped', name: 'Deliverables shipped', unit: 'deliverables' }`.
-- **Outcome source:** `thisyearnofear/cognivern`, **commit mode** on `main`,
-  path-filtered to the sprint's scope.
-- At sprint close: generate the statement candidate, confirm the
-  recommendation stance, publish the snapshot, produce the redacted export.
-
-The platform governing its own build spend and proving its own outcomes is
-the strongest possible first artifact — dogfooding with receipts.
-
-### Acceptance
-
-- A published statement exists with at least one `independently_verified`
-  outcome (north star metric goes 0 → 1).
-- The redacted export is shareable outside the workspace.
+Decision (2026-08-24): do not gate the first verified statement on Prezenti
+or any external partner. Run Cognivern's own next build sprint as a funded
+mandate: real governed inference/tooling spend as budget, shipped
+deliverables as success metrics, `thisyearnofear/cognivern` commit-mode
+outcome source path-filtered to the sprint scope. At sprint close: generate
+statement candidate → confirm recommendation stance → publish snapshot →
+redacted export. Acceptance: a published statement with ≥1
+`independently_verified` outcome (north star 0 → 1), export shareable outside
+the workspace.
 
 ## Milestone 2b — Prezenti onboarding with the artifact
 
-Use the published statement as evidence in the Prezenti application
-(`PREZENTI_SPONSORSHIP.md` meta-pitch): "we ran our own builder budget
-through Cognivern; here is the attested statement with GitHub-verified
-outcomes; run your builders' flexible allowance the same way." Their rubric
-already scores public GitHub evidence — the statement attests exactly that.
-Update `forms/sponsorship-application.json` and the tracker doc when the
-artifact exists.
+Use the published statement as Prezenti evidence
+(`PREZENTI_SPONSORSHIP.md`): "we ran our own builder budget through
+Cognivern; here is the attested statement with GitHub-verified outcomes; run
+your builders' flexible allowance the same way." Their rubric already scores
+public GitHub evidence. Update `forms/sponsorship-application.json` and the
+tracker when the artifact exists.
 
-## Milestone 3 — key→mandate linkage on the credits rail (parallel with M1/M2)
+## Milestone 3 — key→mandate linkage on the credits rail
 
-Promote the Flare "key = sealed mandate" pattern (`KeyMandateService`) to the
-sponsored-credits rail so the wedge's atomic unit *is* the vision's atomic
-unit — every cohort accumulates mandate-shaped records automatically.
+Promote the Flare "key = sealed mandate" pattern (`KeyMandateService`) to
+sponsored credits so every cohort accumulates mandate-shaped records:
+`credit_programs.mandate_id` (additive, nullable), `cvk_` keys inherit the
+binding, spend attribution carries `mandateId` (field already supported by
+`SpendAttributionService`). Unbound programs unaffected.
 
-- `credit_programs` gains a nullable `mandate_id TEXT` column (additive).
-- `cvk_` keys provisioned under a mandate-bound program inherit the binding.
-- Spend attribution records for those keys carry the `mandateId` (field
-  already supported by `SpendAttributionService`), so statements pick them up.
-- Programs without a mandate binding are unaffected.
+## Milestone 4 — metric instrumentation
 
-## Milestone 4 — north star metric instrumentation
-
-- Counter query: `published_mandate_statements` joined to
-  `outcome_observations` where `confidence != 'self_reported'`.
-- Expose `GET /api/metrics/verified-statements` (operator-only) and log the
-  counter on every statement publish. No dashboard build needed yet.
+Counter: `published_mandate_statements` ⨝ `outcome_observations` where
+`confidence != 'self_reported'`. Expose `GET /api/metrics/verified-statements`
+(operator-only); log on every publish. No dashboard build yet.
 
 ## Sequencing
 
 ```text
-Capital UI (outcome sources + Sync) ──→ M2 (own-build / Telegraph+0G mandate,
-                                           publish first statement)
-  └──→ WebMCP on Capital (feature-detected)     } see CAPITAL_AGENT_SURFACES.md
-Parallel: server MCP mandate tools (headless)
-
-Legacy connector milestones (done / pending):
-M1 (GitHub connector) ✓ ──→ M2 (statement) ──→ M2b (Prezenti evidence)
-M3 (key→mandate) — parallel
-M4 (metric) — after M2 produces the first data point
+A (Capital outcome sources + Sync UI) ──→ M2 (own-build mandate → statement)
+  ──→ B (WebMCP, feature-detected)
+Parallel: C (server MCP mandate tools) · M3 (key→mandate) · M4 (after M2)
 ```
-
-UI completeness and WebMCP/server MCP layering live in
-`CAPITAL_AGENT_SURFACES.md`. Do not dogfood the first statement via curl if
-Capital Sync UI (Milestone A) can ship in the same window.
 
 ## Explicitly out of scope
 
-- Stripe, CRM, or prompt/eval product features (Langfuse owns that surface;
-  we only ingest their scores/traces as outcomes — see `LANGFUSE_LESSONS.md`).
-- Causal attribution or ROI computation (schema forbids it by design).
-- Automated capital deployment or tranche release.
-- Webhook infrastructure (poll + operator trigger suffices for v1).
-- Multi-repo or cross-org GitHub sources; multi-project Langfuse key maps
-  (v1 = one `LANGFUSE_*` key pair per deployment).
+Stripe/CRM/prompt-eval features (Langfuse owns that surface) · causal
+attribution or ROI (schema forbids it) · automated capital deployment or
+tranche release · webhook infra · multi-repo/cross-org sources or
+multi-project Langfuse key maps.

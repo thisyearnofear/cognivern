@@ -208,7 +208,7 @@ curl -sS https://api.cognivern.persidian.com/api/governance/proof-info \
 ```
 
 Keep the existing Galileo V1 variables unchanged; V2 is a separate opt-in
-mainnet rail. See [`ZEROG_PROOF_V2.md`](./ZEROG_PROOF_V2.md) for canonical
+mainnet rail. See [`GOVERNANCE_PROOFS.md`](./GOVERNANCE_PROOFS.md) for canonical
 preimages, trust boundaries, and read-only receipt verification.
 
 Canton (Daml) backend for confidential sealed-bid rounds — all optional, backend simply isn't registered if `CANTON_JSON_API_URL` is absent. For HackCanton final submission this must point at a Canton DevNet participant; `http://127.0.0.1:7575` / Hetzner sandbox is useful for staging but does not satisfy the DevNet deployment requirement.
@@ -371,24 +371,10 @@ No manual migration step required.
 
 ## Cleanverse verified-capital demo operations
 
-For the optional Cleanverse CVI/CVA rail, use Monad testnet (chain ID `10143`)
-and the configured Access USDC/aUSDC contract:
-
-```text
-RPC:      https://testnet-rpc.monad.xyz
-Access USDC/aUSDC:   0xaC0893567D43C3E7e6e35a72803df05416C1f20D
-Decimals: 6
-```
-
-The current disposable demo wallet is:
-
-```text
-0x2FeE0208c0d1598104f52fb55Dcc2811707c8879
-```
-
-It has MON for gas but still needs Access USDC/aUSDC. Do not send Circle USDC directly to the A-Pass wallet: resolve the Cleanverse USDC deposit address with `GET /api/cleanverse/deposit-address?address=0x...`, fund that deposit address from the Monad testnet faucet, and let Cleanverse credit Access USDC. Never fund the shared deployer wallet
-for this demo, and never commit or share private key material. Before recording,
-run the read-only acceptance check:
+Rail config, disposable demo wallet, and the funding procedure (fund the
+Cleanverse deposit address — never the A-Pass wallet or shared deployer) live
+in [CLEANVERSE.md](./CLEANVERSE.md). Before recording a demo run, run the
+read-only acceptance check:
 
 ```bash
 pnpm tsx tooling/scripts/acceptance/cleanverse-live-negative-paths.ts
@@ -397,11 +383,9 @@ pnpm tsx tooling/scripts/acceptance/cleanverse-live-negative-paths.ts
 This checks the active country rule, an unregistered-address denial, and the
 known US-tagged demo pair without creating wallets, rounds, or transactions.
 
-## Final submission — proof artifact and demo
+## Canton DevNet proof artifact
 
-### Generate the proof artifact
-
-After production points at DevNet:
+When production points at a DevNet participant:
 
 ```bash
 COGNIVERN_URL=https://cognivern.persidian.com \
@@ -416,29 +400,12 @@ CANTON_TEMPLATE_RESULT="#daml:Main:AuctionResult" \
 pnpm canton:proof
 ```
 
-This writes `.artifacts/canton-devnet-proof-latest.json` and `.artifacts/canton-devnet-proof-<timestamp>.json`. Copy the round ID, bid contract IDs, winner, winning amount, package ID, and template IDs into the hackathon submission.
-
-### Record the 3-minute demo
-
-Minimum demo beats:
-
-1. Show public product URL.
-2. Create a Canton-backed sealed-bid RFP round.
-3. Submit Alice/Bob/Charlie bids.
-4. Toggle party visibility: each bidder cannot see competitors' amounts.
-5. Close and reveal: Bob wins; losing bids remain undisclosed/archived.
-6. Show evidence JSON / package ID / DevNet note.
-
-### Final submission package checklist
-
-- Public GitHub repo.
-- Live product URL.
-- Hackathon submission with DevNet proof fields filled.
-- Pitch deck PDF or hosted deck link.
-- 3-minute demo video MP4 or hosted video link.
-- Optional: `.artifacts/canton-devnet-proof-latest.json` included or linked.
+This writes `.artifacts/canton-devnet-proof-latest.json` and
+`.artifacts/canton-devnet-proof-<timestamp>.json` — the round ID, bid contract
+IDs, winner, winning amount, package ID, and template IDs for submission
+evidence. See the DevNet evidence checklist in [CANTON.md](./CANTON.md).
 
 ## Related Docs
 
-- [Architecture](./DEV.md) — System design, integrations, data flows
-- [Developer Guide](./DEV.md) — Local setup, APIs, testing
+- [DEV.md](./DEV.md) — System design, local setup, APIs, testing
+- [README.md](./README.md) — Full documentation index

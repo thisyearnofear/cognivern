@@ -1,5 +1,9 @@
 # Telegraph Protocol Season I — Track 3 — Cognivern Submission
 
+> **Historical — hackathon concluded Sep 7 2026.** The Telegraph integration it
+> produced is live; see [`../TELEGRAPH.md`](../TELEGRAPH.md) for the current
+> reference. This doc is the submission record only.
+
 **Hackathon:** Telegraph Protocol Season I, Track 3 (Apps & Agents)
 **Host:** Telegraph Protocol (built on Base)
 **Window:** Track 3 opened 2026-08-31 → submissions close **2026-09-07 23:59 UTC**
@@ -135,7 +139,7 @@ SpendAttributionService, CreRunRecorder + AuditLogService, FundedMandateStatemen
 
 ## Related docs
 
-- [TELEGRAPH.md](./TELEGRAPH.md) — full integration guide & architecture
+- [TELEGRAPH.md](../TELEGRAPH.md) — full integration guide & architecture
 - [TELEGRAPH_TRACK3_PROPOSAL.md](./TELEGRAPH_TRACK3_PROPOSAL.md) — original track choice & design
 - [HACKATHON_SUBMISSION_KEEPERHUB.md](./HACKATHON_SUBMISSION_KEEPERHUB.md) /
   [HACKATHON_SUBMISSION_CLEANVERSE.md](./HACKATHON_SUBMISSION_CLEANVERSE.md) — prior submissions

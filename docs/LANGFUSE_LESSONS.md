@@ -121,16 +121,16 @@ outside it.
   Postgres actually broke. We are pre-break: keep the ledger simple,
   add analytics when reads hurt.
 - Any claim that telemetry alone is P&L (already forbidden by
-  `AGENTIC_CAPITAL_THESIS.md`; restated here so this doc cannot be
+  `PRODUCT_STRATEGY.md`; restated here so this doc cannot be
   misread as an analytics pivot).
 
 ## Sequencing
 
 ```text
 M1–M3b (Langfuse adjacency + self-host + SLO UI) ✓ 2026-09-11
-  ──→ Capital UI: outcome sources + Sync (CAPITAL_AGENT_SURFACES.md A)
+  ──→ Capital UI: outcome sources + Sync (OUTCOME_EVIDENCE_PLAN.md)
     ──→ Dogfood mandate → first published statement
-      ──→ WebMCP on Capital (feature-detected) (CAPITAL_AGENT_SURFACES.md B)
+      ──→ WebMCP on Capital (feature-detected) (OUTCOME_EVIDENCE_PLAN.md)
 Parallel: server MCP mandate tools; rail-fluent GTM outside product
 ```
 

@@ -8,7 +8,7 @@ integration. The strategic product sequence is funded mandate → governed actio
 ## Start by intent
 
 For the product thesis and planned sequence, read
-[`AGENTIC_CAPITAL_THESIS.md`](./AGENTIC_CAPITAL_THESIS.md) before introducing
+[`PRODUCT_STRATEGY.md`](./PRODUCT_STRATEGY.md) before introducing
 new mandate, attribution, outcome, or allocation concepts. For the concrete
 implementation boundary and invariants, read
 [`AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md`](./AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md).
@@ -18,7 +18,7 @@ implementation boundary and invariants, read
 | Governance decisions            | `src/backend/modules/api/controllers/GovernanceController.ts` and `src/backend/services/governance/PolicyEnforcementService.ts` | `src/backend/services/governance/`, `tests/unit/`, `tests/integration/`     |
 | Policies and policy persistence | `src/backend/services/governance/PolicyService.ts` and `src/backend/services/governance/PolicyEnforcementService.ts`            | `src/backend/policies/`, `src/backend/persistence/`, policy tests           |
 | Spend preview or execution      | `src/backend/modules/api/controllers/SpendController.ts` and `src/backend/services/blockchain/`                                 | wallet services, signing providers, spend tests                             |
-| Cleanverse CVI/CVA rail         | `src/backend/services/blockchain/cleanverse/` and `CleanverseController.ts`                                                     | `OwsWalletService`, `/verified-capital`, [submission](./HACKATHON_SUBMISSION_CLEANVERSE.md) |
+| Cleanverse CVI/CVA rail         | `src/backend/services/blockchain/cleanverse/` and `CleanverseController.ts`                                                     | `OwsWalletService`, `/verified-capital`, [rail doc](./CLEANVERSE.md) |
 | HTTP routes                     | `src/backend/modules/api/routes/`                                                                                               | matching controller in `src/backend/modules/api/controllers/`               |
 | API response shapes             | `src/backend/modules/api/response.ts` and shared types                                                                          | route/controller tests                                                      |
 | Auth and workspaces             | `src/backend/modules/api/controllers/AuthController.ts`, auth middleware, and workspace middleware                              | `src/frontend/src/lib/auth.ts`, `src/frontend/src/stores/auth-store.ts`     |
@@ -30,7 +30,7 @@ implementation boundary and invariants, read
 | Agentic capital and mandate attribution | `src/backend/cre/types.ts`, `src/backend/services/governance/SpendAttributionService.ts`, and `src/backend/modules/api/controllers/CreController.ts` | `src/frontend/src/components/capital/`, attribution tests, [implementation spec](./AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md) |
 | Outcome sources and connectors | `src/backend/services/outcomes/` (source config + GitHub + Langfuse connectors), mandate `outcomeSources` | `tests/unit/GitHubOutcomeConnector.test.ts`, `tests/unit/LangfuseOutcomeConnector.test.ts`, [outcome evidence plan](./OUTCOME_EVIDENCE_PLAN.md), [Langfuse lessons](./LANGFUSE_LESSONS.md) |
 | Self-host Docker template | `deploy/self-host/` (compose + Dockerfiles + demo seed) | [self-host README](../deploy/self-host/README.md), [Langfuse lessons](./LANGFUSE_LESSONS.md) M2 |
-| Capital UI + agent surfaces | `src/frontend/src/components/capital/`, WebMCP (planned), `/api/mcp/*` | [Capital + agent surfaces](./CAPITAL_AGENT_SURFACES.md), [outcome evidence plan](./OUTCOME_EVIDENCE_PLAN.md) |
+| Capital UI + agent surfaces | `src/frontend/src/components/capital/`, WebMCP (planned), `/api/mcp/*` | [outcome evidence plan](./OUTCOME_EVIDENCE_PLAN.md) |
 | Observability                   | `src/backend/observability/`, `src/backend/modules/api/controllers/ObservabilityController.ts`                                  | `src/frontend/src/components/observability/`, `docs/signoz-dashboards.json` |
 | Sponsored inference credits     | `src/backend/services/credits/`, `src/backend/services/inference/`, `CreditProgramController.ts`, `InferenceGatewayController.ts` | `src/frontend/src/components/credits/`, credit/gateway tests, [guide](./SPONSORED_CREDITS.md) |
 | Verifiable trust / anchoring    | `src/backend/services/credits/LedgerCommitmentService.ts`, `src/backend/services/credits/commitment.ts`                         | `docs/DATA_OWNERSHIP.md`, `LedgerCommitment.test.ts`                        |

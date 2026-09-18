@@ -2,8 +2,8 @@
 
 Machine-readable record of Cognivern's on-chain deployments, one file per
 EVM chain (`<chainId>.json`). This registry is the single source of truth for
-**what is deployed where**; human docs (`docs/ZEROG_PROOF_V2.md`,
-`docs/XLAYER_PROOF_V2.md`, …) narrate each deployment but must mirror the
+**what is deployed where**; human docs (`docs/GOVERNANCE_PROOFS.md`, …)
+narrate each deployment but must mirror the
 verified values recorded here.
 
 ## File shape

@@ -1,5 +1,8 @@
 # 90-Second Demo Video Script — Agent-Governed Procurement on Canton
 
+> **Historical — HackCanton S2 (concluded).** Kept for reference; not a live
+> status doc. See `../README.md` for current program status.
+
 **Target length:** ~1:25–1:30
 **Tracks demonstrated:** Track 1 (Private DeFi) + Track 3 (Agentic Commerce)
 **Video source:** Playwright screen recording of `https://cognivern.vercel.app/sealed-bid`

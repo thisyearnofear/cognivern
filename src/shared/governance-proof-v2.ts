@@ -2,7 +2,7 @@
  * Chain-neutral canonicalization and commitment building for
  * GovernanceProofV2 (contracts/src/GovernanceProofV2.sol). Shared by every
  * proof rail (0G Mainnet, X Layer Mainnet, …) — the proof ID is
- * domain-separated by chainId + contract address. See docs/ZEROG_PROOF_V2.md
+ * domain-separated by chainId + contract address. See docs/GOVERNANCE_PROOFS.md
  * for the canonicalization specification.
  *
  * Note: exported type/constant names retain their historical ZeroG* prefix

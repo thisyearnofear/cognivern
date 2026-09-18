@@ -190,7 +190,7 @@ Checklist before committing build hours:
 
 ## 10. Related docs
 
-- [Agentic capital thesis](./AGENTIC_CAPITAL_THESIS.md) — govern → attribute → measure → allocate
+- [Product strategy](../PRODUCT_STRATEGY.md) — govern → attribute → measure → allocate
 - [KeeperHub submission](./HACKATHON_SUBMISSION_KEEPERHUB.md) — the governed rebalance path we reuse
 - [Cleanverse submission](./HACKATHON_SUBMISSION_CLEANVERSE.md) — provider-on-spend-rail pattern
-- [Developer Guide](./DEV.md) — API reference, spend path, execution providers
+- [Developer Guide](../DEV.md) — API reference, spend path, execution providers

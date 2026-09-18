@@ -1,5 +1,9 @@
 # Cleanverse Build — Trusted Assets Hackathon — Cognivern Submission
 
+> **Historical — hackathon concluded Aug 9 2026.** The Cleanverse rail it
+> produced is live; see [`../CLEANVERSE.md`](../CLEANVERSE.md) for the current
+> reference. This doc is the submission record only.
+
 > **⚠️ SUBMISSION DUE TODAY (Aug 9, ~23:59 UTC) — a few hours left.**
 > This is the active shipping target. Finish any outstanding checklist items, record the
 > demo video, and email isaac@cleanverse.com before the deadline. Flare Summer Signal is the
