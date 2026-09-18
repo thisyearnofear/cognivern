@@ -162,7 +162,7 @@ export class WorkspaceController {
         res.status(400).json({
           success: false,
           error:
-            "defaultExecutionProvider must be one of: local, keeperhub, cleanverse",
+            "defaultExecutionProvider must be one of: local, keeperhub, cleanverse, dynamic",
         });
         return;
       }

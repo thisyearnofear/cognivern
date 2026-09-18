@@ -77,11 +77,25 @@ export interface OwsAgentMetrics {
   complianceRate: number;
 }
 
+/**
+ * Passkey-wrapped agent-key root (mera PasskeySecretVault JSON). The vault
+ * stores only the wrapped blob + a sha256 verifier — the plaintext root is
+ * held in memory between unlock and lock/restart and is never persisted.
+ */
+export interface OwsKeyRootRecord {
+  /** mera secret-vault JSON: root AES-GCM-wrapped by the passkey KEK. */
+  vault: Record<string, unknown>;
+  /** '0x' + sha256(root) — an unlock commit must match to go hot. */
+  verifier: string;
+  enrolledAt: string;
+}
+
 interface OwsVaultData {
   version: 1;
   wallets: OwsStoredWallet[];
   apiKeys: OwsApiKeyRecord[];
   agents: OwsAgentRecord[];
+  keyRoot?: OwsKeyRootRecord;
 }
 
 export interface OwsResolvedAccess {
@@ -96,6 +110,10 @@ function nowIso() {
 export class OwsLocalVaultService {
   private vaultPath: string;
   private encryptionSecret: string;
+  /** Plaintext agent-key root — memory only, between unlock and lock/restart. */
+  private unlockedKeyRoot: Buffer | null = null;
+  /** Provisional root from enrollKeyRootBegin awaiting the wrapped commit. */
+  private pendingKeyRoot: Buffer | null = null;
 
   constructor() {
     this.vaultPath =
@@ -591,6 +609,275 @@ export class OwsLocalVaultService {
       );
       return { error: message };
     }
+  }
+
+  /**
+   * Broadcast a pre-encoded contract call FROM a scoped vault wallet.
+   * Same access rules as sendNativeTransfer (scoped key or operatorApproved).
+   * Calldata is encoded by the caller — this method stays signing-only, so
+   * it can serve any contract write (ERC-8004 registries, future rails)
+   * without growing per-contract surface here.
+   */
+  async sendContractCall(params: {
+    walletId: string;
+    apiKeyToken?: string | null;
+    operatorApproved?: boolean;
+    to: string;
+    data: string;
+    valueWei?: bigint;
+    rpcUrl: string;
+    chainId: number;
+    gasLimit?: number;
+  }): Promise<{ txHash: string; from: string } | { error: string }> {
+    if (!ethers.isAddress(params.to)) {
+      return { error: `Invalid contract address: ${params.to}` };
+    }
+    if (!params.data || !ethers.isHexString(params.data)) {
+      return { error: "Contract call data must be a hex string" };
+    }
+
+    let storedWallet: OwsStoredWallet | undefined;
+    if (params.operatorApproved) {
+      const vault = this.readVault();
+      storedWallet = vault.wallets.find((w) => w.id === params.walletId);
+      if (!storedWallet) {
+        return { error: "Wallet not found in vault" };
+      }
+    } else {
+      const access = await this.resolveAccess({
+        walletId: params.walletId,
+        apiKeyToken: params.apiKeyToken,
+      });
+      if (!access) {
+        return { error: "Wallet access not authorized" };
+      }
+      const vault = this.readVault();
+      storedWallet = vault.wallets.find((w) => w.id === access.wallet.id);
+      if (!storedWallet) {
+        return { error: "Wallet not found in vault" };
+      }
+    }
+
+    const privateKey = this.decryptPrivateKey(storedWallet);
+    try {
+      return await circuitBreakers.blockchain.execute(async () => {
+        const provider = new ethers.JsonRpcProvider(
+          params.rpcUrl,
+          params.chainId,
+        );
+        const wallet = new ethers.Wallet(privateKey, provider);
+        const tx = await wallet.sendTransaction({
+          to: params.to,
+          data: params.data,
+          value: params.valueWei ?? 0n,
+          gasLimit: params.gasLimit ?? 400_000,
+        });
+        const receipt =
+          await withTimeout<ethers.TransactionReceipt | null>(
+            tx.wait(),
+            60000,
+          );
+        const txHash = receipt?.hash || tx.hash;
+        logger.info(`Contract call broadcast: ${txHash}`);
+        return { txHash, from: wallet.address };
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown contract call error";
+      logger.error(
+        "Contract call failed",
+        error instanceof Error ? error : undefined,
+      );
+      return { error: message };
+    }
+  }
+
+  async updateAgentMetadata(
+    id: string,
+    metadata: Record<string, unknown>,
+  ): Promise<OwsAgentRecord> {
+    const vault = this.readVault();
+    const agent = vault.agents.find((a) => a.id === id);
+    if (!agent) {
+      throw new Error(`Agent ${id} not found`);
+    }
+    agent.metadata = {
+      ...agent.metadata,
+      ...metadata,
+    };
+    this.writeVault(vault);
+    return agent;
+  }
+
+  // ── Passkey-wrapped agent-key root ─────────────────────────────────────
+  //
+  // Custody model: the user's passkey (mera PRF → KEK) wraps a server-side
+  // 32-byte root; the vault persists only the wrapped blob + a sha256
+  // verifier. Agent spend keys are HKDF-derived from the root under an
+  // agent+mandate context — deterministic, revocable by rotating the root,
+  // and recoverable from the same passkey on any device. The plaintext root
+  // lives in memory only; a restart always requires a fresh passkey touch.
+
+  keyRootStatus() {
+    const vault = this.readVault();
+    return {
+      enrolled: Boolean(vault.keyRoot),
+      locked: !this.unlockedKeyRoot,
+      enrolledAt: vault.keyRoot?.enrolledAt ?? null,
+      derivedKeyCount: vault.wallets.filter(
+        (w) => w.metadata?.derived === "passkey-root",
+      ).length,
+    };
+  }
+
+  /** Step 1 of enroll: mint the provisional root for the client to wrap. */
+  enrollKeyRootBegin(): { root: string } | { error: string } {
+    const vault = this.readVault();
+    if (vault.keyRoot) {
+      return { error: "A passkey root is already enrolled" };
+    }
+    this.pendingKeyRoot = crypto.randomBytes(32);
+    return { root: this.pendingKeyRoot.toString("base64") };
+  }
+
+  /** Step 2: persist the passkey-wrapped blob; the root goes hot. */
+  enrollKeyRootCommit(
+    vaultJson: Record<string, unknown>,
+  ): { verifier: string } | { error: string } {
+    if (!this.pendingKeyRoot) {
+      return { error: "No pending enrollment — call enroll/begin first" };
+    }
+    const vault = this.readVault();
+    if (vault.keyRoot) {
+      return { error: "A passkey root is already enrolled" };
+    }
+    const verifier =
+      "0x" +
+      crypto.createHash("sha256").update(this.pendingKeyRoot).digest("hex");
+    vault.keyRoot = {
+      vault: vaultJson,
+      verifier,
+      enrolledAt: nowIso(),
+    };
+    this.writeVault(vault);
+    this.unlockedKeyRoot = this.pendingKeyRoot;
+    this.pendingKeyRoot = null;
+    return { verifier };
+  }
+
+  /** Step 1 of unlock: hand back the wrapped blob for the passkey ceremony. */
+  unlockKeyRootBegin():
+    | { vault: Record<string, unknown> }
+    | { error: string } {
+    const vault = this.readVault();
+    if (!vault.keyRoot) {
+      return { error: "No passkey root enrolled" };
+    }
+    return { vault: vault.keyRoot.vault };
+  }
+
+  /** Step 2: accept the unwrapped root; verified against the stored hash. */
+  unlockKeyRootCommit(rootBase64: string): { ok: true } | { error: string } {
+    const vault = this.readVault();
+    if (!vault.keyRoot) {
+      return { error: "No passkey root enrolled" };
+    }
+    const root = Buffer.from(rootBase64, "base64");
+    if (root.length !== 32) {
+      return { error: "Unwrapped root must be 32 bytes" };
+    }
+    const verifier =
+      "0x" + crypto.createHash("sha256").update(root).digest("hex");
+    if (verifier !== vault.keyRoot.verifier) {
+      return { error: "Unwrapped root does not match the enrolled root" };
+    }
+    this.unlockedKeyRoot = root;
+    return { ok: true };
+  }
+
+  lockKeyRoot(): void {
+    this.unlockedKeyRoot = null;
+    this.pendingKeyRoot = null;
+  }
+
+  /**
+   * Derive a deterministic agent spend key from the unlocked root:
+   * HKDF-SHA256(root, salt=context, info='cognivern-agent-key'). With
+   * `register` (default) the key is imported as a vault wallet scoped to its
+   * agent+mandate context — idempotent, so re-deriving the same context
+   * returns the existing wallet.
+   */
+  async deriveAgentKey(params: {
+    agentId: string;
+    mandateId?: string;
+    register?: boolean;
+  }): Promise<
+    | { address: string; context: string; walletId?: string }
+    | { error: string }
+  > {
+    if (!this.unlockedKeyRoot) {
+      return {
+        error: "Passkey vault is locked — unlock with passkey first",
+      };
+    }
+    const context = `agent:${params.agentId}:mandate:${
+      params.mandateId || "unscoped"
+    }`;
+    const keyBytes = crypto.hkdfSync(
+      "sha256",
+      this.unlockedKeyRoot,
+      context,
+      "cognivern-agent-key",
+      32,
+    );
+    const privateKey = "0x" + Buffer.from(keyBytes).toString("hex");
+    const address = new ethers.Wallet(privateKey).address;
+
+    if (params.register === false) {
+      return { address, context };
+    }
+
+    const vault = this.readVault();
+    const existing = vault.wallets.find(
+      (w) =>
+        w.metadata?.derived === "passkey-root" &&
+        w.metadata?.context === context,
+    );
+    if (existing) {
+      return {
+        address: existing.accounts[0]?.address ?? address,
+        context,
+        walletId: existing.id,
+      };
+    }
+
+    const descriptor = await this.importWallet({
+      name: `passkey:${params.agentId}`,
+      privateKey,
+      chainType: "evm",
+      metadata: {
+        derived: "passkey-root",
+        context,
+        agentId: params.agentId,
+        mandateId: params.mandateId ?? null,
+      },
+    });
+    return { address, context, walletId: descriptor.id };
+  }
+
+  /** Derived agent keys (addresses + contexts only — never key material). */
+  listDerivedKeys() {
+    return this.readVault()
+      .wallets.filter((w) => w.metadata?.derived === "passkey-root")
+      .map((w) => ({
+        walletId: w.id,
+        name: w.name,
+        address: w.accounts[0]?.address,
+        context: w.metadata?.context,
+        agentId: w.metadata?.agentId,
+        mandateId: w.metadata?.mandateId,
+        createdAt: w.createdAt,
+      }));
   }
 
   private readVault(): OwsVaultData {

@@ -12,7 +12,7 @@ type SpendView = "runs" | "attribution" | "verified";
 const VIEWS: Array<{ value: SpendView; label: string }> = [
   { value: "runs", label: "Runs" },
   { value: "attribution", label: "Attribution" },
-  { value: "verified", label: "Verified rail" },
+  { value: "verified", label: "Verified settlement" },
 ];
 
 function isSpendView(value: string | null): value is SpendView {
@@ -21,10 +21,9 @@ function isSpendView(value: string | null): value is SpendView {
 
 /**
  * Spend & Outcomes — the attributable-spend stage of the vision loop, as one
- * surface with three views: executions (Runs), attribution (Capital), and the
- * Cleanverse verified rail. Deep links use ?view=; /runs and /verified-capital
- * redirect into the matching tab. The route is /spend (matching the nav and
- * page title); /capital redirects here preserving the query string.
+ * surface with three views: executions (Runs), attribution (Capital), and
+ * verified settlement (identity-gated capital). Deep links use ?view=;
+ * /runs and /verified-capital redirect into the matching tab.
  */
 export function CapitalOverview() {
   const router = useRouter();

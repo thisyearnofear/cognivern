@@ -299,7 +299,7 @@ export interface WorkspaceSettings {
   /**
    * Spend broadcast adapter when wallet metadata omits executionProvider.
    */
-  defaultExecutionProvider?: "local" | "keeperhub" | "cleanverse";
+  defaultExecutionProvider?: "local" | "keeperhub" | "cleanverse" | "dynamic";
   /**
    * Evidence sinks to fan out to. Omit / empty = platform defaults.
    * Ids: "zerog" | "filecoin".
@@ -449,7 +449,8 @@ export type WalletSigningProviderId =
   | "local"
   | "speculos"
   | "ledger"
-  | "ows_remote";
+  | "ows_remote"
+  | "dynamic";
 
 /** Default BIP-44 Ethereum derivation path used by the Ledger provider. */
 export const DEFAULT_LEDGER_DERIVATION_PATH = "m/44'/60'/0'/0/0";
@@ -466,4 +467,6 @@ export interface OwsWalletSigningConfig {
   ledgerDerivationPath?: string;
   /** External signing endpoint; only for speculos / ows_remote. */
   externalSource?: string;
+  /** Dynamic server-wallet address; only for the Dynamic provider. */
+  dynamicAccountAddress?: string;
 }

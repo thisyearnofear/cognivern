@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useAgents } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
+import { PasskeyVaultPanel } from '@/components/agents/passkey-vault-panel';
 import { mutate } from 'swr';
 import { useMemo, useState } from 'react';
 
@@ -409,6 +410,8 @@ export function AgentsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PasskeyVaultPanel agents={user.map((a) => ({ id: a.id, name: a.name }))} />
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden">

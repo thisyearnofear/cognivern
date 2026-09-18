@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import dotenv from "dotenv";
+import path from "node:path";
 
 const dotenvPath = process.env.DOTENV_CONFIG_PATH;
 
@@ -77,6 +78,20 @@ const keeperHubConfigSchema = z.object({
   KEEPERHUB_BASE_URL: z.string().default("https://app.keeperhub.com"),
 });
 
+// Dynamic server wallets (optional MPC custody for agent spends)
+const dynamicConfigSchema = z.object({
+  DYNAMIC_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => (v || "").toLowerCase() === "true"),
+  DYNAMIC_ENVIRONMENT_ID: z.string().optional(),
+  DYNAMIC_API_TOKEN: z.string().optional(),
+  DYNAMIC_WALLET_PASSWORD: z.string().optional(),
+  DYNAMIC_SERVER_WALLET_ADDRESS: z.string().optional(),
+  DYNAMIC_WALLET_METADATA_PATH: z.string().optional(),
+  DYNAMIC_WALLET_METADATA_JSON: z.string().optional(),
+});
+
 // Cleanverse (CVI / CVA) configuration — Track 2 verified agent capital rail
 const cleanverseConfigSchema = z.object({
   CLEANVERSE_API_ID: z.string().optional(),
@@ -94,6 +109,7 @@ const cleanverseConfigSchema = z.object({
   CLEANVERSE_DEPOSIT_FOR_ADDRESS: z.string().optional(),
   MONAD_RPC_URL: z.string().default("https://testnet-rpc.monad.xyz"),
   MONAD_CHAIN_ID: z.coerce.number().default(10143),
+  MONAD_MAINNET_RPC_URL: z.string().default("https://rpc.monad.xyz"),
   CLEANVERSE_GATE_ALL_SPENDS: z
     .string()
     .optional()
@@ -105,13 +121,45 @@ const cleanverseConfigSchema = z.object({
   CLEANVERSE_BLOCK_COUNTRIES: z.string().optional(),
 });
 
+// ERC-8004 (Trustless Agents) identity + reputation on Monad
+const erc8004ConfigSchema = z.object({
+  ERC8004_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => (v || "").toLowerCase() === "true"),
+  ERC8004_CHAIN_ID: z.coerce.number().optional(),
+  ERC8004_RPC_URL: z.string().optional(),
+  ERC8004_IDENTITY_REGISTRY: z.string().optional(),
+  ERC8004_REPUTATION_REGISTRY: z.string().optional(),
+  // Public HTTPS base used to build agentURI links
+  // (e.g. https://api.cognivern.persidian.com). Unset → cards are embedded
+  // on-chain as data: URIs instead of being served over HTTPS.
+  ERC8004_PUBLIC_BASE_URL: z.string().optional(),
+});
+
+// Envio HyperIndex — hosted/self-hosted indexer GraphQL that feeds CRE
+// evidence. Inert until ENVIO_ENABLED=true and a URL is configured.
+const envioConfigSchema = z.object({
+  ENVIO_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => (v || "").toLowerCase() === "true"),
+  ENVIO_GRAPHQL_URL: z.string().optional(),
+  ENVIO_STATE_PATH: z.string().optional(),
+  // Hasura admin secret / API key when the indexer requires auth.
+  ENVIO_API_KEY: z.string().optional(),
+});
+
 // Combined configuration schema
 const configSchema = baseConfigSchema
   .merge(apiConfigSchema)
   .merge(aiConfigSchema)
   .merge(cantonConfigSchema)
   .merge(keeperHubConfigSchema)
-  .merge(cleanverseConfigSchema);
+  .merge(dynamicConfigSchema)
+  .merge(cleanverseConfigSchema)
+  .merge(erc8004ConfigSchema)
+  .merge(envioConfigSchema);
 
 // Parse and validate configuration
 const parseConfig = () => {
@@ -444,6 +492,15 @@ export const keeperHubConfig = {
   enabled: Boolean(config.KEEPERHUB_API_KEY),
 };
 
+export const dynamicConfig = {
+  enabled: Boolean(config.DYNAMIC_ENABLED),
+  environmentId: config.DYNAMIC_ENVIRONMENT_ID || "",
+  apiToken: config.DYNAMIC_API_TOKEN || "",
+  walletPassword: config.DYNAMIC_WALLET_PASSWORD || "",
+  serverWalletAddress: config.DYNAMIC_SERVER_WALLET_ADDRESS || "",
+  walletMetadataPath: config.DYNAMIC_WALLET_METADATA_PATH || "",
+};
+
 export const cleanverseConfig = {
   get apiId(): string {
     return process.env.CLEANVERSE_API_ID || config.CLEANVERSE_API_ID || "";
@@ -534,6 +591,127 @@ export const cleanverseConfig = {
   },
   explorerTxUrl(txHash: string): string {
     return `https://testnet.monadscan.com/tx/${txHash}`;
+  },
+};
+
+// Monad network registry — the Cleanverse CVA rail is pinned to testnet via
+// cleanverseConfig; mainnet (chain 143) is reachable for identity/reputation
+// rails (ERC-8004) and any future mainnet settlement.
+export const monadConfig = {
+  mainnetChainId: 143,
+  testnetChainId: 10143,
+  get mainnetRpcUrl(): string {
+    return (
+      process.env.MONAD_MAINNET_RPC_URL ||
+      config.MONAD_MAINNET_RPC_URL ||
+      "https://rpc.monad.xyz"
+    );
+  },
+  rpcUrlFor(chainId: number): string {
+    if (chainId === this.mainnetChainId) return this.mainnetRpcUrl;
+    return cleanverseConfig.monadRpcUrl;
+  },
+  explorerTxUrl(chainId: number, txHash: string): string {
+    const base =
+      chainId === this.mainnetChainId
+        ? "https://monadscan.com"
+        : "https://testnet.monadscan.com";
+    return `${base}/tx/${txHash}`;
+  },
+};
+
+// ERC-8004 reference deployments differ between mainnet and testnet families.
+const ERC8004_DEFAULT_REGISTRIES: Record<
+  number,
+  { identity: string; reputation: string }
+> = {
+  143: {
+    identity: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+    reputation: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
+  },
+  10143: {
+    identity: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+    reputation: "0x8004B663056A597Dffe9eCcC1965A193B7388713",
+  },
+};
+
+export const erc8004Config = {
+  get enabled(): boolean {
+    return (
+      (process.env.ERC8004_ENABLED || "").toLowerCase() === "true" ||
+      Boolean(config.ERC8004_ENABLED)
+    );
+  },
+  get chainId(): number {
+    return Number(
+      process.env.ERC8004_CHAIN_ID || config.ERC8004_CHAIN_ID || 143,
+    );
+  },
+  get rpcUrl(): string {
+    return (
+      process.env.ERC8004_RPC_URL ||
+      config.ERC8004_RPC_URL ||
+      monadConfig.rpcUrlFor(this.chainId)
+    );
+  },
+  get identityRegistry(): string {
+    return (
+      process.env.ERC8004_IDENTITY_REGISTRY ||
+      config.ERC8004_IDENTITY_REGISTRY ||
+      ERC8004_DEFAULT_REGISTRIES[this.chainId]?.identity ||
+      ""
+    );
+  },
+  get reputationRegistry(): string {
+    return (
+      process.env.ERC8004_REPUTATION_REGISTRY ||
+      config.ERC8004_REPUTATION_REGISTRY ||
+      ERC8004_DEFAULT_REGISTRIES[this.chainId]?.reputation ||
+      ""
+    );
+  },
+  get publicBaseUrl(): string {
+    return (
+      process.env.ERC8004_PUBLIC_BASE_URL ||
+      config.ERC8004_PUBLIC_BASE_URL ||
+      ""
+    ).replace(/\/+$/, "");
+  },
+  /** Global ERC-8004 registry ref: eip155:{chainId}:{identityRegistry}. */
+  get agentRegistryRef(): string {
+    return `eip155:${this.chainId}:${this.identityRegistry}`;
+  },
+  explorerTxUrl(txHash: string): string {
+    return monadConfig.explorerTxUrl(this.chainId, txHash);
+  },
+};
+
+// Envio HyperIndex feeds the indexer project in indexers/envio/. The backend
+// only ever reads the indexer's GraphQL — chain reads stay off the API path.
+export const envioConfig = {
+  get enabled(): boolean {
+    return (
+      (process.env.ENVIO_ENABLED || "").toLowerCase() === "true" ||
+      Boolean(config.ENVIO_ENABLED)
+    );
+  },
+  get graphqlUrl(): string {
+    return (
+      process.env.ENVIO_GRAPHQL_URL || config.ENVIO_GRAPHQL_URL || ""
+    ).replace(/\/+$/, "");
+  },
+  get apiKey(): string {
+    return process.env.ENVIO_API_KEY || config.ENVIO_API_KEY || "";
+  },
+  get statePath(): string {
+    return (
+      process.env.ENVIO_STATE_PATH ||
+      config.ENVIO_STATE_PATH ||
+      path.join(process.cwd(), ".cognivern", "envio-sync.json")
+    );
+  },
+  get configured(): boolean {
+    return this.enabled && Boolean(this.graphqlUrl);
   },
 };
 

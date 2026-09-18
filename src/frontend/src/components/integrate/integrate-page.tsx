@@ -415,7 +415,7 @@ export function IntegratePage() {
             <Badge variant="outline" className="text-[10px]">
               {defaultExecutionRail().displayName}
             </Badge>
-            <span>· {rail.integrateFragment} · sealed-bid procurement on Canton.</span>
+            <span>· {rail.integrateFragment} · private vendor selection when configured.</span>
           </div>
         </div>
       </DisclosureSection>

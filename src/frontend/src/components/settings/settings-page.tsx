@@ -19,7 +19,17 @@ import {
 } from "@/components/ui/dialog";
 import { useTheme } from "next-themes";
 import { useConfidentialRail } from "@/hooks/use-confidential-rail";
-import { settingsRailRows, workspaceSelectableExecutionRails, DEFAULT_LEDGER_DERIVATION_PATH } from "@cognivern/shared";
+import {
+  settingsRailRows,
+  workspaceSelectableExecutionRails,
+  DEFAULT_LEDGER_DERIVATION_PATH,
+  deriveCustodyMode,
+  custodyToProviders,
+  CUSTODY_MODE_META,
+  PRIMARY_CUSTODY_MODES,
+  EXTENDED_CUSTODY_MODES,
+  type CustodyMode,
+} from "@cognivern/shared";
 import {
   Sun,
   Moon,
@@ -121,7 +131,7 @@ function WalletsCard() {
     async (
       walletId: string,
       updates: {
-        executionProvider?: "local" | "keeperhub" | "cleanverse";
+        executionProvider?: "local" | "keeperhub" | "cleanverse" | "dynamic";
         chainId?: string;
         keeperHubWalletAddress?: string;
         cleanverseSenderAddress?: string;
@@ -129,6 +139,7 @@ function WalletsCard() {
         signingProvider?: WalletSigningProviderId;
         ledgerDerivationPath?: string;
         externalSource?: string;
+        dynamicAccountAddress?: string;
       },
     ) => {
       setSavingId(walletId);
@@ -145,6 +156,7 @@ function WalletsCard() {
           signingProvider: updates.signingProvider,
           ledgerDerivationPath: updates.ledgerDerivationPath,
           externalSource: updates.externalSource,
+          dynamicAccountAddress: updates.dynamicAccountAddress,
         });
         if (res.success) {
           setSavedId(walletId);
@@ -164,10 +176,21 @@ function WalletsCard() {
     [mutate],
   );
 
-  const keeperHubWallets =
-    wallets?.filter((w) => (w.metadata as { executionProvider?: string } | null)?.executionProvider === "keeperhub") ?? [];
-  const cleanverseWallets =
-    wallets?.filter((w) => (w.metadata as { executionProvider?: string } | null)?.executionProvider === "cleanverse") ?? [];
+  const custodyCounts = {
+    vault: 0,
+    managed_mpc: 0,
+    hosted_execution: 0,
+    verified_settlement: 0,
+    custom: 0,
+  };
+  for (const w of wallets ?? []) {
+    const meta = (w.metadata || {}) as {
+      executionProvider?: string;
+      signingProvider?: string;
+    };
+    const mode = deriveCustodyMode(meta);
+    custodyCounts[mode] += 1;
+  }
   const hasAnyWallet = (wallets?.length ?? 0) > 0;
 
   return (
@@ -175,27 +198,28 @@ function WalletsCard() {
       <div className="flex items-center gap-2">
         <Wallet className="h-4 w-4 text-sky-500" />
         <h2 className="font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
-          Wallet Execution Provider
+          Wallet custody
         </h2>
-        <div className="ml-auto flex items-center gap-2">
-          {keeperHubWallets.length > 0 && (
-            <Badge variant="default">
-              {keeperHubWallets.length} on KeeperHub
-            </Badge>
+        <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
+          {custodyCounts.managed_mpc > 0 && (
+            <Badge variant="default">{custodyCounts.managed_mpc} managed MPC</Badge>
           )}
-          {cleanverseWallets.length > 0 && (
-            <Badge variant="default">
-              {cleanverseWallets.length} on Cleanverse
-            </Badge>
+          {custodyCounts.hosted_execution > 0 && (
+            <Badge variant="default">{custodyCounts.hosted_execution} hosted</Badge>
+          )}
+          {custodyCounts.verified_settlement > 0 && (
+            <Badge variant="default">{custodyCounts.verified_settlement} verified</Badge>
           )}
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Choose how each OWS wallet broadcasts approved spends. Local uses the
-        Cognivern vault; KeeperHub routes managed native transfers;
-        Cleanverse screens A-Pass (CVI) then settles Access USDC/aUSDC (CVA) on Monad
-        testnet. Audit trails show up in
-        <a className="underline ml-1" href="/observability">Observability</a>.
+        Where each agent wallet holds and moves capital after policy approval.
+        Cognivern keeps mandates, policy, and evidence; custody adapters are
+        swappable underneath. Audit trails appear in{" "}
+        <a className="underline" href="/observability">
+          Observability
+        </a>
+        .
       </p>
 
       {isLoading ? (
@@ -204,9 +228,9 @@ function WalletsCard() {
           <div className="h-8 w-full bg-muted rounded" />
         </div>
       ) : error ? (
-        <PageState variant="error" title="Could not load wallets" message="Wallet execution settings are unavailable right now." action={{ label: "Retry", onClick: () => mutate() }} />
+        <PageState variant="error" title="Could not load wallets" message="Wallet custody settings are unavailable right now." action={{ label: "Retry", onClick: () => mutate() }} />
       ) : !hasAnyWallet ? (
-        <KeeperHubEmptyState />
+        <WalletCustodyEmptyState />
       ) : (
         <div className="space-y-4">
           {wallets!.map((wallet) => (
@@ -225,31 +249,30 @@ function WalletsCard() {
   );
 }
 
-function KeeperHubEmptyState() {
+function WalletCustodyEmptyState() {
   return (
     <div className="rounded-lg border border-dashed border-sky-300 dark:border-sky-800 bg-sky-50/40 dark:bg-sky-950/20 p-4 space-y-3">
       <div className="flex items-center gap-2">
         <Rocket className="h-4 w-4 text-sky-500" />
-        <h3 className="text-sm font-semibold">Set up a KeeperHub-routed wallet</h3>
+        <h3 className="text-sm font-semibold">Set up a wallet</h3>
       </div>
       <p className="text-xs text-muted-foreground">
-        You don&apos;t have an OWS wallet yet. To use KeeperHub, first bootstrap
-        a wallet (Cognivern creates one from your <code>OWS_BOOTSTRAP_PRIVATE_KEY</code>),
-        then return here to pick the KeeperHub execution provider.
+        Bootstrap a Cognivern vault wallet first, then choose custody by need —
+        vault by default, managed MPC when you do not want keys on this box.
       </p>
       <ol className="text-xs text-muted-foreground list-decimal list-inside space-y-1">
-        <li>Set <code>OWS_BOOTSTRAP_PRIVATE_KEY</code> in the backend env and restart the API.</li>
-        <li>Reload this page — the wallet will appear in the list above.</li>
-        <li>Choose <strong>KeeperHub</strong> as the execution provider and supply a KeeperHub-funded wallet address.</li>
+        <li>
+          Set <code>OWS_BOOTSTRAP_PRIVATE_KEY</code> in the backend env and restart
+          the API (or import a wallet).
+        </li>
+        <li>Reload this page — the wallet will appear above.</li>
+        <li>Pick a custody mode and save.</li>
       </ol>
-      <p className="text-[10px] text-muted-foreground">
-        Need a KeeperHub wallet? Create one at <a className="underline" href="https://app.keeperhub.com" target="_blank" rel="noreferrer">app.keeperhub.com</a>.
-      </p>
     </div>
   );
 }
 
-function KeeperHubConsequences() {
+function HostedExecutionConsequences() {
   return (
     <div className="rounded-lg border border-sky-200 dark:border-sky-900 bg-sky-50/30 dark:bg-sky-950/20 p-3 space-y-2">
       <div className="flex items-center gap-2">
@@ -259,12 +282,38 @@ function KeeperHubConsequences() {
         </span>
       </div>
       <ul className="text-[11px] text-sky-900/80 dark:text-sky-200/80 space-y-1 list-disc list-inside">
-        <li><strong>Managed execution.</strong> KeeperHub handles gas, nonces, retries, and multi-RPC failover on your behalf.</li>
-        <li><strong>Gas sponsorship.</strong> Mainnet Ethereum transactions are gas-sponsored by KeeperHub.</li>
-        <li><strong>MEV protection.</strong> Private routing avoids the public mempool.</li>
-        <li><strong>Audit trail.</strong> Every spend flows through the same <code>wallet_sign_and_broadcast</code> span in SigNoz, with the KeeperHub <code>executionId</code> as a span attribute.</li>
-        <li><strong>Cost.</strong> KeeperHub charges its own fee on top of gas — see <a className="underline" href="https://docs.keeperhub.com" target="_blank" rel="noreferrer">docs.keeperhub.com</a> for current pricing.</li>
+        <li>
+          <strong>Managed broadcast.</strong> Gas, nonces, retries, and multi-RPC
+          failover are handled by the hosted execution adapter.
+        </li>
+        <li>
+          <strong>Same control plane.</strong> Policy approval and CRE evidence
+          still run through Cognivern.
+        </li>
+        <li>
+          <strong>Provider footnote.</strong> Currently powered by KeeperHub —
+          see their docs for gas sponsorship and pricing.
+        </li>
       </ul>
+    </div>
+  );
+}
+
+function ManagedMpcSetupHints() {
+  return (
+    <div className="rounded-lg border border-dashed p-3 space-y-2">
+      <p className="text-xs font-medium">Setup checklist</p>
+      <ol className="text-[11px] text-muted-foreground list-decimal list-inside space-y-1">
+        <li>
+          Provision a server wallet (<code className="font-mono">pnpm dynamic:provision</code>
+          ) or paste an existing account address.
+        </li>
+        <li>Set chain ID for the rail you will fund.</li>
+        <li>Fund the address, then run a dust spend to confirm the path.</li>
+      </ol>
+      <p className="text-[10px] text-muted-foreground">
+        Details: <code className="font-mono">docs/DYNAMIC.md</code>
+      </p>
     </div>
   );
 }
@@ -277,7 +326,7 @@ interface WalletExecutionFormProps {
   onSave: (
     walletId: string,
     updates: {
-      executionProvider?: "local" | "keeperhub" | "cleanverse";
+      executionProvider?: "local" | "keeperhub" | "cleanverse" | "dynamic";
       chainId?: string;
       keeperHubWalletAddress?: string;
       cleanverseSenderAddress?: string;
@@ -285,6 +334,7 @@ interface WalletExecutionFormProps {
       signingProvider?: WalletSigningProviderId;
       ledgerDerivationPath?: string;
       externalSource?: string;
+      dynamicAccountAddress?: string;
     },
   ) => void;
 }
@@ -302,20 +352,32 @@ function WalletExecutionForm({
     keeperHubWalletAddress?: string;
     cleanverseSenderAddress?: string;
     requireCleanverseIdentity?: boolean;
-    // Threshold-gated signing config (see shared OwsWalletSigningConfig).
     signingProvider?: WalletSigningProviderId;
     ledgerDerivationPath?: string;
     externalSource?: string;
+    dynamicAccountAddress?: string;
   };
+
+  const initialCustody = deriveCustodyMode(meta);
+  const [custody, setCustody] = useState<CustodyMode>(initialCustody);
+  const [showExtended, setShowExtended] = useState(
+    initialCustody === "hosted_execution" ||
+      initialCustody === "verified_settlement" ||
+      initialCustody === "custom",
+  );
+  const [advancedOpen, setAdvancedOpen] = useState(initialCustody === "custom");
+
   const initialProvider =
     meta.executionProvider === "keeperhub"
       ? "keeperhub"
       : meta.executionProvider === "cleanverse"
         ? "cleanverse"
-        : "local";
-  const [provider, setProvider] = useState<"local" | "keeperhub" | "cleanverse">(
-    initialProvider,
-  );
+        : meta.executionProvider === "dynamic"
+          ? "dynamic"
+          : "local";
+  const [provider, setProvider] = useState<
+    "local" | "keeperhub" | "cleanverse" | "dynamic"
+  >(initialProvider);
   const [chainId, setChainId] = useState<string>(
     meta.chainId !== undefined
       ? String(meta.chainId)
@@ -329,6 +391,9 @@ function WalletExecutionForm({
   const [cleanverseSenderAddress, setCleanverseSenderAddress] = useState<string>(
     meta.cleanverseSenderAddress || "",
   );
+  const [dynamicAccountAddress, setDynamicAccountAddress] = useState<string>(
+    meta.dynamicAccountAddress || "",
+  );
   const [requireCleanverseIdentity, setRequireCleanverseIdentity] = useState(
     meta.requireCleanverseIdentity === true,
   );
@@ -341,12 +406,28 @@ function WalletExecutionForm({
     meta.externalSource || "",
   );
 
-  const providerLabel =
-    provider === "keeperhub"
-      ? "KeeperHub"
-      : provider === "cleanverse"
-        ? "Cleanverse"
-        : "Local";
+  const applyCustody = (mode: CustodyMode) => {
+    setCustody(mode);
+    const mapped = custodyToProviders(mode);
+    if (!mapped) {
+      setAdvancedOpen(true);
+      return;
+    }
+    setProvider(mapped.executionProvider);
+    setSigningProvider(mapped.signingProvider);
+    if (mapped.executionProvider === "cleanverse" && !chainId) {
+      setChainId("10143");
+    }
+  };
+
+  const effectiveCustody = advancedOpen
+    ? deriveCustodyMode({
+        executionProvider: provider,
+        signingProvider,
+      })
+    : custody;
+
+  const custodyMeta = CUSTODY_MODE_META[effectiveCustody];
 
   return (
     <div className="rounded-lg border p-4 space-y-4">
@@ -358,39 +439,63 @@ function WalletExecutionForm({
             {shortAddress(wallet.address)}
           </code>
         </div>
-        <Badge variant={provider === "local" ? "secondary" : "default"}>
-          {providerLabel}
+        <Badge variant={effectiveCustody === "vault" ? "secondary" : "default"}>
+          {custodyMeta.label}
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-xs font-medium">Execution provider</label>
-          <select
-            value={provider}
-            onChange={(e) => {
-              const next = e.target.value as "local" | "keeperhub" | "cleanverse";
-              setProvider(next);
-              if (next === "cleanverse" && !chainId) {
-                setChainId("10143");
-              }
-            }}
-            disabled={saving}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+      <div className="space-y-2">
+        <label className="text-xs font-medium">Custody</label>
+        <select
+          value={
+            PRIMARY_CUSTODY_MODES.includes(custody as (typeof PRIMARY_CUSTODY_MODES)[number]) ||
+            (showExtended &&
+              EXTENDED_CUSTODY_MODES.includes(
+                custody as (typeof EXTENDED_CUSTODY_MODES)[number],
+              ))
+              ? custody
+              : custody === "custom"
+                ? "custom"
+                : "vault"
+          }
+          onChange={(e) => {
+            const next = e.target.value as CustodyMode;
+            applyCustody(next);
+          }}
+          disabled={saving || advancedOpen}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+        >
+          {PRIMARY_CUSTODY_MODES.map((id) => (
+            <option key={id} value={id}>
+              {CUSTODY_MODE_META[id].label}
+            </option>
+          ))}
+          {showExtended &&
+            EXTENDED_CUSTODY_MODES.map((id) => (
+              <option key={id} value={id}>
+                {CUSTODY_MODE_META[id].label}
+              </option>
+            ))}
+          {(custody === "custom" || advancedOpen) && (
+            <option value="custom">Custom (advanced)</option>
+          )}
+        </select>
+        <p className="text-[10px] text-muted-foreground">
+          {custodyMeta.need}
+          {custodyMeta.poweredBy ? ` · ${custodyMeta.poweredBy}` : ""}
+        </p>
+        {!showExtended && (
+          <button
+            type="button"
+            className="text-[10px] text-sky-600 dark:text-sky-400 underline underline-offset-2"
+            onClick={() => setShowExtended(true)}
           >
-            <option value="local">Local vault</option>
-            <option value="keeperhub">KeeperHub</option>
-            <option value="cleanverse">Cleanverse (Monad Access USDC)</option>
-          </select>
-          <p className="text-[10px] text-muted-foreground">
-            {provider === "keeperhub"
-              ? "Transfers are routed through KeeperHub."
-              : provider === "cleanverse"
-                ? "A-Pass (CVI) gates approval; Access USDC/aUSDC (CVA) settles on Monad testnet."
-                : "Transfers are signed and broadcast by the local Cognivern vault."}
-          </p>
-        </div>
+            Need hosted execution or verified settlement?
+          </button>
+        )}
+      </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <label className="text-xs font-medium">Chain ID</label>
           <Input
@@ -401,45 +506,142 @@ function WalletExecutionForm({
             disabled={saving}
           />
           <p className="text-[10px] text-muted-foreground">
-            {provider === "cleanverse"
-              ? "Monad testnet is 10143."
-              : "Chain ID for KeeperHub execution. Defaults to the configured Cognivern chain."}
+            Execution rail for this wallet. Defaults to the workspace rail when empty.
           </p>
         </div>
       </div>
 
-      {/* Signing — threshold-gated signing-provider config. Separate from
-          "Execution provider" above: execution decides *how* an approved
-          spend is broadcast; this decides *which key* signs it (and whether a
-          spend at/above the policy's approval threshold waits for a human). */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center gap-2">
-          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Signing
-          </h4>
-        </div>
-        <p className="text-[10px] text-muted-foreground">
-          Ledger is optional. Wallets without a hardware signer use the local
-          software key. Spends at/above the policy&apos;s approval threshold are
-          held for operator approval, then signed by this provider.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {provider === "dynamic" && (
+        <>
+          <ManagedMpcSetupHints />
           <div className="space-y-2">
-            <label className="text-xs font-medium">Signing provider</label>
-            <select
-              value={signingProvider}
-              onChange={(e) =>
-                setSigningProvider(e.target.value as WalletSigningProviderId)
-              }
+            <label className="text-xs font-medium">MPC account address</label>
+            <Input
+              type="text"
+              placeholder="0x..."
+              value={dynamicAccountAddress}
+              onChange={(e) => setDynamicAccountAddress(e.target.value)}
               disabled={saving}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-            >
-              <option value="local">Local (software key)</option>
-              <option value="speculos">Speculos (sandbox)</option>
-              <option value="ledger">Ledger (hardware)</option>
-              <option value="ows_remote">OWS Remote</option>
-            </select>
+            />
+            <p className="text-[10px] text-muted-foreground">
+              From provision, or leave blank to use the process default metadata file.
+            </p>
+          </div>
+        </>
+      )}
+
+      {provider === "keeperhub" && (
+        <>
+          <HostedExecutionConsequences />
+          <div className="space-y-2">
+            <label className="text-xs font-medium">Hosted wallet address</label>
+            <Input
+              type="text"
+              placeholder="0x..."
+              value={keeperHubWalletAddress}
+              onChange={(e) => setKeeperHubWalletAddress(e.target.value)}
+              disabled={saving}
+            />
+          </div>
+        </>
+      )}
+
+      {provider === "cleanverse" && (
+        <div className="space-y-2">
+          <label className="text-xs font-medium">Verified sender address (optional)</label>
+          <Input
+            type="text"
+            placeholder={wallet.address}
+            value={cleanverseSenderAddress}
+            onChange={(e) => setCleanverseSenderAddress(e.target.value)}
+            disabled={saving}
+          />
+          <p className="text-[10px] text-muted-foreground">
+            Defaults to the vault address. Must pass identity screening on the
+            verified settlement rail.
+          </p>
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={requireCleanverseIdentity}
+              onChange={(e) => setRequireCleanverseIdentity(e.target.checked)}
+              disabled={saving}
+            />
+            Always require identity screening
+          </label>
+        </div>
+      )}
+
+      <div className="pt-1">
+        <button
+          type="button"
+          className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+          onClick={() => setAdvancedOpen((o) => !o)}
+        >
+          <Lock className="h-3 w-3" />
+          {advancedOpen ? "Hide advanced" : "Advanced — split signing & broadcast"}
+        </button>
+      </div>
+
+      {advancedOpen && (
+        <div className="space-y-3 rounded-md border border-dashed p-3">
+          <p className="text-[10px] text-muted-foreground">
+            Broadcast (execution) and attestation signing are usually paired by
+            custody mode. Split them only when you know you need it.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-medium">Broadcast adapter</label>
+              <select
+                value={provider}
+                onChange={(e) => {
+                  const next = e.target.value as
+                    | "local"
+                    | "keeperhub"
+                    | "cleanverse"
+                    | "dynamic";
+                  setProvider(next);
+                  setCustody(
+                    deriveCustodyMode({
+                      executionProvider: next,
+                      signingProvider,
+                    }),
+                  );
+                  if (next === "cleanverse" && !chainId) setChainId("10143");
+                }}
+                disabled={saving}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              >
+                <option value="local">Local vault</option>
+                <option value="dynamic">Managed MPC</option>
+                <option value="keeperhub">Hosted execution</option>
+                <option value="cleanverse">Verified settlement</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium">Signing adapter</label>
+              <select
+                value={signingProvider}
+                onChange={(e) => {
+                  const next = e.target.value as WalletSigningProviderId;
+                  setSigningProvider(next);
+                  setCustody(
+                    deriveCustodyMode({
+                      executionProvider: provider,
+                      signingProvider: next,
+                    }),
+                  );
+                }}
+                disabled={saving}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              >
+                <option value="local">Local (software key)</option>
+                <option value="dynamic">Managed MPC</option>
+                <option value="ledger">Ledger (hardware)</option>
+                <option value="speculos">Speculos (sandbox)</option>
+                <option value="ows_remote">OWS Remote</option>
+              </select>
+            </div>
           </div>
 
           {signingProvider === "ledger" && (
@@ -452,75 +654,22 @@ function WalletExecutionForm({
                 onChange={(e) => setLedgerDerivationPath(e.target.value)}
                 disabled={saving}
               />
-              <p className="text-[10px] text-muted-foreground">
-                BIP-44 path used to derive the signing key on the Ledger device.
-                Default: {DEFAULT_LEDGER_DERIVATION_PATH}.
-              </p>
             </div>
           )}
 
           {(signingProvider === "speculos" ||
             signingProvider === "ows_remote") && (
             <div className="space-y-2">
-              <label className="text-xs font-medium">
-                External signing endpoint (optional)
-              </label>
+              <label className="text-xs font-medium">External signing endpoint</label>
               <Input
                 type="text"
-                placeholder="https://speculos.local:5001  /  wss://ows-remote…"
+                placeholder="https://speculos.local:5001"
                 value={externalSource}
                 onChange={(e) => setExternalSource(e.target.value)}
                 disabled={saving}
               />
-              <p className="text-[10px] text-muted-foreground">
-                Endpoint the wallet forwards signing requests to for this provider.
-              </p>
             </div>
           )}
-        </div>
-      </div>
-
-      {provider === "keeperhub" && (
-        <>
-          <KeeperHubConsequences />
-          <div className="space-y-2">
-            <label className="text-xs font-medium">KeeperHub wallet address</label>
-            <Input
-              type="text"
-              placeholder="0x..."
-              value={keeperHubWalletAddress}
-              onChange={(e) => setKeeperHubWalletAddress(e.target.value)}
-              disabled={saving}
-            />
-            <p className="text-[10px] text-muted-foreground">
-              The KeeperHub-funded wallet address to send from. Must match the address in KeeperHub.
-            </p>
-          </div>
-        </>
-      )}
-
-      {provider === "cleanverse" && (
-        <div className="space-y-2">
-          <label className="text-xs font-medium">Cleanverse sender address (optional)</label>
-          <Input
-            type="text"
-            placeholder={wallet.address}
-            value={cleanverseSenderAddress}
-            onChange={(e) => setCleanverseSenderAddress(e.target.value)}
-            disabled={saving}
-          />
-          <p className="text-[10px] text-muted-foreground">
-            Defaults to the vault wallet address. Must hold an active A-Pass and Access USDC/aUSDC on Monad.
-          </p>
-          <label className="flex items-center gap-2 text-xs">
-            <input
-              type="checkbox"
-              checked={requireCleanverseIdentity}
-              onChange={(e) => setRequireCleanverseIdentity(e.target.checked)}
-              disabled={saving}
-            />
-            Always require CVI screening (even if provider changes later)
-          </label>
         </div>
       )}
 
@@ -539,6 +688,7 @@ function WalletExecutionForm({
               chainId,
               keeperHubWalletAddress,
               cleanverseSenderAddress,
+              dynamicAccountAddress,
               requireCleanverseIdentity:
                 provider === "cleanverse" ? true : requireCleanverseIdentity,
               signingProvider,
@@ -838,6 +988,7 @@ function RailsPreferencesCard({ workspaceId }: { workspaceId?: string }) {
           | "local"
           | "keeperhub"
           | "cleanverse"
+          | "dynamic"
           | null,
         evidenceSinks: evidenceSinks.length > 0 ? evidenceSinks : null,
       });
@@ -873,9 +1024,9 @@ function RailsPreferencesCard({ workspaceId }: { workspaceId?: string }) {
         </h2>
       </div>
       <p className="text-xs text-muted-foreground">
-        Defaults for this workspace when a wallet does not set its own execution
-        provider or chain. Evidence sinks control which storage anchors fan out
-        from audit runs (CRE remains canonical either way).
+        Defaults for this workspace when a wallet does not set its own custody
+        or chain. Evidence sinks control which storage anchors fan out from
+        audit runs (CRE remains canonical either way).
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -897,16 +1048,17 @@ function RailsPreferencesCard({ workspaceId }: { workspaceId?: string }) {
         </label>
 
         <label className="space-y-1.5 text-xs">
-          <span className="text-muted-foreground">Default execution provider</span>
+          <span className="text-muted-foreground">Default custody</span>
           <select
             className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
             value={executionProvider}
             onChange={(e) => setExecutionProvider(e.target.value)}
           >
-            <option value="">Platform default (local)</option>
-            <option value="local">Local vault</option>
-            <option value="keeperhub">KeeperHub</option>
-            <option value="cleanverse">Cleanverse</option>
+            <option value="">Platform default (vault)</option>
+            <option value="local">Cognivern vault</option>
+            <option value="dynamic">Managed MPC</option>
+            <option value="keeperhub">Hosted execution</option>
+            <option value="cleanverse">Verified settlement</option>
           </select>
         </label>
       </div>

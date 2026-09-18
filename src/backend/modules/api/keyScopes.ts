@@ -15,6 +15,14 @@ export function requiredScopeForRoute(method: string, path: string): string | nu
   const p = path.split('?')[0];
 
   if (p.startsWith('/api/agents')) return isRead ? 'agents:read' : 'agents:write';
+  // ERC-8004 identity writes mint on-chain NFTs and publish reputation from a
+  // vault wallet — same sensitivity as mutating the agents they belong to.
+  if (p.startsWith('/api/erc8004')) return isRead ? 'agents:read' : 'agents:write';
+  // Passkey-vault writes mint agent spend keys and move the wrapped root —
+  // agent-key custody, same sensitivity as mutating the agents they serve.
+  if (p.startsWith('/api/passkey-vault')) return isRead ? 'agents:read' : 'agents:write';
+  // Envio sync writes signed evidence artifacts into the CRE ledger.
+  if (p.startsWith('/api/envio')) return isRead ? 'audit:read' : 'agents:write';
   if (p.startsWith('/api/governance')) return isRead ? 'governance:read' : 'governance:write';
   if (p.startsWith('/api/audit')) return 'audit:read';
   if (p.startsWith('/api/spend') && !isRead) return 'spend:execute';

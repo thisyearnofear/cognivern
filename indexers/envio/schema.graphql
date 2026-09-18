@@ -1,0 +1,44 @@
+type SettlementTransfer {
+  id: ID!
+  chainId: Int!
+  contract: String!
+  from: String!
+  to: String!
+  value: BigInt!
+  txHash: String!
+  blockNumber: Int!
+  logIndex: Int!
+  timestamp: Int!
+}
+
+type AgentRegistration {
+  id: ID!
+  chainId: Int!
+  registry: String!
+  agentId: BigInt!
+  owner: String!
+  txHash: String!
+  blockNumber: Int!
+  logIndex: Int!
+  timestamp: Int!
+}
+
+type AgentFeedback {
+  id: ID!
+  chainId: Int!
+  registry: String!
+  agentId: BigInt!
+  clientAddress: String!
+  feedbackIndex: Int!
+  value: BigInt!
+  valueDecimals: Int!
+  tag1: String!
+  tag2: String!
+  endpoint: String!
+  feedbackURI: String!
+  txHash: String!
+  blockNumber: Int!
+  logIndex: Int!
+  timestamp: Int!
+  revoked: Boolean!
+}

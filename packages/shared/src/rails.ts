@@ -378,6 +378,7 @@ export const WORKSPACE_EXECUTION_PROVIDERS = [
   "local",
   "keeperhub",
   "cleanverse",
+  "dynamic",
 ] as const;
 export type WorkspaceExecutionProviderId =
   (typeof WORKSPACE_EXECUTION_PROVIDERS)[number];

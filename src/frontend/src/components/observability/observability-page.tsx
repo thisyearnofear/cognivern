@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageState } from "@/components/ui/error-state";
+import { DisclosureSection } from "@/components/ui/disclosure-section";
 import {
   apiClient,
   type ObservabilityStatus,
@@ -180,57 +181,7 @@ export function ObservabilityPage() {
         {/* Provenance legend */}
         <ProvenanceLegend />
 
-        {/* Cross-link to KeeperHub-routed spends */}
-        <div className="rounded-xl border border-sky-200 dark:border-sky-900 bg-sky-50/30 dark:bg-sky-950/20 p-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <Wallet className="h-4 w-4 text-sky-500" />
-            <h2
-              className="text-sm font-semibold text-sky-900 dark:text-sky-200"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              Finding a KeeperHub-routed spend
-            </h2>
-          </div>
-          <p className="text-xs text-sky-900/80 dark:text-sky-200/80 leading-relaxed">
-            When a wallet is configured with <code>executionProvider: &quot;keeperhub&quot;</code> and a
-            governance-approved spend is executed, the audit trail surfaces the
-            same three spans you&apos;d see for a local-vault spend — just with
-            different attributes. To find one:
-          </p>
-          <ul className="text-xs text-sky-900/80 dark:text-sky-200/80 space-y-1 list-disc list-inside">
-            <li>Open <a className="underline" href="https://app.keeperhub.com" target="_blank" rel="noreferrer">app.keeperhub.com</a> for the keeper-side view (execution status, retries, gas sponsorship).</li>
-            <li>In SigNoz, search for the <code>wallet_sign_and_broadcast</code> span and look for the <code>keeperhub.execution_id</code> attribute.</li>
-            <li>The nested <code>audit.log_action</code> event records the on-chain <code>txHash</code> alongside the KeeperHub <code>executionId</code> so you can correlate the two views.</li>
-          </ul>
-          <p className="text-[10px] text-sky-900/70 dark:text-sky-200/70">
-            Tip: configure a wallet in <a className="underline" href="/settings">Settings → Wallets</a> to enable the
-            KeeperHub execution path.
-          </p>
-        </div>
-
-        {/* Cross-link to Cleanverse CVI/CVA spends */}
-        <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-950/20 p-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <Wallet className="h-4 w-4 text-emerald-500" />
-            <h2
-              className="text-sm font-semibold text-emerald-900 dark:text-emerald-200"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              Finding a Cleanverse-verified spend
-            </h2>
-          </div>
-          <p className="text-xs text-emerald-900/80 dark:text-emerald-200/80 leading-relaxed">
-            Wallets with <code>executionProvider: &quot;cleanverse&quot;</code> screen sender and
-            recipient via A-Pass (CVI) before policy approval, then settle Access USDC/aUSDC (CVA) on Monad.
-          </p>
-          <ul className="text-xs text-emerald-900/80 dark:text-emerald-200/80 space-y-1 list-disc list-inside">
-            <li>Open <a className="underline" href="/verified-capital">/verified-capital</a> to screen identities and arm wallets.</li>
-            <li>CRE runs include a <code>cleanverse_apass</code> artifact plus an Access USDC <code>txHash</code> on MonadScan.</li>
-            <li>Check <code>GET /api/spend/status</code> for <code>cleanverse.enabled</code>.</li>
-          </ul>
-        </div>
-
-        {/* Body */}
+        {/* Body — governance SLOs and traces first */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -249,6 +200,70 @@ export function ObservabilityPage() {
               cloudUrl={cloudUrl}
             />
             <RecentTracesSection traces={tracedLogs} cloudUrl={cloudUrl} logsFetchFailed={logsFetchFailed} />
+            <DisclosureSection
+              title="Finding spends by custody"
+              description="Adapter-specific trails for hosted execution and verified settlement — secondary to governance SLOs above."
+            >
+              <div className="space-y-4 p-4">
+                <div className="rounded-xl border border-sky-200 dark:border-sky-900 bg-sky-50/30 dark:bg-sky-950/20 p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-sky-500" />
+                    <h2
+                      className="text-sm font-semibold text-sky-900 dark:text-sky-200"
+                      style={{ fontFamily: "var(--font-space-grotesk)" }}
+                    >
+                      Hosted execution
+                    </h2>
+                  </div>
+                  <p className="text-xs text-sky-900/80 dark:text-sky-200/80 leading-relaxed">
+                    When a wallet uses hosted execution custody
+                    (<code>executionProvider: &quot;keeperhub&quot;</code>), the audit
+                    trail matches vault spends — with provider attributes underneath.
+                  </p>
+                  <ul className="text-xs text-sky-900/80 dark:text-sky-200/80 space-y-1 list-disc list-inside">
+                    <li>Open the hosted provider console for status, retries, and gas sponsorship.</li>
+                    <li>In SigNoz, search <code>wallet_sign_and_broadcast</code> for <code>keeperhub.execution_id</code>.</li>
+                    <li>Correlate on-chain <code>txHash</code> with the hosted <code>executionId</code>.</li>
+                  </ul>
+                  <p className="text-[10px] text-sky-900/70 dark:text-sky-200/70">
+                    Configure custody in{" "}
+                    <a className="underline" href="/settings">
+                      Settings → Wallet custody
+                    </a>
+                    .
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-950/20 p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-emerald-500" />
+                    <h2
+                      className="text-sm font-semibold text-emerald-900 dark:text-emerald-200"
+                      style={{ fontFamily: "var(--font-space-grotesk)" }}
+                    >
+                      Verified settlement
+                    </h2>
+                  </div>
+                  <p className="text-xs text-emerald-900/80 dark:text-emerald-200/80 leading-relaxed">
+                    Wallets on verified settlement custody screen identities before
+                    approval, then settle on the verified rail.
+                  </p>
+                  <ul className="text-xs text-emerald-900/80 dark:text-emerald-200/80 space-y-1 list-disc list-inside">
+                    <li>
+                      Open{" "}
+                      <a className="underline" href="/spend?view=verified">
+                        Activity → Verified settlement
+                      </a>{" "}
+                      to screen and arm wallets.
+                    </li>
+                    <li>CRE runs include identity evidence plus a settlement <code>txHash</code>.</li>
+                    <li>
+                      Check <code>GET /api/spend/status</code> for adapter readiness.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </DisclosureSection>
             <div className="pt-2">
               <button
                 onClick={() => setShowDetails((v) => !v)}

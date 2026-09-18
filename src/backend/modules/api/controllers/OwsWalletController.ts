@@ -29,16 +29,21 @@ const connectExternalSchema = z.object({
 });
 
 const updateWalletSchema = z.object({
-  executionProvider: z.enum(["local", "keeperhub", "cleanverse"]).optional(),
+  executionProvider: z
+    .enum(["local", "keeperhub", "cleanverse", "dynamic"])
+    .optional(),
   chainId: z.union([z.number(), z.string()]).optional(),
   keeperHubWalletAddress: z.string().optional(),
   cleanverseSenderAddress: z.string().optional(),
   requireCleanverseIdentity: z.boolean().optional(),
+  dynamicAccountAddress: z.string().optional(),
+  // Opaque Dynamic walletMetadata blob (non-secret). Key shares stay with Dynamic.
+  dynamicWalletMetadata: z.record(z.unknown()).optional(),
   // ── Signing config ────────────────────────────────────────────────────
   // Ledger is one option; "local" remains the default. Provider + derivation
   // path live on wallet metadata and drive OwsWalletService's signing dispatch.
   signingProvider: z
-    .enum(["local", "speculos", "ledger", "ows_remote"])
+    .enum(["local", "speculos", "ledger", "ows_remote", "dynamic"])
     .optional(),
   ledgerDerivationPath: z.string().optional(),
   externalSource: z.string().optional(),
@@ -203,6 +208,24 @@ export class OwsWalletController {
           return;
         }
         metadata.keeperHubWalletAddress = parse.data.keeperHubWalletAddress;
+      }
+      if (parse.data.dynamicAccountAddress !== undefined) {
+        if (
+          parse.data.dynamicAccountAddress !== "" &&
+          !ethers.isAddress(parse.data.dynamicAccountAddress)
+        ) {
+          res.status(400).json({
+            success: false,
+            error: "Invalid dynamicAccountAddress",
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+        metadata.dynamicAccountAddress =
+          parse.data.dynamicAccountAddress || undefined;
+      }
+      if (parse.data.dynamicWalletMetadata !== undefined) {
+        metadata.dynamicWalletMetadata = parse.data.dynamicWalletMetadata;
       }
       if (parse.data.cleanverseSenderAddress !== undefined) {
         if (

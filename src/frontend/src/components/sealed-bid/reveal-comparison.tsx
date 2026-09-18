@@ -15,13 +15,13 @@ export function RevealComparison() {
     <div className="rounded-xl border bg-card p-4 space-y-3">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold">Why Canton for the reveal</h3>
+          <h3 className="text-sm font-semibold">Why the reveal stays private</h3>
           <p className="text-xs text-muted-foreground max-w-md">
-            Same auction, same API —{" "}
+            Same selection, same API —{" "}
             <span className="font-mono text-[11px]">
               createRound(backend: &quot;canton&quot; | &quot;fhe&quot;)
             </span>
-            . Both seal bids. The reveal is where they diverge.
+            . Both seal bids. The reveal is where the rails diverge.
           </p>
         </div>
         <div className="flex gap-1">

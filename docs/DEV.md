@@ -386,6 +386,7 @@ The `SigningProvider` interface in `src/backend/signing/SigningProvider.ts` defi
 | **OWS Remote** | `"ows_remote"`      | `OwsLocalVaultService.signWithExternalWallet()`             | Multi-instance                        |
 | **Ledger DMK** | `"ledger"`          | `LedgerSigningProvider` (`@ledgerhq/device-management-kit`) | Production high-value, hardware-gated |
 | **Speculos**   | `"speculos"`        | `OwsLocalVaultService.signWithExternalWallet()` via HTTP    | Sandbox/CI                            |
+| **Dynamic**    | `"dynamic"`         | `DynamicSigningProvider` (MPC server wallet)                | Agent custody without local keys — see [DYNAMIC.md](./DYNAMIC.md) |
 
 The configured provider is resolved through `resolveWalletSigningConfig()` (`src/backend/services/blockchain/walletSigningConfig.ts`), which is the single typed boundary over the free-form wallet `metadata` bag.
 

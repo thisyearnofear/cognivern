@@ -29,6 +29,7 @@ describe("resolveExecutionBackend", () => {
     expect(resolveExecutionBackend("local").name).toBe("local");
     expect(resolveExecutionBackend("keeperhub").name).toBe("keeperhub");
     expect(resolveExecutionBackend("cleanverse").name).toBe("cleanverse");
+    expect(resolveExecutionBackend("dynamic").name).toBe("dynamic");
     expect(resolveExecutionBackend("nope").name).toBe("local");
     expect(resolveExecutionBackend(undefined).name).toBe("local");
   });

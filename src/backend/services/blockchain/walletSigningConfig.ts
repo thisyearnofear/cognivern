@@ -30,7 +30,11 @@ export interface ResolvedSigningConfig {
 function isWalletSigningProviderId(v: unknown): v is WalletSigningProviderId {
   return (
     typeof v === 'string' &&
-    (v === 'local' || v === 'speculos' || v === 'ledger' || v === 'ows_remote')
+    (v === 'local' ||
+      v === 'speculos' ||
+      v === 'ledger' ||
+      v === 'ows_remote' ||
+      v === 'dynamic')
   );
 }
 

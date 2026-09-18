@@ -30,7 +30,7 @@ export interface AuditLog {
   policyChecks: PolicyCheck[];
   outcome: "allowed" | "denied" | "held";
   metadata: Record<string, any>;
-  signingProvider?: "local" | "ledger" | "speculos" | "ows_remote";
+  signingProvider?: "local" | "ledger" | "speculos" | "ows_remote" | "dynamic";
   evidence: {
     hash: string;
     cid?: string;
@@ -768,7 +768,8 @@ function extractSigningProvider(run: CreRun): AuditLog["signingProvider"] {
     sp === "local" ||
     sp === "ledger" ||
     sp === "speculos" ||
-    sp === "ows_remote"
+    sp === "ows_remote" ||
+    sp === "dynamic"
   ) {
     return sp;
   }

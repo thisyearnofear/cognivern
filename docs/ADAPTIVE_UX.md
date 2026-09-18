@@ -50,6 +50,7 @@ system can observe with certainty.
 | **Mode** | Demo vs production banners, deterministic demo data | Built |
 | **Capability / context** | `prefers-reduced-motion`, iOS safe areas, mobile sidebar | Built |
 | **Data presence** | Empty states, skeleton loading, hidden-when-absent cards | Built |
+| **Custody need** | Settings shows vault + managed MPC first; hosted / verified unlock on demand | Built — see `@cognivern/shared` custody helpers |
 
 ## What the UI must NOT adapt to (for now)
 

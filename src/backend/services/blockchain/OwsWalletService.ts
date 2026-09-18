@@ -11,6 +11,7 @@ import { AgentAction } from '@backend/types/Agent.js';
 import { ethers } from 'ethers';
 import { owsLocalVaultService, OwsResolvedAccess } from './OwsLocalVaultService.js';
 import { ledgerSigningProvider } from '@backend/signing/LedgerSigningProvider.js';
+import { dynamicSigningProvider } from '@backend/signing/DynamicSigningProvider.js';
 import { FhenixPolicyService, sharedFhenixPolicyService } from './FhenixPolicyService.js';
 import {
   getConfidentialPolicyService,
@@ -645,6 +646,27 @@ export class OwsWalletService {
         }
       }
 
+      case 'dynamic': {
+        try {
+          const result = await dynamicSigningProvider.sign({
+            walletId: access.wallet.id,
+            message: payload,
+          });
+          return {
+            signature: result.signature,
+            signer: result.signer,
+            signingProvider,
+          };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown Dynamic error';
+          throw new SigningDispatchError(
+            `Dynamic signing failed: ${message}. ` +
+              'Confirm DYNAMIC_* env is set and the wallet has dynamicWalletMetadata (or a provisioned metadata file).',
+            signingProvider,
+          );
+        }
+      }
+
       case 'speculos':
       case 'ows_remote': {
         const externalResult = await owsLocalVaultService.signWithExternalWallet({
@@ -751,10 +773,15 @@ export class OwsWalletService {
     const cleanverseSenderAddress = access.wallet.metadata?.cleanverseSenderAddress as
       | string
       | undefined;
+    const dynamicAccountAddress = access.wallet.metadata?.dynamicAccountAddress as
+      | string
+      | undefined;
     const senderAddress =
       executionProvider === 'cleanverse'
         ? cleanverseSenderAddress || access.wallet.accounts[0]?.address || signer
-        : keeperHubWalletAddress || access.wallet.accounts[0]?.address || signer;
+        : executionProvider === 'dynamic'
+          ? dynamicAccountAddress || access.wallet.accounts[0]?.address || signer
+          : keeperHubWalletAddress || access.wallet.accounts[0]?.address || signer;
 
     const transfer = await backend.transfer({
       intentId: intent.id,

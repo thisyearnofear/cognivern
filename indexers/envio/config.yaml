@@ -1,0 +1,65 @@
+# yaml-language: $schema=./node_modules/envio/evm.schema.json
+name: cognivern-monad-evidence
+description: >-
+  Cognivern trusted-agent-capital evidence on Monad: aUSDC settlements on the
+  Cleanverse rail (testnet), ERC-8004 agent registrations, and reputation
+  feedback (testnet + mainnet). Consumed by the backend's EnvioEvidenceService,
+  which materializes rows into signed CRE artifacts.
+
+# tx hash is needed on every event to link rows back to the originating run.
+field_selection:
+  transaction_fields:
+    - hash
+
+contracts:
+  - name: AUsdcSettlement
+    handler: src/EventHandlers.ts
+    events:
+      - event: Transfer(address indexed from, address indexed to, uint256 value)
+
+  - name: Erc8004Identity
+    handler: src/EventHandlers.ts
+    events:
+      # ERC-721 mint (from == 0x0) marks an agent registration.
+      - event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+
+  - name: Erc8004Reputation
+    handler: src/EventHandlers.ts
+    events:
+      - event: >-
+          NewFeedback(uint256 indexed agentId, address indexed clientAddress,
+          uint64 feedbackIndex, int128 value, uint8 valueDecimals,
+          string indexed indexedTag1, string tag1, string tag2, string endpoint,
+          string feedbackURI, bytes32 feedbackHash)
+      - event: >-
+          FeedbackRevoked(uint256 indexed agentId, address indexed clientAddress,
+          uint64 indexed feedbackIndex)
+
+chains:
+  # Monad testnet — Cleanverse aUSDC settlement + ERC-8004 reference registries.
+  # HyperSync is the primary source (set ENVIO_API_TOKEN); the public RPC is
+  # the reliability fallback. start_block 0 is cheap under HyperSync — the
+  # exact deployment blocks aren't resolvable from the pruned public RPCs.
+  - id: 10143
+    start_block: 0
+    rpc:
+      - url: https://testnet-rpc.monad.xyz
+    contracts:
+      - name: AUsdcSettlement
+        address: 0xaC0893567D43C3E7e6e35a72803df05416C1f20D
+      - name: Erc8004Identity
+        address: 0x8004A818BFB912233c491871b3d84c89A494BD9e
+      - name: Erc8004Reputation
+        address: 0x8004B663056A597Dffe9eCcC1965A193B7388713
+
+  # Monad mainnet — ERC-8004 reference registries (aUSDC is testnet-only)
+  - id: 143
+    start_block: 0
+    rpc:
+      - url: https://rpc.monad.xyz
+      - url: https://rpc1.monad.xyz
+    contracts:
+      - name: Erc8004Identity
+        address: 0x8004A169FB4a3325136EB29fA0ceB6D2e539a432
+      - name: Erc8004Reputation
+        address: 0x8004BAa17C55a88189AE136b182e5fdA19dE9b63

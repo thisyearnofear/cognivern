@@ -34,6 +34,7 @@ lerna-debug.log*
 # ── Runtime data ────────────────────────────────────────────────────
 data/
 .cognivern/
+vendor/
 
 # ── Environment variables & secrets ─────────────────────────────────
 .env

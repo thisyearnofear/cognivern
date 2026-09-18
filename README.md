@@ -85,6 +85,7 @@ For the public/demo path, most optional integrations can remain disabled. See th
 - [Capital + agent surfaces](./docs/CAPITAL_AGENT_SURFACES.md) — full Capital UI loop, WebMCP, and server MCP over one domain layer
 - [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md) — sealed-bid and governance integration details
 - [Telegraph integration](./docs/TELEGRAPH.md) — verified AI intelligence with confidence-based governance
+- [Dynamic server wallets](./docs/DYNAMIC.md) — MPC custody for agent signing / execution
 - [Cleanverse hackathon submission](./docs/HACKATHON_SUBMISSION_CLEANVERSE.md) — CVI/CVA verified agent capital rail
 - [Telegraph Track 3 proposal](./docs/TELEGRAPH_TRACK3_PROPOSAL.md) — verified-intelligence → governed on-chain action application concept
 

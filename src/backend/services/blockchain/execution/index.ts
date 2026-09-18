@@ -2,6 +2,7 @@ import type { ExecutionBackend } from "./ExecutionBackend.js";
 import { evmExecutionBackend } from "./EvmExecutionBackend.js";
 import { keeperHubExecutionBackend } from "./KeeperHubExecutionBackend.js";
 import { cleanverseExecutionBackend } from "./CleanverseExecutionBackend.js";
+import { dynamicExecutionBackend } from "./DynamicExecutionBackend.js";
 
 export type {
   ExecutionBackend,
@@ -19,12 +20,17 @@ export {
   CleanverseExecutionBackend,
   cleanverseExecutionBackend,
 } from "./CleanverseExecutionBackend.js";
+export {
+  DynamicExecutionBackend,
+  dynamicExecutionBackend,
+} from "./DynamicExecutionBackend.js";
 
 const REGISTRY = new Map<string, ExecutionBackend>([
   ["local", evmExecutionBackend],
   ["evm", evmExecutionBackend],
   ["keeperhub", keeperHubExecutionBackend],
   ["cleanverse", cleanverseExecutionBackend],
+  ["dynamic", dynamicExecutionBackend],
 ]);
 
 /**
@@ -39,5 +45,10 @@ export function resolveExecutionBackend(
 }
 
 export function listExecutionBackends(): ExecutionBackend[] {
-  return [evmExecutionBackend, keeperHubExecutionBackend, cleanverseExecutionBackend];
+  return [
+    evmExecutionBackend,
+    keeperHubExecutionBackend,
+    cleanverseExecutionBackend,
+    dynamicExecutionBackend,
+  ];
 }

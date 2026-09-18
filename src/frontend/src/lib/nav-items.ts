@@ -31,12 +31,13 @@ export interface NavGroup {
  * Navigation grouped by user job:
  *
  *   Review      — what needs attention and what happened
- *   Controls    — the guardrails and identities that govern actions
  *   Programs    — funded workflows and private selections
+ *   Controls    — the guardrails and identities that govern actions
  *   Developers  — integration and technical operations
  *
  * One rule: an item must name which stage of the loop it serves, or it is a
  * view inside an existing destination. See docs/UX_IA_REVIEW.md.
+ * Vendor/rail names belong in footnotes, not nav labels.
  */
 export const NAV_GROUPS: NavGroup[] = [
   {
@@ -63,12 +64,24 @@ export const NAV_GROUPS: NavGroup[] = [
         href: '/spend',
         description: 'Review governed actions and outcomes',
       },
+    ],
+  },
+  {
+    label: 'Programs',
+    items: [
       {
         id: 'sealed-bid',
-        label: 'Sealed bids',
+        label: 'Private selection',
         icon: Gavel,
         href: '/sealed-bid',
-        description: 'Run private vendor selections without exposing bids',
+        description: 'Run confidential vendor selection under a mandate',
+      },
+      {
+        id: 'telegraph-signals',
+        label: 'Verified signals',
+        icon: RadioTower,
+        href: '/telegraph',
+        description: 'Verify external intelligence before a governed action',
       },
     ],
   },
@@ -114,13 +127,6 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Radar,
         href: '/observability',
         description: 'Inspect traces, metrics, and health',
-      },
-      {
-        id: 'telegraph-signals',
-        label: 'Telegraph signals',
-        icon: RadioTower,
-        href: '/telegraph',
-        description: 'Verify miner intelligence before governed action',
       },
       {
         id: 'os',

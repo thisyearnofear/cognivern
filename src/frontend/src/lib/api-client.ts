@@ -826,7 +826,7 @@ class ApiClient {
   async updateWallet(
     walletId: string,
     params: {
-      executionProvider?: 'local' | 'keeperhub' | 'cleanverse';
+      executionProvider?: 'local' | 'keeperhub' | 'cleanverse' | 'dynamic';
       chainId?: number | string;
       keeperHubWalletAddress?: string;
       cleanverseSenderAddress?: string;
@@ -837,6 +837,8 @@ class ApiClient {
       signingProvider?: WalletSigningProviderId;
       ledgerDerivationPath?: string;
       externalSource?: string;
+      dynamicAccountAddress?: string;
+      dynamicWalletMetadata?: Record<string, unknown>;
     },
   ): Promise<ApiResponse<Record<string, unknown>>> {
     return this.fetch(`/api/ows/wallets/${encodeURIComponent(walletId)}`, {
@@ -952,6 +954,239 @@ class ApiClient {
     });
   }
 
+  // ── ERC-8004 agent identity + reputation on Monad ────────────────────────
+
+  async getErc8004Status(): Promise<
+    ApiResponse<{
+      enabled: boolean;
+      chainId: number;
+      rpcUrl: string;
+      identityRegistry: string;
+      reputationRegistry: string;
+      agentRegistry: string;
+      publicBaseUrl: string | null;
+    }>
+  > {
+    return this.fetch('/api/erc8004/status');
+  }
+
+  async registerErc8004Agent(params: {
+    agentId: string;
+    walletId?: string;
+    agentURI?: string;
+  }): Promise<
+    ApiResponse<{
+      binding: {
+        chainId: number;
+        agentRegistry: string;
+        identityRegistry: string;
+        agentId: string;
+        owner: string;
+        agentURI: string;
+        registerTxHash: string;
+        setUriTxHash?: string;
+        registeredAt: string;
+      };
+      registerTxLink: string;
+      setUriTxLink?: string;
+    }> & { runId?: string }
+  > {
+    return this.fetch('/api/erc8004/register', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  async getErc8004Agent(agentId: string): Promise<
+    ApiResponse<{
+      agentId: string;
+      binding: Record<string, unknown> | null;
+      onChain: unknown;
+    }>
+  > {
+    return this.fetch(`/api/erc8004/agents/${encodeURIComponent(agentId)}`);
+  }
+
+  async giveErc8004Feedback(
+    agentId: string,
+    params: {
+      value: number | string;
+      valueDecimals?: number;
+      tag1?: string;
+      tag2?: string;
+      endpoint?: string;
+      feedbackURI?: string;
+      feedbackHash?: string;
+      walletId?: string;
+      runId?: string;
+    },
+  ): Promise<
+    ApiResponse<{
+      txHash: string;
+      clientAddress: string;
+      feedbackIndex?: string;
+      transactionLink: string;
+    }>
+  > {
+    return this.fetch(
+      `/api/erc8004/agents/${encodeURIComponent(agentId)}/feedback`,
+      {
+        method: 'POST',
+        body: JSON.stringify(params),
+      },
+    );
+  }
+
+  async getErc8004Reputation(
+    agentId: string,
+    params?: { tag1?: string; tag2?: string },
+  ): Promise<
+    ApiResponse<{
+      agentId: string;
+      count: number;
+      summaryValue: string;
+      summaryValueDecimals: number;
+      clients: string[];
+    }>
+  > {
+    const query = new URLSearchParams();
+    if (params?.tag1) query.set('tag1', params.tag1);
+    if (params?.tag2) query.set('tag2', params.tag2);
+    const qs = query.toString();
+    return this.fetch(
+      `/api/erc8004/agents/${encodeURIComponent(agentId)}/reputation${qs ? `?${qs}` : ''}`,
+    );
+  }
+
+  // ── Passkey vault — one passkey wraps the root, many agent keys ───────────
+
+  async getPasskeyVaultStatus(): Promise<
+    ApiResponse<{
+      enrolled: boolean;
+      locked: boolean;
+      enrolledAt: string | null;
+      derivedKeyCount: number;
+    }>
+  > {
+    return this.fetch('/api/passkey-vault/status');
+  }
+
+  /** Step 1 of enroll: provisional 32-byte root (base64) for the client to wrap. */
+  async passkeyVaultEnrollBegin(): Promise<ApiResponse<{ root: string }>> {
+    return this.fetch('/api/passkey-vault/enroll/begin', { method: 'POST' });
+  }
+
+  /** Step 2: persist the mera-wrapped vault blob; the root goes hot. */
+  async passkeyVaultEnrollCommit(vault: Record<string, unknown>): Promise<
+    ApiResponse<{ verifier: string }> & { runId?: string }
+  > {
+    return this.fetch('/api/passkey-vault/enroll/commit', {
+      method: 'POST',
+      body: JSON.stringify({ vault }),
+    });
+  }
+
+  /** Step 1 of unlock: the wrapped blob for the client-side passkey ceremony. */
+  async passkeyVaultUnlockBegin(): Promise<
+    ApiResponse<{ vault: Record<string, unknown> }>
+  > {
+    return this.fetch('/api/passkey-vault/unlock/begin', { method: 'POST' });
+  }
+
+  /** Step 2: the unwrapped root (base64), verified against the stored hash. */
+  async passkeyVaultUnlockCommit(
+    root: string,
+  ): Promise<ApiResponse<{ ok: true }>> {
+    return this.fetch('/api/passkey-vault/unlock/commit', {
+      method: 'POST',
+      body: JSON.stringify({ root }),
+    });
+  }
+
+  async passkeyVaultLock(): Promise<ApiResponse<{ locked: true }>> {
+    return this.fetch('/api/passkey-vault/lock', { method: 'POST' });
+  }
+
+  async listPasskeyAgentKeys(): Promise<
+    ApiResponse<
+      Array<{
+        walletId: string;
+        name: string;
+        address?: string;
+        context?: string;
+        agentId?: string;
+        mandateId?: string | null;
+        createdAt: string;
+      }>
+    >
+  > {
+    return this.fetch('/api/passkey-vault/agent-keys');
+  }
+
+  /**
+   * Derive (or re-derive) an agent spend key under its mandate context and
+   * register it as a vault wallet. Idempotent per context.
+   */
+  async derivePasskeyAgentKey(params: {
+    agentId: string;
+    mandateId?: string;
+  }): Promise<
+    ApiResponse<{ address: string; context: string; walletId?: string }> & {
+      runId?: string;
+    }
+  > {
+    return this.fetch('/api/passkey-vault/agent-keys', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  // ── Envio indexer → CRE evidence ─────────────────────────────────────────
+
+  async getEnvioStatus(): Promise<
+    ApiResponse<{
+      enabled: boolean;
+      configured: boolean;
+      graphqlUrl: string | null;
+      lastSyncAt: string | null;
+      counts: { settlement: number; identity: number; feedback: number };
+      cursor: Record<
+        string,
+        { blockNumber: number; logIndex: number } | undefined
+      >;
+    }>
+  > {
+    return this.fetch('/api/envio/status');
+  }
+
+  async syncEnvio(): Promise<
+    ApiResponse<{
+      newEvents: number;
+      byKind: { settlement: number; identity: number; feedback: number };
+      runId?: string;
+    }>
+  > {
+    return this.fetch('/api/envio/sync', { method: 'POST' });
+  }
+
+  async listEnvioEvents(limit = 50): Promise<
+    ApiResponse<
+      Array<{
+        kind: 'settlement' | 'identity' | 'feedback';
+        id: string;
+        chainId: number;
+        txHash: string;
+        blockNumber: number;
+        summary: string;
+        linkedRunId?: string;
+        transactionLink: string;
+        indexedAt: string;
+      }>
+    >
+  > {
+    return this.fetch(`/api/envio/events?limit=${limit}`);
+  }
+
   async createApiKey(params: {
     walletId: string;
     scopes: string[];
@@ -1001,7 +1236,7 @@ class ApiClient {
     tier?: 'demo' | 'live';
     suspicionHoldThreshold?: number;
     defaultExecutionRail?: string | null;
-    defaultExecutionProvider?: 'local' | 'keeperhub' | 'cleanverse' | null;
+    defaultExecutionProvider?: 'local' | 'keeperhub' | 'cleanverse' | 'dynamic' | null;
     evidenceSinks?: Array<'zerog' | 'filecoin'> | null;
   }): Promise<ApiResponse<Workspace>> {
     return this.fetch('/workspace', {

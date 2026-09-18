@@ -1,0 +1,21 @@
+{
+  "name": "cognivern-envio-indexer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Envio HyperIndex project indexing Cognivern's trusted-agent-capital events on Monad: aUSDC settlements (testnet), ERC-8004 identity registrations, and reputation feedback.",
+  "scripts": {
+    "codegen": "envio codegen",
+    "dev": "envio dev",
+    "start": "envio start",
+    "stop": "envio stop",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "envio": "3.12.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vitest": "^4.0.0"
+  }
+}

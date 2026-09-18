@@ -35,8 +35,10 @@ import {
   defaultExecutionRail,
   getRailByChainId,
   getRailById,
+  deriveCustodyMode,
   type ProofAnchorReceipt,
 } from '@cognivern/shared';
+import { SpendPathStrip } from '@/components/ui/spend-path-strip';
 
 type ApprovalResult = Awaited<ReturnType<typeof apiClient.submitRunApproval>>;
 type ReconciliationResult = Awaited<ReturnType<typeof apiClient.getRunReconciliation>>;
@@ -50,6 +52,35 @@ interface UncertainExecution {
   chainId?: number;
   status?: string;
   recoveryRequired?: boolean;
+}
+
+function getSpendPathContext(run: unknown): {
+  signingProvider?: string;
+  executionProvider?: string;
+  decision?: string;
+} {
+  const artifacts = (run as { artifactData?: unknown })?.artifactData;
+  if (!Array.isArray(artifacts)) {
+    return { decision: (run as { status?: string })?.status };
+  }
+  const attestation = artifacts.find(
+    (artifact) =>
+      typeof artifact === 'object' &&
+      artifact !== null &&
+      (artifact as { type?: string }).type === 'attestation_result',
+  ) as
+    | {
+        data?: {
+          signingProvider?: string;
+          executionProvider?: string;
+        };
+      }
+    | undefined;
+  return {
+    signingProvider: attestation?.data?.signingProvider,
+    executionProvider: attestation?.data?.executionProvider,
+    decision: (run as { status?: string })?.status,
+  };
 }
 
 function getUncertainExecution(run: unknown): UncertainExecution | undefined {
@@ -298,6 +329,18 @@ export function RunDetail({ runId }: { runId: string }) {
   const transferExplorerUrl = approval?.transfer?.transferTxHash
     ? getTransferExplorerUrl(approval.transfer.transferChainId, approval.transfer.transferTxHash)
     : undefined;
+  const spendPath = getSpendPathContext(run);
+  const custodyMode = deriveCustodyMode({
+    executionProvider: spendPath.executionProvider,
+    signingProvider: spendPath.signingProvider,
+  });
+  const settlementLabel = approval?.transfer?.transferTxHash
+    ? `${approval.transfer.transferTxHash.slice(0, 10)}…`
+    : run.status === 'paused_for_approval'
+      ? 'Awaiting approval'
+      : run.status === 'completed'
+        ? 'Recorded'
+        : undefined;
   const reconciliationExecution = reconciliation?.execution as
     | { transactionHash?: string; transactionLink?: string; status?: string; sponsored?: boolean }
     | null
@@ -320,6 +363,29 @@ export function RunDetail({ runId }: { runId: string }) {
           <p className="text-sm text-muted-foreground mt-1">Run ID: {run.id}</p>
         </div>
       </div>
+
+      <SpendPathStrip
+        decision={
+          run.status === 'paused_for_approval'
+            ? 'Held'
+            : run.status === 'completed'
+              ? 'Approved'
+              : run.status === 'failed'
+                ? 'Denied / failed'
+                : run.status
+        }
+        custody={
+          spendPath.executionProvider || spendPath.signingProvider
+            ? custodyMode
+            : null
+        }
+        settlement={
+          settlementLabel
+            ? { label: settlementLabel, href: transferExplorerUrl }
+            : null
+        }
+        evidence={run.id ? `CRE ${run.id.slice(0, 8)}…` : 'CRE'}
+      />
 
       {/* Summary */}
       <div
@@ -505,7 +571,7 @@ export function RunDetail({ runId }: { runId: string }) {
         </details>
       )}
 
-      {/* KeeperHub uncertainty / reconciliation */}
+      {/* Hosted-execution uncertainty / reconciliation */}
       {uncertainExecution && (
         <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-5 dark:border-amber-800 dark:bg-amber-950/20">
           <div className="flex items-start gap-3">
@@ -514,7 +580,7 @@ export function RunDetail({ runId }: { runId: string }) {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="font-semibold text-amber-900 dark:text-amber-100">
-                    KeeperHub execution needs reconciliation
+                    Hosted execution needs reconciliation
                   </h2>
                   <Badge variant="outline" className="border-amber-400 text-amber-700 dark:border-amber-700 dark:text-amber-300">
                     Retry locked
@@ -548,7 +614,7 @@ export function RunDetail({ runId }: { runId: string }) {
                   disabled={reconciling !== null || !uncertainExecution.transferExecutionId}
                 >
                   {reconciling === 'check' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SearchCheck className="h-3.5 w-3.5" />}
-                  {reconciling === 'check' ? 'Checking…' : 'Check KeeperHub status'}
+                  {reconciling === 'check' ? 'Checking…' : 'Check hosted execution status'}
                 </Button>
                 <Button
                   size="sm"
@@ -562,7 +628,7 @@ export function RunDetail({ runId }: { runId: string }) {
 
               {!uncertainExecution.transferExecutionId && (
                 <p className="text-xs text-amber-800/80 dark:text-amber-200/80">
-                  KeeperHub returned no execution ID. Preserve the idempotency key and contact KeeperHub support or use an approved provider lookup; Cognivern intentionally cannot retry this transfer.
+                  The hosted execution adapter returned no execution ID. Preserve the idempotency key and contact the provider or use an approved lookup; Cognivern intentionally cannot retry this transfer.
                 </p>
               )}
 
@@ -575,7 +641,7 @@ export function RunDetail({ runId }: { runId: string }) {
                         {reconciliation.resolved ? 'Execution resolved and run unlocked' : reconciliation.matched ? 'Receipt matches the requested transfer' : 'Still recovery-required'}
                       </p>
                       <p className="mt-1 text-xs opacity-80">
-                        {reconciliation.message || (reconciliation.matched ? `KeeperHub status: ${reconciliationExecution?.status || 'verified'}${reconciliationExecution?.sponsored ? ' · sponsored' : ''}` : 'The provider response is pending, mismatched, or unavailable. Do not retry.')}
+                        {reconciliation.message || (reconciliation.matched ? `Hosted execution status: ${reconciliationExecution?.status || 'verified'}${reconciliationExecution?.sponsored ? ' · sponsored' : ''}` : 'The provider response is pending, mismatched, or unavailable. Do not retry.')}
                       </p>
                       {reconciliationExecution?.transactionHash && (
                         <code className="mt-2 block break-all text-[11px]">{reconciliationExecution.transactionHash}</code>
@@ -678,10 +744,10 @@ export function RunDetail({ runId }: { runId: string }) {
                 {approval.transfer?.transferStatus === 'uncertain' ? (
                   <div className="text-sm text-amber-700 dark:text-amber-300 mt-1">
                     The provider accepted the execution, but completion could not be verified safely.
-                    Do not retry until the KeeperHub execution is reconciled.
+                    Do not retry until the hosted execution is reconciled.
                     {approval.transfer.transferExecutionId && (
                       <div className="mt-1 text-xs">
-                        KeeperHub execution: <code>{approval.transfer.transferExecutionId}</code>
+                        Execution id: <code>{approval.transfer.transferExecutionId}</code>
                       </div>
                     )}
                   </div>
@@ -709,12 +775,12 @@ export function RunDetail({ runId }: { runId: string }) {
                     </div>
                     {approval.transfer.transferExecutionId && (
                       <div className="text-xs text-muted-foreground">
-                        KeeperHub execution: <code>{approval.transfer.transferExecutionId}</code>
+                        Execution id: <code>{approval.transfer.transferExecutionId}</code>
                       </div>
                     )}
                     {approval.transfer.transferReceiptStatus && (
                       <div className="text-xs text-muted-foreground">
-                        KeeperHub receipt: <code>{approval.transfer.transferReceiptStatus}</code>
+                        Receipt: <code>{approval.transfer.transferReceiptStatus}</code>
                         {approval.transfer.transferVerified === true
                           ? ' · verified'
                           : ' · not independently verified'}

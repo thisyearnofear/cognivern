@@ -29,6 +29,7 @@ import {
   type FundedMandate,
 } from "@/lib/api-client";
 import { trackUxEvent } from "@/lib/ux-events";
+import { EnvioEvidencePanel } from "@/components/capital/envio-evidence-panel";
 
 interface CleanverseStatus {
   enabled: boolean;
@@ -117,7 +118,7 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
   const [walletId, setWalletId] = useState("");
   const [mandateId, setMandateId] = useState("");
   const [amountHuman, setAmountHuman] = useState("1");
-  const [reason, setReason] = useState("Verified capital settlement under Cleanverse rail");
+  const [reason, setReason] = useState("Verified capital settlement under policy");
   const [owsKey, setOwsKey] = useState("");
 
   const [screening, setScreening] = useState<ScreeningResult | null>(null);
@@ -157,7 +158,7 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
           setStatus(cv.data);
           if (cv.data.depositAddress) setResolvedDepositAddress(cv.data.depositAddress);
         }
-        else setStatusError(cv.error || "Failed to load Cleanverse status");
+        else setStatusError(cv.error || "Failed to load verified settlement status");
         if (spend.success && spend.data) setSpendStatus(spend.data);
         if (walletRes.success && Array.isArray(walletRes.data)) {
           const rows = walletRes.data as unknown as WalletRow[];
@@ -360,19 +361,25 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
               <Badge variant="outline">Spend path armed</Badge>
             )}
             {cleanverseWallets.length > 0 && (
-              <Badge variant="outline">{cleanverseWallets.length} Cleanverse wallet(s)</Badge>
+              <Badge variant="outline">
+                {cleanverseWallets.length} verified-settlement wallet(s)
+              </Badge>
             )}
           </div>
           <h1
             className="text-3xl font-semibold tracking-tight"
             style={{ fontFamily: "var(--font-space-grotesk)" }}
           >
-            Verified rail
+            Verified settlement
           </h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Screen identities (CVI), preview policy with A-Pass risk signals, then settle{" "}
-            <strong className="font-medium text-foreground">{assetSymbol}</strong> on Monad
-            (CVA). Evidence lands in CRE runs and Spend &amp; Outcomes statements.
+            Screen identities, preview policy with risk signals, then settle{" "}
+            <strong className="font-medium text-foreground">{assetSymbol}</strong>{" "}
+            on the verified rail. Evidence lands in CRE runs and Spend &amp;
+            Outcomes.{" "}
+            <span className="text-muted-foreground/80">
+              Powered by Cleanverse when configured.
+            </span>
           </p>
         </header>
       )}
@@ -381,8 +388,8 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
         {[
           {
             icon: Fingerprint,
-            title: "1 · CVI gate",
-            body: "query_apass on sender + recipient",
+            title: "1 · Identity gate",
+            body: "Screen sender and recipient before approval",
           },
           {
             icon: Scale,
@@ -391,8 +398,8 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
           },
           {
             icon: Coins,
-            title: "3 · CVA settle",
-            body: "verify_apass + Access USDC on Monad",
+            title: "3 · Settle",
+            body: `Move ${assetSymbol} on the verified rail`,
           },
           {
             icon: Activity,
@@ -453,7 +460,7 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
                 value={
                   status.gateAllSpends
                     ? "all spends"
-                    : "opt-in wallets (executionProvider=cleanverse)"
+                    : "opt-in wallets (verified settlement custody)"
                 }
               />
               <div className="pt-1">
@@ -481,8 +488,8 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
           </h2>
           <ol className="list-decimal list-inside space-y-2 text-xs text-muted-foreground">
             <li>
-              Settings → Wallets → execution provider{" "}
-              <code className="text-foreground">Cleanverse (Monad Access USDC)</code>
+              Settings → Wallet custody →{" "}
+              <code className="text-foreground">Verified settlement</code>
             </li>
             <li>
               Chain ID <code className="text-foreground">10143</code>; fund MON
@@ -530,7 +537,7 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
             </h2>
           </div>
           <p className="text-[10px] text-muted-foreground font-mono">
-            CVI → /api/spend/preview → /api/spend
+            Identity screen → /api/spend/preview → /api/spend
           </p>
         </div>
 
@@ -541,14 +548,14 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
               Set <code className="text-foreground">CLEANVERSE_API_ID</code> and{" "}
               <code className="text-foreground">CLEANVERSE_API_KEY</code> on the
               API host. Until then the spend path fails closed if a wallet is
-              set to Cleanverse without credentials.
+              set to verified settlement without credentials.
             </span>
           </div>
         )}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Cleanverse wallet</label>
+            <label className="text-xs font-medium">Verified-settlement wallet</label>
             <select
               className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs"
               value={walletId}
@@ -567,7 +574,7 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
               {wallets.map((w) => (
                 <option key={w.id} value={w.id}>
                   {(w.name || w.id).slice(0, 40)}
-                  {w.metadata?.executionProvider === "cleanverse" ? " · cleanverse" : ""}
+                  {w.metadata?.executionProvider === "cleanverse" ? " · verified" : ""}
                 </option>
               ))}
             </select>
@@ -667,7 +674,7 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
               </>
             ) : (
               <>
-                <ShieldCheck className="h-4 w-4" /> Screen A-Pass
+                <ShieldCheck className="h-4 w-4" /> Screen identities
               </>
             )}
           </Button>
@@ -710,7 +717,7 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
               </>
             ) : (
               <>
-                <Play className="h-4 w-4" /> Execute CVA spend
+                <Play className="h-4 w-4" /> Execute verified spend
               </>
             )}
           </Button>
@@ -730,8 +737,8 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
               )}
               <span className="text-sm font-medium">
                 {screening.ok
-                  ? "CVI passed — proceed to preview / settle"
-                  : screening.reason || "CVI screening failed"}
+                  ? "Identity gate passed — proceed to preview / settle"
+                  : screening.reason || "Identity screening failed"}
               </span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 text-xs">
@@ -775,7 +782,7 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
               if (!cv || typeof preview.cleanverse !== "object") return null;
               return (
                 <p className="text-muted-foreground">
-                  CVI in preview:{" "}
+                  Identity in preview:{" "}
                   {cv.ok === false ? "fail" : cv.screened ? "pass" : "skipped"}
                   {cv.policySignals ? (
                     <>
@@ -829,6 +836,8 @@ export function VerifiedCapitalPage({ hideHeader = false }: { hideHeader?: boole
           </div>
         )}
       </section>
+
+      <EnvioEvidencePanel />
 
       <p className="relative text-xs text-muted-foreground">
         Integration details:{" "}

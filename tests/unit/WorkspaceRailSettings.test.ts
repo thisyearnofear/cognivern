@@ -22,6 +22,7 @@ describe("workspace rail settings helpers", () => {
   it("validates execution providers and evidence sink lists", () => {
     expect(isWorkspaceExecutionProviderId("local")).toBe(true);
     expect(isWorkspaceExecutionProviderId("keeperhub")).toBe(true);
+    expect(isWorkspaceExecutionProviderId("dynamic")).toBe(true);
     expect(isWorkspaceExecutionProviderId("nope")).toBe(false);
 
     expect(normalizeWorkspaceEvidenceSinks(["zerog", "filecoin"])).toEqual([

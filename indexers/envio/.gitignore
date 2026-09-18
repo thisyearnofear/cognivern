@@ -1,0 +1,4 @@
+# envio codegen output — regenerate with `pnpm codegen`
+.envio/
+envio-env.d.ts
+node_modules/

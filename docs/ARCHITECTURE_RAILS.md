@@ -104,6 +104,7 @@ Today’s mapping:
 | `EvmExecutionBackend` | Native path inside `OwsWalletService` using `blockchainConfig` |
 | `KeeperHubExecutionBackend` | Wrap `KeeperHubExecutionProvider` |
 | Cleanverse path | Existing Cleanverse branch in OWS — same interface |
+| `DynamicExecutionBackend` | Dynamic MPC server wallet via `@dynamic-labs-wallet/node-evm` — see [DYNAMIC.md](./DYNAMIC.md) |
 
 Workspace/mandate selects `executionBackend` (default from env).
 

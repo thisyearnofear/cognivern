@@ -34,6 +34,9 @@ import { OwsWalletController } from './controllers/OwsWalletController.js';
 import { OwsApiKeyController } from './controllers/OwsApiKeyController.js';
 import { OwsPermissionsController } from './controllers/OwsPermissionsController.js';
 import { CleanverseController } from './controllers/CleanverseController.js';
+import { Erc8004Controller } from './controllers/Erc8004Controller.js';
+import { PasskeyVaultController } from './controllers/PasskeyVaultController.js';
+import { EnvioController } from './controllers/EnvioController.js';
 import { FhenixController } from './controllers/FhenixController.js';
 import { IntentController } from './controllers/IntentController.js';
 import { McpGovernanceController } from './controllers/McpGovernanceController.js';
@@ -79,6 +82,9 @@ interface ControllerRegistry {
   owsApiKey: OwsApiKeyController;
   owsPermissions: OwsPermissionsController;
   cleanverse: CleanverseController;
+  erc8004: Erc8004Controller;
+  passkeyVault: PasskeyVaultController;
+  envio: EnvioController;
   fhenix: FhenixController;
   intent: IntentController;
   mcpGovernance: McpGovernanceController;
@@ -525,6 +531,9 @@ export class ApiModule extends BaseService {
     this.controllers.owsApiKey = new OwsApiKeyController();
     this.controllers.owsPermissions = new OwsPermissionsController();
     this.controllers.cleanverse = new CleanverseController();
+    this.controllers.erc8004 = new Erc8004Controller();
+    this.controllers.passkeyVault = new PasskeyVaultController();
+    this.controllers.envio = new EnvioController();
     this.controllers.fhenix = new FhenixController();
     this.controllers.intent = new IntentController();
     this.controllers.mcpGovernance = new McpGovernanceController(policyService);
@@ -632,6 +641,17 @@ export class ApiModule extends BaseService {
       this.ctrl('creditProgram').getPublicCommitment(req, res);
     });
 
+    // Public ERC-8004 surfaces (NO API key middleware). The registration card
+    // is the agentURI target agents put on-chain, and the well-known file is
+    // the spec's domain-verification document. Both are read-only and only
+    // disclose data already published to the public registries.
+    this.app.get('/erc8004/agents/:agentId/card', (req, res) => {
+      this.ctrl('erc8004').getCard(req, res);
+    });
+    this.app.get('/.well-known/agent-registration.json', (req, res) => {
+      this.ctrl('erc8004').getWellKnown(req, res);
+    });
+
     // API routes (require API key)
     const apiRouter = express.Router();
 
@@ -661,6 +681,9 @@ export class ApiModule extends BaseService {
         this.ctrl('owsApiKey'),
         this.ctrl('owsPermissions'),
         this.ctrl('cleanverse'),
+        this.ctrl('erc8004'),
+        this.ctrl('passkeyVault'),
+        this.ctrl('envio'),
       ),
     );
     apiRouter.use(

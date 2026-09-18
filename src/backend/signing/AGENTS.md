@@ -21,11 +21,12 @@ interface SigningProvider {
 | `"ledger"` | `LedgerSigningProvider` — DMK via USB | Production high-value, hardware-gated |
 | `"speculos"` | `OwsLocalVaultService.signWithExternalWallet()` → HTTP | Sandbox/CI, no hardware |
 | `"ows_remote"` | `OwsLocalVaultService.signWithExternalWallet()` → HTTP | Multi-instance, remote signing |
+| `"dynamic"` | `DynamicSigningProvider` — Dynamic MPC server wallet | Agent custody without local keys |
 
 ## Adding a New Provider
 
 1. Create a file in `src/backend/signing/` that implements `SigningProvider`
-2. Add a `case` to the `switch` in `OwsWalletService.handleApprove()`
+2. Add a `case` to the `switch` in `OwsWalletService.signSpendEnvelope`
 3. Update the `signingProvider` union type in the backend's `AuditLog` interface
 4. Add an entry to the provider table in `docs/DEV.md#ledger-integration--hardware-signing`
 

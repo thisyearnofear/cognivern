@@ -44,10 +44,13 @@ export function TelegraphPage() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-6 py-10 space-y-8">
         <PageHeader
-          eyebrow="Telegraph Protocol"
-          title="Telegraph signals"
-          description="Verified intelligence from the Telegraph miner network — signal categories, interest scores, and the questions the daemon is collecting."
+          eyebrow="Governed action"
+          title="Verified signals"
+          description="Confirm external intelligence before it drives a spend or policy decision. Categories, interest scores, and questions collected for this workspace."
         />
+        <p className="text-[11px] text-muted-foreground -mt-4">
+          Powered by the Telegraph miner network when enabled.
+        </p>
 
         {isLoading ? (
           <div className="space-y-8">
@@ -57,7 +60,7 @@ export function TelegraphPage() {
         ) : error ? (
           <PageState
             variant="error"
-            title="Could not load Telegraph status"
+            title="Could not load signal status"
             message={error instanceof Error ? error.message : "Request failed"}
             action={{ label: "Retry", onClick: () => window.location.reload() }}
           />
@@ -78,12 +81,12 @@ export function TelegraphPage() {
                     className="text-lg font-semibold"
                     style={{ fontFamily: "var(--font-space-grotesk)" }}
                   >
-                    Telegraph integration is disabled
+                    Verified signals are disabled
                   </h2>
                 </div>
                 <p className="text-sm text-muted-foreground max-w-2xl">
                   {status.paymentError ||
-                    "This backend has the Telegraph integration turned off, so no signals are being collected. Set TELEGRAPH_ENABLED=true (and an EVM private key for x402 payments) in the backend environment to activate the daemon feed."}
+                    "This backend is not collecting verified intelligence. Enable the signals integration (TELEGRAPH_ENABLED and a payment signer) to activate the feed."}
                 </p>
               </div>
             )}

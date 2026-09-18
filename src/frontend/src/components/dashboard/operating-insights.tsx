@@ -157,9 +157,9 @@ export function OperatingInsights({
                   <Gavel className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-semibold">Vendor governance</div>
+                  <div className="text-sm font-semibold">Private selection</div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Manage confidential vendor selections.
+                    Run confidential vendor selection under a mandate.
                   </p>
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />

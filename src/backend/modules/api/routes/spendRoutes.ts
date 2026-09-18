@@ -5,6 +5,9 @@ import type { OwsWalletController } from '@backend/modules/api/controllers/OwsWa
 import type { OwsApiKeyController } from '@backend/modules/api/controllers/OwsApiKeyController.js';
 import type { OwsPermissionsController } from '@backend/modules/api/controllers/OwsPermissionsController.js';
 import type { CleanverseController } from '@backend/modules/api/controllers/CleanverseController.js';
+import type { Erc8004Controller } from '@backend/modules/api/controllers/Erc8004Controller.js';
+import type { PasskeyVaultController } from '@backend/modules/api/controllers/PasskeyVaultController.js';
+import type { EnvioController } from '@backend/modules/api/controllers/EnvioController.js';
 import { sharedAgentPreferenceService } from '@backend/services/ai/AgentPreferenceService.js';
 
 export function createSpendRoutes(
@@ -14,6 +17,9 @@ export function createSpendRoutes(
   owsApiKeyController: OwsApiKeyController,
   owsPermissionsController: OwsPermissionsController,
   cleanverseCtrl?: CleanverseController,
+  erc8004Ctrl?: Erc8004Controller,
+  passkeyVaultCtrl?: PasskeyVaultController,
+  envioCtrl?: EnvioController,
 ): Router {
   const router = Router();
 
@@ -37,6 +43,56 @@ export function createSpendRoutes(
       cleanverseCtrl.getDepositAddress(req, res),
     );
     router.post('/cleanverse/screen', (req, res) => cleanverseCtrl.screen(req, res));
+  }
+
+  // ERC-8004 agent identity + reputation on Monad
+  if (erc8004Ctrl) {
+    router.get('/erc8004/status', (req, res) => erc8004Ctrl.getStatus(req, res));
+    router.post('/erc8004/register', (req, res) => erc8004Ctrl.register(req, res));
+    router.get('/erc8004/agents/:agentId', (req, res) =>
+      erc8004Ctrl.getAgent(req, res),
+    );
+    router.post('/erc8004/agents/:agentId/feedback', (req, res) =>
+      erc8004Ctrl.giveFeedback(req, res),
+    );
+    router.get('/erc8004/agents/:agentId/reputation', (req, res) =>
+      erc8004Ctrl.getReputation(req, res),
+    );
+  }
+
+  // Passkey vault — one passkey wraps the root, many agent keys derive from it
+  if (passkeyVaultCtrl) {
+    router.get('/passkey-vault/status', (req, res) =>
+      passkeyVaultCtrl.getStatus(req, res),
+    );
+    router.post('/passkey-vault/enroll/begin', (req, res) =>
+      passkeyVaultCtrl.enrollBegin(req, res),
+    );
+    router.post('/passkey-vault/enroll/commit', (req, res) =>
+      passkeyVaultCtrl.enrollCommit(req, res),
+    );
+    router.post('/passkey-vault/unlock/begin', (req, res) =>
+      passkeyVaultCtrl.unlockBegin(req, res),
+    );
+    router.post('/passkey-vault/unlock/commit', (req, res) =>
+      passkeyVaultCtrl.unlockCommit(req, res),
+    );
+    router.post('/passkey-vault/lock', (req, res) =>
+      passkeyVaultCtrl.lock(req, res),
+    );
+    router.get('/passkey-vault/agent-keys', (req, res) =>
+      passkeyVaultCtrl.listAgentKeys(req, res),
+    );
+    router.post('/passkey-vault/agent-keys', (req, res) =>
+      passkeyVaultCtrl.deriveAgentKey(req, res),
+    );
+  }
+
+  // Envio — pull indexed chain events into signed CRE evidence
+  if (envioCtrl) {
+    router.get('/envio/status', (req, res) => envioCtrl.getStatus(req, res));
+    router.get('/envio/events', (req, res) => envioCtrl.listEvents(req, res));
+    router.post('/envio/sync', (req, res) => envioCtrl.sync(req, res));
   }
 
   // OWS status

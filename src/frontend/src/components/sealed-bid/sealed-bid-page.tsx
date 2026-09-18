@@ -42,11 +42,11 @@ export function SealedBidPage() {
         <div className="space-y-1">
           <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-primary">Governed action</p>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Gavel className="h-6 w-6" /> Sealed-bid vendor selection
+            <Gavel className="h-6 w-6" /> Private vendor selection
           </h1>
           <p className="text-sm text-muted-foreground max-w-2xl">
-            Confidential vendor RFPs. Bids stay sealed from competitors until
-            the selection is complete.
+            Confidential RFPs under a mandate. Bids stay sealed from competitors
+            until selection completes.
           </p>
           <p className="text-xs text-muted-foreground">
             Two ways to start: an agent-governed round runs every event
@@ -107,9 +107,9 @@ export function SealedBidPage() {
           <Shield className="h-4 w-4 shrink-0 mt-0.5" />
           <span>
             <span className="font-semibold">Demo data.</span> These rounds are
-            sample vendor selections so you can explore the sealed-bid and
-            atomic-settlement flow without connecting a wallet. Create a real
-            round to see it live on Canton Devnet.
+            sample vendor selections so you can explore private selection and
+            settlement without a live ledger. Create a real round when your
+            confidential settlement backend is connected.
           </span>
         </div>
       )}
