@@ -37,6 +37,7 @@ commit it or copy its contents into public docs.
 - [DYNAMIC.md](./DYNAMIC.md) — MPC server wallets
 - [SPONSORED_CREDITS.md](./SPONSORED_CREDITS.md) — sponsored inference credits
 - [AGENTIC_COMMERCE_DEMO_RUNBOOK.md](./AGENTIC_COMMERCE_DEMO_RUNBOOK.md) — canonical sealed-bid demo sequence
+- [TYPESAFE.md](./TYPESAFE.md) — proposed calibrated-decision rail (Jev); evaluated, not built
 
 ## Program status
 

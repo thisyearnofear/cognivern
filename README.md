@@ -68,44 +68,19 @@ pnpm frontend
 
 For the public/demo path, most optional integrations can remain disabled. See the [Contributing Guide](./CONTRIBUTING.md) for focused commands and the [Developer Guide](./docs/DEV.md) for configuration details.
 
-## Core documentation
+## Documentation
 
-- [Contributing Guide](./CONTRIBUTING.md) — setup, workflow, tests, and contribution boundaries
-- [Repository Map](./docs/REPOSITORY_MAP.md) — where to make changes by feature
-- [Developer Guide](./docs/DEV.md) — full architecture, API reference, integrations, and limitations
-- [Deployment](./docs/DEPLOYMENT.md) — generic deployment and production configuration
-- [Tester Guide](./docs/TESTER_GUIDE.md) — canonical live/demo product walkthrough
-- [UX & IA Review](./docs/UX_IA_REVIEW.md) — information architecture rules and applied changes
-- [Adaptive UX](./docs/ADAPTIVE_UX.md) — how the UI adapts to workspace state (bounded, explainable, auditable)
-- [Canton](./docs/CANTON.md) — Canton/Daml model and DevNet runbook
-- [HydraDB](./docs/HYDRADB.md) — optional cross-source retrieval integration
-- [Product strategy](./docs/PRODUCT_STRATEGY.md) — funded mandates, attribution, outcomes, GTM, and capital allocation roadmap
-- [Agentic capital implementation spec](./docs/AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md) — mandate, outcome, statement, and evidence invariants
-- [Outcome evidence plan](./docs/OUTCOME_EVIDENCE_PLAN.md) — outcome connectors, Capital UI, WebMCP, and server MCP over one domain layer
-- [Langfuse lessons](./docs/LANGFUSE_LESSONS.md) — observability adjacency plan: what we adopt from Langfuse's trajectory and what we deliberately do not build
-- [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md) — sealed-bid and governance integration details
-- [Telegraph integration](./docs/TELEGRAPH.md) — verified AI intelligence with confidence-based governance
-- [Cleanverse rail](./docs/CLEANVERSE.md) — CVI/CVA verified agent capital rail on Monad
-- [Flare rail](./docs/FLARE.md) — confidential spend-policy evaluation in a Flare Compute Extension
-- [KeeperHub rail](./docs/KEEPERHUB.md) — governed execution via KeeperHub keepers
-- [Governance proofs](./docs/GOVERNANCE_PROOFS.md) — append-only proof anchors on 0G and X Layer
-- [Dynamic server wallets](./docs/DYNAMIC.md) — MPC custody for agent signing / execution
 - [Docs index](./docs/README.md) — full documentation index and program status
+- [Developer Guide](./docs/DEV.md) — architecture, API reference, integrations
+- [Repository Map](./docs/REPOSITORY_MAP.md) — where to make changes by feature
+- [Contributing](./CONTRIBUTING.md) — setup, workflow, tests
+- [Deployment](./docs/DEPLOYMENT.md) — production configuration
 
-## Product surfaces
+## What it does today
 
-- **Funded mandates (strategic direction):** define the objective, budget, permissions, evidence requirements, and release conditions for autonomous work.
-- **Governed spend (available today):** policy evaluation, approval workflows, wallet execution, and audit evidence.
-- **Telegraph verified intelligence (available today):** confidence-gated AI miner consumption with x402 micropayments, full audit trail, and governed spend tracking — see [Telegraph integration](./docs/TELEGRAPH.md).
-- **Verified agent capital rail (optional):** Cleanverse CVI (A-Pass) identity gate + CVA (aUSD-D) settlement on Monad — see [/verified-capital](https://cognivern.persidian.com/verified-capital) and [rail doc](./docs/CLEANVERSE.md).
-- **Attributable execution (available today in substrate form):** agent, run, action, wallet, vendor, and transaction evidence can be linked through the CRE/run ledger when those fields are supplied by the workflow. A universal mandate/purpose/outcome graph is a roadmap layer.
-- **Confidential policy evaluation:** Fhenix-backed encrypted budgets and spend counters.
-- **Confidential vendor selection:** Canton/Daml sealed-bid rounds with role-based visibility and atomic reveal.
-- **Agent operations:** API identities, run history, PromptOS, observability, and integrations.
+**Governed spend:** agents propose, policy evaluates, wallets execute, evidence records — the agent never holds a key. On top of that substrate: confidential policy evaluation (Fhenix), confidential vendor selection (Canton sealed-bid rounds), verified intelligence rails (Telegraph/x402), and proof anchors (0G, X Layer). Integrations include Dynamic MPC wallets, KeeperHub, Cleanverse, and Flare — see the [docs index](./docs/README.md) for each rail.
 
-Cognivern does not yet claim complete ROI accounting, causal attribution, an
-external agent investment marketplace, or credit underwriting. Those capabilities
-are earned in sequence: govern → attribute → measure → allocate.
+**Roadmap direction:** funded mandates → attributable execution → outcome accounting → external capital allocation. Govern → attribute → measure → allocate.
 
 ## License
 

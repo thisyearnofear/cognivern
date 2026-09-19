@@ -106,6 +106,7 @@ docs/demo-clip*.mp4
 *.webm
 *.mov
 *.avi
+*.cast
 *.mkv
 *.mp3
 *.wav

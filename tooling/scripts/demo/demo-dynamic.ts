@@ -111,6 +111,9 @@ async function main() {
     asset: "ETH",
     reason: "Runtime Dynamic demo — governed agent spend",
     timestamp: new Date().toISOString(),
+    // Declared USD value for policy rules (no price feed in the demo path).
+    // 1000 wei of testnet ETH is effectively sub-cent.
+    metadata: { amountUsd: process.env.DYNAMIC_DEMO_AMOUNT_USD || "0.50" },
   };
 
   console.log("Step 2: Governed executeSpend via Dynamic…");

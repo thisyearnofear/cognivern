@@ -16,7 +16,11 @@ non-self-reported outcome.**
 `AllocationRecommendationService` requires `independently_verified` outcomes
 to move a mandate `hold` → `consider_next_allocation`. GitHub fills that
 tier; Langfuse fills `system_observed` (useful for statements and quality
-loops, insufficient alone to flip the recommendation).
+loops, insufficient alone to flip the recommendation). A calibrated
+statement-scorer (TypeSafe Jev `noul` — see [TYPESAFE.md](./TYPESAFE.md)) is
+the proposed middle tier: "does this evidence satisfy the mandate?" → a
+confidence-scored judgment that can feed statements and, paired with an
+independent source, allocation.
 
 ## Outcome connectors (shipped)
 
