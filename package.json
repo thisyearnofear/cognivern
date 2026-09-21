@@ -114,7 +114,7 @@
     "@x402/fetch": "2.24.0",
     "@zondax/filecoin-signing-tools": "^0.20.0",
     "agents": "^0.2.5",
-    "ai": "6.0.141",
+    "ai": "7.0.105",
     "axios": "1.13.6",
     "better-sqlite3": "12.10.0",
     "compression": "^1.7.4",
