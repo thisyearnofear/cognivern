@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
@@ -17,6 +17,53 @@ import { EvidenceChain } from "@/components/brand/evidence-chain";
  * with a fenced teaser on the main landing linking here. See
  * docs/UX_IA_REVIEW.md ("one hierarchy rule").
  */
+/**
+ * Live ledger line for the public landing. Fetches the raw rounds endpoint
+ * with no demo fallback: on any failure it renders nothing rather than
+ * sample data. Real rounds or silence — never fiction.
+ */
+function LiveRoundsLine() {
+  const [line, setLine] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/vendor/sealed-bid/rounds", { credentials: "omit" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancelled) return;
+        const rounds = Array.isArray(json?.data) ? json.data : null;
+        if (!rounds || rounds.length === 0) return;
+        const open = rounds.filter(
+          (r: { status?: string }) => r.status === "open",
+        ).length;
+        const revealed = rounds.filter(
+          (r: { status?: string }) => r.status === "revealed",
+        ).length;
+        const canton = rounds.filter(
+          (r: { backend?: string }) => r.backend === "canton",
+        ).length;
+        setLine(
+          `${rounds.length} round${rounds.length === 1 ? "" : "s"} on the ledger right now — ${open} open · ${revealed} revealed · ${canton} on Canton`,
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!line) return null;
+  return (
+    <p className="mt-4 text-center text-xs text-muted-foreground">
+      <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 align-middle" aria-hidden="true" />
+      {line}.{" "}
+      <Link href="/sealed-bid" className="text-primary hover:underline">
+        Inspect them
+      </Link>
+    </p>
+  );
+}
+
 export function SponsorLanding() {
   const router = useRouter();
   const isAppAuthenticated = useAuthStore((s) => s.isConnected);
@@ -124,7 +171,11 @@ export function SponsorLanding() {
               </Link>
             </motion.div>
             <p className="mt-4 text-center text-xs text-muted-foreground">
-              Participants need no account — balance, disclosure and receipts are self-service.
+              Participants need no account — balance, disclosure and receipts are self-service.{" "}
+              <a href="#proof" className="text-primary hover:underline">
+                Check the live proof
+              </a>{" "}
+              before you sign in.
             </p>
           </div>
 
@@ -134,6 +185,36 @@ export function SponsorLanding() {
             labeled
             className="mt-6"
           />
+        </div>
+      </section>
+
+      {/* ── Proof: every claim checkable, no signup ── */}
+      <section id="proof" aria-label="Proof" className="border-t border-border scroll-mt-24">
+        <div className="max-w-5xl mx-auto px-6 py-14">
+          <p className="text-center text-xs font-semibold text-primary uppercase tracking-widest">
+            Don&apos;t trust us — check
+          </p>
+          <LiveRoundsLine />
+          <div className="mt-6 grid gap-4 md:grid-cols-3 text-sm">
+            <Link href="/verify" className="rounded-xl border border-border bg-card p-5 hover:border-primary/50 transition-colors">
+              <p className="font-semibold text-foreground">Verify a receipt</p>
+              <p className="text-muted-foreground mt-1 leading-relaxed text-[13px]">
+                Third-party proof math against anchored roots. Public, no account.
+              </p>
+            </Link>
+            <Link href="/credits" className="rounded-xl border border-border bg-card p-5 hover:border-primary/50 transition-colors">
+              <p className="font-semibold text-foreground">Participant view</p>
+              <p className="text-muted-foreground mt-1 leading-relaxed text-[13px]">
+                Exactly what a grantee sees: balance, activity, receipts.
+              </p>
+            </Link>
+            <Link href="/sealed-bid" className="rounded-xl border border-border bg-card p-5 hover:border-primary/50 transition-colors">
+              <p className="font-semibold text-foreground">Live private selection</p>
+              <p className="text-muted-foreground mt-1 leading-relaxed text-[13px]">
+                Confidential vendor rounds on the same control plane.
+              </p>
+            </Link>
+          </div>
         </div>
       </section>
 
