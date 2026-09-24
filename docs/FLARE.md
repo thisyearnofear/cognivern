@@ -1,5 +1,15 @@
 # Flare Confidential Compute (FCC) — TEE spend policy
 
+> **Status (2026-09-24): STANDBY — FCE stack stopped.** `fce-extension-tee`,
+> `fce-ext-proxy`, and `fce-redis` on the FCC host (`nuncio-vultr`,
+> `/opt/cognivern-flare/fce`) were stopped and removed; compose project files
+> remain for revival. On-chain artifacts below persist on Coston2, but live
+> evaluation is down: the backend falls back to the Fhenix/plaintext path
+> unless `FLARE_EVALUATOR=flare`, and fails closed (fabricated deny) when the
+> proxy is unreachable. Revival = `docker compose up -d` in
+> `/opt/cognivern-flare/fce` **plus** re-`REGISTER_POLICY` for every key
+> mandate (TEE/Redis-held budgets and counters do not survive the stop).
+
 Confidential spend-policy evaluation inside a Flare Compute Extension (FCE):
 budget and per-agent spend counters live **inside the TEE**, not in public
 contract storage; only the decision is published on-chain. Built for Flare
@@ -23,7 +33,7 @@ Summer Signal Bounty 2 (Aug 2026) — working doc / submission record:
 | --- | --- |
 | InstructionSender (`ConfidentialSpendPolicy.sol`) | `0x9280232ac471237C3065591c9e7774f175AA1A94` |
 | Extension id | `0x10238` |
-| Extension host | `flare-tee.persidian.com` → Traefik → FCC host `:7667` |
+| Extension host | `flare-tee.persidian.com` → Traefik → FCC host `:7667` (**down** since 2026-09-24 — route 502s until revival) |
 | FCE OPTypes | `SPEND_POLICY`, `REGISTER_POLICY`, `EVALUATE_SPEND` |
 
 ## Backend wiring

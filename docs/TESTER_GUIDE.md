@@ -58,8 +58,10 @@ must be treated as disposable after the session.
 4. Copy the key for use in your own agent
 
 Optional in **Settings → API keys**: tick **Seal a spend mandate in TEE** to
-bind a budget to the key — the Flare enclave then enforces it, so even a
-leaked key cannot overspend its mandate. **Bring your own credential** wraps
+bind a budget to the key — when the Flare enclave is up it enforces it, so even a
+leaked key cannot overspend its mandate. (Standby since 2026-09-24: the FCE stack
+is stopped — see [FLARE.md](./FLARE.md) — so TEE sealing is unavailable until revival.)
+**Bring your own credential** wraps
 an existing key (e.g. an agent runtime's) with the same scopes + mandate.
 
 Example API call:
