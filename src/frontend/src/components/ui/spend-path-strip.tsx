@@ -18,12 +18,15 @@ export function SpendPathStrip({
   custody,
   settlement,
   evidence,
+  movesFunds,
   className,
 }: {
   decision?: string;
   custody?: CustodyMode | string | null;
   settlement?: { label: string; href?: string } | null;
   evidence?: string | null;
+  /** Explicit funds-move flag; renders a funder-readable badge. */
+  movesFunds?: boolean | null;
   className?: string;
 }) {
   const custodyText =
@@ -63,9 +66,22 @@ export function SpendPathStrip({
       className={`rounded-xl border bg-card px-4 py-3 ${className ?? ""}`}
       aria-label="Spend path"
     >
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-        Spend path
-      </p>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Spend path
+        </p>
+        {movesFunds !== undefined && movesFunds !== null && (
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+              movesFunds
+                ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+            }`}
+          >
+            {movesFunds ? "Moves funds" : "No funds move"}
+          </span>
+        )}
+      </div>
       <ol className="flex flex-wrap items-stretch gap-1 sm:gap-0">
         {steps.map((step, index) => (
           <li

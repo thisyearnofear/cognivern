@@ -214,6 +214,7 @@ function WalletsCard() {
       </div>
       <p className="text-xs text-muted-foreground">
         Where each agent wallet holds and moves capital after policy approval.
+        Fund the wallet address on its chain — approval moves value plus gas.
         Cognivern keeps mandates, policy, and evidence; custody adapters are
         swappable underneath. Audit trails appear in{" "}
         <a className="underline" href="/observability">

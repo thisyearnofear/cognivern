@@ -9,7 +9,8 @@ export type UxEventName =
   | 'error_retry_clicked'
   | 'route_backtracked'
   | 'proof_shared'
-  | 'batch_action_completed';
+  | 'batch_action_completed'
+  | 'money_action_discover';
 
 /**
  * Privacy-safe UX instrumentation. Production transport is opt-in through

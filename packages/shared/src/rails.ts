@@ -12,6 +12,8 @@ export type RailPlane = "settlement" | "execution" | "evidence" | "decision";
 
 export type RailStatus = "live" | "configured" | "planned";
 
+export type SettlementKind = "transfer" | "selection" | "escrow" | "metered" | "anchor";
+
 export interface RailDescriptor {
   /** Stable id used in config / evidence metadata (not a display string). */
   id: string;
@@ -26,7 +28,58 @@ export interface RailDescriptor {
   capabilities: readonly string[];
   status: RailStatus;
   notes?: string;
+  /** Whether invoking this rail moves funds. Shown in spend-path UI. */
+  movesFunds?: boolean;
+  /** selection = no funds move; escrow/transfer/metered move or reserve value. */
+  settlementKind?: SettlementKind;
+  /** One-line funder copy: what funding this rail costs and where receipt lands. */
+  fundingHint?: string;
 }
+
+/** Money actions a funder can take, independent of rail brand. */
+export interface MoneyAction {
+  id: "transfer" | "procurement" | "intelligence" | "inference";
+  label: string;
+  cost: string;
+  settlement: string;
+  receipt: string;
+  href: string;
+}
+
+export const MONEY_ACTIONS: readonly MoneyAction[] = [
+  {
+    id: "transfer",
+    label: "Pay or transfer",
+    cost: "Native / ERC-20 + gas",
+    settlement: "Moves funds on approval",
+    receipt: "txHash + CRE run",
+    href: "/spend?view=attribution",
+  },
+  {
+    id: "procurement",
+    label: "Private selection",
+    cost: "Free",
+    settlement: "Selection only, no escrow",
+    receipt: "AuctionResult + audit log",
+    href: "/sealed-bid",
+  },
+  {
+    id: "intelligence",
+    label: "Verified signals",
+    cost: "~$0.01 x402 USDC / call",
+    settlement: "Pays per call",
+    receipt: "telegraph.signal artifact",
+    href: "/telegraph",
+  },
+  {
+    id: "inference",
+    label: "Sponsored inference",
+    cost: "Pre-funded pool",
+    settlement: "Deducts per participant",
+    receipt: "Merkle receipt + anchor",
+    href: "/sponsor/credits",
+  },
+] as const;
 
 /**
  * Uniform Rail adapter contract. Complexity belongs at the adapter boundary;

@@ -59,10 +59,10 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         id: 'spend-outcomes',
-        label: 'Activity',
+        label: 'Spend & Outcomes',
         icon: CircleDollarSign,
         href: '/spend',
-        description: 'Review governed actions and outcomes',
+        description: 'Fund actions, review spend, and see what it produced',
       },
     ],
   },

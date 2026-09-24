@@ -252,7 +252,7 @@ export function ObservabilityPage() {
                     <li>
                       Open{" "}
                       <a className="underline" href="/spend?view=verified">
-                        Activity → Verified settlement
+                        Spend &amp; Outcomes → Verified settlement
                       </a>{" "}
                       to screen and arm wallets.
                     </li>

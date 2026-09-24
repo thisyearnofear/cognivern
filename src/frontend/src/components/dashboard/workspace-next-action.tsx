@@ -55,10 +55,10 @@ function chooseNextAction({ state, demoMode, mandateCount }: WorkspaceNextAction
   }
   if (mandateCount === 0) {
     return {
-      eyebrow: 'Define the work',
-      title: 'Create a spending mandate',
-      description: 'A mandate connects an objective, budget, identities, and success measures so spend reviews as accountable work.',
-      button: 'Open Activity',
+      eyebrow: 'Fund the work',
+      title: 'Fund your first action',
+      description: 'Pick what money should do — pay a wallet, run a private selection, buy a verified signal, or fund inference — then track spend and receipt under a mandate.',
+      button: 'Open Spend & Outcomes',
       href: '/spend',
       icon: Landmark,
     };

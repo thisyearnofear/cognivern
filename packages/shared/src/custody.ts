@@ -48,6 +48,10 @@ export interface CustodyModeMeta {
   need: string;
   /** Optional provider footnote (never the headline). */
   poweredBy?: string;
+  /** Funder-facing line: what funding this custody costs. */
+  fundingHint?: string;
+  /** Whether spends under this custody move funds on approval. */
+  movesFunds?: boolean;
 }
 
 export const CUSTODY_MODE_META: Record<CustodyMode, CustodyModeMeta> = {
@@ -55,24 +59,32 @@ export const CUSTODY_MODE_META: Record<CustodyMode, CustodyModeMeta> = {
     id: "vault",
     label: "Cognivern vault",
     need: "Default for demos and low-stakes spends — keys stay in this deployment.",
+    fundingHint: "Fund the vault address; spends move native value + gas on approval.",
+    movesFunds: true,
   },
   managed_mpc: {
     id: "managed_mpc",
     label: "Managed MPC",
     need: "You want agent wallets without raw private keys on this box.",
     poweredBy: "Dynamic server wallets",
+    fundingHint: "Fund the MPC address on its chain; spends move funds on approval.",
+    movesFunds: true,
   },
   hosted_execution: {
     id: "hosted_execution",
     label: "Hosted execution",
     need: "Gas sponsorship, retries, and ops-managed broadcast.",
     poweredBy: "KeeperHub",
+    fundingHint: "Fund the execution wallet; gas may be sponsored, value still moves.",
+    movesFunds: true,
   },
   verified_settlement: {
     id: "verified_settlement",
     label: "Verified settlement",
     need: "Identity-gated capital and attested settlement rails.",
     poweredBy: "Cleanverse",
+    fundingHint: "Fund Access USDC + MON for gas; both parties need an A-Pass.",
+    movesFunds: true,
   },
   custom: {
     id: "custom",

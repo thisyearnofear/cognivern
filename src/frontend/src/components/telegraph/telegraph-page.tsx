@@ -49,7 +49,7 @@ export function TelegraphPage() {
           description="Confirm external intelligence before it drives a spend or policy decision. Categories, interest scores, and questions collected for this workspace."
         />
         <p className="text-[11px] text-muted-foreground -mt-4">
-          Powered by the Telegraph miner network when enabled.
+          Miner calls pay ~$0.01 x402 USDC; confidence ≥ threshold approves, below holds — each call receipts a <span className="font-mono">telegraph.signal</span> artifact.
         </p>
 
         {isLoading ? (

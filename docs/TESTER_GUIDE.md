@@ -169,7 +169,7 @@ to `app.keeperhub.com` and walks you through the one-time setup.
 Cleanverse is a first-class spend rail: **CVI (A-Pass)** before policy approval,
 **CVA (Access USDC/aUSDC)** settlement on Monad testnet.
 
-1. Open **Operate → Verified Capital** (`/verified-capital`).
+1. Open **Review → Spend & Outcomes → Verified settlement** (`/spend?view=verified`; `/verified-capital` redirects there).
 2. Confirm rail status (API connected, Monad `10143`, Access USDC/aUSDC).
 3. Arm a disposable wallet (Settings → Cleanverse provider, chain `10143`)
    and create an OWS scoped API key for it. The current demo funding address is
@@ -278,7 +278,7 @@ recommendation, and immutable published snapshots with redacted export.
 - **0G Chain** records governance decisions as on-chain events for
   tamper-evident verifiability (0G Galileo Testnet)
 - **Sealed Bids** run confidential vendor RFPs on Canton (live on Devnet)
-- **Verified Capital** (`/verified-capital`) is the Cleanverse CVI/CVA spend rail on Monad
+- **Verified settlement** (`/spend?view=verified`) is the Cleanverse CVI/CVA spend rail on Monad
 - **OS Terminal** is a natural-language interface to the platform
 
 Cognivern does not yet provide complete ROI accounting, causal attribution, an
