@@ -7,6 +7,8 @@ are confidence-gated, paid per-call in x402 USDC, and recorded as
 Submission history (Season I Track 3, concluded Sep 2026):
 [`history/HACKATHON_SUBMISSION_TELEGRAPH.md`](./history/HACKATHON_SUBMISSION_TELEGRAPH.md)
 and [`history/TELEGRAPH_TRACK3_PROPOSAL.md`](./history/TELEGRAPH_TRACK3_PROPOSAL.md).
+Season I did not place — see the [retrospective](#season-i-retrospective) and
+[Season II direction](#season-ii-direction) below before extending this rail.
 
 ```text
 Telegraph Verified Intelligence
@@ -126,3 +128,117 @@ through `SpendAttributionService` into the mandate statement.
   each run prints `N calls, $X | approved/held/failed` + all-time totals.
 - Unit tests: `tests/unit/TelegraphService.test.ts` (threshold routing, URL
   building, artifact creation).
+
+## Season I retrospective
+
+Season I Track 3 podium: Scam Shield (0.69/1), Truvian Shield (0.59/1),
+ProofPact (0.45/1). We did not place. Analysis written 2026-09-28 after the
+official results post and a full review of the Track 1 winner's public repo
+([PugarHuda/amanat](https://github.com/PugarHuda/amanat) — entered all three
+tracks from one codebase: signed weather miner, no_std WASM scorer, ERC-8183
+parametric-cover contract).
+
+### What the winners did that we didn't
+
+1. **They closed a loop with a visible consequence.** Scam Shield flags a real
+   Gmail email or SMS; Truvian Shield returns SAFE/CAUTION/BLOCK before a
+   transaction is signed; ProofPact settles a payment; amanat's contract pays
+   out a claim by itself when a reading crosses its trigger. Our digest's
+   terminal state is a counter in `data/telegraph-stats.json` and a "held for
+   review" status nothing can ever act on — the one-way door our own repo
+   rules call a bug. Judging rewards "ranked intelligence changed something",
+   not "ranked intelligence was logged".
+2. **They did not trust the unverifiable number.** Our gate is the miner's
+   self-declared `confidence_field`. Amanat's sharpest finding: the network's
+   own `verified: true` cannot be re-derived from outside, so they Ed25519-sign
+   every answer over the settle fields and let anyone re-verify with one
+   `node -e` line. A governance layer whose only input is a self-reported
+   confidence is the very thing we claim to protect against — it needs
+   cross-miner agreement or signature attestation to be self-consistent.
+3. **They measured the network first; the measurement became the product.**
+   Amanat's repo leads with reproducible findings: prose-comparing scorers
+   rank deterministic-intent miners at 0.02; 341 miner registrations vs 14
+   on-chain jobs; only 29/125 miners can receive a job at all. Each gap was
+   itself a track entry. We wrote a criteria-alignment proposal instead of a
+   network audit.
+4. **They engineered distribution and "users acquired".** `amanat-mcp`
+   published to npm and listed in the official MCP registry, a `storm` CLI, a
+   shipping-lane board refreshed by GitHub Actions every 6h, an 84s film cut
+   from live Playwright sessions. Our surfaces were one dashboard page + one
+   demo script, and the required demo video never shipped (the checklist item
+   stayed "in progress" through the deadline; our Remotion renders postdate
+   it).
+5. **They played all three sides of the flywheel.** The official recap frames
+   Season I's result as the interaction between tracks
+   (Intelligence → Evaluation → Ranking → Demand → Better Intelligence). We
+   deliberately entered Track 3 only; the supply and evaluation sides stayed
+   empty for us.
+
+### What we did well — keep it
+
+- Real x402 payments with an honest `paymentReady` gate; no mocked calls.
+- Fail-safe holds: absent confidence is "unknown", never auto-approved,
+  never fabricated.
+- Demand-driven consumption from the daemon's organic signal feed instead of
+  canned-query metric farming. The organizers later disqualified scripted
+  call inflation (amanat had to stop its paid board runs for this); our
+  modest 6h cadence was the right instinct.
+- Real cost discipline through the existing governance pipeline — Truvian
+  Shield's prize-winning idea is nearly identical to ours, executed with
+  sharper evidence presentation.
+
+### Network facts worth knowing before Season II (from amanat's bug report)
+
+- The engine-ask path strips the confidence field (we worked around it with
+  direct miner-dispatcher calls); this is by-design fragile.
+- Deterministic intents are scored by text-overlap modules; numeric answers
+  rank ~0 unless the scoring module grades measurements. Relevant to any
+  Evaluator-track entry we build.
+- ERC-8183 job params did not reach miners as documented (`lat=0, lon=0`
+  bug); the on-chain job rail is real but thin. Verify before building on it.
+- `verified: true` is not externally checkable — treat as an untrusted
+  upstream claim, same as any miner output.
+
+## Season II direction
+
+Season II: ~30 days, $10K pool, same three tracks (Miner, Evaluator,
+Application/Agent across 15 commercial missions); rules and prize split
+publish with the Season II page at telegraphprotocol.com. Registration opens
+there before the event starts.
+
+Ordered by leverage-to-effort, to start when Season II rules publish:
+
+1. **Fix the hold path** (prerequisite for everything else). An approval
+   inbox in the UI where held `telegraph.signal` artifacts can be reviewed,
+   released, or rejected, with the decision written back to CRE. Turns our
+   strongest feature (the fail-safe hold) from a dead end into a demoable
+   loop.
+2. **Close one loop inside a commercial mission.** Pick a mission where
+   ranked intelligence triggers a governed action with a visible outcome —
+   natural fit: Canton sealed-bid rounds where vendor-selection intelligence
+   (price/reputation/risk from ranked miners) feeds reserve pricing or bid
+   evaluation and settles on the ledger we already run live. That is
+   "Telegraph inside a larger autonomous workflow", the phrasing they used
+   for ProofPact.
+3. **Make approval verifiable.** Cross-miner agreement (buy the same fact
+   from 2+ miners, hold on disagreement) and/or require signed attestations
+   where available. Then "governed" is something a judge can check, not just
+   a threshold on a self-report.
+4. **Enter the Evaluator track too.** Our confidence-threshold + policy
+   machinery is an evaluation opinion we currently keep private; a scoring
+   module that grades answers as measurements (amanat's approach) is the
+   template. Week-1 deliverable: a network-audit script (like
+   `audit-jobable.mjs`) whose reproducible findings double as X-post content
+   and product direction.
+5. **Ship distribution surfaces.** MCP server exposing governed Telegraph
+   calls (`npx` one-liner, registry listing), a CLI, and the demo video cut
+   from live sessions — we already have the recording pipeline
+   (`tooling/scripts/demo/record-demo-video.ts`), Season I simply ran out of
+   week.
+6. **Surface spend ceilings in the artifact.** Per-call and per-run caps
+   (amanat's `ASK_CEILING` pattern) so every receipt shows the budget that
+   bounded it.
+
+Budget note: scripted paid calls may be excluded from judging. Keep the
+digest demand-driven (daemon signals only) and add per-run spend ceilings
+before increasing any cadence.

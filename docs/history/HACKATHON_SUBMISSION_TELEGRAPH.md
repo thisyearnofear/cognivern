@@ -1,8 +1,12 @@
 # Telegraph Protocol Season I — Track 3 — Cognivern Submission
 
-> **Historical — hackathon concluded Sep 7 2026.** The Telegraph integration it
-> produced is live; see [`../TELEGRAPH.md`](../TELEGRAPH.md) for the current
-> reference. This doc is the submission record only.
+> **Historical — hackathon concluded Sep 7 2026. We did not place in
+> Track 3** (podium: Scam Shield 0.69, Truvian Shield 0.59, ProofPact 0.45).
+> The Telegraph integration it produced is live; see
+> [`../TELEGRAPH.md`](../TELEGRAPH.md) for the current reference, including
+> the [Season I retrospective](../TELEGRAPH.md#season-i-retrospective) and
+> [Season II direction](../TELEGRAPH.md#season-ii-direction). This doc is the
+> submission record only.
 
 **Hackathon:** Telegraph Protocol Season I, Track 3 (Apps & Agents)
 **Host:** Telegraph Protocol (built on Base)
