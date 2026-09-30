@@ -173,7 +173,7 @@
     "prettier": "^3.2.5",
     "stacktrace-parser": "0.1.11",
     "ts-node": "^10.9.2",
-    "tsx": "^4.19.3",
+    "tsx": "^4.23.13",
     "typescript": "^5.4.2",
     "vercel": "55.0.0",
     "vitest": "4.1.7",
