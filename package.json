@@ -156,7 +156,7 @@
     "@types/node": "^20.11.30",
     "@typescript-eslint/eslint-plugin": "^8.37.0",
     "@typescript-eslint/parser": "^8.37.0",
-    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-react": "6.1.1",
     "chai": "^4.5.0",
     "drizzle-kit": "^0.31.10",
     "esbuild": "^0.25.0",
