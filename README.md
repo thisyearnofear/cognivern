@@ -6,6 +6,8 @@ Cognivern makes autonomous work fundable: a business can define a bounded mandat
 
 **Try it:** [Live app](https://cognivern.persidian.com) · [API](https://api.cognivern.persidian.com) · [PromptOS](https://cognivern.persidian.com/os)
 
+> Decision models via Runware `/v1/systemone`: `typesafe:jev@latest` + `runware:laya@1` (FREE until Oct 12) for confidence-gated spend.
+
 ## Choose your path
 
 | I want to…                       | Start here                                                      |

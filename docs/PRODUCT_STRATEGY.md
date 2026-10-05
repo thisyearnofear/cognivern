@@ -150,6 +150,32 @@ then verified capital deployed through successful mandates. Supporting:
 active funded mandates, repeat allocation rate, % spend tied to a mandate,
 % outcomes with evidence.
 
+## Near-term sequence (set 2026-09-25)
+
+Context: Canton mentor track + weave-os/router review. Organiser pain is
+hypothesis (supporting signals only); enterprise ROI pain is cited
+(Gartner 84%, Harness 94%). Hackathons-as-GTM is documented (Meta Llama
+Impact, Google AI program, multi-vendor sponsor sheets); devtools ~$25–30B
+at 20–25% CAGR with 62% of teams raising marketing budgets.
+
+1. **Validate Mara** — 2–3 organiser interviews; pass/fail: "would a
+   sponsor-ready receipt report have changed your last debrief?" If it
+   fails, the enterprise buyer still holds; only the landing narrative
+   changes.
+2. **Hosted fast path** — sample-cohort click with zero signup before any
+   upstream-key talk (the `/sponsor#proof` live-ledger pattern, not
+   fixtures). Email feedback demands a click, not a meeting.
+3. **Key clarity** — `sk-` / `mk-` / `cvk_` explainer box wherever keys are
+   minted (cf. Weave's "two keys, don't mix them up").
+4. **Methodology in public** — on-theme classification documented like a
+   benchmark harness (reproducible) before the column is shown to
+   sponsors; verification math stays the trust anchor.
+5. **Canton S3 (due Oct 9 2026)** — aim at the sponsor side (sealed-bid +
+   mandate receipts as the DevRel answer), dogfooded with one real
+   event's numbers where possible.
+6. **Weave conversation** — analytics-export-to-evidence integration
+   (their savings + our worth). Story first, no build commitment.
+
 ## Passed-on markets (standing filter)
 
 Filter: does it produce outcome-bearing mandate records on rails we already

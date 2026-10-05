@@ -100,6 +100,14 @@ Startup log to confirm: `SealedBid[canton]: hydrated N open + M revealed round(s
 
 ## Production state — DevNet unreachable, sandbox restored (Aug 25 2026)
 
+> **Update (Oct 5 2026):** the shared node answers again (`livez` 200 from
+> Hetzner and local) but moved to per-team tenant namespaces for S3 — S2
+> credentials authenticate yet get `invalid token` on ledger calls. The
+> Hetzner sandbox stays the live fallback until S3-season tenant access
+> (Console SSO + wallet onboarding) is completed; then follow the revert
+> path below. Submission tracking:
+> [`history/HACKATHON_SUBMISSION_HACKCANTON_S3.md`](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md).
+
 **The live list being empty was a dead-ledger issue, not a mis-config.** `CANTON_FEATURED_ROUNDS` was already set on the Hetzner box (three DevNet round ids), but the backend logs `SealedBid[canton]: hydrate from ledger failed — pre-seeded rounds will not appear until first HTTP request retries: fetch failed` on **every boot since Aug 21**, and the round list stays empty. The shared DevNet JSON endpoint (`ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`) resolves but resets TCP (`Connection reset by peer`, TLS write errors) from the box and from any laptop. The featured filter only narrows whatever the backend has hydrated; it cannot conjure rounds from an unreachable ledger.
 
 **Fallback — restored the Hetzner sandbox** (chosen instead of waiting on the DevNet team):

@@ -7,10 +7,11 @@ const ALIASES = {
   "@backend": "dist/src/backend",
   "@": "dist/src",
   // Workspace shared package (demo-policy + shared types). tsc emits it into
-  // dist/packages/shared/src, so a bare "@cognivern/shared" import resolves on
-  // the deployed box without a node_modules entry. (No backend code imports a
-  // shared subpath, so mapping the package name to its built index.js is safe.)
-  "@cognivern/shared": "dist/packages/shared/src/index.js",
+  // dist/packages/shared/src, so "@cognivern/shared" imports resolve on
+  // the deployed box without a node_modules entry. Backend code imports both
+  // the bare package and subpaths (e.g. "@cognivern/shared/rails"), so the
+  // alias maps to the built directory and the bare specifier to its index.js.
+  "@cognivern/shared": "dist/packages/shared/src",
 };
 
 async function resolveWithFallbacks(url, context, nextResolve) {
@@ -34,7 +35,7 @@ async function resolveWithFallbacks(url, context, nextResolve) {
 export async function resolve(specifier, context, nextResolve) {
   for (const [alias, target] of Object.entries(ALIASES)) {
     if (specifier.startsWith(alias + "/") || specifier === alias) {
-      const rest = specifier.slice(alias.length);
+      const rest = specifier === alias ? "/index.js" : specifier.slice(alias.length);
       const filePath = pathResolve(APP_DIR, target + rest);
       return resolveWithFallbacks(new URL("file://" + filePath).href, context, nextResolve);
     }

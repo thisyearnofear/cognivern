@@ -46,7 +46,7 @@ never bake deadlines into `AGENTS.md` or rail docs.
 
 | Program | Type | Status | Reference |
 | --- | --- | --- | --- |
-| HackCanton S3 | Hackathon | **Open** — submissions due Oct 9 2026 23:59 UTC | no submission doc yet |
+| HackCanton S3 | Hackathon | **Open** — submissions due Oct 9 2026 23:59 UTC | [draft submission](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md) |
 | Prezenti AI Builder Sponsorship | Sponsorship (not a hackathon) | Applying — hard close Dec 29 2026; Celo mainnet milestone required | [PREZENTI_SPONSORSHIP.md](./PREZENTI_SPONSORSHIP.md) |
 | HackCanton S2 | Hackathon | Concluded | [CANTON.md](./CANTON.md) (rail stays live) |
 | Cleanverse Build: Trusted Assets | Hackathon | Concluded Aug 9 2026 | [history submission](./history/HACKATHON_SUBMISSION_CLEANVERSE.md) |
