@@ -6,6 +6,7 @@ import {
   sqliteTable,
   text,
   integer,
+  real,
   index,
   primaryKey,
   uniqueIndex,
@@ -389,6 +390,17 @@ export const inferenceRecords = sqliteTable(
     index("idx_inference_records_model").on(table.programId, table.model),
   ],
 );
+
+// ── Decision-model enrichment for inference_records.task_class ──────────────
+// See services/decisions/runwareDecisions.ts. Reporting only; absence of a
+// row means the keyword-heuristic label stands.
+export const inferenceRecordDecisions = sqliteTable("inference_record_decisions", {
+  recordId: text("record_id").primaryKey(),
+  taskClass: text("task_class").notNull(),
+  confidence: real("confidence").notNull(),
+  model: text("model").notNull(),
+  createdAt: text("created_at").notNull(),
+});
 
 // ── Type helpers ───────────────────────────────────────────────────────────
 export type User = typeof users.$inferSelect;

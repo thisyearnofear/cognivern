@@ -84,6 +84,10 @@ export interface InferenceRecordRow {
   redactionCount: number;
   redactionCategories: string[];
   taskClass: string | null;
+  /** Decision-model confidence for taskClass, when a decision row exists. */
+  taskClassConfidence: number | null;
+  /** Decision-model id that produced taskClass, when a decision row exists. */
+  taskClassModel: string | null;
   projectTag: string | null;
   promptExcerpt: string | null;
   responseExcerpt: string | null;
@@ -154,15 +158,47 @@ export class InferenceRecordStore {
       .run(auditRunId, recordId);
   }
 
+  /**
+   * Attach a decision-model classification (see
+   * services/decisions/runwareDecisions.ts). Reporting only — the money-path
+   * record already holds the heuristic label. Never allowed to fail a
+   * request; callers swallow errors.
+   */
+  setTaskDecision(
+    recordId: string,
+    decision: { taskClass: string; confidence: number; model: string },
+  ): void {
+    this.db
+      .prepare(
+        `INSERT INTO inference_record_decisions
+           (record_id, task_class, confidence, model, created_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(record_id) DO UPDATE SET
+           task_class = excluded.task_class,
+           confidence = excluded.confidence,
+           model = excluded.model,
+           created_at = excluded.created_at`,
+      )
+      .run(
+        recordId,
+        decision.taskClass,
+        decision.confidence,
+        decision.model,
+        new Date().toISOString(),
+      );
+  }
+
   listForParticipant(
     participantId: string,
     options: { limit?: number; offset?: number } = {},
   ): InferenceRecordRow[] {
     const rows = this.db
       .prepare(
-        `SELECT * FROM inference_records
-         WHERE participant_id = ?
-         ORDER BY created_at DESC, id DESC
+        `SELECT r.*, d.confidence AS decision_confidence, d.model AS decision_model
+         FROM inference_records r
+         LEFT JOIN inference_record_decisions d ON d.record_id = r.id
+         WHERE r.participant_id = ?
+         ORDER BY r.created_at DESC, r.id DESC
          LIMIT ? OFFSET ?`,
       )
       .all(participantId, clampLimit(options.limit), clampOffset(options.offset)) as Array<
@@ -175,23 +211,25 @@ export class InferenceRecordStore {
     programId: string,
     options: { limit?: number; offset?: number; participantId?: string; model?: string } = {},
   ): InferenceRecordRow[] {
-    const clauses = ["program_id = ?"];
+    const clauses = ["r.program_id = ?"];
     const values: unknown[] = [programId];
 
     if (options.participantId) {
-      clauses.push("participant_id = ?");
+      clauses.push("r.participant_id = ?");
       values.push(options.participantId);
     }
     if (options.model) {
-      clauses.push("model = ?");
+      clauses.push("r.model = ?");
       values.push(options.model);
     }
 
     const rows = this.db
       .prepare(
-        `SELECT * FROM inference_records
+        `SELECT r.*, d.confidence AS decision_confidence, d.model AS decision_model
+         FROM inference_records r
+         LEFT JOIN inference_record_decisions d ON d.record_id = r.id
          WHERE ${clauses.join(" AND ")}
-         ORDER BY created_at DESC, id DESC
+         ORDER BY r.created_at DESC, r.id DESC
          LIMIT ? OFFSET ?`,
       )
       .all(...values, clampLimit(options.limit), clampOffset(options.offset)) as Array<
@@ -347,6 +385,8 @@ export function projectForParticipant(row: InferenceRecordRow): Record<string, u
     redactionCount: row.redactionCount,
     redactionCategories: row.redactionCategories,
     taskClass: row.taskClass,
+    taskClassConfidence: row.taskClassConfidence,
+    taskClassModel: row.taskClassModel,
     projectTag: row.projectTag,
     promptExcerpt: row.promptExcerpt,
     responseExcerpt: row.responseExcerpt,
@@ -387,6 +427,8 @@ export function projectForSponsor(row: InferenceRecordRow): Record<string, unkno
 
   if (tierAtLeast(row.disclosureTier, "detailed")) {
     projected.taskClass = row.taskClass;
+    projected.taskClassConfidence = row.taskClassConfidence;
+    projected.taskClassModel = row.taskClassModel;
     projected.projectTag = row.projectTag;
   }
 
@@ -430,6 +472,10 @@ function mapRow(row: Record<string, unknown>): InferenceRecordRow {
     redactionCount: Number(row.redaction_count ?? 0),
     redactionCategories: parseArray(row.redaction_categories),
     taskClass: (row.task_class as string | null) ?? null,
+    taskClassConfidence:
+      typeof row.decision_confidence === "number" ? row.decision_confidence : null,
+    taskClassModel:
+      typeof row.decision_model === "string" ? row.decision_model : null,
     projectTag: (row.project_tag as string | null) ?? null,
     promptExcerpt: (row.prompt_excerpt as string | null) ?? null,
     responseExcerpt: (row.response_excerpt as string | null) ?? null,

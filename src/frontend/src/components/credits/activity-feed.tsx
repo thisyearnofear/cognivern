@@ -69,7 +69,12 @@ export function ActivityFeed({ programId }: { programId: string }) {
                 <span>{call.latencyMs}ms</span>
                 {call.streamed && <span>streamed</span>}
                 {call.trustTier && <span>{call.trustTier}</span>}
-                {call.taskClass && <span>· {call.taskClass}</span>}
+                {call.taskClass && (
+                  <span title={call.taskClassConfidence != null ? `Decision-model classification at ${Math.round(call.taskClassConfidence * 100)}% confidence` : 'Keyword-heuristic classification'}>
+                    · {call.taskClass}
+                    {call.taskClassConfidence != null && ` · ${Math.round(call.taskClassConfidence * 100)}%`}
+                  </span>
+                )}
                 {call.projectTag && <span>· {call.projectTag}</span>}
               </div>
               {call.promptExcerpt && (

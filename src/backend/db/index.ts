@@ -626,6 +626,21 @@ function migrate(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_inference_records_program ON inference_records(program_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_inference_records_model ON inference_records(program_id, model);
 
+    -- Decision-model enrichment for task_class (see
+    -- services/decisions/runwareDecisions.ts). One row per record at most:
+    -- the label that replaced the keyword heuristic, the model-reported
+    -- confidence, and the model id. Reporting only — absence of a row means
+    -- the heuristic label stands. Separate table (not a column) so existing
+    -- databases need no migration.
+    CREATE TABLE IF NOT EXISTS inference_record_decisions (
+      record_id TEXT PRIMARY KEY,
+      task_class TEXT NOT NULL,
+      confidence REAL NOT NULL,
+      model TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (record_id) REFERENCES inference_records(id)
+    );
+
     -- Anchored ledger commitments: a Merkle root over per-participant balance
     -- states, anchored to 0G Storage + Filecoin so balances are externally
     -- verifiable (see services/credits/LedgerCommitmentService.ts). Status is

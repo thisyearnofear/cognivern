@@ -56,6 +56,10 @@ import {
   redactedExcerpt,
 } from "@backend/services/credits/redaction.js";
 import { classifyTask } from "@backend/services/credits/taskClassifier.js";
+import {
+  startTaskDecision,
+  type TaskDecision,
+} from "@backend/services/decisions/runwareDecisions.js";
 import { nanoToUsd } from "@backend/services/credits/money.js";
 import { ModelPricingService } from "./ModelPricingService.js";
 import { listBackends, resolveBackend } from "./backendRegistry.js";
@@ -202,6 +206,10 @@ export class InferenceGatewayService {
     try {
       hold = this.placeHold(context, prepared.maxCostNano, prepared.model);
 
+      // Race decision-model classification against the upstream call so the
+      // label (and confidence) is usually ready before recording.
+      const taskDecision = this.startTaskDecision(context, prepared.promptText);
+
       const result = await backend.chatCompletion({
         body: prepared.body,
         trustMode: context.program.requireTrustMode,
@@ -229,6 +237,7 @@ export class InferenceGatewayService {
           trustTier: result.trustTier,
           upstreamRequestId: result.upstreamRequestId,
           responseText: "",
+          taskDecision,
         }, backend.id);
 
         return {
@@ -271,10 +280,11 @@ export class InferenceGatewayService {
         latencyMs,
         streamed: false,
         provider: result.provider,
-        trustTier: result.trustTier,
-        upstreamRequestId: result.upstreamRequestId,
-        responseText: result.responseText,
-      }, backend.id);
+          trustTier: result.trustTier,
+          upstreamRequestId: result.upstreamRequestId,
+          responseText: result.responseText,
+          taskDecision,
+        }, backend.id);
 
       return {
         ok: true,
@@ -322,6 +332,9 @@ export class InferenceGatewayService {
     const prepared = await this.prepare(context, body, pricing);
     const startedAt = Date.now();
     const hold = this.placeHold(context, prepared.maxCostNano, prepared.model);
+    // Race decision-model classification against the stream; finalize() picks
+    // up the settled label.
+    const taskDecision = this.startTaskDecision(context, prepared.promptText);
 
     let stream;
     try {
@@ -350,6 +363,7 @@ export class InferenceGatewayService {
         trustTier: stream.collected.trustTier,
         upstreamRequestId: stream.collected.upstreamRequestId,
         responseText: "",
+        taskDecision,
       }, backend.id);
 
       return {
@@ -413,6 +427,7 @@ export class InferenceGatewayService {
           trustTier: collected.trustTier,
           upstreamRequestId: collected.upstreamRequestId,
           responseText: collected.responseText,
+          taskDecision,
         }, backend.id);
 
         return {
@@ -442,6 +457,7 @@ export class InferenceGatewayService {
         trustTier: collected.trustTier,
         upstreamRequestId: collected.upstreamRequestId,
         responseText: collected.responseText,
+        taskDecision,
       }, backend.id);
 
       return {
@@ -604,6 +620,22 @@ export class InferenceGatewayService {
   // ── Recording ────────────────────────────────────────────────────────────
 
   /**
+   * Kick off decision-model classification concurrently with an upstream
+   * call so it is usually resolved before recording — no added latency on
+   * the client response. Returns null when the tier forbids classification.
+   * The input is redacted here (not in the adapter) so the adapter only
+   * ever sees scrubbed text; `record()` re-derives the same redaction for
+   * its own heuristic fallback.
+   */
+  private startTaskDecision(
+    context: GatewayContext,
+    promptText: string,
+  ): Promise<TaskDecision | null> | null {
+    if (!fieldsPersistedAt(context.participant.disclosureTier).taskClass) return null;
+    return startTaskDecision(true, redactSecrets(promptText).text);
+  }
+
+  /**
    * Persist one inference record and one audit record.
    *
    * Content handling is the important part: `fieldsPersistedAt(tier)` decides
@@ -627,6 +659,8 @@ export class InferenceGatewayService {
       trustTier: string | null;
       upstreamRequestId: string | null;
       responseText: string;
+      /** Decision-model classification racing the upstream call (null = heuristic). */
+      taskDecision?: Promise<TaskDecision | null> | null;
     },
     backendId: string,
   ): Promise<string> {
@@ -650,7 +684,19 @@ export class InferenceGatewayService {
     }
 
     // Computed once, shared by the record, the metric, and the HydraDB ingest.
-    const taskClass = allowed.taskClass ? classifyTask(promptRedaction.text) : null;
+    // The keyword heuristic is the default; a resolved decision-model label
+    // replaces it and its confidence lands in the decisions side table.
+    // Either way this stays a reporting signal — never a gate.
+    let decision: TaskDecision | null = null;
+    if (allowed.taskClass && input.taskDecision) {
+      try {
+        decision = await input.taskDecision;
+      } catch {
+        decision = null;
+      }
+    }
+    const taskClass = decision?.label
+      ?? (allowed.taskClass ? classifyTask(promptRedaction.text) : null);
     const projectTag = allowed.projectTag ? context.participant.projectTag : null;
     const teeVerified = input.trustTier === "private" || input.trustTier === "verified";
 
@@ -684,6 +730,23 @@ export class InferenceGatewayService {
       promptExcerpt,
       responseExcerpt,
     });
+
+    // Decision enrichment is best-effort: the money-path record above is
+    // already durable, so a side-table write problem is an operational log,
+    // not a client-visible error.
+    if (decision) {
+      try {
+        this.records.setTaskDecision(recordId, {
+          taskClass: decision.label,
+          confidence: decision.confidence,
+          model: decision.model,
+        });
+      } catch (error) {
+        logger.warn(
+          `Decision side-table write failed for record ${recordId}: ${(error as Error).message}`,
+        );
+      }
+    }
 
     // One metric per request, from the same funnel that writes the record — so
     // SigNoz and the ledger always tell the same story.

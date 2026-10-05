@@ -169,7 +169,9 @@ at 20–25% CAGR with 62% of teams raising marketing budgets.
    minted (cf. Weave's "two keys, don't mix them up").
 4. **Methodology in public** — on-theme classification documented like a
    benchmark harness (reproducible) before the column is shown to
-   sponsors; verification math stays the trust anchor.
+   sponsors; verification math stays the trust anchor. (In progress:
+   Laya decision-model enrichment live behind `RUNWARE_DECISIONS_*`,
+   confidence shown per call — see `SPONSORED_CREDITS.md`.)
 5. **Canton S3 (due Oct 9 2026)** — aim at the sponsor side (sealed-bid +
    mandate receipts as the DevRel answer), dogfooded with one real
    event's numbers where possible.

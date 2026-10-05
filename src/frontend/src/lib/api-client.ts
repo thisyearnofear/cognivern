@@ -2393,6 +2393,7 @@ export interface CreditProgramActivityCall {
   responseDigest: string | null;
   disclosureTierAtCall: DisclosureTier;
   taskClass: string | null;
+  taskClassConfidence: number | null;
   projectTag: string | null;
   promptExcerpt: string | null;
   responseExcerpt: string | null;

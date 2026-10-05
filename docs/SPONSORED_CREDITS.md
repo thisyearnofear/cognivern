@@ -102,7 +102,12 @@ ownership map.
 - Layer 1 and Layer 2 are only *reported* side by side, never automatically
   reconciled — the funding banner warns when commitments exceed the deposit,
   but nothing blocks a call on it.
-- Task classification is a heuristic; private-tier participants contribute to
-  totals only.
+- Task classification is a keyword heuristic by default (see
+  `src/backend/services/credits/taskClassifier.ts` — reporting signal only,
+  never a gate). When `RUNWARE_DECISIONS_ENABLED=true`, a Runware System-One
+  model (`runware:laya@1`, free until Oct 12 2026) classifies concurrently
+  with upstream inference; its label replaces the heuristic and its
+  confidence is shown per call in the activity feed. Private-tier
+  participants contribute to totals only either way.
 - No program cancellation without bids: don't create probe programs against a
   live Devnet (see `AGENTS.md`).

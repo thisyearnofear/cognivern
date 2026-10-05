@@ -1,7 +1,11 @@
 # TypeSafe (Jev) — calibrated decision model — proposed rail
 
-> **Status: evaluated, not built.** Next integration candidate after the
-> Dynamic wiring lands. Docs: https://docs.typesafe.ai/introduction
+> **Status: Jev evaluated, not built; Laya via Runware building.** The
+> System-One contract below now has a live adapter —
+> `src/backend/services/decisions/runwareDecisions.ts` (`POST /v1/decisions`,
+> `RUNWARE_DECISIONS_*` env, inert by default) — first wired to sponsor
+> task-class enrichment. Jev (`typesafe:jev@1`) remains a config flip on the
+> same adapter. Docs: https://docs.typesafe.ai/introduction
 
 Jev is TypeSafe's "System One" decision model: it evaluates typed *questions*
 against a *state* and returns structured values — no text generation, no
