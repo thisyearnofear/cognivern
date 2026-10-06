@@ -62,6 +62,39 @@ the node moved to per-team tenant namespaces (see [DevNet quickstart](https://ha
 
 Full runbook: [`../CANTON.md`](../CANTON.md) (runbooks + DevNet evidence checklist).
 
+## Validation protocol (mentor-agreed, pre-registered before Mara)
+
+Working statement: organisers lose repeat sponsorship when they can't
+present sponsor-accepted evidence that cohort activity produced outcomes
+tied to the sponsor's goals. Capture and packaging are tested separately.
+
+Interview questions (verbatim, same five for comparability):
+
+1. How do you currently explain sponsor spend after a cohort?
+2. What's the hardest or most annoying part of that debrief?
+3. What would make a receipt/report trustworthy enough to send to a sponsor?
+4. Would you actually share a link like this after the cohort? Why or why not?
+5. What would make this a habit next time?
+
+Falsifiers (asked explicitly, not inferred):
+
+- What did you renew last time despite weak attribution?
+- When credits were consumed but outcomes were weak, did the sponsor renew anyway?
+- Counterfactual closer: would you renew differently if this evidence did not exist?
+
+Synthesis: one row per interview — sponsor segment (credits/brand/mixed),
+stated renewal criteria, justification-without-proof example, minimum
+evidence package — each row carrying an explicit call plus confidence:
+
+- Decision product, if evidence changes the renewal decision
+- Reporting product, if evidence is needed after the decision for accountability
+- Nicer deck, if presentation polish with no decision impact
+
+Pass bar: 2 of 3 cohorts show external share + sponsor open + material
+debrief help, with unprompted sharing as the strong signal. If the metric
+fails, the same rails pivot to enterprise budget owners — framed as a
+finding, not a failure.
+
 ## Submission checklist
 
 - [x] DevNet cutover + `canton:proof` artifact (S3 tenant `hackcanton-devnet-3`,

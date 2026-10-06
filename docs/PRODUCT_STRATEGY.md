@@ -159,9 +159,10 @@ Impact, Google AI program, multi-vendor sponsor sheets); devtools ~$25–30B
 at 20–25% CAGR with 62% of teams raising marketing budgets.
 
 1. **Validate Mara** — 2–3 organiser interviews; pass/fail: "would a
-   sponsor-ready receipt report have changed your last debrief?" If it
-   fails, the enterprise buyer still holds; only the landing narrative
-   changes.
+   sponsor-ready receipt report have changed your last debrief?" Protocol
+   (questions, falsifiers, per-row judgment calls) pre-registered in the
+   S3 submission doc. If it fails, the enterprise buyer still holds; only
+   the landing narrative changes.
 2. **Hosted fast path** — sample-cohort click with zero signup before any
    upstream-key talk (the `/sponsor#proof` live-ledger pattern, not
    fixtures). Email feedback demands a click, not a meeting.
