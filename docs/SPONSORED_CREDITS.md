@@ -37,6 +37,8 @@ Money lives in **two layers** and it is worth keeping them apart:
 | `GET .../funding` | Layer 1↔2 reconciliation: upstream balance vs pool vs worst-case commitment. |
 | `GET/POST .../commitments` | Anchored-commitment history and anchor-now. |
 | `PATCH .../participants/:pid/status`, `.../rotate-key`, `GET .../ledger` | Suspend/revoke, re-issue keys, line-by-line history. |
+| `POST .../shares`, `POST .../feedback` | Record a verification-link share and an organiser usefulness rating (validation telemetry). |
+| `POST/GET/DELETE .../upstream-credential` | Store (rotate), check status of, or revoke the program's BYO upstream key. Key material is never returned. |
 
 ## Participant surfaces (under `/v1`, `cvk_` key)
 
@@ -72,6 +74,28 @@ tester owns the privacy), what the sponsor sees of each call, and their
 verifiable receipt.
 Landing carries the organiser-facing wedge section ("Sponsor a cohort at
 cost").
+
+## Bring-your-own upstream (Anthropic)
+
+When the organiser holds the grant credits — e.g. Anthropic startup credits
+— instead of funding a 0G deposit, the program routes through that key:
+
+1. Set the program's `backend` to `anthropic` (program create/update) and add
+   per-model USD rates to `GATEWAY_STATIC_PRICES` (Anthropic publishes USD
+   per MTok; there is no catalog fetch against a per-program key).
+2. Paste the key once in the sponsor console (Verification tab → Upstream
+   compute). It is AES-256-GCM encrypted under `OWS_VAULT_SECRET`, never
+   returned by any endpoint, and shown only as provider + last-4 hint.
+   Re-paste to rotate; revoke any time (gateway calls then deny loudly
+   rather than touching upstream).
+3. Participants keep using the same `cvk_` keys and OpenAI-shaped `/v1`
+   surface; ledger, receipts, and the report work unchanged. Streaming is
+   not served on this backend yet (501, unbilled — translating SSE dialects
+   is follow-up work).
+
+Compliance, stated plainly: pooling one person's promo codes may violate
+that sponsor's terms. The organiser owns that call — these rails meter what
+is legitimately routed, nothing more.
 
 ## Verifiable anchoring
 

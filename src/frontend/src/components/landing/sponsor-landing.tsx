@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
@@ -15,54 +15,10 @@ import { EvidenceChain } from "@/components/brand/evidence-chain";
  * Public landing for the sponsored-cohorts wedge (hackathon / workshop
  * organisers). Kept on its own route — separate buyer, separate narrative —
  * with a fenced teaser on the main landing linking here. See
- * docs/UX_IA_REVIEW.md ("one hierarchy rule").
+ * docs/UX_IA_REVIEW.md ("one hierarchy rule"). Proof here is
+ * sponsor-relevant only (receipt + sample report); sealed-bid rounds belong
+ * to a different buyer story.
  */
-/**
- * Live ledger line for the public landing. Fetches the raw rounds endpoint
- * with no demo fallback: on any failure it renders nothing rather than
- * sample data. Real rounds or silence — never fiction.
- */
-function LiveRoundsLine() {
-  const [line, setLine] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/vendor/sealed-bid/rounds", { credentials: "omit" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
-        if (cancelled) return;
-        const rounds = Array.isArray(json?.data) ? json.data : null;
-        if (!rounds || rounds.length === 0) return;
-        const open = rounds.filter(
-          (r: { status?: string }) => r.status === "open",
-        ).length;
-        const revealed = rounds.filter(
-          (r: { status?: string }) => r.status === "revealed",
-        ).length;
-        const canton = rounds.filter(
-          (r: { backend?: string }) => r.backend === "canton",
-        ).length;
-        setLine(
-          `${rounds.length} round${rounds.length === 1 ? "" : "s"} on the ledger right now — ${open} open · ${revealed} revealed · ${canton} on Canton`,
-        );
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (!line) return null;
-  return (
-    <p className="mt-4 text-center text-xs text-muted-foreground">
-      <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 align-middle" aria-hidden="true" />
-      {line}.{" "}
-      <Link href="/sealed-bid" className="text-primary hover:underline">
-        Inspect them
-      </Link>
-    </p>
-  );
-}
 
 export function SponsorLanding() {
   const router = useRouter();
@@ -137,9 +93,9 @@ export function SponsorLanding() {
               className="text-4xl sm:text-5xl font-bold text-foreground leading-[1.1] tracking-tight max-w-3xl mx-auto"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              Sponsor a cohort at cost.
+              You handed out $1,000 in inference.
               <br />
-              <span className="text-primary">Prove every cent.</span>
+              <span className="text-primary">The debrief shouldn&apos;t be guesswork.</span>
             </motion.h1>
 
             <motion.p
@@ -148,10 +104,10 @@ export function SponsorLanding() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-lg text-muted-foreground max-w-xl mx-auto mt-6 leading-relaxed"
             >
-              Hand out inference budgets for your hackathon or workshop. Cognivern
-              charges 0% on the throughput — you pay inference at provider cost —
-              because the product is the evidence of what that spend did, not a
-              take-rate on a commodity.
+              Issue each hacker a metered key instead of pasting one in
+              Discord, and get one verifiable spend report for the debrief —
+              who used what, what it cost, checkable by your sponsors. No
+              participant accounts, no markup, no spreadsheets.
             </motion.p>
 
             <motion.div
@@ -160,22 +116,25 @@ export function SponsorLanding() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="flex gap-4 justify-center flex-wrap mt-8"
             >
-              <Button variant="default" size="lg" onClick={openConsole}>
-                Open the sponsor console <ArrowRight />
-              </Button>
               <Link
-                href="/credits"
-                className="inline-flex h-11 items-center rounded-md bg-secondary px-8 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
+                href="/sponsor/sample"
+                className="inline-flex h-11 items-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               >
-                Have a key? Check your credits
+                See a sample report <ArrowRight />
               </Link>
+              <Button variant="secondary" size="lg" onClick={openConsole}>
+                Open the sponsor console
+              </Button>
             </motion.div>
             <p className="mt-4 text-center text-xs text-muted-foreground">
-              Participants need no account — balance, disclosure and receipts are self-service.{" "}
+              Sample report, zero signup — the shape of what your sponsors would see.{" "}
               <a href="#proof" className="text-primary hover:underline">
-                Check the live proof
+                Or check the live proof
               </a>{" "}
               before you sign in.
+            </p>
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              Have credits, codes, or seats? Route what you can, register the rest — the report shows both, labeled.
             </p>
           </div>
 
@@ -194,24 +153,17 @@ export function SponsorLanding() {
           <p className="text-center text-xs font-semibold text-primary uppercase tracking-widest">
             Don&apos;t trust us — check
           </p>
-          <LiveRoundsLine />
-          <div className="mt-6 grid gap-4 md:grid-cols-3 text-sm">
+          <div className="mt-6 grid gap-4 md:grid-cols-2 text-sm">
             <Link href="/verify" className="rounded-xl border border-border bg-card p-5 hover:border-primary/50 transition-colors">
               <p className="font-semibold text-foreground">Verify a receipt</p>
               <p className="text-muted-foreground mt-1 leading-relaxed text-[13px]">
                 Third-party proof math against anchored roots. Public, no account.
               </p>
             </Link>
-            <Link href="/credits" className="rounded-xl border border-border bg-card p-5 hover:border-primary/50 transition-colors">
-              <p className="font-semibold text-foreground">Participant view</p>
+            <Link href="/sponsor/sample" className="rounded-xl border border-border bg-card p-5 hover:border-primary/50 transition-colors">
+              <p className="font-semibold text-foreground">A sample sponsor report</p>
               <p className="text-muted-foreground mt-1 leading-relaxed text-[13px]">
-                Exactly what a grantee sees: balance, activity, receipts.
-              </p>
-            </Link>
-            <Link href="/sealed-bid" className="rounded-xl border border-border bg-card p-5 hover:border-primary/50 transition-colors">
-              <p className="font-semibold text-foreground">Live private selection</p>
-              <p className="text-muted-foreground mt-1 leading-relaxed text-[13px]">
-                Confidential vendor rounds on the same control plane.
+                Exactly what lands in your debrief: spend, task split, receipt. Labeled sample, no signup.
               </p>
             </Link>
           </div>
@@ -282,10 +234,10 @@ export function SponsorLanding() {
 
         <ol className="grid gap-4 md:grid-cols-4">
           {[
-            { step: "1", title: "Create a program", desc: "Set the pool, per-participant allocation, allowed models, and window." },
-            { step: "2", title: "Paste your cohort", desc: "One list of handles mints every budgeted key in a single batch." },
-            { step: "3", title: "Meter at cost", desc: "Calls flow through the gateway at provider pricing — nothing marked up." },
-            { step: "4", title: "Anchor & share", desc: "Commit balances to a Merkle root, anchor it publicly, share the verify link." },
+            { step: "1", title: "Create a program", desc: "Pool, per-hacker allocation, allowed models, window. About 5 minutes, once.", time: "~5 min" },
+            { step: "2", title: "Paste your cohort", desc: "One list of handles mints every budgeted key in a single batch — no more Discord key pastes.", time: "~2 min" },
+            { step: "3", title: "Hackers build", desc: "They point any OpenAI-compatible SDK at the gateway. No accounts, no onboarding calls.", time: "0 min of yours" },
+            { step: "4", title: "Drop the link in your debrief", desc: "Spend, task split, and a receipt your sponsors can verify themselves.", time: "~1 min" },
           ].map((item, i) => (
             <motion.li
               key={item.step}
@@ -303,6 +255,7 @@ export function SponsorLanding() {
               </div>
               <h3 className="font-semibold text-foreground text-sm mt-2">{item.title}</h3>
               <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{item.desc}</p>
+              <p className="mt-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">{item.time}</p>
             </motion.li>
           ))}
         </ol>
@@ -315,6 +268,36 @@ export function SponsorLanding() {
             </Link>{" "}
             verifies inclusion against the anchored root.
           </p>
+        </div>
+      </section>
+
+      {/* ── Try it this afternoon — every step executable today ── */}
+      <section aria-label="Try it" className="border-t border-border bg-muted/30">
+        <div className="max-w-5xl mx-auto px-6 py-14">
+          <p className="text-center text-xs font-semibold text-primary uppercase tracking-widest">
+            Test it before you trust it
+          </p>
+          <ol className="mt-6 grid gap-4 md:grid-cols-3 text-sm">
+            <li className="rounded-xl border border-border bg-card p-5">
+              <p className="font-semibold text-foreground">1 · Open the sample</p>
+              <p className="text-muted-foreground mt-1 leading-relaxed text-[13px]">
+                The report your sponsors would see. No signup, clearly labeled sample data.{" "}
+                <Link href="/sponsor/sample" className="text-primary hover:underline">View it</Link>
+              </p>
+            </li>
+            <li className="rounded-xl border border-border bg-card p-5">
+              <p className="font-semibold text-foreground">2 · Mint two test keys</p>
+              <p className="text-muted-foreground mt-1 leading-relaxed text-[13px]">
+                Sign in, create a program, provision two keys on a $5 pool. About ten minutes.
+              </p>
+            </li>
+            <li className="rounded-xl border border-border bg-card p-5">
+              <p className="font-semibold text-foreground">3 · Burn a call, watch the ledger</p>
+              <p className="text-muted-foreground mt-1 leading-relaxed text-[13px]">
+                Run one completion through the gateway and see it metered, attributed, and receipted.
+              </p>
+            </li>
+          </ol>
         </div>
       </section>
 

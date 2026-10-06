@@ -36,6 +36,12 @@ export interface ChatCompletionRequest {
   timeoutMs?: number;
   /** Opaque correlation id echoed into upstream headers where supported. */
   correlationId?: string;
+  /**
+   * Per-program upstream key for BYO-compute backends (e.g. Anthropic).
+   * Filled by the gateway from the credential store — adapters must treat a
+   * missing key as an unbilled upstream error, never a throw.
+   */
+  upstreamApiKey?: string;
 }
 
 export interface ChatCompletionResult {

@@ -23,6 +23,7 @@ import logger from "@backend/utils/logger.js";
 import type { InferenceBackend } from "./types.js";
 import { ModelPricingService } from "./ModelPricingService.js";
 import { sharedZeroGRouterBackend } from "./ZeroGRouterBackend.js";
+import { sharedAnthropicBackend } from "./AnthropicBackend.js";
 
 export interface RegisteredBackend {
   backend: InferenceBackend;
@@ -82,5 +83,8 @@ function ensureDefaults(): void {
   defaultsRegistered = true;
   if (!registry.has("zerog-router")) {
     registerBackend(sharedZeroGRouterBackend());
+  }
+  if (!registry.has("anthropic")) {
+    registerBackend(sharedAnthropicBackend());
   }
 }

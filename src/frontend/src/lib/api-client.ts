@@ -1906,6 +1906,31 @@ class ApiClient {
     });
   }
 
+  async getUpstreamCredential(
+    programId: string,
+  ): Promise<ApiResponse<{ credential: { configured: boolean; provider: string | null; keyHint: string | null; updatedAt: string | null } }>> {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/upstream-credential`);
+  }
+
+  async setUpstreamCredential(
+    programId: string,
+    provider: string,
+    apiKey: string,
+  ): Promise<ApiResponse<{ credential: { configured: boolean; provider: string | null; keyHint: string | null; updatedAt: string | null } }>> {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/upstream-credential`, {
+      method: 'POST',
+      body: JSON.stringify({ provider, apiKey }),
+    });
+  }
+
+  async revokeUpstreamCredential(
+    programId: string,
+  ): Promise<ApiResponse<{ revoked: boolean }>> {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/upstream-credential`, {
+      method: 'DELETE',
+    });
+  }
+
   async getCreditProgramActivity(
     programId: string,
     params: { limit?: number; participantId?: string; model?: string } = {},

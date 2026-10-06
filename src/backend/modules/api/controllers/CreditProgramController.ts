@@ -40,6 +40,12 @@ import {
   sharedValidationStore,
   type ValidationStore,
 } from "@backend/services/credits/ValidationStore.js";
+import {
+  UPSTREAM_PROVIDERS,
+  isUpstreamProvider,
+  sharedUpstreamCredentialService,
+  type UpstreamCredentialService,
+} from "@backend/services/credits/UpstreamCredentialService.js";
 import { verifyMerkleProof } from "@backend/services/credits/commitment.js";
 import { resolveBackend } from "@backend/services/inference/backendRegistry.js";
 
@@ -52,6 +58,8 @@ export class CreditProgramController {
     private readonly records: InferenceRecordStore = sharedInferenceRecordStore(),
     private readonly commitments: LedgerCommitmentService = sharedLedgerCommitmentService(),
     private readonly validation: ValidationStore = sharedValidationStore(),
+    private readonly upstreamCredentials: UpstreamCredentialService =
+      sharedUpstreamCredentialService(),
   ) {}
 
   // ── Programs ─────────────────────────────────────────────────────────────
@@ -335,6 +343,66 @@ export class CreditProgramController {
     if (!commitment) return notFound(res, "Commitment not found");
     const eventId = this.validation.recordOpen(commitment.id);
     res.json({ success: true, data: { recorded: true, eventId } });
+  }
+
+  /**
+   * POST /api/credit-programs/:programId/upstream-credential — workspace auth.
+   *
+   * Stores (or rotates) the program's BYO upstream key, encrypted under
+   * OWS_VAULT_SECRET. The key is never returned — not here, not anywhere.
+   * The status view exposes provider + last-4 hint only.
+   */
+  async setUpstreamCredential(req: Request, res: Response): Promise<void> {
+    const program = this.requireProgram(req, res);
+    if (!program) return;
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    if (!isUpstreamProvider(body.provider)) {
+      return badRequest(
+        res,
+        `provider must be one of: ${UPSTREAM_PROVIDERS.join(", ")}`,
+      );
+    }
+    const apiKey = typeof body.apiKey === "string" ? body.apiKey.trim() : "";
+    if (apiKey.length < 8 || apiKey.length > 500) {
+      return badRequest(res, "apiKey must be 8–500 characters");
+    }
+    try {
+      const status = this.upstreamCredentials.setCredential(
+        program.id,
+        program.workspaceId,
+        body.provider,
+        apiKey,
+      );
+      res.json({ success: true, data: { credential: status } });
+    } catch (error) {
+      logger.warn(`Upstream credential store failed: ${(error as Error).message}`);
+      return badRequest(res, (error as Error).message);
+    }
+  }
+
+  /**
+   * GET /api/credit-programs/:programId/upstream-credential — workspace auth.
+   *
+   * Status only: configured flag, provider, last-4 hint. Key material never
+   * leaves the credential service except into a backend adapter at request time.
+   */
+  async getUpstreamCredentialStatus(req: Request, res: Response): Promise<void> {
+    const program = this.requireProgram(req, res);
+    if (!program) return;
+    res.json({ success: true, data: { credential: this.upstreamCredentials.status(program.id) } });
+  }
+
+  /**
+   * DELETE /api/credit-programs/:programId/upstream-credential — workspace auth.
+   *
+   * Revokes the program's BYO key. Subsequent gateway calls deny with
+   * backend_not_configured rather than touching upstream.
+   */
+  async revokeUpstreamCredential(req: Request, res: Response): Promise<void> {
+    const program = this.requireProgram(req, res);
+    if (!program) return;
+    const revoked = this.upstreamCredentials.revokeCredential(program.id);
+    res.json({ success: true, data: { revoked } });
   }
 
   // ── Participants ─────────────────────────────────────────────────────────

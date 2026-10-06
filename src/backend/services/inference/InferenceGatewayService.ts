@@ -60,6 +60,10 @@ import {
   startTaskDecision,
   type TaskDecision,
 } from "@backend/services/decisions/runwareDecisions.js";
+import {
+  sharedUpstreamCredentialService,
+  type UpstreamCredentialService,
+} from "@backend/services/credits/UpstreamCredentialService.js";
 import { nanoToUsd } from "@backend/services/credits/money.js";
 import { ModelPricingService } from "./ModelPricingService.js";
 import { listBackends, resolveBackend } from "./backendRegistry.js";
@@ -114,8 +118,30 @@ export class InferenceGatewayService {
     private readonly ledger: CreditLedgerService = sharedCreditLedgerService(),
     private readonly records: InferenceRecordStore = sharedInferenceRecordStore(),
     audit?: AuditLogService,
+    private readonly credentials: UpstreamCredentialService = sharedUpstreamCredentialService(),
   ) {
     this.audit = audit ?? new AuditLogService();
+  }
+
+  /**
+   * Per-program upstream key for BYO-compute backends. Single-tenant backends
+   * (0G) read their key from env and never touch this. A missing key denies
+   * loudly with the fix attached — routing spend against a key the sponsor
+   * did not choose would bill the wrong pocket.
+   */
+  private upstreamKeyFor(context: GatewayContext, backendId: string): string | undefined {
+    if (backendId !== "anthropic") return undefined;
+    const credential = this.credentials.getCredential(context.program.id);
+    if (!credential) {
+      throw new GatewayDeniedError({
+        code: "backend_not_configured",
+        message:
+          "This program routes through Anthropic but no upstream key is stored — " +
+          "add one in the sponsor console (Verification tab).",
+        httpStatus: 503,
+      });
+    }
+    return credential.apiKey;
   }
 
   /**
@@ -209,10 +235,12 @@ export class InferenceGatewayService {
       // Race decision-model classification against the upstream call so the
       // label (and confidence) is usually ready before recording.
       const taskDecision = this.startTaskDecision(context, prepared.promptText);
+      const upstreamApiKey = this.upstreamKeyFor(context, backend.id);
 
       const result = await backend.chatCompletion({
         body: prepared.body,
         trustMode: context.program.requireTrustMode,
+        upstreamApiKey,
       });
 
       const latencyMs = Date.now() - startedAt;
@@ -335,12 +363,14 @@ export class InferenceGatewayService {
     // Race decision-model classification against the stream; finalize() picks
     // up the settled label.
     const taskDecision = this.startTaskDecision(context, prepared.promptText);
+    const upstreamApiKey = this.upstreamKeyFor(context, backend.id);
 
     let stream;
     try {
       stream = await backend.chatCompletionStream({
         body: prepared.body,
         trustMode: context.program.requireTrustMode,
+        upstreamApiKey,
       });
     } catch (error) {
       this.ledger.release(hold, { note: "stream open failed" });

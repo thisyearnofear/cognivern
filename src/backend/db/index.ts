@@ -661,6 +661,22 @@ function migrate(db: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_program_feedback ON program_feedback(program_id, created_at);
 
+    -- Bring-your-own upstream compute: one encrypted provider key per
+    -- program (see services/credits/UpstreamCredentialService.ts). The blob
+    -- is AES-256-GCM under OWS_VAULT_SECRET; key_hint is a last-4 display
+    -- string — the only key-derived value ever shown. Plaintext never leaves
+    -- the credential service except into a backend adapter at request time.
+    CREATE TABLE IF NOT EXISTS program_upstream_credentials (
+      program_id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      blob TEXT NOT NULL,
+      key_hint TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (program_id) REFERENCES credit_programs(id)
+    );
+
     -- Decision-model enrichment for task_class (see
     -- services/decisions/runwareDecisions.ts). One row per record at most:
     -- the label that replaced the keyword heuristic, the model-reported

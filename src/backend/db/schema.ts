@@ -428,6 +428,19 @@ export const programFeedback = sqliteTable("program_feedback", {
   createdAt: text("created_at").notNull(),
 });
 
+// ── Bring-your-own upstream compute ──────────────────────────────────────────
+// One encrypted provider key per program. See
+// services/credits/UpstreamCredentialService.ts for custody rules.
+export const programUpstreamCredentials = sqliteTable("program_upstream_credentials", {
+  programId: text("program_id").primaryKey(),
+  workspaceId: text("workspace_id").notNull(),
+  provider: text("provider").notNull(),
+  blob: text("blob").notNull(),
+  keyHint: text("key_hint").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
 // ── Type helpers ───────────────────────────────────────────────────────────
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

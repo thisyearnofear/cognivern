@@ -34,6 +34,15 @@ export function createCreditProgramRoutes(controller: CreditProgramController): 
   router.post("/credit-programs/:programId/feedback", (req, res) =>
     controller.submitFeedback(req, res),
   );
+  router.post("/credit-programs/:programId/upstream-credential", (req, res) =>
+    controller.setUpstreamCredential(req, res),
+  );
+  router.get("/credit-programs/:programId/upstream-credential", (req, res) =>
+    controller.getUpstreamCredentialStatus(req, res),
+  );
+  router.delete("/credit-programs/:programId/upstream-credential", (req, res) =>
+    controller.revokeUpstreamCredential(req, res),
+  );
 
   router.post("/credit-programs/:programId/participants", (req, res) =>
     controller.provisionParticipants(req, res),

@@ -34,6 +34,7 @@ import { ParticipantsPanel } from './participants-panel';
 import { ActivityFeed } from './activity-feed';
 import { ReconcileView } from './reconcile-view';
 import { CommitmentsPanel } from './commitments-panel';
+import { UpstreamComputeCard } from './upstream-compute-card';
 
 function pct(n: number): string {
   return `${Math.round(n * 100)}%`;
@@ -291,6 +292,7 @@ export function CreditProgramDetail({ programId }: { programId: string }) {
         </TabsContent>
 
         <TabsContent value="verification" className="space-y-4">
+          <UpstreamComputeCard programId={programId} />
           <CommitmentsPanel programId={programId} />
         </TabsContent>
       </Tabs>
