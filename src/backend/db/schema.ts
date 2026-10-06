@@ -402,6 +402,32 @@ export const inferenceRecordDecisions = sqliteTable("inference_record_decisions"
   createdAt: text("created_at").notNull(),
 });
 
+// ── Cohort-validation evidence: does the receipt travel? ────────────────────
+// See services/credits/ValidationStore.ts. Open events carry no identity.
+export const reportShareEvents = sqliteTable("report_share_events", {
+  id: text("id").primaryKey(),
+  programId: text("program_id").notNull(),
+  workspaceId: text("workspace_id").notNull(),
+  commitmentId: text("commitment_id").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+export const verifyOpenEvents = sqliteTable("verify_open_events", {
+  id: text("id").primaryKey(),
+  commitmentId: text("commitment_id").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+export const programFeedback = sqliteTable("program_feedback", {
+  id: text("id").primaryKey(),
+  programId: text("program_id").notNull(),
+  workspaceId: text("workspace_id").notNull(),
+  usefulness: integer("usefulness").notNull(),
+  wouldReuse: integer("would_reuse", { mode: "boolean" }).notNull().default(false),
+  note: text("note"),
+  createdAt: text("created_at").notNull(),
+});
+
 // ── Type helpers ───────────────────────────────────────────────────────────
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

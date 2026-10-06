@@ -1886,6 +1886,26 @@ class ApiClient {
     });
   }
 
+  async recordCreditProgramShare(
+    programId: string,
+    commitmentId: string,
+  ): Promise<ApiResponse<{ eventId: string }>> {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/shares`, {
+      method: 'POST',
+      body: JSON.stringify({ commitmentId }),
+    });
+  }
+
+  async submitCreditProgramFeedback(
+    programId: string,
+    feedback: { usefulness: number; wouldReuse: boolean; note?: string },
+  ): Promise<ApiResponse<{ feedbackId: string }>> {
+    return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify(feedback),
+    });
+  }
+
   async getCreditProgramActivity(
     programId: string,
     params: { limit?: number; participantId?: string; model?: string } = {},
@@ -2372,6 +2392,15 @@ export interface CreditProgramReport {
     usage: CreditProgramParticipantUsage;
   }>;
   caveats: string[];
+  validation: {
+    shareCount: number;
+    lastSharedAt: string | null;
+    openCount: number;
+    lastOpenedAt: string | null;
+    feedbackCount: number;
+    avgUsefulness: number | null;
+    wouldReuseCount: number;
+  };
 }
 
 export interface CreditProgramActivityCall {

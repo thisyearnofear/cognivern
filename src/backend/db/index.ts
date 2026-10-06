@@ -626,6 +626,41 @@ function migrate(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_inference_records_program ON inference_records(program_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_inference_records_model ON inference_records(program_id, model);
 
+    -- Cohort-validation evidence: does the receipt travel? (see
+    -- services/credits/ValidationStore.ts). Share events are organiser
+    -- actions under workspace auth; open events are counted, never
+    -- identified — no ip, user-agent, or fingerprint columns exist by
+    -- design. Feedback is the organiser's 1–5 usefulness rating.
+    CREATE TABLE IF NOT EXISTS report_share_events (
+      id TEXT PRIMARY KEY,
+      program_id TEXT NOT NULL,
+      workspace_id TEXT NOT NULL,
+      commitment_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (program_id) REFERENCES credit_programs(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_share_events_program ON report_share_events(program_id, created_at);
+
+    CREATE TABLE IF NOT EXISTS verify_open_events (
+      id TEXT PRIMARY KEY,
+      commitment_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (commitment_id) REFERENCES credit_ledger_commitments(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_open_events_commitment ON verify_open_events(commitment_id, created_at);
+
+    CREATE TABLE IF NOT EXISTS program_feedback (
+      id TEXT PRIMARY KEY,
+      program_id TEXT NOT NULL,
+      workspace_id TEXT NOT NULL,
+      usefulness INTEGER NOT NULL,
+      would_reuse INTEGER NOT NULL DEFAULT 0,
+      note TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (program_id) REFERENCES credit_programs(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_program_feedback ON program_feedback(program_id, created_at);
+
     -- Decision-model enrichment for task_class (see
     -- services/decisions/runwareDecisions.ts). One row per record at most:
     -- the label that replaced the keyword heuristic, the model-reported

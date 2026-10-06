@@ -36,6 +36,10 @@ import {
   type CommitmentRow,
   type LedgerCommitmentService,
 } from "@backend/services/credits/LedgerCommitmentService.js";
+import {
+  sharedValidationStore,
+  type ValidationStore,
+} from "@backend/services/credits/ValidationStore.js";
 import { verifyMerkleProof } from "@backend/services/credits/commitment.js";
 import { resolveBackend } from "@backend/services/inference/backendRegistry.js";
 
@@ -47,6 +51,7 @@ export class CreditProgramController {
     private readonly ledger: CreditLedgerService = sharedCreditLedgerService(),
     private readonly records: InferenceRecordStore = sharedInferenceRecordStore(),
     private readonly commitments: LedgerCommitmentService = sharedLedgerCommitmentService(),
+    private readonly validation: ValidationStore = sharedValidationStore(),
   ) {}
 
   // ── Programs ─────────────────────────────────────────────────────────────
@@ -261,6 +266,75 @@ export class CreditProgramController {
         },
       },
     });
+  }
+
+  // ── Validation (does the receipt travel?) ────────────────────────────────
+
+  /**
+   * POST /api/credit-programs/:programId/shares — workspace auth.
+   *
+   * Records that the organiser shared a `/verify?id=…` link. Called by the
+   * commitments panel after a successful copy; the share count on /report is
+   * the North Star numerator for the hackathon wedge.
+   */
+  async recordShare(req: Request, res: Response): Promise<void> {
+    const program = this.requireProgram(req, res);
+    if (!program) return;
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const commitmentId = typeof body.commitmentId === "string" ? body.commitmentId : "";
+    if (!commitmentId) return badRequest(res, "commitmentId is required");
+    const commitment = this.commitments.get(commitmentId);
+    if (!commitment || commitment.programId !== program.id) {
+      return notFound(res, "Commitment not found for this program");
+    }
+    const eventId = this.validation.recordShare({
+      programId: program.id,
+      workspaceId: program.workspaceId,
+      commitmentId,
+    });
+    res.json({ success: true, data: { eventId } });
+  }
+
+  /**
+   * POST /api/credit-programs/:programId/feedback — workspace auth.
+   *
+   * Organiser usefulness rating (1–5) + would-reuse flag + optional short
+   * note. The qualitative half of the cohort validation plan.
+   */
+  async submitFeedback(req: Request, res: Response): Promise<void> {
+    const program = this.requireProgram(req, res);
+    if (!program) return;
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const usefulness = Number(body.usefulness);
+    if (!Number.isInteger(usefulness) || usefulness < 1 || usefulness > 5) {
+      return badRequest(res, "usefulness must be an integer 1–5");
+    }
+    if (typeof body.wouldReuse !== "boolean") {
+      return badRequest(res, "wouldReuse must be a boolean");
+    }
+    const note = typeof body.note === "string" ? body.note.slice(0, 500) : null;
+    const feedbackId = this.validation.recordFeedback({
+      programId: program.id,
+      workspaceId: program.workspaceId,
+      usefulness,
+      wouldReuse: body.wouldReuse,
+      note,
+    });
+    res.json({ success: true, data: { feedbackId } });
+  }
+
+  /**
+   * POST /verify/credit-commitment/:id/opened — PUBLIC, like its GET sibling.
+   *
+   * Records that the public verification page loaded a commitment. Counted,
+   * never identified: the opens table has no ip, user-agent, or fingerprint
+   * columns by design. Unknown ids 404 without writing anything.
+   */
+  async recordOpen(req: Request, res: Response): Promise<void> {
+    const commitment = this.commitments.get(req.params.id);
+    if (!commitment) return notFound(res, "Commitment not found");
+    const eventId = this.validation.recordOpen(commitment.id);
+    res.json({ success: true, data: { recorded: true, eventId } });
   }
 
   // ── Participants ─────────────────────────────────────────────────────────
@@ -617,6 +691,9 @@ export class CreditProgramController {
         disclosureMix,
         byModel: this.records.programModelBreakdown(program.id),
         byTaskClass: this.records.programTaskClassBreakdown(program.id),
+        // Cohort-validation evidence: does the receipt travel? Share/open
+        // counts plus organiser ratings — the judges' slide, computed live.
+        validation: this.validation.summary(program.id),
         participants: participants
           .map((participant) => ({
             handle: participant.handle,

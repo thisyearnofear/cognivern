@@ -22,7 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageState } from '@/components/ui/error-state';
 import { formatUsd } from '@/lib/budget-format';
-import { apiClient, type CreditProgramStatus } from '@/lib/api-client';
+import { apiClient, type CreditProgramReport, type CreditProgramStatus } from '@/lib/api-client';
 import {
   useCreditProgram,
   useCreditProgramFunding,
@@ -37,6 +37,81 @@ import { CommitmentsPanel } from './commitments-panel';
 
 function pct(n: number): string {
   return `${Math.round(n * 100)}%`;
+}
+
+function ValidationCard({ programId, report }: { programId: string; report: CreditProgramReport }) {
+  const validation = report.validation ?? null;
+  const [usefulness, setUsefulness] = useState<number | null>(null);
+  const [wouldReuse, setWouldReuse] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [rated, setRated] = useState(false);
+
+  async function submit() {
+    if (usefulness == null || busy) return;
+    setBusy(true);
+    try {
+      const res = await apiClient.submitCreditProgramFeedback(programId, {
+        usefulness,
+        wouldReuse,
+      });
+      if (!res.success) throw new Error(res.error || 'Feedback failed');
+      setRated(true);
+      toast.success('Thanks — rating recorded');
+      await mutate(`/api/credit-programs/${programId}/report`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Feedback failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border bg-card p-4">
+      <p className="flex items-center gap-1.5 text-sm font-medium">
+        <Activity className="size-3.5 text-muted-foreground" /> Receipt validation
+      </p>
+      <p className="mt-0.5 text-[0.7rem] text-muted-foreground">
+        Does the receipt travel? Shares and opens are server-recorded; opens are counted, never identified.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-4 text-xs">
+        <span><span className="font-medium">{validation?.shareCount ?? 0}</span> <span className="text-muted-foreground">shares</span></span>
+        <span><span className="font-medium">{validation?.openCount ?? 0}</span> <span className="text-muted-foreground">public opens</span></span>
+        <span><span className="font-medium">{validation?.avgUsefulness != null ? validation.avgUsefulness.toFixed(1) : '–'}</span> <span className="text-muted-foreground">avg usefulness</span></span>
+      </div>
+      {!rated ? (
+        <div className="mt-3 border-t pt-3">
+          <p className="text-xs text-muted-foreground">How useful is this report for your sponsor debrief?</p>
+          <div className="mt-2 flex items-center gap-1.5">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setUsefulness(n)}
+                className={`h-7 w-7 rounded-md border text-xs font-medium ${usefulness === n ? 'border-primary bg-primary/10 text-primary' : 'text-muted-foreground hover:border-primary/50'}`}
+                aria-label={`Rate ${n} out of 5`}
+              >
+                {n}
+              </button>
+            ))}
+            <label className="ml-2 flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={wouldReuse}
+                onChange={(e) => setWouldReuse(e.target.checked)}
+                className="size-3.5 accent-primary"
+              />
+              Use again next cohort
+            </label>
+          </div>
+          <Button size="sm" variant="outline" className="mt-2" onClick={() => void submit()} disabled={usefulness == null || busy}>
+            {busy ? <Loader2 className="animate-spin" /> : null} Submit rating
+          </Button>
+        </div>
+      ) : (
+        <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">Rating recorded — thank you.</p>
+      )}
+    </div>
+  );
 }
 
 export function CreditProgramDetail({ programId }: { programId: string }) {
@@ -200,7 +275,7 @@ export function CreditProgramDetail({ programId }: { programId: string }) {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <OverviewTab report={report} />
+          <OverviewTab programId={programId} report={report} />
         </TabsContent>
 
         <TabsContent value="participants" className="space-y-4">
@@ -234,8 +309,10 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint?:
 }
 
 function OverviewTab({
+  programId,
   report,
 }: {
+  programId: string;
   report: Awaited<ReturnType<typeof useCreditProgramReport>>['data'];
 }) {
   if (!report) {
@@ -324,6 +401,8 @@ function OverviewTab({
             multipliers. The tier is the participant&apos;s own choice — the sponsor never sets it.
           </p>
         </div>
+
+        <ValidationCard programId={programId} report={report} />
 
         <div className="rounded-xl border bg-card p-4">
           <p className="flex items-center gap-1.5 text-sm font-medium">

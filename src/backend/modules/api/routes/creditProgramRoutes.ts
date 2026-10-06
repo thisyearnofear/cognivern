@@ -28,6 +28,12 @@ export function createCreditProgramRoutes(controller: CreditProgramController): 
   router.post("/credit-programs/:programId/commitments", (req, res) =>
     controller.anchorNow(req, res),
   );
+  router.post("/credit-programs/:programId/shares", (req, res) =>
+    controller.recordShare(req, res),
+  );
+  router.post("/credit-programs/:programId/feedback", (req, res) =>
+    controller.submitFeedback(req, res),
+  );
 
   router.post("/credit-programs/:programId/participants", (req, res) =>
     controller.provisionParticipants(req, res),

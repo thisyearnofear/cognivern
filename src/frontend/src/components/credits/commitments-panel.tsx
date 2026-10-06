@@ -42,6 +42,14 @@ export function CommitmentsPanel({ programId }: { programId: string }) {
     try {
       await navigator.clipboard.writeText(url);
       toast.success('Public verification link copied');
+      // Server-recorded share: the North Star numerator for the cohort
+      // wedge. Best-effort — a copy that wasn't recorded must never block
+      // the organiser, so failures stay silent.
+      try {
+        await apiClient.recordCreditProgramShare(programId, commitment.id);
+      } catch {
+        // Intentionally silent.
+      }
     } catch {
       toast.error(url);
     }

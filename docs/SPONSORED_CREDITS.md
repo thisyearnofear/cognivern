@@ -97,6 +97,20 @@ ownership map.
 `GATEWAY_CATALOG_*`, `GATEWAY_UPSTREAM_TIMEOUT_MS`,
 `CREDIT_COMMITMENT_INTERVAL_MS`. All documented in `.env.example`.
 
+## Validation telemetry (does the receipt travel?)
+
+The report endpoint carries a `validation` block — share count, public-open
+count, organiser usefulness ratings — so a cohort can prove the receipt
+travels instead of asserting it:
+
+- Copying a verification link records a **share event** (workspace auth —
+  the actor is the program owner).
+- Loading the public `/verify?id=…` page records an **open event**:
+  counted, never identified. The opens table has no ip, user-agent, or
+  fingerprint columns by design.
+- The report view carries a 1–5 usefulness rating + would-reuse flag.
+- All three are reporting only; none gates, prices, or alters any flow.
+
 ## Known caveats
 
 - Layer 1 and Layer 2 are only *reported* side by side, never automatically

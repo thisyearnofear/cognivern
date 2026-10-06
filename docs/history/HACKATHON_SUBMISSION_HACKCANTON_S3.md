@@ -13,18 +13,23 @@
 **Live product:** [cognivern.persidian.com](https://cognivern.persidian.com) · sponsor console `/sponsor` · API `api.cognivern.persidian.com`
 **Tracks (max two):** primary — investment infrastructure (governance/allocation tooling); secondary — open
 
+> **Scope note (Oct 5, mentor feedback):** receipts/debrief lead. Sealed-bid
+> is expansion narrative only — a second buyer problem until the receipt is
+> proven to travel. Judged on whether organisers share the report, not on
+> rail breadth.
+
 ---
 
 ## TL;DR
 
 **Cognivern is the sponsor-side answer to hackathon DevRel:** organisers hand
 out inference budgets at 0% throughput fees and get mandate receipts that hold
-up to a third party. Underneath, the same control plane runs **confidential
-vendor selection on Canton**: sealed bids with sub-transaction privacy and an
-atomic close-and-reveal — losing bids are never decrypted by anyone.
+up to a third party — then we measure whether the receipt actually travels to
+sponsors and judges.
 
-**One line:** *Fund the cohort at cost, prove every cent, and select vendors
-without leaking bids — one mandate, one ledger, one receipt.*
+**One line:** *Fund the cohort at cost, prove every cent — and watch whether
+the receipt travels.* (Confidential vendor selection on Canton is a later
+expansion rail, not the lead wedge; see scope note above.)
 
 ---
 
@@ -60,6 +65,7 @@ Full runbook: [`../CANTON.md`](../CANTON.md) (runbooks + DevNet evidence checkli
 ## Submission checklist
 
 - [ ] DevNet cutover + `canton:proof` artifact (see above)
+- [x] Validation instrumentation (server-recorded share/open/feedback + report `validation` block)
 - [ ] Demo video (sealed-bid create → bid privacy view → reveal + sponsor receipt)
 - [ ] Materials uploaded (repo, demo, video — full set)
 - [ ] **Submitted for judging** (upload ≠ submit)

@@ -110,6 +110,16 @@ export function VerifyClient({ initialId }: { initialId: string }) {
         return;
       }
       setCommitment(body.data.commitment as PublicCommitment);
+      // Counted, never identified: tells the organiser the receipt travels
+      // without surveilling who opened it. Fire-and-forget — a failed ping
+      // must never break verification.
+      try {
+        void fetch(`/verify/credit-commitment/${encodeURIComponent(id)}/opened`, {
+          method: 'POST',
+        });
+      } catch {
+        // Intentionally silent.
+      }
     } catch {
       setError("Could not reach the verification API.");
     } finally {

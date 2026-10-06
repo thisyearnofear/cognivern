@@ -641,6 +641,13 @@ export class ApiModule extends BaseService {
       this.ctrl('creditProgram').getPublicCommitment(req, res);
     });
 
+    // Open ping for the verification page: counted, never identified (the
+    // opens table has no ip/user-agent columns by design). Lets organisers
+    // prove the receipt travels without surveilling who opened it.
+    this.app.post('/verify/credit-commitment/:id/opened', (req, res) => {
+      this.ctrl('creditProgram').recordOpen(req, res);
+    });
+
     // Public ERC-8004 surfaces (NO API key middleware). The registration card
     // is the agentURI target agents put on-chain, and the well-known file is
     // the spec's domain-verification document. Both are read-only and only
