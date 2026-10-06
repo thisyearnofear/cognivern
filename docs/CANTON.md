@@ -1,8 +1,8 @@
 # Canton Backend
 
-> **Status:** HackCanton S2 has **concluded**; the Canton sealed-bid path is a permanent product rail, not tied to a live event. Keep it working — do not gate new work on it. For current hackathon/program status see [`README.md`](./README.md#program-status).
+> **Status:** HackCanton S3 is **open** (due Oct 9 2026); the Canton sealed-bid path is a permanent product rail, not tied to a live event. Production is on the S3 DevNet tenant (proof round Oct 6) — see [Production state](#production-state--devnet-s3-tenant-live-oct-6-2026). For current hackathon/program status see [`README.md`](./README.md#program-status).
 
-> **Update (Aug 25 2026):** the shared HackCanton S2 DevNet node has been **unreachable** since Aug 21 (TCP `connection reset` from Hetzner and local probes; `hydrate from ledger failed` on every boot). The **Hetzner sandbox has been restored** as the live fallback ledger and the production env has been **cut over** — see [Production state](#production-state--devnet-unreachable-sandbox-restored-aug-25-2026). The live API returns the three seeded demo rounds with `backend: "canton"`.
+> **History (Aug 25 2026, superseded Oct 6):** the shared HackCanton S2 DevNet node was **unreachable** since Aug 21, so the **Hetzner sandbox served** as the live fallback ledger. Details preserved below as the revert path.
 
 Cognivern's sealed-bid vendor selection runs on a pluggable backend interface. The **Canton** backend uses a Daml sandbox to give sealed-bid auctions structural sub-transaction privacy and atomic multi-party reveal — capabilities the FHE backend can't provide.
 
@@ -67,7 +67,15 @@ The read-only `GET /api/vendor/sealed-bid/capabilities` endpoint reports the eff
 
 **Hetzner** — Daml SDK at `/home/deploy/.daml/`, `daml/` project synced to `/opt/cognivern/daml/`, launched via `pm2 start /opt/cognivern/daml/start-sandbox.sh --name cognivern-canton --interpreter bash`. Localhost-bound.
 
-**Canton DevNet** — the required final-submission target. We use the shared HackCanton S2 DevNet node (`https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`). The current DAR (`d62e13ab174d8da690a44c6dd354a223f8c70e43a0ac7e17b8385bfd8b291fad`, upgrading `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454`) is uploaded, demo parties were allocated with the `-cognivern` suffix, and the authenticated Daml user is `e6c5f9fc-98ed-491f-b228-00cf931a05cc`. The backend is participant-agnostic, but final judging requires contract/transaction evidence from a real DevNet round. A sandbox-only run is not enough. **Reachability (Aug 25 2026):** the node currently does not answer — TCP connect is reset from both this machine and the Hetzner box, and the backend logs `hydrate from ledger failed … fetch failed` on every boot since Aug 21. See "Production state" below for the fallback while it is down.
+**Canton DevNet** — the required final-submission target. S3 runs on a new
+participant, `hackcanton-devnet-3` (same `hackcanton-01` JSON/gRPC hostnames,
+Ledger API 3.5.19), with per-team tenant namespaces. The current DAR
+(`d62e13ab174d8da690a44c6dd354a223f8c70e43a0ac7e17b8385bfd8b291fad` —
+rebuilt Oct 6 byte-identical) is uploaded and REGISTERED, demo parties are
+`e6c5f9fc-{auctioner,alice,bob,charlie}` (namespace `e6c5f9fc-`), and the
+authenticated Daml user is `e6c5f9fc-98ed-491f-b228-00cf931a05cc` (same
+Keycloak account as S2). S2 used `-cognivern`-suffixed parties under
+namespace `122003aa…`; those do not exist on the S3 participant.
 
 ## Demo state on boot
 
@@ -98,7 +106,21 @@ The `SealedBidService` dispatcher's `resolveBackend(roundId)` falls back to prob
 
 Startup log to confirm: `SealedBid[canton]: hydrated N open + M revealed round(s) from ledger`.
 
-## Production state — DevNet unreachable, sandbox restored (Aug 25 2026)
+## Production state — DevNet S3 tenant live (Oct 6 2026)
+
+Production points at the S3 DevNet tenant (`hackcanton-devnet-3`, v2 + OIDC).
+Proof round `0x1cb3282e…` (Oct 6): create → 3 bids → close → atomic reveal,
+winner `e6c5f9fc-alice`, value settled atomically — artifact
+`.artifacts/canton-devnet-proof-2026-10-06T15-48-38-758Z.json`, visible on
+the public rounds endpoint. Sandbox remains the fallback if DevNet drops.
+
+> **dotenv gotcha (bit us Oct 6):** dotenv parses `KEY=#…` as an empty
+> string — `#daml:Main:*` template refs MUST be quoted in env files
+> (`KEY="#daml:Main:*"`), or the backend boots with Canton silently
+> disabled. `.env.example` carries quoted forms; keep them quoted.
+
+Prior history (Aug 25 2026 sandbox fallback) is preserved below for the
+revert path.
 
 > **Update (Oct 5 2026):** the shared node answers again (`livez` 200 from
 > Hetzner and local) but moved to per-team tenant namespaces for S3 — S2

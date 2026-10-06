@@ -172,9 +172,10 @@ at 20–25% CAGR with 62% of teams raising marketing budgets.
    sponsors; verification math stays the trust anchor. (In progress:
    Laya decision-model enrichment live behind `RUNWARE_DECISIONS_*`,
    confidence shown per call — see `SPONSORED_CREDITS.md`.)
-5. **Canton S3 (due Oct 9 2026)** — aim at the sponsor side (sealed-bid +
-   mandate receipts as the DevRel answer), dogfooded with one real
-   event's numbers where possible.
+5. **Canton S3 (due Oct 9 2026)** — receipts/debrief lead, sealed-bid as
+   expansion narrative (mentor cut, Oct 6). DevNet proof done Oct 6
+   (tenant `hackcanton-devnet-3`, atomic settlement); remaining: video,
+   materials, submit. Dogfood with one real event's numbers where possible.
 6. **Weave conversation** — analytics-export-to-evidence integration
    (their savings + our worth). Story first, no build commitment.
 
