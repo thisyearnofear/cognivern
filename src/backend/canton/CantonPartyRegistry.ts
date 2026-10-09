@@ -19,7 +19,12 @@ export class CantonPartyRegistry {
 
   private addAliases(name: string, id: string) {
     const hint = id.split("::")[0] || name;
-    const base = hint.replace(/-cognivern$/i, "");
+    // Shared DevNet tenants prefix allocated party hints (e.g.
+    // `e6c5f9fc-alice::…`) — strip the hex prefix as well as the legacy
+    // `-cognivern` suffix so UI names (Alice, Auctioneer) resolve.
+    const base = hint
+      .replace(/-cognivern$/i, "")
+      .replace(/^[0-9a-f]{8,}-/i, "");
     const aliases = new Set<string>();
     [name, hint, base].forEach((s) => {
       aliases.add(s);
