@@ -101,7 +101,12 @@ finding, not a failure.
   package `d62e13ab…` REGISTERED; proof round `0x1cb3282e…`, winner
   `e6c5f9fc-alice`, value settled atomically — `.artifacts/canton-devnet-proof-2026-10-06T15-48-38-758Z.json`)
 - [x] Validation instrumentation (server-recorded share/open/feedback + report `validation` block)
-- [ ] Demo video (sealed-bid create → bid privacy view → reveal + sponsor receipt)
+- [x] Demo video (sealed-bid create → bid privacy view → reveal + sponsor
+  receipt) — `.artifacts/demo-video-s3.mp4` (1:40, 720p, narrated). Recorded
+  live against production via `tooling/scripts/demo/record-demo-video-s3.ts`;
+  on-screen round `0xeb3d8ac6…` verified `revealed` on Canton DevNet,
+  `e6c5f9fc-bob` @ $74,500, `settledAssetCid` present.
+  Public URL: https://youtu.be/taG9NPRzAmE
 - [ ] Materials uploaded (repo, demo, video — full set)
 - [ ] **Submitted for judging** (upload ≠ submit)
 - [ ] Build diary entries (momentum matters — cf. chain-experts)
