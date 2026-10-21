@@ -99,6 +99,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   const [submitting, setSubmitting] = useState(false);
   const [closing, setClosing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
   const [revealing, setRevealing] = useState(false);
   const [selectionMethod, setSelectionMethod] = useState<
     "lowest-bid" | "highest-bid"
@@ -124,6 +125,9 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   // Sandbox is an explicit toy ledger — anyone may act as auctioneer for the
   // demo. Production writes require a verified wallet JWT (sealedBidWriteAuth).
   const canManage = !isProduction || (isAuthed && !!walletAddress);
+  const hasOwnBid = round?.bids.some(
+    (b) => b.bidder === effectiveBidder || displayPartyName(b.bidder) === effectiveBidder,
+  ) ?? false;
   const amountError =
     !Number.isFinite(amountUsd) || amountUsd < 1
       ? "Enter an amount of at least $1."
@@ -213,6 +217,21 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
       toast.error(err instanceof Error ? err.message : "Cancel failed");
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function handleWithdraw() {
+    if (!window.confirm("Withdraw your bid? It is archived without disclosure.")) return;
+    setWithdrawing(true);
+    try {
+      const res = await apiClient.withdrawSealedBid({ roundId, bidder: effectiveBidder });
+      if (!res.success) throw new Error(res.error || "Withdraw failed");
+      toast.success("Bid withdrawn");
+      await refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Withdraw failed");
+    } finally {
+      setWithdrawing(false);
     }
   }
 
@@ -324,6 +343,18 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
             Vendors can&apos;t see each other&apos;s prices. The winner and price are
             published once — losing bids stay sealed and are never disclosed.
           </p>
+          {round.ledgerRefs && Object.values(round.ledgerRefs).some(Boolean) && (
+            <dl className="space-y-1 pt-1 border-t border-border/60">
+              <dt className="font-medium">Ledger proof</dt>
+              {Object.entries(round.ledgerRefs).filter(([, v]) => v).map(([k, v]) => (
+                <dd key={k} className="flex gap-2">
+                  <span className="w-16 shrink-0 capitalize">{k}</span>
+                  <code className="truncate font-mono" title={v as string}>{v as string}</code>
+                </dd>
+              ))}
+              <dd className="text-muted-foreground">Resolvable on the Canton participant — verify without trusting this app.</dd>
+            </dl>
+          )}
         </div>
       </details>
 
@@ -465,6 +496,19 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Lock className="h-3 w-3" /> Sealed until reveal
             </p>
+            {hasOwnBid && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                disabled={withdrawing}
+                onClick={handleWithdraw}
+              >
+                {withdrawing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                Withdraw my bid
+              </Button>
+            )}
             <Button
               type="submit"
               disabled={submitting || deadlineMissed || !canSubmitBid || !!amountError}

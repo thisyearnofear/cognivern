@@ -140,6 +140,18 @@ export class FheSealedBidBackend implements SealedBidBackend {
     return round;
   }
 
+  async withdrawBid(roundId: string, bidder: string): Promise<SealedBidRound> {
+    const round = this.rounds.get(roundId);
+    if (!round) throw new Error(`Round ${roundId} not found`);
+    if (round.status !== "open") throw new Error("Round is not open for bids");
+    const idx = round.bids.findIndex((b) => b.bidder === bidder);
+    if (idx === -1) throw new Error(`No bid from ${bidder} in this round`);
+    round.bids.splice(idx, 1);
+    round.bids.forEach((b, i) => (b.index = i));
+    logger.info(`SealedBid[fhe]: bid withdrawn for round ${roundId} by ${bidder}`);
+    return round;
+  }
+
   /**
    * Reveal the winner of a closed round via the manager-decrypt-and-publish
    * flow. Each bid amount was encrypted by submitBid at 1e6 scale; the

@@ -599,6 +599,31 @@ export class CantonSealedBidBackend implements SealedBidBackend {
     return this.toSealedBidRound(state, []);
   }
 
+  // Bidder-side reverse state. Withdraw is a choice on the Bid contract itself,
+  // controlled by the bidder — the exercise runs as the bidder party, so the
+  // bidder alone authorizes the archive. Nothing is disclosed to competitors.
+  async withdrawBid(roundId: string, bidder: string): Promise<SealedBidRound> {
+    await this.ready;
+    const state = this.rounds.get(roundId);
+    if (!state) throw new Error(`Round ${roundId} not found`);
+    if (state.status !== "open") throw new Error("Round is not open for bids");
+    const bidderParty = await this.parties.resolve(bidder);
+    const bids = await this.queryBidsAsManager(state);
+    const own = bids.find((b) => b.payload.bidder === bidderParty);
+    if (!own) throw new Error(`No bid from ${bidder} in this round`);
+    await this.client.exercise(
+      bidderParty,
+      this.templates.bid,
+      own.contractId,
+      "Withdraw",
+      {},
+    );
+    logger.info(
+      `SealedBid[canton]: bid withdrawn for round ${roundId} by ${bidder} (bidCid=${own.contractId.slice(0, 12)}…)`,
+    );
+    return this.toSealedBidRound(state, bids.filter((b) => b.contractId !== own.contractId));
+  }
+
   async getRound(roundId: string): Promise<SealedBidRound | null> {
     await this.ready;
     const state = this.rounds.get(roundId);
@@ -716,6 +741,11 @@ export class CantonSealedBidBackend implements SealedBidBackend {
       winningProposalHash: null,
       createdAt: state.createdAt,
       backend: this.name,
+      ledgerRefs: {
+        ...(state.auctionCid ? { auction: state.auctionCid } : {}),
+        ...(state.resultCid ? { result: state.resultCid } : {}),
+        ...(state.cancelledCid ? { cancelled: state.cancelledCid } : {}),
+      },
       settledAssetCid: state.settledAssetCid,
       settlementAmount: state.settlementAmount,
       settlementAssetTag: state.settlementAssetTag,
@@ -756,6 +786,10 @@ export class CantonSealedBidBackend implements SealedBidBackend {
       winningProposalHash: result.winningProposal,
       createdAt: state.createdAt,
       backend: this.name,
+      ledgerRefs: {
+        ...(state.resultCid ? { result: state.resultCid } : {}),
+        ...(state.cancelledCid ? { cancelled: state.cancelledCid } : {}),
+      },
       settledAssetCid: state.settledAssetCid,
       settlementAmount: state.settlementAmount,
       settlementAssetTag: state.settlementAssetTag,

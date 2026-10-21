@@ -40,6 +40,10 @@ export interface SealedBidRound {
   // winner_revealed).
   createdByAgent?: string;
   governanceRunId?: string;
+  // On-ledger anchors for verification (Canton): the auction/result/cancelled
+  // contract ids. A third party can resolve these on the participant without
+  // trusting this API.
+  ledgerRefs?: { auction?: string; result?: string; cancelled?: string };
 }
 
 // A bid as returned by the ledger when queried AS a specific party — the

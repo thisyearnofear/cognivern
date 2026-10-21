@@ -1772,6 +1772,27 @@ class ApiClient {
     });
   }
 
+  // Withdraw the caller's own bid while the round is open (Bid.Withdraw on Canton).
+  async withdrawSealedBid(params: { roundId: string; bidder: string }): Promise<
+    ApiResponse<{ roundId: string; status: string; bidCount: number }>
+  > {
+    return this.fetch(`/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/withdraw`, {
+      method: 'POST',
+      body: JSON.stringify({ bidder: params.bidder }),
+    });
+  }
+
+  // Public verification bundle for a round outcome — ledger contract refs +
+  // CRE event hashes for agent-governed rounds.
+  async getSealedBidRoundVerification(roundId: string): Promise<ApiResponse<{
+    roundId: string; status: string; backend?: string;
+    winner: string | null; winningBid: number | null;
+    ledgerRefs: { auction?: string; result?: string; cancelled?: string } | null;
+    settledAssetCid: string | null; governanceTimeline: unknown;
+  }>> {
+    return this.fetch(`/api/vendor/sealed-bid/rounds/${encodeURIComponent(roundId)}/verify`);
+  }
+
   // Cancel an open/closed round (manager only; Canton needs DAR v0.0.3+).
   async cancelSealedBidRound(params: { roundId: string; manager?: string }): Promise<
     ApiResponse<{ roundId: string; status: string }>
@@ -2175,6 +2196,9 @@ export interface SealedBidRound {
   // timeline for this round. Absent for human-created rounds.
   createdByAgent?: string;
   governanceRunId?: string;
+  // On-ledger contract anchors (Canton) — resolvable on the participant for
+  // third-party verification.
+  ledgerRefs?: { auction?: string; result?: string; cancelled?: string };
 }
 export interface SealedBidRoundSummary {
   roundId: string;

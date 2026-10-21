@@ -481,6 +481,98 @@ export class SealedBidController {
   }
 
   /**
+   * POST /api/vendor/sealed-bid/rounds/:roundId/withdraw
+   * Withdraw the caller's own bid while the round is open. On Canton this
+   * exercises the Bid contract's Withdraw choice as the bidder party — the
+   * archive never discloses the amount.
+   */
+  async withdrawBid(req: Request, res: Response) {
+    try {
+      const { roundId } = req.params;
+      const bidder = (req.body.bidder as string)?.trim();
+      if (!bidder) {
+        res.status(400).json({ success: false, error: "bidder is required" });
+        return;
+      }
+      const round = await this.sealedBidService.withdrawBid(roundId, bidder);
+      if (round.governanceRunId) {
+        recordSealedBidEvent({
+          runId: round.governanceRunId,
+          eventType: "bid_withdrawn",
+          payload: { roundId: round.roundId, bidder },
+        }).catch((err) =>
+          logger.warn("Failed to record bid_withdrawn governance event", err),
+        );
+      }
+      fireAndForgetAudit(this.auditLog, "sealed_bid.bid_withdrawn", {
+        roundId: round.roundId,
+        backend: round.backend,
+        bidder,
+      });
+      res.status(200).json({
+        success: true,
+        data: { roundId: round.roundId, status: round.status, bidCount: round.bids.length },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      res.status(error.message?.includes("not found") ? 404 : 400).json({
+        success: false,
+        error: error.message || "Failed to withdraw bid",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * GET /api/vendor/sealed-bid/rounds/:roundId/verify
+   * Public verification bundle for a round outcome: the on-ledger contract
+   * references plus (for agent-governed rounds) the CRE event hashes. A third
+   * party can confirm the outcome against the participant without trusting
+   * this API's state — the contract ids are the ledger proof.
+   */
+  async getRoundVerification(req: Request, res: Response) {
+    try {
+      const { roundId } = req.params;
+      const round = await this.sealedBidService.getRound(roundId);
+      if (!round) {
+        res.status(404).json({ success: false, error: `Round ${roundId} not found` });
+        return;
+      }
+      let governance: unknown = null;
+      if (round.governanceRunId) {
+        governance = await getGovernanceTimeline(round.governanceRunId).catch(() => null);
+      }
+      res.status(200).json({
+        success: true,
+        data: {
+          roundId: round.roundId,
+          status: round.status,
+          backend: round.backend,
+          description: round.description,
+          serviceCategory: round.serviceCategory,
+          deadline: round.deadline,
+          bidCount: round.bids.length,
+          winner: round.winner,
+          winningBid: round.winningBid,
+          winningProposalHash: round.winningProposalHash,
+          // On-ledger anchors: contract ids resolvable on the Canton
+          // participant. `settledAssetCid` proves value moved to the winner.
+          ledgerRefs: round.ledgerRefs ?? null,
+          settledAssetCid: round.settledAssetCid ?? null,
+          governanceTimeline: governance,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to verify round",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
    * POST /api/vendor/sealed-bid/rounds/:roundId/cancel
    * Cancel an open or closed round — the manager's way out. On Canton (DAR
    * v0.0.3+) this consumes bids silently, returns any escrowed deposit, and

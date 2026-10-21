@@ -22,6 +22,11 @@ export interface SealedBidBackend {
   // (consuming any bids silently and unwinding escrowed value where the
   // backend supports it). Required: every create needs a way out.
   cancelRound(roundId: string, caller: string): Promise<SealedBidRound>;
+  // Bidder-side reverse state: withdraw a submitted bid while the round is
+  // still open. On Canton this exercises the Bid contract's own Withdraw
+  // choice — the bidder is the controller, the archive never discloses the
+  // amount. Returns the updated round so callers can re-render the bid list.
+  withdrawBid(roundId: string, bidder: string): Promise<SealedBidRound>;
   getRound(roundId: string): Promise<SealedBidRound | null>;
   listRounds(): Promise<SealedBidRound[]>;
 

@@ -115,6 +115,11 @@ export function createMiscRoutes(
     (req, res) => sealedBidController.closeRound(req, res),
   );
   router.post(
+    "/vendor/sealed-bid/rounds/:roundId/withdraw",
+    sealedBidWriteAuth,
+    (req, res) => sealedBidController.withdrawBid(req, res),
+  );
+  router.post(
     "/vendor/sealed-bid/rounds/:roundId/cancel",
     sealedBidWriteAuth,
     idempotencyMiddleware,
@@ -132,6 +137,9 @@ export function createMiscRoutes(
   router.get(
     "/vendor/sealed-bid/rounds/:roundId/governance-timeline",
     (req, res) => sealedBidController.getGovernanceTimeline(req, res),
+  );
+  router.get("/vendor/sealed-bid/rounds/:roundId/verify", (req, res) =>
+    sealedBidController.getRoundVerification(req, res),
   );
   router.get("/vendor/sealed-bid/rounds/:roundId", (req, res) =>
     sealedBidController.getRound(req, res),

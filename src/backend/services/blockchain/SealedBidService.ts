@@ -109,6 +109,12 @@ export class SealedBidService {
     return this.withGovernance(round);
   }
 
+  async withdrawBid(roundId: string, bidder: string): Promise<SealedBidRound> {
+    const backend = await this.resolveBackend(roundId);
+    const round = await backend.withdrawBid(roundId, bidder);
+    return this.withGovernance(round);
+  }
+
   async cancelRound(roundId: string, caller: string): Promise<SealedBidRound> {
     const backend = await this.resolveBackend(roundId);
     const round = await backend.cancelRound(roundId, caller);

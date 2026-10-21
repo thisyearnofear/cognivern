@@ -42,6 +42,7 @@ export interface RecordSealedBidEventParams {
   runId: string;
   eventType:
     | 'bid_submitted'
+    | 'bid_withdrawn'
     | 'round_closed'
     | 'round_cancelled'
     | 'winner_revealed';
@@ -51,6 +52,7 @@ export interface RecordSealedBidEventParams {
 type InternalEventType =
   | 'round_created'
   | 'bid_submitted'
+  | 'bid_withdrawn'
   | 'policy_checked'
   | 'round_closed'
   | 'round_cancelled'
