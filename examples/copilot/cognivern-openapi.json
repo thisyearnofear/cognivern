@@ -20,13 +20,29 @@
     "schemas": {
       "SpendRequest": {
         "type": "object",
-        "required": ["agentId", "recipient", "amount", "asset", "reason"],
+        "required": [
+          "agentId",
+          "recipient",
+          "amount",
+          "asset",
+          "reason"
+        ],
         "properties": {
-          "agentId": { "type": "string" },
-          "recipient": { "type": "string" },
-          "amount": { "type": "string" },
-          "asset": { "type": "string" },
-          "reason": { "type": "string" },
+          "agentId": {
+            "type": "string"
+          },
+          "recipient": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "asset": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
           "metadata": {
             "type": "object",
             "additionalProperties": true
@@ -35,19 +51,153 @@
       },
       "EvaluateActionRequest": {
         "type": "object",
-        "required": ["agentId", "policyId", "action"],
+        "required": [
+          "agentId",
+          "policyId",
+          "action"
+        ],
         "properties": {
-          "agentId": { "type": "string" },
-          "policyId": { "type": "string" },
+          "agentId": {
+            "type": "string"
+          },
+          "policyId": {
+            "type": "string"
+          },
           "action": {
             "type": "object",
             "additionalProperties": true
           }
         }
+      },
+      "CreateRoundRequest": {
+        "type": "object",
+        "required": [
+          "description",
+          "serviceCategory",
+          "deadline",
+          "maxBids"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "serviceCategory": {
+            "type": "string"
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "maxBids": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "backend": {
+            "type": "string",
+            "enum": [
+              "fhe",
+              "canton"
+            ],
+            "default": "canton"
+          },
+          "settlementAmount": {
+            "type": "number",
+            "description": "Escrowed amount settled atomically to the winner (Canton)"
+          },
+          "settlementAssetTag": {
+            "type": "string",
+            "default": "USDC"
+          },
+          "earlyCloseAllowed": {
+            "type": "boolean",
+            "description": "When false, CloseAndReveal aborts on-ledger before the deadline (DAR v0.0.3+)"
+          },
+          "agentId": {
+            "type": "string",
+            "description": "Marks the round agent-governed: close is policy-gated and lifecycle events are hash-recorded"
+          },
+          "mandateId": {
+            "type": "string",
+            "description": "Attribute the escrowed spend to a funded mandate; validated against the mandate's active budget before the round is created"
+          }
+        }
+      },
+      "SubmitBidRequest": {
+        "type": "object",
+        "required": [
+          "bidder",
+          "amountUsd"
+        ],
+        "properties": {
+          "bidder": {
+            "type": "string",
+            "description": "Bidder party name (sandbox personas) — resolved server-side to the wallet's pool party in production"
+          },
+          "amountUsd": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "proposalDetails": {
+            "type": "string",
+            "description": "Stored as a hash on the Bid contract; revealed only for the winning bid"
+          }
+        }
+      },
+      "WithdrawBidRequest": {
+        "type": "object",
+        "required": [
+          "bidder"
+        ],
+        "properties": {
+          "bidder": {
+            "type": "string"
+          }
+        }
+      },
+      "CloseRoundRequest": {
+        "type": "object",
+        "properties": {
+          "manager": {
+            "type": "string"
+          }
+        }
+      },
+      "RevealWinnerRequest": {
+        "type": "object",
+        "required": [
+          "selectionMethod"
+        ],
+        "properties": {
+          "selectionMethod": {
+            "type": "string",
+            "enum": [
+              "lowest-bid",
+              "highest-bid",
+              "specific"
+            ]
+          },
+          "specificBidder": {
+            "type": "string",
+            "description": "Required when selectionMethod is 'specific'"
+          }
+        }
+      },
+      "CancelRoundRequest": {
+        "type": "object",
+        "properties": {
+          "manager": {
+            "type": "string"
+          }
+        }
       }
     }
   },
-  "security": [{ "bearerAuth": [] }],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
   "paths": {
     "/governance/policies": {
       "get": {
@@ -59,12 +209,18 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": ["active", "draft", "archived"]
+              "enum": [
+                "active",
+                "draft",
+                "archived"
+              ]
             }
           }
         ],
         "responses": {
-          "200": { "description": "Policies returned" }
+          "200": {
+            "description": "Policies returned"
+          }
         }
       }
     },
@@ -77,12 +233,18 @@
             "name": "policyId",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
-          "200": { "description": "Policy returned" },
-          "404": { "description": "Policy not found" }
+          "200": {
+            "description": "Policy returned"
+          },
+          "404": {
+            "description": "Policy not found"
+          }
         }
       }
     },
@@ -94,12 +256,16 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/SpendRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/SpendRequest"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Spend preview returned" }
+          "200": {
+            "description": "Spend preview returned"
+          }
         }
       }
     },
@@ -111,13 +277,19 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/EvaluateActionRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/EvaluateActionRequest"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Evaluation returned" },
-          "202": { "description": "Evaluation accepted" }
+          "200": {
+            "description": "Evaluation returned"
+          },
+          "202": {
+            "description": "Evaluation accepted"
+          }
         }
       }
     },
@@ -129,13 +301,19 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/SpendRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/SpendRequest"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Spend execution returned" },
-          "403": { "description": "Spend denied" }
+          "200": {
+            "description": "Spend execution returned"
+          },
+          "403": {
+            "description": "Spend denied"
+          }
         }
       }
     },
@@ -147,16 +325,23 @@
           {
             "name": "limit",
             "in": "query",
-            "schema": { "type": "integer", "default": 20 }
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
           },
           {
             "name": "agent",
             "in": "query",
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
-          "200": { "description": "Audit logs returned" }
+          "200": {
+            "description": "Audit logs returned"
+          }
         }
       }
     },
@@ -172,15 +357,27 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": { "type": "boolean" },
+                    "success": {
+                      "type": "boolean"
+                    },
                     "data": {
                       "type": "object",
                       "properties": {
-                        "enabled": { "type": "boolean" },
-                        "contractAddress": { "type": "string" },
-                        "explorerUrl": { "type": "string" },
-                        "network": { "type": "string" },
-                        "chainId": { "type": "integer" }
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "contractAddress": {
+                          "type": "string"
+                        },
+                        "explorerUrl": {
+                          "type": "string"
+                        },
+                        "network": {
+                          "type": "string"
+                        },
+                        "chainId": {
+                          "type": "integer"
+                        }
                       }
                     }
                   }
@@ -189,6 +386,310 @@
             }
           }
         }
+      }
+    },
+    "/vendor/sealed-bid/capabilities": {
+      "get": {
+        "operationId": "cognivern_sealed_bid_capabilities",
+        "summary": "Sealed-bid capabilities: effective workspace mode, configured backend (canton|fhe), and whether value settlement is supported",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Round not found"
+          }
+        },
+        "security": []
+      }
+    },
+    "/vendor/sealed-bid/canton-identity": {
+      "get": {
+        "operationId": "cognivern_sealed_bid_canton_identity",
+        "summary": "Return the institution pool party the SIWE-authenticated wallet bids as. Requires a wallet JWT — 401 for API-key or email sessions, 503 when no party pool is configured",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Round not found"
+          }
+        }
+      }
+    },
+    "/vendor/sealed-bid/rounds": {
+      "get": {
+        "operationId": "cognivern_sealed_bid_list_rounds",
+        "summary": "List sealed-bid rounds (public; losing bid amounts are never disclosed)",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Round not found"
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "operationId": "cognivern_sealed_bid_create_round",
+        "summary": "Create a sealed-bid round, optionally under a funded mandate (mandateId) and/or with an escrowed settlement (settlementAmount/assetTag). Write routes are mode-gated by the X-Workspace-Mode header: in `sandbox` they run unauthenticated against the toy ledger; in `production` they require a non-revoked wallet JWT (Bearer), and the acting identity is bound server-side to that wallet.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoundRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed or ledger rejected the action"
+          },
+          "404": {
+            "description": "Round not found"
+          }
+        }
+      }
+    },
+    "/vendor/sealed-bid/rounds/{roundId}": {
+      "get": {
+        "operationId": "cognivern_sealed_bid_get_round",
+        "summary": "Get one round: status (open|closed|revealed|cancelled), bids disclosed to the caller, winner/settlement after reveal, mandateId if linked",
+        "parameters": [
+          {
+            "name": "roundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Round not found"
+          }
+        },
+        "security": []
+      }
+    },
+    "/vendor/sealed-bid/rounds/{roundId}/verify": {
+      "get": {
+        "operationId": "cognivern_sealed_bid_verify_round",
+        "summary": "Public verification bundle for a round outcome: on-ledger contract refs, settled deposit cid, and the CRE event-hash timeline for agent-governed rounds",
+        "parameters": [
+          {
+            "name": "roundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Round not found"
+          }
+        },
+        "security": []
+      }
+    },
+    "/vendor/sealed-bid/rounds/{roundId}/bid": {
+      "post": {
+        "operationId": "cognivern_sealed_bid_submit_bid",
+        "summary": "Submit a sealed bid. On Canton the Bid contract is visible only to its bidder and the round manager — competitors never see the amount. Write routes are mode-gated by the X-Workspace-Mode header: in `sandbox` they run unauthenticated against the toy ledger; in `production` they require a non-revoked wallet JWT (Bearer), and the acting identity is bound server-side to that wallet.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitBidRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed or ledger rejected the action"
+          },
+          "404": {
+            "description": "Round not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "roundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/vendor/sealed-bid/rounds/{roundId}/withdraw": {
+      "post": {
+        "operationId": "cognivern_sealed_bid_withdraw_bid",
+        "summary": "Withdraw the caller's own bid while the round is open; the bid is archived without disclosure. Write routes are mode-gated by the X-Workspace-Mode header: in `sandbox` they run unauthenticated against the toy ledger; in `production` they require a non-revoked wallet JWT (Bearer), and the acting identity is bound server-side to that wallet.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawBidRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed or ledger rejected the action"
+          },
+          "404": {
+            "description": "Round not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "roundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/vendor/sealed-bid/rounds/{roundId}/close": {
+      "post": {
+        "operationId": "cognivern_sealed_bid_close_round",
+        "summary": "Close bidding. Agent-governed rounds first pass a policy gate (min bids, deadline elapsed, budget within limit) — a failed gate returns 403 with policyChecks. Write routes are mode-gated by the X-Workspace-Mode header: in `sandbox` they run unauthenticated against the toy ledger; in `production` they require a non-revoked wallet JWT (Bearer), and the acting identity is bound server-side to that wallet.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseRoundRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed or ledger rejected the action"
+          },
+          "404": {
+            "description": "Round not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "roundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/vendor/sealed-bid/rounds/{roundId}/reveal": {
+      "post": {
+        "operationId": "cognivern_sealed_bid_reveal_winner",
+        "summary": "Reveal the winner: records the AuctionResult, archives losing bids undisclosed, and atomically transfers the escrowed deposit to the winner when settlement is configured. Write routes are mode-gated by the X-Workspace-Mode header: in `sandbox` they run unauthenticated against the toy ledger; in `production` they require a non-revoked wallet JWT (Bearer), and the acting identity is bound server-side to that wallet.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevealWinnerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed or ledger rejected the action"
+          },
+          "404": {
+            "description": "Round not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "roundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/vendor/sealed-bid/rounds/{roundId}/cancel": {
+      "post": {
+        "operationId": "cognivern_sealed_bid_cancel_round",
+        "summary": "Cancel a round (manager only): bids are consumed silently and the escrowed deposit returns to the manager. Canton requires DAR v0.0.3+ (CANTON_TEMPLATE_CANCELLED). Write routes are mode-gated by the X-Workspace-Mode header: in `sandbox` they run unauthenticated against the toy ledger; in `production` they require a non-revoked wallet JWT (Bearer), and the acting identity is bound server-side to that wallet.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelRoundRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Validation failed or ledger rejected the action"
+          },
+          "404": {
+            "description": "Round not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "roundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     }
   }
