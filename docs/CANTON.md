@@ -401,3 +401,99 @@ Capture these so the deployment requirement is undeniable:
 - One fresh DevNet lifecycle trace: `SealedBidAuction` create contract ID, three `Bid` contract IDs, `CloseAndReveal` exercise transaction, and resulting `AuctionResult` contract ID.
 - A public product URL exercising the DevNet-backed API, plus a screenshot or clip showing create → bid privacy view → reveal.
 - A fresh API response with non-expired deadlines or a newly-created round for the demo path.
+
+## Next model work (post-S3)
+
+Scoped after the S3 judges' feedback (no in-season Daml change; EVM rather
+than Canton identity — see `history/HACKATHON_SUBMISSION_HACKCANTON_S3.md` →
+Retrospective). Items 1–2 ship together as one DAR bump; item 4 is a separate
+backend+frontend workstream gated on a participant-capability check.
+
+### 1. `Cancel` / `AuctionCancelled` — archive path for undecided rounds
+
+Today `CloseAndReveal` asserts `bidCids` non-empty, so a round with zero bids —
+or bids the manager never acts on — can never be archived. Live-ledger probe
+rounds persist forever (the ops cost `AGENTS.md` warns about). Sketch:
+
+```daml
+choice Cancel : ContractId AuctionCancelled
+  with
+    bidCids : [ContractId Bid]
+  controller manager
+  do
+    bids <- mapA fetch bidCids
+    assertMsg "cancel only consumes this round's bids"
+      (all (\b -> b.roundId == roundId && b.manager == manager) bids)
+    mapA_ (`exercise` Consume) bidCids
+    now <- getTime
+    settledCid <- case settlementAsset of
+      Some depositCid -> do
+        c <- exercise depositCid Transfer with recipient = manager
+        pure (Some c)
+      None -> pure None
+    create AuctionCancelled with
+      manager, eligibleBidders, roundId,
+      cancelledAt = now, settledAsset = settledCid
+```
+
+Properties:
+
+- Same silent-consume privacy as `CloseAndReveal` — consumed bids are never
+  disclosed to non-observers.
+- The escrowed deposit returns to the manager atomically — no stuck-funds state.
+- `AuctionCancelled` (new template: signatory `manager`, observers
+  `eligibleBidders`; `roundId`, `cancelledAt`, `settledAsset`) gives bidders a
+  visible terminal state — the "way out" every create needs.
+- `bidCids` is caller-supplied (as in `CloseAndReveal`); the ledger can't prove
+  emptiness, and doesn't need to — the manager is the only party harmed by an
+  early cancel, and bidders see the cancellation event.
+
+Backend touchpoints: `SealedBidBackend` gains `cancelRound`; the Canton backend
+exercises `Cancel` and hydrates `AuctionCancelled`; a
+`POST /rounds/:id/cancel` route behind `sealedBidWriteAuth`; the UI gets a
+cancel affordance plus a `Cancelled` status; `AuditLogService.logEvent` for CRE.
+
+### 2. On-ledger close deadline (hardening flag)
+
+`SubmitBid` already asserts `now < deadline` on-ledger, but `CloseAndReveal`
+does not assert `now >= deadline` — early close is enforced only by app-layer
+policy. Add `earlyCloseAllowed : Bool` to `SealedBidAuction` and assert
+`earlyCloseAllowed || now >= deadline` in `CloseAndReveal`. Production rounds
+default to `False`, making "the deadline is enforced by the ledger" a provable
+claim rather than a procedural one; sandbox demos keep early close.
+
+### 3. Real CIP-0056 settlement (stretch)
+
+Swap `PaymentDeposit` for a real tokenized holding (CBTC/BitSafe is the named
+DevNet candidate). The `Transfer`-choice shape is preserved, so `CloseAndReveal`
+and `Cancel` are unchanged at the call-site level — only the asset template and
+its acquisition/funding flow change.
+
+### 4. Canton-native bidder identity — external-party signing
+
+Today the backend user holds `actAs` on every party (custodial), and SIWE
+wallets map onto pool parties — EVM identity in front of Canton execution.
+
+- **Path A — external party + interactive submission (target).** The client
+  generates an Ed25519 keypair; `allocateExternalParty` registers a party under
+  the user's own fingerprint on the participant. Bidding becomes a three-step
+  flow: backend prepares the unsigned `SubmitBid` exercise → the user's key
+  signs the transaction → backend submits via interactive submission.
+  `CantonLedgerClient` gains `prepareSubmission`/`submitExternal` alongside the
+  current `actAs` create/exercise. Bids become non-custodial — "your wallet is
+  your Canton party" is literally true.
+- **Path B — tenant wallet login (fallback).** Sign in via the NaaS validator
+  wallet (Keycloak-federated, `wallet.validator.hackcanton-01…`) and grant the
+  service user `actAs` on the user's *own* allocated party. Same custody model
+  as today, but the identity presented is a Canton wallet — satisfies the
+  feedback with far less build.
+- **Dependency:** external parties require the participant to accept
+  external-party topology — confirm NaaS DevNet support before committing to
+  Path A; Path B is the fallback.
+- **Model impact: none.** `SubmitBid` is already `controller bidder` — the
+  model was non-custodial by design; only the deployment is custodial.
+  `WalletPartyRegistry` evolves from pool-allocator to a registry of user-owned
+  parties; the pool remains the sandbox/demo path.
+- **Migration:** keep package name `daml` (AGENTS.md) so `#daml:Main:…` refs
+  survive; bump `daml.yaml`, re-upload the DAR, update `const PKG` in
+  `tests/integration/canton-sealed-bid.test.ts`.

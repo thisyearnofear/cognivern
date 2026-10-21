@@ -1,10 +1,10 @@
-# HackCanton Season 3 — Cognivern Submission (draft)
+# HackCanton Season 3 — Cognivern Submission (concluded)
 
-> **Live draft — submissions close Oct 9 2026 23:59 UTC.** This doc becomes
-> the historical submission record after judging; rail truth lives in
-> [`../CANTON.md`](../CANTON.md) (sealed-bid rail),
+> **Concluded Oct 21 2026 — not shortlisted for judging.** Historical record
+> only; rail truth lives in [`../CANTON.md`](../CANTON.md) (sealed-bid rail),
 > [`../PRODUCT_STRATEGY.md`](../PRODUCT_STRATEGY.md) (sponsor-side thesis),
 > and [`../SPONSORED_CREDITS.md`](../SPONSORED_CREDITS.md) (cohort mechanics).
+> Judge feedback and lessons: [Retrospective](#retrospective).
 
 **Hackathon:** HackCanton Season 3 (AppsFactory, fully online)
 **Window:** opened Sep 17 2026 → submissions close **Oct 9 2026 23:59 UTC** → Grand Final Oct 21
@@ -107,6 +107,45 @@ finding, not a failure.
   on-screen round `0xeb3d8ac6…` verified `revealed` on Canton DevNet,
   `e6c5f9fc-bob` @ $74,500, `settledAssetCid` present.
   Public URL: https://youtu.be/taG9NPRzAmE
-- [ ] Materials uploaded (repo, demo, video — full set)
-- [ ] **Submitted for judging** (upload ≠ submit)
+- [x] Materials uploaded (repo, demo, video — full set)
+- [x] **Submitted for judging** (upload ≠ submit)
 - [ ] Build diary entries (momentum matters — cf. chain-experts)
+
+## Retrospective
+
+**Outcome (Oct 21 2026):** cognivern did not make the top-25 shortlist that
+went to the judges — the submission was not scored. The organizers' stated
+bar: a judge can verify a real build (a working demo or video, and public
+Daml code), Canton is at the core, and the documents contain real answers.
+
+The three reasons given, verbatim-ish:
+
+1. **Submission hygiene.** The Metrics field shipped with an assistant
+   instruction left in ("Recover from memory if possible; do not invent a
+   separate interview…"). Form fields are paste targets — repo greps never
+   saw them.
+2. **Two products in one submission.** The pitch led with sealed-bid
+   auctions for AI agents while the Value section led with credit receipts
+   for hackathon organizers — the Oct 5 mentor-driven scope pivot — leaving
+   Canton reading as an "expansion story" on a product whose wedge was
+   elsewhere.
+3. **Canton wasn't load-bearing, technically.** No `daml/` model change
+   during the season (last real change `4857b8cd`, Jul 19 — pre-season;
+   the only in-season touch was file reorganization), and sign-in is
+   EVM-wallet SIWE mapping to custodial pool parties, not a Canton wallet.
+
+Lessons for the next Canton submission:
+
+- **One product, one story — and the venue's tech must be the wedge.**
+  The credits pivot was a defensible product call but structurally wrong
+  for a Canton-judged venue. Submit the rail where the venue tech is
+  load-bearing, or skip the venue. Future submissions follow
+  [`../SUBMISSION_CHECKLIST.md`](../SUBMISSION_CHECKLIST.md).
+- **Do visible model work in-season.** The next Daml changes are scoped in
+  `../CANTON.md` → "Next model work (post-S3)": a `Cancel`/`AuctionCancelled`
+  path (zero-bid rounds are unarchivable today), an on-ledger close-deadline
+  option, and a real CIP-0056 settlement asset.
+- **Canton-native identity, not EVM custody.** External-party signing
+  (Canton 3.x interactive submission) makes the bidder's wallet a real
+  Canton party; the SIWE → pool-party bridge stays the sandbox/demo path.
+  Design is in the same CANTON.md section.

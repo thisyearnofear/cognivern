@@ -24,6 +24,7 @@ commit it or copy its contents into public docs.
 - [DATA_OWNERSHIP.md](./DATA_OWNERSHIP.md) — trust model and per-domain ownership map
 - [LANGFUSE_LESSONS.md](./LANGFUSE_LESSONS.md) — observability adjacency plan
 - [PROMPT_INJECTION_CONTROLS_PLAN.md](./PROMPT_INJECTION_CONTROLS_PLAN.md) — injection-defense controls
+- [SUBMISSION_CHECKLIST.md](./SUBMISSION_CHECKLIST.md) — reusable pre-submission pass for judged programs
 
 ## Rails & integrations (current)
 
@@ -41,12 +42,12 @@ commit it or copy its contents into public docs.
 
 ## Program status
 
-Status as of **2026-09-28**. Update this table when a program changes state;
+Status as of **2026-10-21**. Update this table when a program changes state;
 never bake deadlines into `AGENTS.md` or rail docs.
 
 | Program | Type | Status | Reference |
 | --- | --- | --- | --- |
-| HackCanton S3 | Hackathon | **Open** — submissions due Oct 9 2026 23:59 UTC | [draft submission](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md) |
+| HackCanton S3 | Hackathon | Concluded Oct 21 2026 — not shortlisted; [retro](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md#retrospective) | [submission](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md) |
 | Prezenti AI Builder Sponsorship | Sponsorship (not a hackathon) | Applying — hard close Dec 29 2026; Celo mainnet milestone required | [PREZENTI_SPONSORSHIP.md](./PREZENTI_SPONSORSHIP.md) |
 | HackCanton S2 | Hackathon | Concluded | [CANTON.md](./CANTON.md) (rail stays live) |
 | Cleanverse Build: Trusted Assets | Hackathon | Concluded Aug 9 2026 | [history submission](./history/HACKATHON_SUBMISSION_CLEANVERSE.md) |
