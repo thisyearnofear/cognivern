@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api-client";
 import { useWorkspaceMode } from "@/hooks/use-workspace-mode";
+import { useMandates } from "@/hooks/use-api";
 import { mutate } from "swr";
 
 function deadlineFromHours(hours: number): string {
@@ -37,12 +38,18 @@ export function GuidedRoundCreate({
   onCancel: () => void;
 }) {
   const { mode, isConnected } = useWorkspaceMode();
+  const { data: mandates } = useMandates();
   const [step, setStep] = useState(1);
   const [description, setDescription] = useState("");
   const [serviceCategory, setServiceCategory] = useState("consulting");
   const [maxBids, setMaxBids] = useState(5);
   const [deadlineHours, setDeadlineHours] = useState(24);
+  const [mandateId, setMandateId] = useState("");
   const [creating, setCreating] = useState(false);
+
+  const activeMandates = (mandates ?? []).filter(
+    (mandate) => mandate.status === "active",
+  );
 
   const environment = !isConnected ? "Demo" : mode === "production" ? "Production" : "Sandbox";
   const isProduction = environment === "Production";
@@ -67,6 +74,7 @@ export function GuidedRoundCreate({
         maxBids,
         backend: "canton",
         manager: "Auctioneer",
+        mandateId: mandateId || undefined,
       });
       if (!res.success) throw new Error(res.error || "Failed to create round");
 
@@ -215,6 +223,28 @@ export function GuidedRoundCreate({
                 <p className="text-[11px] text-muted-foreground">Bids cannot be submitted after the deadline.</p>
               </div>
             </div>
+            {isConnected && (
+              <div className="space-y-2">
+                <label htmlFor="round-mandate" className="text-xs font-medium">Funded mandate (optional)</label>
+                <select
+                  id="round-mandate"
+                  value={mandateId}
+                  onChange={(e) => setMandateId(e.target.value)}
+                  className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <option value="">None</option>
+                  {activeMandates.map((mandate) => (
+                    <option key={mandate.id} value={mandate.id}>
+                      {mandate.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  Links the round&apos;s spend to a mandate&apos;s statement. The
+                  round is checked against the mandate&apos;s budget before it is created.
+                </p>
+              </div>
+            )}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/[.045] p-3">
                 <div className="flex items-start gap-2">

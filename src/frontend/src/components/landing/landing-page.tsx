@@ -951,6 +951,39 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
               </Link>
             </div>
           </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-4 flex flex-col md:flex-row md:items-center gap-6 rounded-xl border border-border bg-card p-6"
+          >
+            <div className="flex-1 min-w-0">
+              <span
+                className="text-xs font-semibold text-primary uppercase tracking-widest"
+                style={{ fontFamily: "var(--font-space-grotesk)" }}
+              >
+                For procurement
+              </span>
+              <h2
+                className="text-xl font-semibold text-foreground mt-2"
+                style={{ fontFamily: "var(--font-space-grotesk)" }}
+              >
+                Procuring with agents? Run confidential vendor selection on Canton.
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                Fund a mandate, let agents run a sealed-bid round, and settle
+                the winner atomically — with a public proof link for every outcome.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
+              <Link
+                href="/procure"
+                className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Procure with agents <ArrowRight className="h-4 w-4 ml-1.5" />
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </section>
 

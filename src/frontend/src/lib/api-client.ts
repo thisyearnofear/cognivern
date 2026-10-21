@@ -1734,6 +1734,9 @@ class ApiClient {
     agentId?: string;
     settlementAmount?: number;
     settlementAssetTag?: string;
+    // Optional funded-mandate linkage — attributes the escrowed spend to the
+    // mandate's statement. Requires a signed-in workspace session.
+    mandateId?: string;
   }): Promise<ApiResponse<SealedBidRound>> {
     return this.fetch('/api/vendor/sealed-bid/rounds', {
       method: 'POST',
@@ -2196,6 +2199,9 @@ export interface SealedBidRound {
   // timeline for this round. Absent for human-created rounds.
   createdByAgent?: string;
   governanceRunId?: string;
+  // Funded-mandate linkage — set when the round was created under a mandate;
+  // the escrowed spend is attributed to the mandate's statement.
+  mandateId?: string;
   // On-ledger contract anchors (Canton) — resolvable on the participant for
   // third-party verification.
   ledgerRefs?: { auction?: string; result?: string; cancelled?: string };
@@ -2214,6 +2220,7 @@ export interface SealedBidRoundSummary {
   backend?: SealedBidBackendName;
   createdByAgent?: string;
   governanceRunId?: string;
+  mandateId?: string;
 }
 
 export interface SealedBidCapabilities {

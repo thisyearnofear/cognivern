@@ -1,6 +1,6 @@
 # Canton Backend
 
-> **Status:** HackCanton S3 is **open** (due Oct 9 2026); the Canton sealed-bid path is a permanent product rail, not tied to a live event. Production is on the S3 DevNet tenant (proof round Oct 6) — see [Production state](#production-state--devnet-s3-tenant-live-oct-6-2026). For current hackathon/program status see [`README.md`](./README.md#program-status).
+> **Status:** HackCanton S3 has **concluded** (not shortlisted — retro in `history/HACKATHON_SUBMISSION_HACKCANTON_S3.md`); S4 submissions are due Dec 6 2026. The Canton sealed-bid path is a permanent product rail, not tied to a live event. Production is on the S3 DevNet tenant (proof round Oct 6) — see [Production state](#production-state--devnet-s3-tenant-live-oct-6-2026). For current hackathon/program status see [`README.md`](./README.md#program-status).
 
 > **History (Aug 25 2026, superseded Oct 6):** the shared HackCanton S2 DevNet node was **unreachable** since Aug 21, so the **Hetzner sandbox served** as the live fallback ledger. Details preserved below as the revert path.
 

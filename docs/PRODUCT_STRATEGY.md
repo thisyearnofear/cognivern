@@ -173,12 +173,21 @@ at 20–25% CAGR with 62% of teams raising marketing budgets.
    sponsors; verification math stays the trust anchor. (In progress:
    Laya decision-model enrichment live behind `RUNWARE_DECISIONS_*`,
    confidence shown per call — see `SPONSORED_CREDITS.md`.)
-5. **Canton S3 (due Oct 9 2026)** — receipts/debrief lead, sealed-bid as
-   expansion narrative (mentor cut, Oct 6). DevNet proof done Oct 6
-   (tenant `hackcanton-devnet-3`, atomic settlement); remaining: video,
-   materials, submit. Dogfood with one real event's numbers where possible.
+5. **Canton S3 (due Oct 9 2026) — concluded, not shortlisted.** Receipts led
+   and sealed-bid was the expansion narrative (mentor cut, Oct 6); judges
+   read that as two products with Canton peripheral. Retro:
+   `history/HACKATHON_SUBMISSION_HACKCANTON_S3.md`.
 6. **Weave conversation** — analytics-export-to-evidence integration
    (their savings + our worth). Story first, no build commitment.
+7. **Canton S4 (due Dec 6 2026) — procurement leads at Canton venues.** The
+   wedge is unchanged for the main product; at a Canton-judged venue the
+   submission is one product: *confidential procurement under a funded
+   mandate* — mandate → policy-gated sealed-bid round → atomic settlement →
+   spend on the mandate statement → public proof link. Credits stay out of
+   that pitch. Public surface: `/procure` (separate buyer, separate page —
+   the `/sponsor` pattern). In-season Canton work: Canton-native sign-in and
+   own-party bids (gated on NODERS rights), plus the `daml-0.0.3` cancel /
+   on-ledger deadline model. Run `SUBMISSION_CHECKLIST.md` before submitting.
 
 ## Passed-on markets (standing filter)
 

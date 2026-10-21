@@ -35,6 +35,7 @@ import {
   useSealedBidRound,
   useGovernanceTimeline,
   useCantonIdentity,
+  useMandates,
 } from "@/hooks/use-api";
 import { useSealedBidLiveUpdates } from "@/hooks/use-sealed-bid-stream";
 import {
@@ -129,6 +130,10 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   // demo. Production writes require a verified wallet JWT (sealedBidWriteAuth).
   const canManage = !isProduction || (isAuthed && !!walletAddress);
   const { data: cantonIdentity } = useCantonIdentity(isProduction && isAuthed);
+  const { data: mandates } = useMandates();
+  const mandateName = round?.mandateId
+    ? (mandates ?? []).find((m) => m.id === round.mandateId)?.name
+    : undefined;
   const hasOwnBid = round?.bids.some(
     (b) => b.bidder === effectiveBidder || displayPartyName(b.bidder) === effectiveBidder,
   ) ?? false;
@@ -382,6 +387,14 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
                 <Bot className="h-3 w-3" />
                 Agent-checked
               </span>
+            )}
+            {round.mandateId && (
+              <a
+                href={`/spend?mandate=${encodeURIComponent(round.mandateId)}`}
+                className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary hover:bg-primary/15"
+              >
+                Under mandate: {mandateName ?? round.mandateId}
+              </a>
             )}
             {round.status === "open" ? (
               <Badge className="bg-emerald-600 hover:bg-emerald-600">Open for bids</Badge>

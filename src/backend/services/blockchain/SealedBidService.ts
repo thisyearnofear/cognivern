@@ -22,6 +22,7 @@ import {
   sealedBidEvents,
   type SealedBidRoundEvent,
 } from "./sealed-bid/SealedBidEventHub.js";
+import { sealedBidMandateLedger } from "./sealed-bid/SealedBidMandateLedger.js";
 
 // Re-exports so downstream imports of these types from SealedBidService keep
 // working. Consolidation over deprecation: no shim files, no aliases, just a
@@ -50,6 +51,7 @@ export class SealedBidService {
   private backends = new Map<BackendName, SealedBidBackend>();
   private roundToBackend = new Map<string, BackendName>();
   private governanceByRoundId = new Map<string, RoundGovernance>();
+  private mandateByRoundId = new Map<string, string>();
 
   // Keep the historical constructor signature. Passing an encryptFn wires it
   // to the FHE backend as before; leaving it undefined disables FHE bid
@@ -76,6 +78,15 @@ export class SealedBidService {
   async createRound(
     request: CreateRoundRequest,
     manager: string,
+    opts?: {
+      mandate?: {
+        workspaceId: string;
+        mandateId: string;
+        agentId: string;
+        asset: string;
+        amountBase: string;
+      };
+    },
   ): Promise<SealedBidRound> {
     const backendName: BackendName = request.backend ?? "fhe";
     const backend = this.backends.get(backendName);
@@ -85,6 +96,29 @@ export class SealedBidService {
       );
     const round = await backend.createRound(request, manager);
     this.roundToBackend.set(round.roundId, backendName);
+    if (opts?.mandate) {
+      // Attribute the escrowed spend to the mandate's statement. The round
+      // already exists on the backend — a ledger write failure is logged and
+      // the round stays usable (the ledger is evidence, not the round's
+      // source of truth).
+      try {
+        await sealedBidMandateLedger.recordAllocation({
+          roundId: round.roundId,
+          workspaceId: opts.mandate.workspaceId,
+          mandateId: opts.mandate.mandateId,
+          agentId: opts.mandate.agentId,
+          asset: opts.mandate.asset,
+          amountBase: opts.mandate.amountBase,
+          backend: backendName,
+        });
+        this.mandateByRoundId.set(round.roundId, opts.mandate.mandateId);
+      } catch (err) {
+        logger.error(
+          `SealedBid: mandate attribution failed for ${round.roundId}`,
+          err,
+        );
+      }
+    }
     this.publishRoundEvent(round.roundId, "created", "open");
     return this.withGovernance(round);
   }
@@ -113,6 +147,11 @@ export class SealedBidService {
   ): Promise<SealedBidRound> {
     const backend = await this.resolveBackend(roundId);
     const round = await backend.revealWinner(roundId, request);
+    try {
+      await sealedBidMandateLedger.recordSettlement(roundId);
+    } catch (err) {
+      logger.warn(`SealedBid: mandate settlement record failed for ${roundId}`, err);
+    }
     this.publishRoundEvent(roundId, "revealed", round.status);
     return this.withGovernance(round);
   }
@@ -127,6 +166,11 @@ export class SealedBidService {
   async cancelRound(roundId: string, caller: string): Promise<SealedBidRound> {
     const backend = await this.resolveBackend(roundId);
     const round = await backend.cancelRound(roundId, caller);
+    try {
+      await sealedBidMandateLedger.recordCancellation(roundId);
+    } catch (err) {
+      logger.warn(`SealedBid: mandate cancellation record failed for ${roundId}`, err);
+    }
     this.publishRoundEvent(roundId, "cancelled", "cancelled");
     return this.withGovernance(round);
   }
@@ -163,11 +207,17 @@ export class SealedBidService {
    */
   withGovernance(round: SealedBidRound): SealedBidRound {
     const governance = this.governanceByRoundId.get(round.roundId);
-    if (!governance) return round;
+    const mandateId = this.mandateByRoundId.get(round.roundId);
+    if (!governance && !mandateId) return round;
     return {
       ...round,
-      createdByAgent: governance.createdByAgent,
-      governanceRunId: governance.governanceRunId,
+      ...(governance
+        ? {
+            createdByAgent: governance.createdByAgent,
+            governanceRunId: governance.governanceRunId,
+          }
+        : {}),
+      ...(mandateId ? { mandateId } : {}),
     };
   }
 
@@ -191,6 +241,12 @@ export class SealedBidService {
     const mapping = await rebuildSealedBidRoundMapping();
     for (const [roundId, governance] of mapping.entries()) {
       this.governanceByRoundId.set(roundId, governance);
+    }
+    // Same restart-survival for mandate links: rebuild the round→mandate map
+    // from persisted capital_attribution artifacts.
+    const links = await sealedBidMandateLedger.rebuild();
+    for (const [roundId, link] of links.entries()) {
+      if (link.mandateId) this.mandateByRoundId.set(roundId, link.mandateId);
     }
   }
 

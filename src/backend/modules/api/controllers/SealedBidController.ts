@@ -26,6 +26,12 @@ import {
   getGovernanceTimeline,
 } from "@backend/cre/workflows/sealedBidGovernance.js";
 import { sealedBidEvents } from "@backend/services/blockchain/sealed-bid/SealedBidEventHub.js";
+import { FundedMandateService } from "@backend/services/governance/FundedMandateService.js";
+import {
+  buildSpendAttributionReport,
+  getRunSpendAttribution,
+} from "@backend/services/governance/SpendAttributionService.js";
+import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
 
 const logger = new Logger("SealedBidController");
 
@@ -67,6 +73,7 @@ const createRoundSchema = z.object({
   settlementAmount: z.number().positive().optional(),
   settlementAssetTag: z.string().optional(),
   agentId: z.string().min(1).optional(),
+  mandateId: z.string().min(1).max(200).optional(),
 });
 
 const submitBidSchema = z.object({
@@ -209,6 +216,7 @@ export class SealedBidController {
         settlementAmount,
         settlementAssetTag,
         agentId,
+        mandateId,
       } = parse.data;
       const workspaceMode =
         (req.headers["x-workspace-mode"] as string)?.toLowerCase() || "sandbox";
@@ -242,7 +250,108 @@ export class SealedBidController {
         settlementAmount: effectiveSettlementAmount,
         settlementAssetTag: effectiveSettlementAssetTag,
       };
-      const round = await this.sealedBidService.createRound(request, manager);
+
+      // Mandate linkage — validated BEFORE anything touches a ledger so a
+      // rejected link never leaves an orphan round behind.
+      let mandateLink:
+        | {
+            workspaceId: string;
+            mandateId: string;
+            agentId: string;
+            asset: string;
+            amountBase: string;
+          }
+        | undefined;
+      if (mandateId) {
+        const workspaceId = req.workspaceId;
+        if (!workspaceId) {
+          res.status(401).json({
+            success: false,
+            error: "Sign in to link a round to a mandate",
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+        const mandate = FundedMandateService.get(workspaceId, mandateId);
+        if (!mandate) {
+          res.status(404).json({
+            success: false,
+            error: "Mandate not found",
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+        if (mandate.status !== "active") {
+          res.status(409).json({
+            success: false,
+            error: `Mandate ${mandateId} is ${mandate.status}, not active`,
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+        const asset = effectiveSettlementAssetTag ?? "USDC";
+        // Same 6-decimal base units the FHE backend scales bid amounts with.
+        const amountBase = effectiveSettlementAmount
+          ? BigInt(Math.round(effectiveSettlementAmount * 1e6))
+          : 0n;
+        if (amountBase > 0n) {
+          if (
+            mandate.settlement?.allowedAssets &&
+            !mandate.settlement.allowedAssets.includes(asset)
+          ) {
+            res.status(400).json({
+              success: false,
+              error: `Mandate settlement does not allow ${asset} (allowed: ${mandate.settlement.allowedAssets.join(", ")})`,
+              timestamp: new Date().toISOString(),
+            });
+            return;
+          }
+          const budget = mandate.budget.byAsset[asset];
+          if (!budget) {
+            res.status(400).json({
+              success: false,
+              error: `Mandate has no ${asset} budget`,
+              timestamp: new Date().toISOString(),
+            });
+            return;
+          }
+          // Remaining = authorized − allocated for this asset, where
+          // "allocated" is the ledger's latest attribution state for the
+          // mandate — same run filter as StatementService.generateCandidate.
+          const mandateRuns = (await creRunStore.list()).filter((run) => {
+            if (run.projectId !== workspaceId) return false;
+            const attribution = getRunSpendAttribution(run);
+            return (
+              attribution?.workspaceId === workspaceId &&
+              attribution.mandateId === mandateId
+            );
+          });
+          const report = buildSpendAttributionReport(mandateRuns, mandateId);
+          const allocated = BigInt(
+            report.totalsByAsset[asset]?.allocatedAmount ?? "0",
+          );
+          const remaining = BigInt(budget.authorizedAmount) - allocated;
+          if (amountBase > remaining) {
+            res.status(400).json({
+              success: false,
+              error: `Requested ${amountBase} base units exceeds mandate's remaining ${asset} budget of ${remaining}`,
+              timestamp: new Date().toISOString(),
+            });
+            return;
+          }
+        }
+        mandateLink = {
+          workspaceId,
+          mandateId,
+          agentId: agentId ?? manager,
+          asset,
+          amountBase: amountBase.toString(),
+        };
+      }
+
+      const round = await this.sealedBidService.createRound(request, manager, {
+        mandate: mandateLink,
+      });
 
       // If an agent initiated this round, create the off-ledger governance run
       // and attach its metadata to the round record. The Daml contract itself
@@ -934,6 +1043,7 @@ export class SealedBidController {
         backend: r.backend,
         createdByAgent: r.createdByAgent,
         governanceRunId: r.governanceRunId,
+        mandateId: r.mandateId,
       }));
 
       // Curated demo state: when CANTON_FEATURED_ROUNDS is set, the default

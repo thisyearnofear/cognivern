@@ -40,6 +40,10 @@ export interface SealedBidRound {
   // winner_revealed).
   createdByAgent?: string;
   governanceRunId?: string;
+  // Funded-mandate linkage — present when the round was created under a
+  // mandate (see SealedBidMandateLedger): the escrowed spend is attributed to
+  // that mandate's statement through a capital_attribution artifact.
+  mandateId?: string;
   // On-ledger anchors for verification (Canton): the auction/result/cancelled
   // contract ids. A third party can resolve these on the participant without
   // trusting this API.

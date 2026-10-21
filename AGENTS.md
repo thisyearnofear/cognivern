@@ -9,10 +9,9 @@ any claim about deployment or infrastructure state.**
 
 ## Canton is LIVE — do not re-diagnose it as broken
 
-Cognivern's sealed-bid auctions run on a Canton ledger — currently the Hetzner
-sandbox fallback (the shared HackCanton S2 DevNet node has been unreachable
-since Aug 21; the cutover is documented in `docs/CANTON.md`). Before touching
-anything Canton-related, READ:
+Cognivern's sealed-bid auctions run on a Canton ledger — currently the
+HackCanton S3 DevNet tenant (live since Oct 6 2026; the Hetzner sandbox is the
+documented fallback). Before touching anything Canton-related, READ:
 
 - `docs/CANTON.md` — endpoints, auth, allocated parties, Daml user id, architecture, cutover config, and current ledger state
 
@@ -33,14 +32,19 @@ or the onboarded user id — they are all in those docs.
 - To check whether Canton is live, hit the API:
   `curl -s http://localhost:3087/api/vendor/sealed-bid/rounds` — rounds return with
   `"backend":"canton"` when connected to a Canton ledger.
-- **Do not create probe/test rounds against the live Canton ledger** — the Daml
-  model has no cancel / archive-without-bids choice, so they persist in the demo list.
+- **Do not create probe/test rounds against the live Canton ledger** — they
+  persist in the demo list. `daml-0.0.3` adds a `Cancel` choice, but until that
+  DAR is uploaded to the participant and `CANTON_TEMPLATE_CANCELLED` is set, the
+  deployed package has no way to archive a round without bids.
 
 ## The Daml package
 
-The uploaded package name is `daml` (current package id `d62e13ab…`, upgrading `51789b…`);
+The uploaded package name is `daml` (deployed package id `d62e13ab…`, v0.0.2);
 templates are referenced as `#daml:Main:SealedBidAuction` / `:Main:Bid` /
 `:Main:AuctionResult` / `:Main:PaymentDeposit` (LF 2.x package-name references).
+`daml-0.0.3` (`e2e10c5f…`, adds `Cancel` / `Main:AuctionCancelled` /
+`earlyCloseAllowed`) is built but awaiting upload — our service user gets 403
+on `/v2/dars`; see `docs/CANTON.md` → Next model work.
 If you rebuild, **keep the package name `daml`** or those `#daml:`
 references break.
 
