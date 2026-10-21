@@ -18,6 +18,10 @@ import type {
 } from "./sealed-bid/types.js";
 import { makeCantonLedgerClientFromEnv } from "@backend/canton/CantonLedgerClient.js";
 import { CantonPartyRegistry } from "@backend/canton/CantonPartyRegistry.js";
+import {
+  sealedBidEvents,
+  type SealedBidRoundEvent,
+} from "./sealed-bid/SealedBidEventHub.js";
 
 // Re-exports so downstream imports of these types from SealedBidService keep
 // working. Consolidation over deprecation: no shim files, no aliases, just a
@@ -81,6 +85,7 @@ export class SealedBidService {
       );
     const round = await backend.createRound(request, manager);
     this.roundToBackend.set(round.roundId, backendName);
+    this.publishRoundEvent(round.roundId, "created", "open");
     return this.withGovernance(round);
   }
 
@@ -90,6 +95,7 @@ export class SealedBidService {
   ): Promise<{ bid: BidRecord; governanceRunId?: string }> {
     const backend = await this.resolveBackend(roundId);
     const bid = await backend.submitBid(roundId, request);
+    this.publishRoundEvent(roundId, "bid_submitted", "open");
     const governance = this.getGovernance(roundId);
     return { bid, governanceRunId: governance?.governanceRunId };
   }
@@ -97,6 +103,7 @@ export class SealedBidService {
   async closeRound(roundId: string, caller: string): Promise<SealedBidRound> {
     const backend = await this.resolveBackend(roundId);
     const round = await backend.closeRound(roundId, caller);
+    this.publishRoundEvent(roundId, "closed", round.status);
     return this.withGovernance(round);
   }
 
@@ -106,18 +113,21 @@ export class SealedBidService {
   ): Promise<SealedBidRound> {
     const backend = await this.resolveBackend(roundId);
     const round = await backend.revealWinner(roundId, request);
+    this.publishRoundEvent(roundId, "revealed", round.status);
     return this.withGovernance(round);
   }
 
   async withdrawBid(roundId: string, bidder: string): Promise<SealedBidRound> {
     const backend = await this.resolveBackend(roundId);
     const round = await backend.withdrawBid(roundId, bidder);
+    this.publishRoundEvent(roundId, "bid_withdrawn", round.status);
     return this.withGovernance(round);
   }
 
   async cancelRound(roundId: string, caller: string): Promise<SealedBidRound> {
     const backend = await this.resolveBackend(roundId);
     const round = await backend.cancelRound(roundId, caller);
+    this.publishRoundEvent(roundId, "cancelled", "cancelled");
     return this.withGovernance(round);
   }
 
@@ -189,6 +199,25 @@ export class SealedBidService {
    */
   getGovernance(roundId: string): RoundGovernance | undefined {
     return this.governanceByRoundId.get(roundId);
+  }
+
+  // Fan a lifecycle event out to SSE subscribers. Publishing is advisory —
+  // a hub failure must never surface to the mutating call that triggered it.
+  private publishRoundEvent(
+    roundId: string,
+    change: SealedBidRoundEvent["change"],
+    status: SealedBidRoundEvent["status"],
+  ): void {
+    try {
+      sealedBidEvents.publish({
+        roundId,
+        change,
+        status,
+        at: new Date().toISOString(),
+      });
+    } catch (err) {
+      logger.warn(`SealedBid: event publish failed for ${roundId}`, err);
+    }
   }
 
   // Async resolve — falls back to probing every backend on cache miss so

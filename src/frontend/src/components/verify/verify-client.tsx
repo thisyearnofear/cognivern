@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { explorerTxUrl } from "@cognivern/shared";
 import { formatUsd } from "@/lib/budget-format";
+import { RoundVerify } from "./round-verify";
 
 /**
  * Public, login-free verification of one anchored credit-ledger commitment.
@@ -82,8 +83,17 @@ function Copyable({ value, truncate = true }: { value: string; truncate?: boolea
   );
 }
 
-export function VerifyClient({ initialId }: { initialId: string }) {
+export function VerifyClient({
+  initialId,
+  initialRoundId,
+  initialMode,
+}: {
+  initialId: string;
+  initialRoundId: string;
+  initialMode: "credit" | "auction";
+}) {
   const router = useRouter();
+  const [mode, setMode] = useState<"credit" | "auction">(initialMode);
   const [idInput, setIdInput] = useState(initialId);
   const [commitment, setCommitment] = useState<PublicCommitment | null>(null);
   const [loading, setLoading] = useState(false);
@@ -130,8 +140,8 @@ export function VerifyClient({ initialId }: { initialId: string }) {
   useEffect(() => {
     // Deferred one tick so the initial fetch is async from the effect's
     // point of view (react lint: no synchronous setState in effects).
-    if (initialId) queueMicrotask(() => void load(initialId));
-  }, [initialId, load]);
+    if (initialId && mode === "credit") queueMicrotask(() => void load(initialId));
+  }, [initialId, load, mode]);
 
   const checkReceipt = useCallback(async () => {
     setReceiptResult(null);
@@ -198,14 +208,53 @@ export function VerifyClient({ initialId }: { initialId: string }) {
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
           <ShieldCheck className="h-4 w-4" /> Public verification
         </div>
-        <h1 className="mt-3 text-2xl font-bold text-foreground">
-          Verify a sponsored-inference commitment
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-          When a sponsor meters an inference budget through Cognivern, snapshots of the ledger are
-          committed to a Merkle root and anchored on public networks. Anyone with this link can
-          check that the books said what we say they said — no account, no request to us required.
-        </p>
+
+        {/* ── Mode toggle ── */}
+        <div className="mt-5 inline-flex rounded-lg border border-border bg-muted/40 p-0.5">
+          {(
+            [
+              { key: "credit", label: "Credit commitment" },
+              { key: "auction", label: "Auction round" },
+            ] as const
+          ).map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              aria-pressed={mode === option.key}
+              onClick={() => setMode(option.key)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                mode === option.key
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        {mode === "auction" ? (
+          <>
+            <h1 className="mt-3 text-2xl font-bold text-foreground">
+              Verify an auction round
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+              Every sealed-bid round publishes its outcome and its on-ledger
+              contract ids; agent-governed rounds also publish a hashed event
+              trail. Anyone with this link can check them — no account required.
+            </p>
+            <RoundVerify initialRoundId={initialRoundId} />
+          </>
+        ) : (
+          <>
+            <h1 className="mt-3 text-2xl font-bold text-foreground">
+              Verify a sponsored-inference commitment
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+              When a sponsor meters an inference budget through Cognivern, snapshots of the ledger are
+              committed to a Merkle root and anchored on public networks. Anyone with this link can
+              check that the books said what we say they said — no account, no request to us required.
+            </p>
 
         {/* ── Lookup ── */}
         <div className="mt-8 flex gap-2">
@@ -383,6 +432,8 @@ export function VerifyClient({ initialId }: { initialId: string }) {
               </div>
             </div>
           </div>
+        )}
+          </>
         )}
       </main>
     </div>

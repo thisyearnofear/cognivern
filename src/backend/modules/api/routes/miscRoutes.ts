@@ -96,6 +96,9 @@ export function createMiscRoutes(
   router.get("/vendor/sealed-bid/canton-identity", (req, res) =>
     sealedBidController.getCantonIdentity(req, res),
   );
+  router.get("/vendor/sealed-bid/stream", (req, res) =>
+    sealedBidController.streamRoundEvents(req, res),
+  );
   router.post(
     "/vendor/sealed-bid/rounds",
     sealedBidWriteAuth,

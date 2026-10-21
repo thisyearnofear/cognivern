@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import {
@@ -11,6 +11,7 @@ import {
   Loader2,
   Lock,
   Send,
+  Share2,
   ShieldCheck,
   ShieldX,
   Sparkles,
@@ -33,7 +34,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   useSealedBidRound,
   useGovernanceTimeline,
+  useCantonIdentity,
 } from "@/hooks/use-api";
+import { useSealedBidLiveUpdates } from "@/hooks/use-sealed-bid-stream";
 import {
   apiClient,
   type PolicyCheck,
@@ -125,9 +128,58 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   // Sandbox is an explicit toy ledger — anyone may act as auctioneer for the
   // demo. Production writes require a verified wallet JWT (sealedBidWriteAuth).
   const canManage = !isProduction || (isAuthed && !!walletAddress);
+  const { data: cantonIdentity } = useCantonIdentity(isProduction && isAuthed);
   const hasOwnBid = round?.bids.some(
     (b) => b.bidder === effectiveBidder || displayPartyName(b.bidder) === effectiveBidder,
   ) ?? false;
+
+  // Live updates: the SSE event arrives before the refetched round, so we
+  // park the outcome in a ref and toast once the new status lands.
+  const pendingOutcomeRef = useRef<"revealed" | "cancelled" | null>(null);
+  // When the viewer triggers reveal/cancel themselves, their own action toast
+  // already covers it — the echoed SSE event must not toast a second time.
+  const localActionRef = useRef<"revealed" | "cancelled" | null>(null);
+  const prevStatusRef = useRef<string | undefined>(undefined);
+  useSealedBidLiveUpdates(roundId, (event) => {
+    if (event.change !== "revealed" && event.change !== "cancelled") return;
+    if (event.change === localActionRef.current) {
+      localActionRef.current = null;
+      return;
+    }
+    pendingOutcomeRef.current = event.change;
+  });
+
+  useEffect(() => {
+    const status = round?.status;
+    if (!status) return;
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+    if (prev === status || !pendingOutcomeRef.current) return;
+    const pending = pendingOutcomeRef.current;
+    pendingOutcomeRef.current = null;
+    if (pending === "cancelled" && status === "cancelled") {
+      toast("This round was cancelled");
+      return;
+    }
+    if (pending === "revealed" && status === "revealed") {
+      const isViewerWinner = isProduction
+        ? !!round?.winner &&
+          (round.winner === cantonIdentity?.party ||
+            round.winner === walletAddress)
+        : displayPartyName(round?.winner) === effectiveBidder;
+      if (isViewerWinner) toast.success("You won this round");
+      else if (hasOwnBid) toast("Round decided — your bid was not selected");
+      else toast("Round decided");
+    }
+  }, [
+    round?.status,
+    round?.winner,
+    isProduction,
+    cantonIdentity?.party,
+    walletAddress,
+    effectiveBidder,
+    hasOwnBid,
+  ]);
   const amountError =
     !Number.isFinite(amountUsd) || amountUsd < 1
       ? "Enter an amount of at least $1."
@@ -204,6 +256,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
 
   async function handleCancel() {
     if (!window.confirm("Cancel this round? Bids are archived without disclosure and any escrowed deposit returns to the manager.")) return;
+    localActionRef.current = "cancelled";
     setCancelling(true);
     try {
       const res = await apiClient.cancelSealedBidRound({
@@ -214,9 +267,21 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
       toast.success("Round cancelled — bids archived, escrow returned");
       await refresh();
     } catch (err: unknown) {
+      localActionRef.current = null;
       toast.error(err instanceof Error ? err.message : "Cancel failed");
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function handleShareProof() {
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/verify?round=${roundId}`,
+      );
+      toast.success("Proof link copied");
+    } catch {
+      toast.error("Could not copy the link — clipboard unavailable");
     }
   }
 
@@ -236,6 +301,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   }
 
   async function handleReveal() {
+    localActionRef.current = "revealed";
     setRevealing(true);
     try {
       const res = await apiClient.revealSealedBidWinner({
@@ -248,6 +314,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
       );
       await refresh();
     } catch (err: unknown) {
+      localActionRef.current = null;
       toast.error(err instanceof Error ? err.message : "Reveal failed");
     } finally {
       setRevealing(false);
@@ -325,6 +392,16 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
             ) : (
               <Badge variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-400">Decided</Badge>
             )}
+            {(round.status === "revealed" || round.status === "cancelled") && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => void handleShareProof()}
+              >
+                <Share2 className="h-3.5 w-3.5 mr-1" /> Share proof
+              </Button>
+            )}
           </div>
           <LifecycleSteps status={round.status} />
         </div>
@@ -352,7 +429,16 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
                   <code className="truncate font-mono" title={v as string}>{v as string}</code>
                 </dd>
               ))}
-              <dd className="text-muted-foreground">Resolvable on the Canton participant — verify without trusting this app.</dd>
+              <dd className="text-muted-foreground">
+                <a
+                  href={`/verify?round=${encodeURIComponent(roundId)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Open public proof →
+                </a>
+              </dd>
             </dl>
           )}
         </div>
@@ -547,7 +633,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
           {isProduction && !canManage && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs flex items-start gap-2">
               <Lock className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
-              <span><span className="font-medium">Waiting on the auctioneer.</span> Only the signed-in round manager can close bidding and reveal the winner. Bidders are notified when the result is published.</span>
+              <span><span className="font-medium">Waiting on the auctioneer.</span> Only the signed-in round manager can close bidding and reveal the winner. This page updates live when the result is published.</span>
             </div>
           )}
           <h3 className="text-sm font-semibold flex items-center gap-2">

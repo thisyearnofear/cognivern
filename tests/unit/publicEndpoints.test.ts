@@ -30,6 +30,12 @@ describe('publicEndpoints — auth bypass list', () => {
     expect(isPublicApiPath('/vendor/sealed-bid/capabilities')).toBe(true);
     expect(isPublicApiPath('/vendor/sealed-bid/rounds')).toBe(true);
     expect(isPublicApiPath('/vendor/sealed-bid/rounds/:roundId/approval')).toBe(false);
+    // Withdraw/cancel/verify/stream are delegated-auth paths: the write routes
+    // still carry sealedBidWriteAuth (sandbox/production gating) in the router.
+    expect(isPublicApiPath('/vendor/sealed-bid/rounds/round-1/withdraw')).toBe(true);
+    expect(isPublicApiPath('/vendor/sealed-bid/rounds/round-1/cancel')).toBe(true);
+    expect(isPublicApiPath('/vendor/sealed-bid/rounds/round-1/verify')).toBe(true);
+    expect(isPublicApiPath('/vendor/sealed-bid/stream')).toBe(true);
   });
 
   it('still bypasses the signed news webhook only', () => {

@@ -103,6 +103,10 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   '/vendor/sealed-bid/rounds/:roundId/bid',
   '/vendor/sealed-bid/rounds/:roundId/close',
   '/vendor/sealed-bid/rounds/:roundId/reveal',
+  '/vendor/sealed-bid/rounds/:roundId/withdraw',
+  '/vendor/sealed-bid/rounds/:roundId/cancel',
+  '/vendor/sealed-bid/rounds/:roundId/verify',
+  '/vendor/sealed-bid/stream',
   // Speech transcription is used by the frontend without workspace auth.
   '/speech/transcribe',
   // Provider news webhook is signature-authenticated (raw-body HMAC), not JWT.

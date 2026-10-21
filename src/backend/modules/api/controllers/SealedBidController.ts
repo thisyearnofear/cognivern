@@ -25,6 +25,7 @@ import {
   recordSealedBidEvent,
   getGovernanceTimeline,
 } from "@backend/cre/workflows/sealedBidGovernance.js";
+import { sealedBidEvents } from "@backend/services/blockchain/sealed-bid/SealedBidEventHub.js";
 
 const logger = new Logger("SealedBidController");
 
@@ -521,6 +522,61 @@ export class SealedBidController {
         timestamp: new Date().toISOString(),
       });
     }
+  }
+
+  /**
+   * GET /api/vendor/sealed-bid/stream[?roundId=<id>]
+   * Server-sent events for round lifecycle changes. Public and read-only —
+   * the payload is only {roundId, change, status, at}, so no amounts, bidder
+   * identity, or winner ever cross the wire; clients refetch details.
+   */
+  async streamRoundEvents(req: Request, res: Response) {
+    const raw = req.query.roundId;
+    const roundId =
+      typeof raw === "string" && raw.length > 0 && raw.length <= 200
+        ? raw
+        : null;
+
+    // Subscribe before any SSE header is written: when the cap is hit the
+    // answer is a normal JSON 503, and res.write() must not have started.
+    // Key the per-client cap on the originating client: requests arrive via
+    // the Vercel /api rewrite, so req.ip (trust proxy = 1) is a shared proxy
+    // address. The leftmost X-Forwarded-For entry is spoofable, but spoofing
+    // only bypasses the per-client cap — the global cap still bounds load.
+    const forwarded = req.headers["x-forwarded-for"];
+    const clientKey =
+      (typeof forwarded === "string" ? forwarded.split(",")[0]?.trim() : undefined) ||
+      req.ip ||
+      null;
+    const unsubscribe = sealedBidEvents.subscribe(res, roundId, clientKey);
+    if (!unsubscribe) {
+      res.status(503).json({
+        success: false,
+        error: "Too many live connections — retry shortly",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    const heartbeat = setInterval(() => {
+      try {
+        res.write(": heartbeat\n\n");
+      } catch {
+        clearInterval(heartbeat);
+        unsubscribe();
+      }
+    }, 25_000);
+
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+    });
   }
 
   /**

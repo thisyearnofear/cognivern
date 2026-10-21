@@ -3,20 +3,24 @@ import { Suspense } from "react";
 import { VerifyClient } from "@/components/verify/verify-client";
 
 export const metadata: Metadata = {
-  title: "Verify a credit commitment — Cognivern",
+  title: "Public verification — Cognivern",
   description:
-    "Public, login-free verification of anchored sponsored-inference ledger commitments.",
+    "Public, login-free verification of anchored credit commitments and sealed-bid auction rounds.",
 };
 
 export default async function VerifyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: Promise<{ id?: string; round?: string }>;
 }) {
-  const { id } = await searchParams;
+  const { id, round } = await searchParams;
   return (
     <Suspense>
-      <VerifyClient initialId={id ?? ""} />
+      <VerifyClient
+        initialId={id ?? ""}
+        initialRoundId={round ?? ""}
+        initialMode={round ? "auction" : "credit"}
+      />
     </Suspense>
   );
 }

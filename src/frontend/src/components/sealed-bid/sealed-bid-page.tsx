@@ -19,6 +19,7 @@ import { CantonIdentityCard } from "./canton-identity-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageState } from "@/components/ui/error-state";
 import { useSealedBidRounds, useSealedBidCapabilities } from "@/hooks/use-api";
+import { useSealedBidLiveUpdates } from "@/hooks/use-sealed-bid-stream";
 import { useWorkspaceMode } from "@/hooks/use-workspace-mode";
 import { mutate } from "swr";
 import { AgentCreateRound } from "./agent-create-round";
@@ -81,6 +82,10 @@ export function SealedBidPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showAgentCreate, setShowAgentCreate] = useState(false);
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
+  // Live round updates — refetches the rounds list on any lifecycle event.
+  // Disabled while a detail view is open: RoundDetail runs its own filtered
+  // stream which already invalidates the list key.
+  useSealedBidLiveUpdates(null, undefined, !selectedRoundId);
   const [showCantonSignIn, setShowCantonSignIn] = useState(false);
   const isAppAuthenticated = useAuthStore((s) => s.isConnected);
 
