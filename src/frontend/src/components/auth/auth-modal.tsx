@@ -111,9 +111,9 @@ export function AuthModal({
           ) : activeTab === "canton" ? (
             <div className="space-y-4">
               <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-                <span className="font-medium text-foreground">Canton is not a separate login.</span>{" "}
-                Sign in with your wallet and Cognivern assigns you a private
-                Canton party for sealed-bid auctions. Signing is gasless and
+                <span className="font-medium text-foreground">Your Canton bidding identity comes with your wallet.</span>{" "}
+                Cognivern gives your wallet a private Canton bidding identity
+                and submits your bids for you. Signing is gasless and
                 moves no funds.
               </div>
               {isAppAuthenticated ? (

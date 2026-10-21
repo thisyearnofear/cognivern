@@ -66,19 +66,30 @@ export function CantonIdentityCard({
           <div>
             <p className="font-medium">
               {notSignedIn
-                ? "Wallet sign-in required"
-                : "Could not load your Canton party"}
+                ? "Link a wallet to bid"
+                : "Could not load your Canton bidding identity"}
             </p>
             <p className="text-xs text-muted-foreground">
               {notSignedIn
-                ? "Canton parties belong to wallet accounts. Sign in with a wallet — email sign-in doesn't have one."
+                ? "Your Canton bidding identity comes from a wallet. Link one in Settings → Identities."
                 : notConfigured
-                  ? "No institution parties are configured on this server yet. Rounds stay in demo mode until they are."
+                  ? "Canton bidding identities aren't set up on this server yet. Rounds stay in demo mode until they are."
                   : "Try again in a moment."}
             </p>
           </div>
         </div>
-        {!notSignedIn && (
+        {notSignedIn ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              onOpen?.();
+              router.push("/settings#identities");
+            }}
+          >
+            Link a wallet
+          </Button>
+        ) : (
           <Button size="sm" variant="outline" onClick={() => void mutate()}>
             <RotateCcw className="h-3.5 w-3.5 mr-2" /> Retry
           </Button>
@@ -126,7 +137,7 @@ export function CantonIdentityCard({
         </div>
       </dl>
       <p className="text-[11px] leading-relaxed text-muted-foreground">
-        Your bids are submitted as this party — competitors never see your wallet address.
+        Your bids are submitted as this identity — competitors never see your wallet address.{" Hosted by Cognivern — we submit your bids on Canton for you."}
         {data.backendConfigured
           ? ""
           : " The ledger isn't connected here, so rounds run in demo mode."}

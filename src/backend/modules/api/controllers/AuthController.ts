@@ -23,6 +23,7 @@ import type { AuthUser, Workspace } from "@cognivern/shared/api";
 import { getDb } from "@backend/db/index.js";
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 import {
+  addressesEqual,
   resolveAuthenticatedAddress,
   validateSiweBindings,
 } from "@backend/services/auth/siweIdentity.js";
@@ -275,40 +276,44 @@ export class AuthController {
     res.json({ nonce, expiresAt: new Date(expiresAt).toISOString() });
   }
 
-  async verify(req: Request, res: Response): Promise<void> {
-    const { message, signature, address } = req.body as {
-      message: string;
-      signature: string;
-      address: string;
-    };
+  /**
+   * Verify a SIWE proof: required fields → parse → domain/time bindings →
+   * nonce lookup + expiry + consume → signature → address binding. Shared by
+   * /auth/verify (sign-in) and /auth/link-wallet (link a wallet to the
+   * signed-in account) — identical status codes and messages.
+   */
+  private async verifySiweProof(body: {
+    message?: string;
+    signature?: string;
+    address?: string;
+  }): Promise<
+    { ok: true; address: string } | { ok: false; status: number; error: string }
+  > {
+    const { message, signature, address } = body;
 
     if (!message || !signature || !address) {
-      res.status(400).json({
-        success: false,
+      return {
+        ok: false,
+        status: 400,
         error: "message, signature, and address are required",
-      });
-      return;
+      };
     }
 
     let siweMessage: SiweMessage;
     try {
       siweMessage = new SiweMessage(message);
     } catch {
-      res.status(400).json({
-        success: false,
-        error: "Invalid SIWE message format",
-      });
-      return;
+      return { ok: false, status: 400, error: "Invalid SIWE message format" };
     }
 
     try {
       validateSiweBindings(siweMessage);
     } catch (err) {
-      res.status(401).json({
-        success: false,
+      return {
+        ok: false,
+        status: 401,
         error: err instanceof Error ? err.message : "Invalid SIWE message",
-      });
-      return;
+      };
     }
 
     const db = getDb();
@@ -320,11 +325,11 @@ export class AuthController {
 
     if (!stored || stored.expires_at < Date.now()) {
       db.prepare("DELETE FROM nonces WHERE nonce = ?").run(siweMessage.nonce);
-      res.status(401).json({
-        success: false,
+      return {
+        ok: false,
+        status: 401,
         error: "Nonce expired or invalid. Please request a new one.",
-      });
-      return;
+      };
     }
 
     db.prepare("DELETE FROM nonces WHERE nonce = ?").run(siweMessage.nonce);
@@ -334,31 +339,76 @@ export class AuthController {
       // (Coinbase Smart Wallet wrapped passkey signatures).
       const valid = await verifySiweSignature(siweMessage, signature);
       if (!valid) {
-        res
-          .status(401)
-          .json({ success: false, error: "Signature verification failed" });
-        return;
+        return {
+          ok: false,
+          status: 401,
+          error: "Signature verification failed",
+        };
       }
     } catch {
-      res
-        .status(401)
-        .json({ success: false, error: "Signature verification failed" });
-      return;
+      return {
+        ok: false,
+        status: 401,
+        error: "Signature verification failed",
+      };
     }
 
-    let normalizedAddress: string;
     try {
-      normalizedAddress = resolveAuthenticatedAddress(
+      const normalizedAddress = resolveAuthenticatedAddress(
         siweMessage.address,
         address,
       );
+      return { ok: true, address: normalizedAddress };
     } catch (err) {
-      res.status(401).json({
-        success: false,
+      return {
+        ok: false,
+        status: 401,
         error: err instanceof Error ? err.message : "Address mismatch",
-      });
+      };
+    }
+  }
+
+  /**
+   * Blacklist the presenting Bearer token for its remaining lifetime. Used by
+   * logout and whenever a session is superseded (link/unlink change the
+   * walletAddress claim, so the old token must stop working immediately).
+   */
+  private async revokePresentedToken(req: Request): Promise<void> {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) return;
+    const presented = authHeader.slice(7);
+    const tokenHash = createHash("sha256").update(presented).digest("hex");
+    const { tokenBlacklistStore } = await import(
+      "../../../shared/storage/TokenBlacklistStore.js"
+    );
+    await tokenBlacklistStore.blacklist(
+      tokenHash,
+      blacklistTtlMsFromToken(presented),
+    );
+  }
+
+  private signSessionToken(claims: {
+    sub: string;
+    workspaceId: string;
+    walletAddress?: string;
+    email?: string;
+    authMethod?: string;
+  }): Promise<string> {
+    return new SignJWT(claims)
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("7d")
+      .sign(JWT_SECRET);
+  }
+
+  async verify(req: Request, res: Response): Promise<void> {
+    const proof = await this.verifySiweProof(req.body);
+    if (!proof.ok) {
+      res.status(proof.status).json({ success: false, error: proof.error });
       return;
     }
+    const normalizedAddress = proof.address;
+    const db = getDb();
     let user = db
       .prepare(
         "SELECT id, wallet_address, created_at, last_login_at FROM users WHERE wallet_address = ?",
@@ -464,20 +514,245 @@ export class AuthController {
       updatedAt: workspace.updated_at,
     };
 
-    const token = await new SignJWT({
+    const token = await this.signSessionToken({
       sub: authUser.id,
       walletAddress: authUser.walletAddress,
       workspaceId: authWorkspace.id,
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setExpirationTime("7d")
-      .sign(JWT_SECRET);
+    });
 
     // Ensure owner is in workspace_members
     db.prepare(
       "INSERT OR IGNORE INTO workspace_members (workspace_id, user_id, role, created_at) VALUES (?, ?, 'owner', ?)",
     ).run(authWorkspace.id, authUser.id, new Date().toISOString());
+
+    res.json({ token, user: authUser, workspace: authWorkspace });
+  }
+
+  /**
+   * POST /auth/link-wallet — attach a wallet to the signed-in account via a
+   * SIWE proof. After linking, both email login and wallet SIWE land on the
+   * same user (verify looks users up by wallet_address, workspace by owner).
+   */
+  async linkWallet(req: Request, res: Response): Promise<void> {
+    const proof = await this.verifySiweProof(req.body);
+    if (!proof.ok) {
+      res.status(proof.status).json({ success: false, error: proof.error });
+      return;
+    }
+
+    const userId = req.userId;
+    const workspaceId = req.workspaceId;
+    if (!userId || !workspaceId) {
+      res.status(401).json({ success: false, error: "Not authenticated" });
+      return;
+    }
+
+    const db = getDb();
+    const user = db
+      .prepare(
+        "SELECT id, wallet_address, email, auth_method, email_verified, created_at, last_login_at FROM users WHERE id = ?",
+      )
+      .get(userId) as
+      | {
+          id: string;
+          wallet_address: string | null;
+          email: string | null;
+          auth_method: string;
+          email_verified: number;
+          created_at: string;
+          last_login_at: string;
+        }
+      | undefined;
+    if (!user) {
+      res.status(404).json({ success: false, error: "User not found" });
+      return;
+    }
+
+    const address = proof.address;
+    const alreadyLinked =
+      user.wallet_address && addressesEqual(user.wallet_address, address);
+    if (!alreadyLinked) {
+      if (user.wallet_address) {
+        res.status(409).json({
+          success: false,
+          error: "Unlink your current wallet first",
+        });
+        return;
+      }
+      const owner = db
+        .prepare("SELECT id FROM users WHERE wallet_address = ?")
+        .get(address) as { id: string } | undefined;
+      if (owner && owner.id !== userId) {
+        res.status(409).json({
+          success: false,
+          error:
+            "This wallet already has its own Cognivern account. Sign in with it directly — merging accounts isn't supported yet.",
+        });
+        return;
+      }
+      try {
+        db.prepare("UPDATE users SET wallet_address = ? WHERE id = ?").run(
+          address,
+          userId,
+        );
+      } catch (err) {
+        // UNIQUE(wallet_address) — a concurrent link claimed it first.
+        if (err instanceof Error && err.message.includes("UNIQUE")) {
+          res.status(409).json({
+            success: false,
+            error:
+              "This wallet already has its own Cognivern account. Sign in with it directly — merging accounts isn't supported yet.",
+          });
+          return;
+        }
+        throw err;
+      }
+      // The presenting token predates the wallet claim — revoke it so only
+      // the reissued token (with walletAddress) keeps working.
+      await this.revokePresentedToken(req);
+    }
+
+    const workspace = db
+      .prepare(
+        "SELECT id, name, owner_id, tier, created_at, updated_at FROM workspaces WHERE id = ?",
+      )
+      .get(workspaceId) as
+      | {
+          id: string;
+          name: string;
+          owner_id: string;
+          tier: string;
+          created_at: string;
+          updated_at: string;
+        }
+      | undefined;
+    if (!workspace) {
+      res
+        .status(500)
+        .json({ success: false, error: "No workspace found for user" });
+      return;
+    }
+
+    const authUser: AuthUser = {
+      id: user.id,
+      walletAddress: address,
+      email: user.email ?? undefined,
+      emailVerified: user.email_verified === 1,
+      authMethod: user.auth_method as "wallet" | "email",
+      createdAt: user.created_at,
+      lastLoginAt: user.last_login_at,
+    };
+    const authWorkspace: Workspace = {
+      id: workspace.id,
+      name: workspace.name,
+      ownerId: workspace.owner_id,
+      tier: workspace.tier as "demo" | "live",
+      createdAt: workspace.created_at,
+      updatedAt: workspace.updated_at,
+    };
+    const token = await this.signSessionToken({
+      sub: authUser.id,
+      walletAddress: authUser.walletAddress,
+      workspaceId: authWorkspace.id,
+      email: authUser.email,
+      authMethod: authUser.authMethod,
+    });
+
+    res.json({ token, user: authUser, workspace: authWorkspace });
+  }
+
+  /**
+   * DELETE /auth/link-wallet — detach the wallet. Only allowed when email
+   * sign-in still works (auth_method email + password set); a wallet-native
+   * account would lock itself out.
+   */
+  async unlinkWallet(req: Request, res: Response): Promise<void> {
+    const userId = req.userId;
+    const workspaceId = req.workspaceId;
+    if (!userId || !workspaceId) {
+      res.status(401).json({ success: false, error: "Not authenticated" });
+      return;
+    }
+
+    const db = getDb();
+    const user = db
+      .prepare(
+        "SELECT id, wallet_address, email, auth_method, email_verified, password_hash, created_at, last_login_at FROM users WHERE id = ?",
+      )
+      .get(userId) as
+      | {
+          id: string;
+          wallet_address: string | null;
+          email: string | null;
+          auth_method: string;
+          email_verified: number;
+          password_hash: string | null;
+          created_at: string;
+          last_login_at: string;
+        }
+      | undefined;
+    if (!user) {
+      res.status(404).json({ success: false, error: "User not found" });
+      return;
+    }
+
+    if (user.auth_method !== "email" || !user.password_hash) {
+      res.status(409).json({
+        success: false,
+        error: "Your wallet is how you sign in — it can't be unlinked.",
+      });
+      return;
+    }
+
+    db.prepare("UPDATE users SET wallet_address = NULL WHERE id = ?").run(
+      userId,
+    );
+    // The old token still carries walletAddress for up to 7 days — revoke it.
+    await this.revokePresentedToken(req);
+
+    const workspace = db
+      .prepare(
+        "SELECT id, name, owner_id, tier, created_at, updated_at FROM workspaces WHERE id = ?",
+      )
+      .get(workspaceId) as
+      | {
+          id: string;
+          name: string;
+          owner_id: string;
+          tier: string;
+          created_at: string;
+          updated_at: string;
+        }
+      | undefined;
+    if (!workspace) {
+      res
+        .status(500)
+        .json({ success: false, error: "No workspace found for user" });
+      return;
+    }
+
+    const authUser: AuthUser = {
+      id: user.id,
+      email: user.email ?? undefined,
+      emailVerified: user.email_verified === 1,
+      authMethod: user.auth_method as "wallet" | "email",
+      createdAt: user.created_at,
+      lastLoginAt: user.last_login_at,
+    };
+    const authWorkspace: Workspace = {
+      id: workspace.id,
+      name: workspace.name,
+      ownerId: workspace.owner_id,
+      tier: workspace.tier as "demo" | "live",
+      createdAt: workspace.created_at,
+      updatedAt: workspace.updated_at,
+    };
+    const token = await this.signSessionToken({
+      sub: authUser.id,
+      workspaceId: authWorkspace.id,
+      email: authUser.email,
+      authMethod: authUser.authMethod,
+    });
 
     res.json({ token, user: authUser, workspace: authWorkspace });
   }
@@ -494,12 +769,15 @@ export class AuthController {
     const db = getDb();
     const user = db
       .prepare(
-        "SELECT id, wallet_address, created_at, last_login_at FROM users WHERE id = ?",
+        "SELECT id, wallet_address, email, auth_method, email_verified, created_at, last_login_at FROM users WHERE id = ?",
       )
       .get(userId) as
       | {
           id: string;
-          wallet_address: string;
+          wallet_address: string | null;
+          email: string | null;
+          auth_method: string;
+          email_verified: number;
           created_at: string;
           last_login_at: string;
         }
@@ -530,7 +808,10 @@ export class AuthController {
     res.json({
       user: {
         id: user.id,
-        walletAddress: user.wallet_address,
+        walletAddress: user.wallet_address ?? undefined,
+        email: user.email ?? undefined,
+        emailVerified: user.email_verified === 1,
+        authMethod: user.auth_method as "wallet" | "email",
         createdAt: user.created_at,
         lastLoginAt: user.last_login_at,
       } as AuthUser,
@@ -625,15 +906,11 @@ export class AuthController {
       updatedAt: workspace.updated_at,
     };
 
-    const token = await new SignJWT({
+    const token = await this.signSessionToken({
       sub: authUser.id,
       walletAddress: authUser.walletAddress,
       workspaceId: authWorkspace.id,
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setExpirationTime("7d")
-      .sign(JWT_SECRET);
+    });
 
     // Rotate: revoke the presented token through its remaining lifetime so a
     // stolen copy cannot be refreshed again after this response.
@@ -650,18 +927,7 @@ export class AuthController {
   }
 
   async logout(req: Request, res: Response): Promise<void> {
-    const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.slice(7);
-      const tokenHash = createHash("sha256").update(token).digest("hex");
-      const { tokenBlacklistStore } = await import(
-        "../../../shared/storage/TokenBlacklistStore.js"
-      );
-      await tokenBlacklistStore.blacklist(
-        tokenHash,
-        blacklistTtlMsFromToken(token),
-      );
-    }
+    await this.revokePresentedToken(req);
     res.json({ success: true });
   }
 

@@ -543,7 +543,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
             ) : (
               <div className="space-y-2">
                 <label className="text-xs font-medium">
-                  Demo bidder
+                  Play as (sandbox persona)
                 </label>
                 <Select
                   value={bidder}

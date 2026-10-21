@@ -183,7 +183,7 @@ export function ProcureLanding() {
               },
               {
                 title: "Party-level authorization",
-                desc: "Every bid is authorized by the bidder's own Canton party.",
+                desc: "Every bid is authorized by the bidder's own Canton identity.",
                 icon: Gavel,
               },
             ].map((card, i) => (

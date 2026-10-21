@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { jwtVerify } from "jose";
+import { createHash } from "node:crypto";
 import { getJwtSecret, type AuthPayload } from "./authMiddleware.js";
+import { tokenBlacklistStore } from "@backend/shared/storage/TokenBlacklistStore.js";
 
 // Per-mode auth for sealed-bid WRITE routes.
 //
@@ -31,7 +33,14 @@ export async function sealedBidWriteAuth(
         authHeader.slice(7),
         getJwtSecret(),
       );
-      payload = verified as unknown as AuthPayload;
+      // A revoked token is treated as no token: production 401s below, sandbox
+      // passes through anonymously — same contract as a malformed/expired one.
+      const tokenHash = createHash("sha256")
+        .update(authHeader.slice(7))
+        .digest("hex");
+      if (!(await tokenBlacklistStore.isBlacklisted(tokenHash))) {
+        payload = verified as unknown as AuthPayload;
+      }
     } catch {
       payload = null;
     }

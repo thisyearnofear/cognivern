@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { useTheme } from "next-themes";
 import { useConfidentialRail } from "@/hooks/use-confidential-rail";
+import { IdentitiesCard } from "./identities-card";
 import {
   settingsRailRows,
   workspaceSelectableExecutionRails,
@@ -79,6 +80,9 @@ export function SettingsPage() {
   return (
     <div className="max-w-3xl space-y-6">
       <PageHeader eyebrow="Supporting" title="Settings" description="Configure workspace access, wallet execution, and interface preferences." />
+      <div id="identities">
+        <IdentitiesCard />
+      </div>
       <div className="app-surface-card flex flex-wrap items-center gap-2 p-3 text-xs text-muted-foreground">
         <span className="font-medium text-foreground">Recommended setup</span>
         <span>Policy</span><span aria-hidden="true">→</span><span>API identity</span><span aria-hidden="true">→</span><span>Access key</span>

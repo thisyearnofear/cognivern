@@ -553,6 +553,10 @@ class ApiClient {
   // (`ApiModule`: `this.app.use(authRoutes)`), so this must not be prefixed.
   // `/api/auth/workspace/upgrade` reached `apiRouter`, matched nothing there
   // and 404'd — which is what made "Go Live" and the onboarding upgrade fail.
+  async getMe(): Promise<ApiResponse<{ user: import("@cognivern/shared").AuthUser; workspace: Workspace }>> {
+    return this.fetch('/auth/me');
+  }
+
   async upgradeWorkspace(): Promise<ApiResponse<{ token: string; workspace: Workspace }>> {
     return this.fetch('/auth/workspace/upgrade', { method: 'PATCH' });
   }

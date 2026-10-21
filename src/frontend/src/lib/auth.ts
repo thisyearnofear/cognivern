@@ -91,3 +91,38 @@ export async function verifySignature(
   }
   return res.json();
 }
+
+export async function linkWalletProof(
+  message: string,
+  signature: string,
+  address: string,
+  token: string
+): Promise<{ token: string; user: AuthUser; workspace: Workspace }> {
+  const res = await fetch(`${API_URL}/auth/link-wallet`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ message, signature, address }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || "Could not link wallet");
+  }
+  return res.json();
+}
+
+export async function unlinkWalletAccount(
+  token: string
+): Promise<{ token: string; user: AuthUser; workspace: Workspace }> {
+  const res = await fetch(`${API_URL}/auth/link-wallet`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || "Could not unlink wallet");
+  }
+  return res.json();
+}

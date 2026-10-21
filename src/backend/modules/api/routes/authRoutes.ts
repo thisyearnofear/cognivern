@@ -34,6 +34,12 @@ export function createAuthRoutes(authController: AuthController): Router {
   router.post("/auth/logout", authMiddleware, (req, res) =>
     authController.logout(req, res),
   );
+  router.post("/auth/link-wallet", authMiddleware, (req, res) =>
+    authController.linkWallet(req, res),
+  );
+  router.delete("/auth/link-wallet", authMiddleware, (req, res) =>
+    authController.unlinkWallet(req, res),
+  );
   router.patch("/auth/workspace/upgrade", authMiddleware, (req, res) =>
     authController.upgradeWorkspace(req, res),
   );
