@@ -238,44 +238,47 @@ export function AgentCreateRound({
           />
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="agent-round-settlement-amount" className="text-xs font-medium">Settlement amount (USD)</label>
-          <Input
-            id="agent-round-settlement-amount"
-            type="number"
-            min={1}
-            value={settlementAmount}
-            disabled={!settlementSupported}
-            onChange={(e) => {
-              setSettlementAmount(parseFloat(e.target.value) || 0);
-              setProductionAcknowledged(false);
-            }}
-          />
-          <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 flex items-start gap-2">
-            <ShieldCheck className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
-            <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-400">
-              <strong className="font-semibold">Settlement:</strong>{" "}
-              {settlementSupported
-                ? "this round escrows the amount on Canton and transfers it to the winner at reveal — real value is reserved."
-                : isProduction
-                  ? "value settlement is unavailable for this Canton DAR; no funds are reserved."
-                  : "settlement is disabled in Demo/Sandbox; no funds are reserved and no real value can move."}{" "}
-              {settlementSupported && "Set it above $100,000 to demo a blocked check by the agent governance layer."}
+        {settlementSupported ? (
+          <>
+            <div className="space-y-2">
+              <label htmlFor="agent-round-settlement-amount" className="text-xs font-medium">Settlement amount (USD)</label>
+              <Input
+                id="agent-round-settlement-amount"
+                type="number"
+                min={1}
+                value={settlementAmount}
+                onChange={(e) => {
+                  setSettlementAmount(parseFloat(e.target.value) || 0);
+                  setProductionAcknowledged(false);
+                }}
+              />
+              <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 flex items-start gap-2">
+                <ShieldCheck className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-400">
+                  <strong className="font-semibold">Settlement:</strong> this round escrows the amount on Canton and transfers it to the winner at reveal — real value is reserved. Set it above $100,000 to demo a blocked check by the agent governance layer.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="agent-round-asset-tag" className="text-xs font-medium">Asset tag</label>
+              <Input
+                id="agent-round-asset-tag"
+                value={settlementAssetTag}
+                onChange={(e) => {
+                  setSettlementAssetTag(e.target.value);
+                  setProductionAcknowledged(false);
+                }}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="md:col-span-2 rounded-md border border-muted bg-muted/30 p-2.5 flex items-start gap-2">
+            <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+            <p className="text-[11px] text-muted-foreground">
+              <span className="font-medium text-foreground">No fund movement.</span> {isProduction ? "Value settlement is unavailable for this Canton setup — this round will be governance-only." : "Sandbox and demo rounds never move funds. Settlement controls appear in Production when the ledger supports them."}
             </p>
           </div>
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="agent-round-asset-tag" className="text-xs font-medium">Asset tag</label>
-          <Input
-            id="agent-round-asset-tag"
-            value={settlementAssetTag}
-            disabled={!settlementSupported}
-            onChange={(e) => {
-              setSettlementAssetTag(e.target.value);
-              setProductionAcknowledged(false);
-            }}
-          />
-        </div>
+        )}
       </div>
 
       {settlementSupported && productionConfirmationVisible && (

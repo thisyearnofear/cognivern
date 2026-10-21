@@ -40,6 +40,8 @@ Every lifecycle step (create, submit, close, reveal) also fires `AuditLogService
 
 The read-only `GET /api/vendor/sealed-bid/capabilities` endpoint reports the effective `X-Workspace-Mode` (`sandbox` or `production`), whether Canton is configured, and whether the configured DAR exposes `PaymentDeposit`. The agent-round UI uses this response before showing or submitting a value-settlement request; Demo/Sandbox always report settlement as disabled.
 
+`GET /api/vendor/sealed-bid/canton-identity` returns the institution pool party the SIWE-authenticated wallet bids as (`{ walletAddress, party, backendConfigured }`). It requires a wallet JWT — API-key and email sessions get `401` — and answers `503` when no `CANTON_POOL_PARTY_NAMES` pool is configured. Assignment is first-come from the pool and persisted (`CANTON_WALLET_PARTY_STORE`), so a wallet keeps the same on-ledger party across restarts; see `src/backend/canton/WalletPartyRegistry.ts`.
+
 ## Files
 
 | Path                                                                   | Purpose                                                           |
@@ -49,6 +51,7 @@ The read-only `GET /api/vendor/sealed-bid/capabilities` endpoint reports the eff
 | `daml/start-sandbox.sh`                                                | pm2 launcher on Hetzner                                           |
 | `src/backend/canton/CantonLedgerClient.ts`                             | JWT + `/v1/{query,create,exercise,parties}` client                |
 | `src/backend/canton/CantonPartyRegistry.ts`                            | cognivern name → Daml party mapping                               |
+| `src/backend/canton/WalletPartyRegistry.ts`                            | SIWE wallet → institution pool party (persisted JSONL)            |
 | `src/backend/services/blockchain/sealed-bid/CantonSealedBidBackend.ts` | Backend impl                                                      |
 | `src/backend/services/blockchain/sealed-bid/SealedBidBackend.ts`       | Interface all backends satisfy                                    |
 | `src/frontend/src/components/sealed-bid/`                              | UI: create form, round list, party viewer, backend picker         |
@@ -57,7 +60,8 @@ The read-only `GET /api/vendor/sealed-bid/capabilities` endpoint reports the eff
 
 ## UI surfaces
 
-- **`/sealed-bid`** — create rounds, submit bids, close/reveal, and toggle the **Party view** (Auctioneer / Alice / Bob / Charlie) to see role-based disclosure.
+- **`/sealed-bid`** ("Private vendor selection") — create rounds, submit bids, close/reveal, and toggle the **Party view** (Auctioneer / Alice / Bob / Charlie) to see role-based disclosure. The list has search + status filter; round detail shows a lifecycle stepper (Bidding → Closed → Decided), relative deadlines, and inline bid-amount validation. In Sandbox anyone may act as auctioneer; in Production close/reveal requires a signed-in wallet. Party ids render without the `::namespace` suffix (`displayPartyName`).
+- **Canton identity card** — shown on `/sealed-bid` and on the **Canton** tab of the sign-in modal; surfaces the wallet's assigned bidding party from `canton-identity` and links into the rounds list. Signed-out visitors get a "Get a bidding identity" prompt that opens the modal on that tab.
 - **Dashboard** — "Vendor spend governance" card links day-to-day agent spend policies to confidential vendor RFPs on the same control plane.
 - **Backend picker** — Canton (recommended) for structural privacy; FHE for ciphertext bids with manager-publish reveal. Helper text on the create form explains the trade-off.
 

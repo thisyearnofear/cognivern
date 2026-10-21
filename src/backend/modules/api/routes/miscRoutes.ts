@@ -92,6 +92,10 @@ export function createMiscRoutes(
   router.get("/vendor/sealed-bid/capabilities", (req, res) =>
     sealedBidController.getCapabilities(req, res),
   );
+  // Wallet-JWT only (global authMiddleware sets req.walletAddress). Not public.
+  router.get("/vendor/sealed-bid/canton-identity", (req, res) =>
+    sealedBidController.getCantonIdentity(req, res),
+  );
   router.post(
     "/vendor/sealed-bid/rounds",
     sealedBidWriteAuth,

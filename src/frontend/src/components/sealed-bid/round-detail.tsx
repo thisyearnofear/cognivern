@@ -19,7 +19,9 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { displayPartyName, relativeDeadline, shortAddress } from "@/lib/workspace-label";
 import {
   Select,
   SelectContent,
@@ -45,9 +47,36 @@ import { RevealComparison } from "./reveal-comparison";
 
 const DEMO_BIDDERS = ["Alice", "Bob", "Charlie"] as const;
 
-function shortAddress(addr?: string | null): string {
-  if (!addr) return "";
-  return addr.length > 12 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr;
+function LifecycleSteps({ status }: { status: string }) {
+  const order = ["open", "closed", "revealed"] as const;
+  const labels: Record<string, string> = { open: "Bidding", closed: "Closed", revealed: "Decided" };
+  const activeIdx = Math.max(0, order.indexOf(status as (typeof order)[number]));
+  return (
+    <ol aria-label="Round progress" className="flex items-center gap-1.5 text-[11px]">
+      {order.map((s, i) => {
+        const done = i < activeIdx || status === "revealed";
+        const current = i === activeIdx;
+        return (
+          <li key={s} className="flex items-center gap-1.5">
+            <span
+              aria-current={current ? "step" : undefined}
+              className={`flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-semibold ${
+                done || current
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border text-muted-foreground"
+              }`}
+            >
+              {done && !current ? <CheckCircle2 className="h-3 w-3" /> : i + 1}
+            </span>
+            <span className={current ? "font-semibold text-foreground" : "text-muted-foreground"}>
+              {labels[s]}
+            </span>
+            {i < order.length - 1 && <span aria-hidden="true" className="mx-1 h-px w-4 bg-border" />}
+          </li>
+        );
+      })}
+    </ol>
+  );
 }
 
 interface RoundDetailProps {
@@ -83,7 +112,16 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   // user acts as a demo persona. This mirrors the backend's productionIdentity.
   const effectiveBidder = isProduction ? (walletAddress ?? "") : bidder;
   const canSubmitBid = isProduction ? isAuthed && !!walletAddress : true;
-
+  // Close/reveal acts as the round manager (Auctioneer party on-ledger).
+  // Sandbox is an explicit toy ledger — anyone may act as auctioneer for the
+  // demo. Production writes require a verified wallet JWT (sealedBidWriteAuth).
+  const canManage = !isProduction || (isAuthed && !!walletAddress);
+  const amountError =
+    !Number.isFinite(amountUsd) || amountUsd < 1
+      ? "Enter an amount of at least $1."
+      : amountUsd > 100_000_000
+        ? "That amount looks unusually large — double-check it."
+        : null;
   async function refresh() {
     await mutate(`/api/vendor/sealed-bid/rounds/${roundId}`);
     await mutate("/api/vendor/sealed-bid/rounds");
@@ -161,7 +199,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
       });
       if (!res.success) throw new Error(res.error || "Reveal failed");
       toast.success(
-        `Winner revealed atomically — ${res.data?.winner?.split("::")[0] ?? "?"} at $${res.data?.winningBid}`,
+        `Winner revealed — ${displayPartyName(res.data?.winner) || "?"} at $${res.data?.winningBid}`,
       );
       await refresh();
     } catch (err: unknown) {
@@ -213,38 +251,50 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
             <h1 className="text-xl font-bold">{round.description}</h1>
             <p className="text-xs text-muted-foreground">
               {round.serviceCategory}
-              {round.deadline && !isNaN(new Date(round.deadline).getTime())
-                ? ` · deadline ${new Date(round.deadline).toLocaleString()}`
-                : ""}
+              {round.deadline && !isNaN(new Date(round.deadline).getTime()) ? (
+                <>
+                  {" · "}{new Date(round.deadline).toLocaleString()}
+                  {round.status === "open" && (
+                    <span className="ml-1 font-medium text-foreground/80">({relativeDeadline(round.deadline)})</span>
+                  )}
+                </>
+              ) : null}
+              {" · "}{round.bids.length}/{round.maxBids} bids
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {round.createdByAgent && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/50 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400">
-              <Bot className="h-3 w-3" />
-              Agent-governed
-            </span>
-          )}
-          <span className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">
-            {round.status}
-          </span>
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="flex items-center gap-2">
+            {round.createdByAgent && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/50 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400">
+                <Bot className="h-3 w-3" />
+                Agent-checked
+              </span>
+            )}
+            {round.status === "open" ? (
+              <Badge className="bg-emerald-600 hover:bg-emerald-600">Open for bids</Badge>
+            ) : round.status === "closed" ? (
+              <Badge variant="secondary">Closed · ready to reveal</Badge>
+            ) : (
+              <Badge variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-400">Decided</Badge>
+            )}
+          </div>
+          <LifecycleSteps status={round.status} />
         </div>
       </div>
 
       <details className="rounded-lg border bg-muted/20 px-3 py-2 text-xs">
         <summary className="cursor-pointer font-medium text-muted-foreground">
-          Privacy evidence and technical details
+          How privacy works here
         </summary>
         <div className="mt-3 space-y-2 text-muted-foreground">
           <div className="flex items-center gap-2">
-            <span>Implementation:</span>
+            <span>Runs on:</span>
             <BackendBadge backend={round.backend} />
           </div>
           <p>
-            The selected implementation keeps competing bids private and records
-            the outcome for later verification. These details are provided for
-            technical review; no setup is required to use the round.
+            Vendors can&apos;t see each other&apos;s prices. The winner and price are
+            published once — losing bids stay sealed and are never disclosed.
           </p>
         </div>
       </details>
@@ -259,7 +309,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
           <Trophy className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
           <div className="min-w-0 space-y-1.5">
             <div className="text-sm font-semibold flex items-center gap-2 flex-wrap">
-              Winner: {round.winner.split("::")[0]} at $
+              Winner: {displayPartyName(round.winner)} at $
               {round.winningBid.toLocaleString()}
               {round.settledAssetCid && (
                 <motion.span
@@ -357,13 +407,18 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               </div>
             )}
             <div className="space-y-2">
-              <label className="text-xs font-medium">Amount (USD)</label>
+              <label htmlFor="bid-amount" className="text-xs font-medium">Amount (USD)</label>
               <Input
+                id="bid-amount"
                 type="number"
                 min={1}
                 value={amountUsd}
+                aria-invalid={!!amountError}
                 onChange={(e) => setAmountUsd(parseFloat(e.target.value) || 0)}
               />
+              {amountError && (
+                <p role="alert" className="text-[11px] text-destructive">{amountError}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium">Proposal (optional)</label>
@@ -374,14 +429,17 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               />
             </div>
           </div>
+          <div className="rounded-lg border border-muted bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground flex items-start gap-2">
+            <Lock className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <span>Sealed bid: competitors see nothing. Only the auctioneer sees the amount, and only at reveal.</span>
+          </div>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Lock className="h-3 w-3" /> Only the auctioneer can see this amount
-              before the selection is complete.
+              <Lock className="h-3 w-3" /> Sealed until reveal
             </p>
             <Button
               type="submit"
-              disabled={submitting || deadlineMissed || !canSubmitBid}
+              disabled={submitting || deadlineMissed || !canSubmitBid || !!amountError}
             >
               {submitting ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -398,14 +456,26 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
 
       {round.status !== "revealed" && round.bids.length > 0 && (
         <div className="rounded-xl border bg-card p-4 space-y-3">
+          {!isProduction && (
+            <p className="rounded-md bg-muted px-3 py-1.5 text-[11px] text-muted-foreground">
+              Sandbox demo — anyone can act as auctioneer here. In Production this step requires a signed-in wallet.
+            </p>
+          )}
+          {isProduction && !canManage && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs flex items-start gap-2">
+              <Lock className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+              <span><span className="font-medium">Waiting on the auctioneer.</span> Only the signed-in round manager can close bidding and reveal the winner. Bidders are notified when the result is published.</span>
+            </div>
+          )}
           <h3 className="text-sm font-semibold flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4" /> Auctioneer actions
+            <ShieldCheck className="h-4 w-4" /> Next step: close &amp; reveal
             {round.createdByAgent && (
               <span className="text-[10px] font-normal text-muted-foreground">
                 · policy-gated for agent-governed rounds
               </span>
             )}
           </h3>
+          {canManage && (
           <div className="flex items-center gap-2 flex-wrap">
             {round.status === "open" && (
               <Button
@@ -420,7 +490,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
                 ) : (
                   <X className="h-4 w-4 mr-2" />
                 )}
-                Close bidding ({round.bids.length} bids)
+                Close bidding ({round.bids.length} bid{round.bids.length === 1 ? "" : "s"})
                 {round.createdByAgent ? " · check policy" : ""}
               </Button>
             )}
@@ -448,7 +518,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
                   ) : (
                     <Trophy className="h-4 w-4 mr-2" />
                   )}
-                  Reveal winner atomically
+                  Reveal winner
                 </Button>
                 <p className="text-xs text-muted-foreground w-full">
                   <Clock className="h-3 w-3 inline mr-1" /> The selection records
@@ -458,6 +528,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               </>
             )}
           </div>
+          )}
 
           {/* Policy gate results — shown when closeRound returns 403 with
               policyChecks. Each check is rendered with pass/fail icon + detail. */}

@@ -7,6 +7,7 @@ import { Eye, Lock, Loader2, Database } from "lucide-react";
 import { apiClient, type SealedBidRound } from "@/lib/api-client";
 import { useDemoStore } from "@/stores/demo-store";
 import { DEMO_SEALED_BID_PARTY_VIEW } from "@/lib/demo-data";
+import { displayPartyName } from "@/lib/workspace-label";
 
 // The demo parties allocated on Devnet. Toggling one re-queries the Canton
 // participant ACTING AS that party — the visible-bid count is whatever the
@@ -19,7 +20,7 @@ function shortParty(id: string): string {
   return ns ? `${name}::${ns.slice(0, 6)}…` : name;
 }
 function shortName(bidder: string): string {
-  return bidder.split("::")[0] || bidder;
+  return displayPartyName(bidder);
 }
 
 interface PartyViewProps {

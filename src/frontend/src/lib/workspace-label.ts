@@ -29,6 +29,37 @@ const GENERATED_WORKSPACE_NAME =
   /^0x[0-9a-f]{4}(?:\.{3}|…)[0-9a-f]{4}['’]s\s+workspace$/i;
 
 /**
+ * Canton party ids arrive as `name::namespace` (e.g. `Alice::demo`). Users
+ * only recognise the human part — the namespace is ledger routing. Returns
+ * the name segment, falling back to the full id when there is no separator.
+ */
+export function displayPartyName(
+  party: string | null | undefined,
+): string {
+  if (!party) return "";
+  const [name] = party.split("::");
+  return name || party;
+}
+
+/**
+ * Short human-readable deadline: "in 5h", "in 2d", "overdue". Returns ""
+ * for missing/invalid input so callers can hide the element.
+ */
+export function relativeDeadline(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const target = new Date(iso).getTime();
+  if (Number.isNaN(target)) return "";
+  const diffMs = target - Date.now();
+  if (diffMs <= 0) return "deadline passed";
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 60) return `closes in ${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 48) return `closes in ${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `closes in ${days}d`;
+}
+
+/**
  * `0x1e1734d0…5D40` → `0x1e17…5D40`. Returns an empty string for a missing
  * address so callers can render `{shortAddress(a) || fallback}`.
  */

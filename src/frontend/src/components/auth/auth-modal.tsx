@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useAccount } from "wagmi";
-import { X, Mail, Wallet, ShieldCheck, Loader2 } from "lucide-react";
+import { X, Mail, Wallet, Network, ShieldCheck, Loader2 } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { Button } from "@/components/ui/button";
 import { EmailAuthForm } from "./email-auth-form";
+import { CantonIdentityCard } from "@/components/sealed-bid/canton-identity-card";
 import { useAuth } from "@/hooks/use-auth";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -12,10 +14,17 @@ interface AuthModalProps {
   open: boolean;
   onClose: () => void;
   defaultMode?: "login" | "register";
+  /** Tab shown when the modal mounts. Pages that link straight to Canton use "canton". */
+  initialTab?: "email" | "wallet" | "canton";
 }
 
-export function AuthModal({ open, onClose, defaultMode = "login" }: AuthModalProps) {
-  const [activeTab, setActiveTab] = useState<"email" | "wallet">("email");
+export function AuthModal({
+  open,
+  onClose,
+  defaultMode = "login",
+  initialTab = "email",
+}: AuthModalProps) {
+  const [activeTab, setActiveTab] = useState<"email" | "wallet" | "canton">(initialTab);
   const { address, isConnected } = useAccount();
   const { signIn, loading, error } = useAuth();
   const isAppAuthenticated = useAuthStore((state) => state.isConnected);
@@ -49,16 +58,16 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: AuthModalPro
         <div className="bg-card rounded-xl border border-border p-6 shadow-xl">
           <div className="text-center mb-6">
             <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
-              {activeTab === "wallet" && isConnected && !isAppAuthenticated ? "Finish signing in" : "Sign in to Cognivern"}
+              {activeTab !== "email" && isConnected && !isAppAuthenticated ? "Finish signing in" : "Sign in to Cognivern"}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {activeTab === "wallet" && isConnected && !isAppAuthenticated
+              {activeTab !== "email" && isConnected && !isAppAuthenticated
                 ? "Your wallet is connected. One final step creates your Cognivern session."
                 : "Choose how you want to authenticate"}
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-1 p-1 bg-muted rounded-lg mb-5">
+          <div className="grid grid-cols-3 gap-1 p-1 bg-muted rounded-lg mb-5">
             <button
               onClick={() => setActiveTab("email")}
               className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -81,6 +90,17 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: AuthModalPro
               <Wallet className="h-4 w-4" />
               Wallet
             </button>
+            <button
+              onClick={() => setActiveTab("canton")}
+              className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === "canton"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Network className="h-4 w-4" />
+              Canton
+            </button>
           </div>
 
           {activeTab === "email" ? (
@@ -88,6 +108,27 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: AuthModalPro
               mode={defaultMode}
               onSuccess={onClose}
             />
+          ) : activeTab === "canton" ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+                <span className="font-medium text-foreground">Canton is not a separate login.</span>{" "}
+                Sign in with your wallet and Cognivern assigns you a private
+                Canton party for sealed-bid auctions. Signing is gasless and
+                moves no funds.
+              </div>
+              {isAppAuthenticated ? (
+                <CantonIdentityCard onOpen={onClose} />
+              ) : (
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={() => setActiveTab("wallet")}
+                >
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Continue with wallet
+                </Button>
+              )}
+            </div>
           ) : (
             <div className="space-y-4">
               {!isConnected || !address ? (

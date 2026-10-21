@@ -26,8 +26,8 @@ test.describe('Money map', () => {
   test('/sealed-bid states manual rounds do not escrow funds', async ({ page }) => {
     await page.goto('/sealed-bid');
 
-    await expect(page.getByText(/does not escrow funds/i).first()).toBeVisible();
-    await expect(page.getByText(/Create manually/i).first()).toBeVisible();
+    await expect(page.getByText(/no fund movement/i).first()).toBeVisible();
+    await expect(page.getByText(/Manual instead/i).first()).toBeVisible();
   });
 
   test('/telegraph states per-call cost and confidence gating', async ({ page }) => {

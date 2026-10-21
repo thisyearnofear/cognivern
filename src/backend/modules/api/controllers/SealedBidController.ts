@@ -122,6 +122,37 @@ export class SealedBidController {
    * Report the effective workspace mode and capabilities of the configured
    * Canton backend without mutating ledger or round state.
    */
+  /**
+   * Canton identity for the SIWE-authenticated wallet: the pool party it acts
+   * as in sealed-bid rounds. Requires a wallet JWT (not an API key).
+   */
+  async getCantonIdentity(req: Request, res: Response) {
+    const wallet = req.walletAddress;
+    if (!wallet) {
+      res.status(401).json({
+        success: false,
+        error: "Sign in with your wallet to get a Canton party",
+      });
+      return;
+    }
+    if (!sharedWalletPartyRegistry.hasPool()) {
+      res.status(503).json({
+        success: false,
+        error: "No Canton institution parties are configured on this server",
+      });
+      return;
+    }
+    const party = await sharedWalletPartyRegistry.assign(wallet);
+    res.status(200).json({
+      success: true,
+      data: {
+        walletAddress: wallet.toLowerCase(),
+        party,
+        backendConfigured: this.sealedBidService.hasBackend("canton"),
+      },
+    });
+  }
+
   async getCapabilities(req: Request, res: Response) {
     const workspaceMode =
       (req.headers["x-workspace-mode"] as string)?.toLowerCase() === "production"

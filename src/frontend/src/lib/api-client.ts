@@ -1696,6 +1696,13 @@ class ApiClient {
     return this.fetch('/api/vendor/sealed-bid/capabilities');
   }
 
+  // Canton party the signed-in wallet acts as. Requires a wallet JWT.
+  async getCantonIdentity(): Promise<
+    ApiResponse<{ walletAddress: string; party: string; backendConfigured: boolean }>
+  > {
+    return this.fetch('/api/vendor/sealed-bid/canton-identity');
+  }
+
   async getSealedBidRounds(): Promise<ApiResponse<SealedBidRoundSummary[]>> {
     return this.fetch('/api/vendor/sealed-bid/rounds');
   }

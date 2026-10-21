@@ -229,8 +229,12 @@ Canton (Daml) backend for confidential sealed-bid rounds — all optional, backe
 | `CANTON_DEMO_BIDDER_NAMES` | Comma-separated demo bidder names (`alice-cognivern,bob-cognivern,charlie-cognivern`)                                                                                   |
 | `CANTON_DEMO_PARTY_IDS`    | Static `name=partyId` map; required on shared DevNet nodes where the user cannot list/allocate parties                                                                  |
 | `CANTON_FEATURED_ROUNDS`   | Comma-separated roundIds pinned for the public list; omit to list everything hydrated (currently `demo-round-open,demo-round-closed,demo-round-revealed`)                   |
+| `CANTON_POOL_PARTY_NAMES`  | Comma-separated institution pool party names assigned to SIWE wallets for production-mode bids (first-come, cycles when exhausted); unset disables `canton-identity` (503)  |
+| `CANTON_WALLET_PARTY_STORE`| Optional path for the persisted wallet→party map (JSONL); defaults to `canton-wallet-parties.jsonl` under the backend data dir                                                |
 
 The read-only `GET /api/vendor/sealed-bid/capabilities` endpoint accepts the optional `X-Workspace-Mode: sandbox|production` header and returns the effective mode, Canton backend availability, and `settlementSupported`. It is public like the round list; it does not create rounds or touch the ledger.
+
+`GET /api/vendor/sealed-bid/canton-identity` is a companion read that requires a wallet JWT (401 for API-key or email sessions) and returns the institution pool party assigned to that wallet, or 503 when `CANTON_POOL_PARTY_NAMES` is unset.
 
 > **Status (Oct 6 2026):** production is on the S3 DevNet tenant
 > (`hackcanton-devnet-3`, v2 + OIDC, proof round Oct 6) — see

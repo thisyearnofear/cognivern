@@ -21,6 +21,7 @@ src/backend/**/*.js.map
 src/backend/**/*.d.ts
 src/backend/**/*.d.ts.map
 !src/backend/types/openai.d.ts
+!src/backend/types/reineira-os.d.ts
 
 # ── Logs ────────────────────────────────────────────────────────────
 logs/

@@ -217,6 +217,18 @@ export function useSealedBidCapabilities() {
   );
 }
 
+/**
+ * Canton party for the signed-in wallet. Pass `enabled=false` until SIWE has
+ * completed; the endpoint answers 401 for anonymous callers.
+ */
+export function useCantonIdentity(enabled: boolean) {
+  return useSWR(
+    enabled ? "/api/vendor/sealed-bid/canton-identity" : null,
+    async () => (await apiClient.getCantonIdentity()).data ?? null,
+    { shouldRetryOnError: false, revalidateOnFocus: false },
+  );
+}
+
 export function useSealedBidRounds() {
   return useApiWithDemo<SealedBidRoundSummary[]>(
     "/api/vendor/sealed-bid/rounds",
