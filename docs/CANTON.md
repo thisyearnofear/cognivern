@@ -36,17 +36,25 @@ CantonLedgerClient (canton/CantonLedgerClient.ts)  ---HTTP--->  Daml JSON API v2
 
 The client speaks both JSON Ledger API v1 (local/Hetzner sandbox) and v2 (Canton DevNet / shared participants). v2 is selected automatically when a `CANTON_BEARER_TOKEN` or OIDC config is provided.
 
-Every lifecycle step (create, submit, close, reveal) also fires `AuditLogService.logEvent` so the CRE run ledger has a hash-signed evidence record.
+Every lifecycle step (create, submit, withdraw, close, reveal, cancel) also fires `AuditLogService.logEvent` so the CRE run ledger has a hash-signed evidence record.
+
+**Reverse states.** `POST /api/vendor/sealed-bid/rounds/:roundId/withdraw` (`{ bidder }`) exercises the `Bid` contract's own `Withdraw` choice as the bidder party while the round is open — works on the deployed `daml-0.0.2`. `POST .../rounds/:roundId/cancel` exercises `SealedBidAuction.Cancel` (DAR v0.0.3+, gated on `CANTON_TEMPLATE_CANCELLED`; without it the backend answers "not supported by the configured DAR"): listed bids are consumed silently, an escrowed deposit returns to the manager, and an `AuctionCancelled` marker is emitted in one transaction. Both are write routes behind `sealedBidWriteAuth` and emit CRE `bid_withdrawn` / `round_cancelled` events for agent-governed rounds.
+
+**Public verification.** `GET .../rounds/:roundId/verify` (public, read-only) returns the outcome, `ledgerRefs` (auction / result / cancelled contract ids), `settledAssetCid`, and — for agent-governed rounds — the CRE governance timeline. The `/verify?round=<id>` page recomputes each event hash in the browser (`src/frontend/src/lib/cre-hash.ts`, parity-tested against the backend in `tests/unit/CreHashParity.test.ts`) and spells out the limits: Canton contracts are private to their parties, and the event trail is not yet chained or anchored externally.
+
+**Live updates.** `GET /api/vendor/sealed-bid/stream[?roundId=]` is a public SSE stream emitting `sealedbid:round` with exactly `{ roundId, change, status, at }` — never amounts, bidder identity, proposals, or the winner; clients refetch through the normal API. Caps: 200 connections total, 5 per client (keyed on the leftmost `X-Forwarded-For`, since requests arrive via the Vercel `/api` rewrite). Published from the `SealedBidService` dispatcher, so every backend emits.
+
+**Mandate linkage.** `POST .../rounds` accepts an optional `mandateId` (requires a signed-in workspace). The mandate is validated before any ledger write — active status, `settlement.allowedAssets`, an asset budget, and remaining authorized amount (6-decimal base units, asset key = `settlementAssetTag ?? "USDC"`). `SealedBidMandateLedger` then records a workspace CRE run with a `capital_attribution` artifact (intent `sealed-bid:<roundId>`): `allocated` on create → `consumed` on reveal, or `failed` with zero amounts (escrow returned) on cancel. The spend appears on the mandate statement and Spend & Outcomes with a "Public proof" link; backends that can't settle value attribute zero. Links are rebuilt from persisted runs at startup.
 
 The read-only `GET /api/vendor/sealed-bid/capabilities` endpoint reports the effective `X-Workspace-Mode` (`sandbox` or `production`), whether Canton is configured, and whether the configured DAR exposes `PaymentDeposit`. The agent-round UI uses this response before showing or submitting a value-settlement request; Demo/Sandbox always report settlement as disabled.
 
-`GET /api/vendor/sealed-bid/canton-identity` returns the institution pool party the SIWE-authenticated wallet bids as (`{ walletAddress, party, backendConfigured }`). It requires a wallet JWT — API-key and email sessions get `401` — and answers `503` when no `CANTON_POOL_PARTY_NAMES` pool is configured. Assignment is first-come from the pool and persisted (`CANTON_WALLET_PARTY_STORE`), so a wallet keeps the same on-ledger party across restarts; see `src/backend/canton/WalletPartyRegistry.ts`.
+`GET /api/vendor/sealed-bid/canton-identity` returns the institution pool party the SIWE-authenticated wallet bids as (`{ walletAddress, party, backendConfigured }`). It requires a wallet JWT — API-key and email sessions get `401` (email accounts can link a wallet via `POST /auth/link-wallet`, then receive a party) — and answers `503` when no `CANTON_POOL_PARTY_NAMES` pool is configured. Assignment is first-come from the pool and persisted (`CANTON_WALLET_PARTY_STORE`), so a wallet keeps the same on-ledger party across restarts; see `src/backend/canton/WalletPartyRegistry.ts`.
 
 ## Files
 
 | Path                                                                   | Purpose                                                           |
 | ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `daml/daml/Main.daml`                                                  | Daml model — `SealedBidAuction`, `Bid`, `AuctionResult` templates |
+| `daml/daml/Main.daml`                                                  | Daml model — `SealedBidAuction`, `Bid`, `AuctionResult`, `PaymentDeposit`, `AuctionCancelled` (v0.0.3) |
 | `daml/daml.yaml`                                                       | SDK version (**3.4.11**, LF 2.1) + project name                   |
 | `daml/start-sandbox.sh`                                                | pm2 launcher on Hetzner                                           |
 | `src/backend/canton/CantonLedgerClient.ts`                             | JWT + `/v1/{query,create,exercise,parties}` client                |
@@ -54,14 +62,21 @@ The read-only `GET /api/vendor/sealed-bid/capabilities` endpoint reports the eff
 | `src/backend/canton/WalletPartyRegistry.ts`                            | SIWE wallet → institution pool party (persisted JSONL)            |
 | `src/backend/services/blockchain/sealed-bid/CantonSealedBidBackend.ts` | Backend impl                                                      |
 | `src/backend/services/blockchain/sealed-bid/SealedBidBackend.ts`       | Interface all backends satisfy                                    |
+| `src/backend/services/blockchain/sealed-bid/SealedBidEventHub.ts`      | Public SSE fan-out for round lifecycle events                     |
+| `src/backend/services/blockchain/sealed-bid/SealedBidMandateLedger.ts` | Round → funded-mandate spend attribution (CRE `capital_attribution`) |
+| `src/backend/middleware/sealedBidAuthMiddleware.ts`                    | Per-mode write auth (sandbox open; production wallet JWT, blacklist-checked) |
+| `src/frontend/src/components/verify/round-verify.tsx`                  | Public `/verify?round=` page                                      |
 | `src/frontend/src/components/sealed-bid/`                              | UI: create form, round list, party viewer, backend picker         |
 | `src/frontend/src/components/dashboard/dashboard.tsx`                  | Dashboard card linking agent spend governance ↔ sealed-bid       |
 | `tests/integration/canton-sealed-bid.test.ts`                          | Live-sandbox privacy invariants                                   |
 
 ## UI surfaces
 
-- **`/sealed-bid`** ("Private vendor selection") — create rounds, submit bids, close/reveal, and toggle the **Party view** (Auctioneer / Alice / Bob / Charlie) to see role-based disclosure. The list has search + status filter; round detail shows a lifecycle stepper (Bidding → Closed → Decided), relative deadlines, and inline bid-amount validation. In Sandbox anyone may act as auctioneer; in Production close/reveal requires a signed-in wallet. Party ids render without the `::namespace` suffix (`displayPartyName`).
-- **Canton identity card** — shown on `/sealed-bid` and on the **Canton** tab of the sign-in modal; surfaces the wallet's assigned bidding party from `canton-identity` and links into the rounds list. Signed-out visitors get a "Get a bidding identity" prompt that opens the modal on that tab.
+- **`/sealed-bid`** ("Private vendor selection") — create rounds (optionally under a funded mandate), submit and withdraw bids, close/reveal or cancel, and toggle the **Party view** (Auctioneer / Alice / Bob / Charlie) to see role-based disclosure. The list has search + status filter; round detail shows a lifecycle stepper (Bidding → Closed → Decided), relative deadlines, and inline bid-amount validation. In Sandbox anyone may act as auctioneer; in Production close/reveal requires a signed-in wallet. Party ids render without the `::namespace` suffix (`displayPartyName`). Signed-in views refresh live from the SSE stream and toast the outcome ("You won this round" / "not selected" / "cancelled"); decided or cancelled rounds get a **Share proof** link, and mandate-linked rounds show an "Under mandate" chip linking to `/spend?mandate=<id>`.
+- **Canton identity card** — shown on `/sealed-bid` and on the **Canton** tab of the sign-in modal; surfaces the wallet's assigned bidding party from `canton-identity` and links into the rounds list. Signed-out visitors get a "Get a bidding identity" prompt that opens the modal on that tab; email sessions without a wallet get "Link a wallet to bid", which goes to Settings → Identities.
+- **`/verify?round=<id>`** — login-free outcome proof (see Public verification above).
+- **`/procure`** — public landing for the Canton procurement story (mandate → policy-gated round → atomic settlement → public proof); the main landing links to it from one fenced teaser, following the `/sponsor` separate-buyer pattern.
+- **Settings → Identities** — email, wallet, and Canton bidding identity in one card; email accounts can link/unlink a wallet. Copy states that the identity is hosted by Cognivern, which submits bids on the user's behalf.
 - **Dashboard** — "Vendor spend governance" card links day-to-day agent spend policies to confidential vendor RFPs on the same control plane.
 - **Backend picker** — Canton (recommended) for structural privacy; FHE for ciphertext bids with manager-publish reveal. Helper text on the create form explains the trade-off.
 

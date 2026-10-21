@@ -119,7 +119,10 @@ Second pass (2026-08-24) — closing the execution gap:
 - **The sponsored-cohorts wedge has its own landing.** `/sponsor` carries the
   full organiser narrative (hero, console cards, 4-step flow, verify link);
   the main landing keeps one clearly fenced teaser banner linking to it.
-  Separate buyer, separate page.
+  Separate buyer, separate page. (Oct 2026: `/procure` follows the same
+  pattern for confidential procurement on Canton, with a sibling teaser in
+  the same fenced section; the hero is unchanged. See `PRODUCT_STRATEGY.md`
+  near-term item 7.)
 - **Terminology unified.** Surface name is "Identities" (nav, page header,
   dashboard section); "API identity" stays the object term. "Agentic capital"
   / "Verified Capital" / "Capital" collapsed into the surface name "Spend &

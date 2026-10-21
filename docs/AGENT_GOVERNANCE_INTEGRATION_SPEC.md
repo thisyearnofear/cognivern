@@ -73,7 +73,12 @@ export async function evaluateClosePolicy(params: {
  */
 export async function recordSealedBidEvent(params: {
   runId: string;
-  eventType: "bid_submitted" | "round_closed" | "winner_revealed";
+  eventType:
+    | "bid_submitted"
+    | "bid_withdrawn"
+    | "round_closed"
+    | "round_cancelled"
+    | "winner_revealed";
   payload: Record<string, unknown>;
 }): Promise<{ eventHash: string; timestamp: string }>;
 
@@ -310,6 +315,26 @@ the existing audit log. Only `proposalHash` (a commitment) is recorded.
 }
 ```
 
+### `bid_withdrawn` (recorded by `withdrawBid`)
+```json
+{
+  "roundId": "0x31a7b245...",
+  "bidder": "alice-cognivern"
+}
+```
+No amount — the withdrawn bid is archived without disclosure.
+
+### `round_cancelled` (recorded by `cancelRound`, DAR v0.0.3+ on Canton)
+```json
+{
+  "roundId": "0x31a7b245...",
+  "bidCount": 2,
+  "cancelledBy": "auctioner-cognivern"
+}
+```
+Cancel bypasses the close policy gate, so this event is the accountability
+record for it.
+
 ### `winner_revealed` (recorded by `revealWinner`)
 ```json
 {
@@ -324,6 +349,10 @@ Note: `winningBid` **is** included here — at reveal time the amount is public
 on-ledger via `AuctionResult`, so the governance event matches the ledger
 state. This is consistent with the existing `sealed_bid.winner_revealed` audit
 log entry.
+
+Every event above is published on the public `/verify?round=<id>` page, which
+recomputes each hash in the browser using the same formula
+(`src/frontend/src/lib/cre-hash.ts`).
 
 ---
 

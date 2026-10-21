@@ -42,6 +42,11 @@ the visible demo round is the submission evidence.
 6. Open the governance timeline. Show `round_created`, three
    `bid_submitted` commitments, both policy decisions, `round_closed`, and
    `winner_revealed`, each with a SHA-256 event hash.
+7. Click **Share proof** and open the `/verify?round=<id>` link in a private
+   window: the outcome, ledger contract ids, and timeline load without a
+   login, and each event hash is recomputed in the browser. (Agent-created
+   rounds can't be linked to a funded mandate yet — that's the manual create
+   flow only.)
 
 ## Safe claims
 

@@ -235,7 +235,9 @@ Canton (Daml) backend for confidential sealed-bid rounds — all optional, backe
 
 The read-only `GET /api/vendor/sealed-bid/capabilities` endpoint accepts the optional `X-Workspace-Mode: sandbox|production` header and returns the effective mode, Canton backend availability, and `settlementSupported`. It is public like the round list; it does not create rounds or touch the ledger.
 
-`GET /api/vendor/sealed-bid/canton-identity` is a companion read that requires a wallet JWT (401 for API-key or email sessions) and returns the institution pool party assigned to that wallet, or 503 when `CANTON_POOL_PARTY_NAMES` is unset.
+`GET /api/vendor/sealed-bid/canton-identity` is a companion read that requires a wallet JWT (401 for API-key or email sessions; email accounts can link a wallet via `POST /auth/link-wallet`) and returns the institution pool party assigned to that wallet, or 503 when `CANTON_POOL_PARTY_NAMES` is unset.
+
+Public sealed-bid paths (allow-listed in `src/backend/middleware/publicEndpoints.ts`, so the global JWT middleware skips them): rounds list/detail, `party-view`, `verify`, `stream`, plus the write routes `bid`, `withdraw`, `close`, `reveal`, `cancel` — which still pass through `sealedBidWriteAuth` (sandbox open, production requires a non-revoked wallet JWT). `GET /api/vendor/sealed-bid/stream` is long-lived SSE: it sets `X-Accel-Buffering: no` and heartbeats every 25s, so any reverse proxy in front of `:3087` must not buffer it; the hub caps 200 connections (503 beyond that).
 
 > **Status (Oct 6 2026):** production is on the S3 DevNet tenant
 > (`hackcanton-devnet-3`, v2 + OIDC, proof round Oct 6) — see

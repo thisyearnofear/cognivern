@@ -24,7 +24,9 @@ top to bottom; every item exists because a submission lost or nearly lost on it.
       sandbox, not a mock.
 - [ ] On-ledger / API evidence a judge can check themselves: contract IDs,
       transaction IDs, deep links (CC View, explorer), or a public endpoint.
-      For Canton: the evidence checklist in `CANTON.md`.
+      For Canton: the evidence checklist in `CANTON.md`, plus a
+      `/verify?round=<id>` link for a decided round (login-free outcome,
+      contract ids, and browser-recomputed event hashes).
 - [ ] Every claim in the form is verifiable against the live app *today* —
       deadlines unexpired, links resolve, demo path works without signup
       where possible.

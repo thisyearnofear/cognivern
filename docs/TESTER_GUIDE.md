@@ -241,6 +241,22 @@ retrieves its context graph from HydraDB (mandate, outcomes, statement,
 recommendation, and mandate-linked spend runs) and cites sources with sync
 status. Mandate creation and outcome ingestion sync automatically.
 
+## 11. Optional: Run and verify a sealed-bid round (2 minutes)
+
+1. Open **Private selection** (`/sealed-bid`). In Sandbox, pick a persona under
+   **Play as (sandbox persona)** and submit a bid; use **Withdraw my bid** to
+   take it back while the round is open.
+2. Signed in, you can create a round **under a funded mandate**; the round
+   then shows an "Under mandate" chip, and its settled spend appears on that
+   mandate in **Spend & Outcomes**.
+3. After the round is decided, click **Share proof** and open the link in a
+   private window: `/verify?round=<id>` shows the outcome and ledger contract
+   ids without a login, and recomputes each governance-event hash in your
+   browser. The "What this proves" box lists what it does and does not prove.
+4. Signed in with email? Go to **Settings → Identities** and **Link a wallet**
+   to get a Canton bidding identity (hosted by Cognivern, which submits bids
+   for you). Production bids need it.
+
 ## Moderator: seeding a tester workspace
 
 Before a user-testing session, provision a disposable account and run the
@@ -279,7 +295,7 @@ recommendation, and immutable published snapshots with redacted export.
 - **Audit and Runs** preserve decision, execution, and evidence history
 - **0G Chain** records governance decisions as on-chain events for
   tamper-evident verifiability (0G Galileo Testnet)
-- **Sealed Bids** run confidential vendor RFPs on Canton (live on Devnet)
+- **Sealed Bids** run confidential vendor RFPs on Canton (live on DevNet), optionally under a funded mandate, with a public proof link per outcome (`/verify?round=`)
 - **Verified settlement** (`/spend?view=verified`) is the Cleanverse CVI/CVA spend rail on Monad
 - **OS Terminal** is a natural-language interface to the platform
 
