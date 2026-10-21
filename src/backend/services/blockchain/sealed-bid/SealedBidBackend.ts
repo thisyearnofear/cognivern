@@ -18,6 +18,10 @@ export interface SealedBidBackend {
   submitBid(roundId: string, request: SubmitBidRequest): Promise<BidRecord>;
   closeRound(roundId: string, caller: string): Promise<SealedBidRound>;
   revealWinner(roundId: string, request: RevealRequest): Promise<SealedBidRound>;
+  // Reverse state for createRound — archives the round without a winner
+  // (consuming any bids silently and unwinding escrowed value where the
+  // backend supports it). Required: every create needs a way out.
+  cancelRound(roundId: string, caller: string): Promise<SealedBidRound>;
   getRound(roundId: string): Promise<SealedBidRound | null>;
   listRounds(): Promise<SealedBidRound[]>;
 

@@ -50,6 +50,7 @@ settlementProof = script do
       deadline
       maxBids         = 5
       settlementAsset = Some depositCid
+      earlyCloseAllowed = True
 
   -- (3) Submit three sealed bids
   bidA <- submit alice do

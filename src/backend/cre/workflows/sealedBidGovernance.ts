@@ -40,7 +40,11 @@ export interface EvaluateClosePolicyParams {
 
 export interface RecordSealedBidEventParams {
   runId: string;
-  eventType: 'bid_submitted' | 'round_closed' | 'winner_revealed';
+  eventType:
+    | 'bid_submitted'
+    | 'round_closed'
+    | 'round_cancelled'
+    | 'winner_revealed';
   payload: Record<string, unknown>;
 }
 
@@ -49,6 +53,7 @@ type InternalEventType =
   | 'bid_submitted'
   | 'policy_checked'
   | 'round_closed'
+  | 'round_cancelled'
   | 'winner_revealed';
 
 interface SealedBidRunStore {

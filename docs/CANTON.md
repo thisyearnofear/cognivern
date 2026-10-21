@@ -409,6 +409,24 @@ than Canton identity — see `history/HACKATHON_SUBMISSION_HACKCANTON_S3.md` →
 Retrospective). Items 1–2 ship together as one DAR bump; item 4 is a separate
 backend+frontend workstream gated on a participant-capability check.
 
+> **Status (Oct 21 2026):** items 1–2 are implemented in `daml-0.0.3`
+> (`Cancel` choice + `AuctionCancelled` marker + `earlyCloseAllowed` flag)
+> and wired end-to-end (`POST /rounds/:id/cancel`, `cancelled` round status,
+> CRE `round_cancelled` event, UI cancel affordance). Enabling it on DevNet
+> requires uploading `daml-0.0.3.dar` to the participant first, then setting
+> `CANTON_TEMPLATE_CANCELLED="#daml:Main:AuctionCancelled"` — the backend
+> reports cancel as unsupported while it is unset, so the code is safe to
+> deploy before the DAR lands. Package id: `e2e10c5f…50a4`.
+>
+> **Item 4 capability check (measured, Oct 21):** the S3 participant runs
+> Canton **3.6.1**. `POST /v2/interactive-submission/prepare` exists and
+> accepts the request shape (400 on missing fields = route live);
+> `POST /v2/parties/external/allocate` exists but returns **403
+> PERMISSION_DENIED** for our service user — external-party allocation is
+> rights-gated on the shared tenant. Path A needs a NODERS topology-rights
+> grant; Path B (tenant wallet login + `actAs` on the user's own party) is
+> the practical fallback.
+
 ### 1. `Cancel` / `AuctionCancelled` — archive path for undecided rounds
 
 Today `CloseAndReveal` asserts `bidCids` non-empty, so a round with zero bids —

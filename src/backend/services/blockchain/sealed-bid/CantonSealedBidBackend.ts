@@ -20,6 +20,10 @@ interface CantonTemplateIds {
   bid: string;
   result: string;
   deposit: string;
+  // DAR v0.0.3+ adds Main:AuctionCancelled + SealedBidAuction.Cancel. Empty
+  // when the deployed DAR predates it — cancel is then disabled (like
+  // `deposit` disables settlement on older DARs).
+  cancelled: string;
 }
 
 interface AuctionPayload {
@@ -31,6 +35,8 @@ interface AuctionPayload {
   deadline: string;
   maxBids: string;
   settlementAsset: string | null;
+  // DAR v0.0.3+ only; absent on contracts created by older packages.
+  earlyCloseAllowed?: boolean;
 }
 
 interface PaymentDepositPayload {
@@ -62,6 +68,17 @@ interface AuctionResultPayload {
   revealedAt: string;
 }
 
+interface AuctionCancelledPayload {
+  manager: string;
+  eligibleBidders: string[];
+  roundId: string;
+  description: string;
+  serviceCategory: string;
+  bidCount: string;
+  cancelledAt: string;
+  settledAsset: string | null;
+}
+
 // Off-ledger state kept per round: the current auction contract id (rotates
 // on close/reveal since the auction is a consuming choice target), the manager
 // and bidder party ids, and the roundId assigned at creation. Anything that
@@ -70,6 +87,7 @@ interface CantonRoundState {
   roundId: string;
   auctionCid: string | null;
   resultCid: string | null;
+  cancelledCid: string | null;
   manager: string;
   managerName: string;
   eligibleBidders: string[];
@@ -77,7 +95,7 @@ interface CantonRoundState {
   serviceCategory: string;
   deadline: string;
   maxBids: number;
-  status: "open" | "closed" | "revealed";
+  status: "open" | "closed" | "revealed" | "cancelled";
   createdAt: string;
   // Value settlement state — populated when the round was created with a
   // settlementAmount. The depositCid is the escrowed PaymentDeposit contract
@@ -153,6 +171,7 @@ export class CantonSealedBidBackend implements SealedBidBackend {
         roundId,
         auctionCid: a.contractId,
         resultCid: null,
+        cancelledCid: null,
         manager: this.demoManagerName,
         managerName: this.demoManagerName,
         eligibleBidders: a.payload.eligibleBidders,
@@ -185,6 +204,7 @@ export class CantonSealedBidBackend implements SealedBidBackend {
           roundId,
           auctionCid: null,
           resultCid: r.contractId,
+          cancelledCid: null,
           manager: this.demoManagerName,
           managerName: this.demoManagerName,
           eligibleBidders: r.payload.eligibleBidders,
@@ -203,9 +223,52 @@ export class CantonSealedBidBackend implements SealedBidBackend {
       hydratedRevealed++;
     }
 
-    if (hydratedOpen || hydratedRevealed) {
+    // AuctionCancelled markers (DAR v0.0.3+). Queried only when the template
+    // id is configured — older DARs have no cancel path. A cancelled round's
+    // auction is already consumed so it never appears in `auctions`.
+    let hydratedCancelled = 0;
+    if (this.templates.cancelled) {
+      const cancelled = await this.client.query<AuctionCancelledPayload>(
+        managerParty,
+        [this.templates.cancelled],
+      );
+      for (const c of cancelled) {
+        if (c.payload.manager !== managerParty) continue;
+        const roundId = c.payload.roundId;
+        if (!roundId) continue;
+        const existing = this.rounds.get(roundId);
+        if (existing) {
+          existing.status = "cancelled";
+          existing.cancelledCid = c.contractId;
+          existing.auctionCid = null;
+        } else {
+          this.rounds.set(roundId, {
+            roundId,
+            auctionCid: null,
+            resultCid: null,
+            cancelledCid: c.contractId,
+            manager: this.demoManagerName,
+            managerName: this.demoManagerName,
+            eligibleBidders: c.payload.eligibleBidders,
+            description: c.payload.description,
+            serviceCategory: c.payload.serviceCategory,
+            deadline: "",
+            maxBids: 0,
+            status: "cancelled",
+            createdAt: c.payload.cancelledAt,
+            depositCid: null,
+            settledAssetCid: c.payload.settledAsset ?? null,
+            settlementAmount: null,
+            settlementAssetTag: null,
+          });
+        }
+        hydratedCancelled++;
+      }
+    }
+
+    if (hydratedOpen || hydratedRevealed || hydratedCancelled) {
       logger.info(
-        `SealedBid[canton]: hydrated ${hydratedOpen} open + ${hydratedRevealed} revealed round(s) from ledger`,
+        `SealedBid[canton]: hydrated ${hydratedOpen} open + ${hydratedRevealed} revealed + ${hydratedCancelled} cancelled round(s) from ledger`,
       );
     }
   }
@@ -282,6 +345,12 @@ export class CantonSealedBidBackend implements SealedBidBackend {
     } else {
       auctionPayload.settlementAsset = null;
     }
+    // DAR v0.0.3+ field — only sent when the cancelled template is configured
+    // (i.e. the new DAR is deployed); omitting it keeps create compatible
+    // with the older DAR. Default true preserves current early-close demos.
+    if (this.templates.cancelled) {
+      auctionPayload.earlyCloseAllowed = request.earlyCloseAllowed ?? true;
+    }
 
     const created = await this.client.create<AuctionPayload>(
       managerParty,
@@ -292,6 +361,7 @@ export class CantonSealedBidBackend implements SealedBidBackend {
       roundId,
       auctionCid: created.contractId,
       resultCid: null,
+      cancelledCid: null,
       manager,
       managerName: manager,
       eligibleBidders,
@@ -475,6 +545,58 @@ export class CantonSealedBidBackend implements SealedBidBackend {
     }
 
     return this.toSealedBidRoundRevealed(state, result, bidsOnLedger);
+  }
+
+  // The reverse-state counterpart to createRound. Exercises the Daml `Cancel`
+  // choice (DAR v0.0.3+): listed bids are consumed silently, an escrowed
+  // deposit returns to the manager, and an AuctionCancelled marker is emitted
+  // — all in one transaction, so bidders see a disclosed terminal state.
+  async cancelRound(roundId: string, caller: string): Promise<SealedBidRound> {
+    await this.ready;
+    if (!this.templates.cancelled)
+      throw new Error(
+        "Round cancellation is not supported by the configured Canton DAR — upgrade to daml-0.0.3",
+      );
+    const state = this.rounds.get(roundId);
+    if (!state) throw new Error(`Round ${roundId} not found`);
+    const callerParty = await this.parties.resolve(caller);
+    const managerParty = await this.parties.resolve(state.managerName);
+    if (callerParty !== managerParty)
+      throw new Error("Only the round manager can cancel the round");
+    if (state.status === "revealed")
+      throw new Error("Round is already revealed");
+    if (state.status === "cancelled")
+      throw new Error("Round is already cancelled");
+    if (!state.auctionCid)
+      throw new Error("Round has no active auction contract");
+
+    const bidsOnLedger = await this.queryBidsAsManager(state);
+    const exResult = await this.client.exercise<string>(
+      managerParty,
+      this.templates.auction,
+      state.auctionCid,
+      "Cancel",
+      { bidCids: bidsOnLedger.map((b) => b.contractId) },
+    );
+
+    const cancelledCreated = exResult.events.find(
+      (e) => e.created && e.created.templateId.endsWith(":Main:AuctionCancelled"),
+    )?.created;
+    if (!cancelledCreated)
+      throw new Error("Cancel did not emit an AuctionCancelled event");
+
+    const payload = cancelledCreated.payload as AuctionCancelledPayload;
+    state.cancelledCid = cancelledCreated.contractId;
+    state.auctionCid = null;
+    state.status = "cancelled";
+    // The escrowed deposit returns to the manager — record the new deposit
+    // cid so the unwound escrow stays auditable.
+    if (payload.settledAsset) state.settledAssetCid = payload.settledAsset;
+
+    logger.info(
+      `SealedBid[canton]: round ${roundId} cancelled — ${bidsOnLedger.length} bid(s) consumed, AuctionCancelled=${cancelledCreated.contractId.slice(0, 12)}…`,
+    );
+    return this.toSealedBidRound(state, []);
   }
 
   async getRound(roundId: string): Promise<SealedBidRound | null> {

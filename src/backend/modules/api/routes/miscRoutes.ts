@@ -115,6 +115,12 @@ export function createMiscRoutes(
     (req, res) => sealedBidController.closeRound(req, res),
   );
   router.post(
+    "/vendor/sealed-bid/rounds/:roundId/cancel",
+    sealedBidWriteAuth,
+    idempotencyMiddleware,
+    (req, res) => sealedBidController.cancelRound(req, res),
+  );
+  router.post(
     "/vendor/sealed-bid/rounds/:roundId/reveal",
     sealedBidWriteAuth,
     idempotencyMiddleware,

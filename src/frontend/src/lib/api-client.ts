@@ -1772,6 +1772,16 @@ class ApiClient {
     });
   }
 
+  // Cancel an open/closed round (manager only; Canton needs DAR v0.0.3+).
+  async cancelSealedBidRound(params: { roundId: string; manager?: string }): Promise<
+    ApiResponse<{ roundId: string; status: string }>
+  > {
+    return this.fetch(`/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ manager: params.manager }),
+    });
+  }
+
   // Fetch the tamper-evident governance event timeline for an agent-governed
   // round. Returns 404 for non-agent-governed rounds — callers should guard.
   async getGovernanceTimeline(roundId: string): Promise<ApiResponse<GovernanceTimeline>> {
@@ -2116,7 +2126,7 @@ class ApiClient {
 // and the frontend components share a single canonical shape without a
 // separate `types.ts` module for one feature.
 export type SealedBidBackendName = 'fhe' | 'canton';
-export type SealedBidRoundStatus = 'open' | 'closed' | 'revealed';
+export type SealedBidRoundStatus = 'open' | 'closed' | 'revealed' | 'cancelled';
 export interface SealedBid {
   bidder: string;
   encryptedAmount: string;

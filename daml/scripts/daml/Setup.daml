@@ -45,6 +45,7 @@ setup = script do
       deadline
       maxBids         = 5
       settlementAsset = None
+      earlyCloseAllowed = True
   _ <- submit alice do
     exerciseCmd round1 SubmitBid with
       bidder       = alice
@@ -68,6 +69,7 @@ setup = script do
       deadline
       maxBids         = 5
       settlementAsset = None
+      earlyCloseAllowed = True
   bid2a <- submit alice do
     exerciseCmd round2 SubmitBid with
       bidder       = alice
@@ -106,6 +108,7 @@ setup = script do
       deadline
       maxBids         = 5
       settlementAsset = Some deposit3
+      earlyCloseAllowed = True
   bid3a <- submit alice do
     exerciseCmd round3 SubmitBid with
       bidder       = alice

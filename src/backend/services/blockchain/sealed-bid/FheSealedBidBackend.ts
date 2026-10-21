@@ -124,6 +124,22 @@ export class FheSealedBidBackend implements SealedBidBackend {
     return round;
   }
 
+  async cancelRound(roundId: string, caller: string): Promise<SealedBidRound> {
+    const round = this.rounds.get(roundId);
+    if (!round) throw new Error(`Round ${roundId} not found`);
+    if (round.manager !== caller)
+      throw new Error("Only the round manager can cancel the round");
+    if (round.status === "revealed")
+      throw new Error("Round is already revealed");
+    if (round.status === "cancelled")
+      throw new Error("Round is already cancelled");
+    round.status = "cancelled";
+    logger.info(
+      `SealedBid[fhe]: round ${roundId} cancelled with ${round.bids.length} bids`,
+    );
+    return round;
+  }
+
   /**
    * Reveal the winner of a closed round via the manager-decrypt-and-publish
    * flow. Each bid amount was encrypted by submitBid at 1e6 scale; the

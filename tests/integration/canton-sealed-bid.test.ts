@@ -15,7 +15,7 @@ import { CantonPartyRegistry } from "@backend/canton/CantonPartyRegistry.js";
 import { CantonSealedBidBackend } from "@backend/services/blockchain/sealed-bid/CantonSealedBidBackend.js";
 
 const JSON_API = "http://localhost:7575";
-const PKG = process.env.CANTON_TEST_PKG_ID ?? "6e1a4f239d2db06cf234611af8101ac41664a7df55e2aed39a6c9ad64ee4f890";
+const PKG = process.env.CANTON_TEST_PKG_ID ?? "e2e10c5fd4b848bbdb2cd24b5b573c6f6170d7beca260e030fad1742a65850a4";
 
 // Shape of the Bid contract as returned by the Daml JSON Ledger API through
 // CantonLedgerClient.query<T>(...). Mirrors the BidPayload declared in
@@ -59,6 +59,7 @@ const TEMPLATES = {
   bid: `${PKG}:Main:Bid`,
   result: `${PKG}:Main:AuctionResult`,
   deposit: `${PKG}:Main:PaymentDeposit`,
+  cancelled: `${PKG}:Main:AuctionCancelled`,
 };
 
 // Probe at module load so describe.skipIf sees the real value at collection time.
@@ -94,7 +95,7 @@ describe.skipIf(!sandboxUp)("Canton sealed-bid backend (live sandbox)", () => {
   // re-resolve the same name on the test side, and so a wrong-T-type arg
   // (one with no `roundId` field) is caught at typecheck rather than at
   // runtime when no contract ever matches the roundId filter.
-  type TemplateKey = "auction" | "bid" | "result";
+  type TemplateKey = "auction" | "bid" | "result" | "cancelled";
   async function findRoundOn<T extends { roundId: string }>(
     partyName: string,
     templateKey: TemplateKey,
@@ -405,4 +406,49 @@ describe.skipIf(!sandboxUp)("Canton sealed-bid backend (live sandbox)", () => {
       }
     }
   });
+
+  it("cancel: consumes bids silently, emits AuctionCancelled, round exits open set", async () => {
+    const round = await svc.createRound(
+      {
+        description: "Cancel-path RFP",
+        serviceCategory: "testing",
+        deadline: new Date(Date.now() + 3600_000).toISOString(),
+        maxBids: 5,
+        backend: "canton",
+      },
+      "Auctioneer",
+    );
+
+    await svc.submitBid(round.roundId, {
+      bidder: "Alice",
+      amountUsd: 50000,
+      proposalDetails: "alice-cancel",
+    });
+
+    const cancelled = await svc.cancelRound(round.roundId, "Auctioneer");
+    expect(cancelled.status).toBe("cancelled");
+
+    // On-ledger: an AuctionCancelled marker exists for this round, and no
+    // Bid contracts for it remain visible even to the manager.
+    const manager = await findRoundOn<{
+      roundId: string;
+      bidCount: string;
+      settledAsset: string | null;
+    }>("Auctioneer", "cancelled", round.roundId);
+    expect(manager.contracts.length).toBe(1);
+    expect(manager.contracts[0].payload.bidCount).toBe("1");
+
+    const bids = await findRoundOn<BidPayload>("Auctioneer", "bid", round.roundId);
+    expect(bids.contracts.length).toBe(0);
+
+    // A cancelled round rejects further bids.
+    await expect(
+      svc.submitBid(round.roundId, {
+        bidder: "Bob",
+        amountUsd: 1000,
+        proposalDetails: "late",
+      }),
+    ).rejects.toThrow(/not open/i);
+  });
 });
+

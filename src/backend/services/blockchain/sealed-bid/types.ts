@@ -1,4 +1,4 @@
-export type RoundStatus = "open" | "closed" | "revealed";
+export type RoundStatus = "open" | "closed" | "revealed" | "cancelled";
 export type BidStatus = "pending" | "selected" | "rejected";
 export type BackendName = "fhe" | "canton";
 
@@ -75,6 +75,11 @@ export interface CreateRoundRequest {
   // "USDC" for the demo.
   settlementAmount?: number;
   settlementAssetTag?: string;
+  // On-ledger deadline enforcement (Canton DAR v0.0.3+): when false, the
+  // auction's CloseAndReveal aborts before the deadline — the deadline
+  // becomes a ledger guarantee rather than app-layer policy. Omit to keep
+  // the previous behaviour (early close allowed).
+  earlyCloseAllowed?: boolean;
 }
 
 export interface SubmitBidRequest {

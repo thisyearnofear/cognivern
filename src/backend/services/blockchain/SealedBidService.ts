@@ -109,6 +109,12 @@ export class SealedBidService {
     return this.withGovernance(round);
   }
 
+  async cancelRound(roundId: string, caller: string): Promise<SealedBidRound> {
+    const backend = await this.resolveBackend(roundId);
+    const round = await backend.cancelRound(roundId, caller);
+    return this.withGovernance(round);
+  }
+
   async getRound(roundId: string): Promise<SealedBidRound | null> {
     try {
       const backend = await this.resolveBackend(roundId);
@@ -224,6 +230,9 @@ if (cantonClient) {
     // Settlement is opt-in because older sandbox DARs do not contain
     // PaymentDeposit. DevNet config supplies this explicitly.
     deposit: process.env.CANTON_TEMPLATE_DEPOSIT ?? "",
+    // Cancellation is opt-in the same way: absent unless the deployed DAR is
+    // v0.0.3+ (contains Main:AuctionCancelled + SealedBidAuction.Cancel).
+    cancelled: process.env.CANTON_TEMPLATE_CANCELLED ?? "",
   };
   if (!templates.auction || !templates.bid || !templates.result) {
     logger.warn(

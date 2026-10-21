@@ -481,6 +481,78 @@ export class SealedBidController {
   }
 
   /**
+   * POST /api/vendor/sealed-bid/rounds/:roundId/cancel
+   * Cancel an open or closed round — the manager's way out. On Canton (DAR
+   * v0.0.3+) this consumes bids silently, returns any escrowed deposit, and
+   * emits an on-ledger AuctionCancelled marker in one transaction.
+   */
+  async cancelRound(req: Request, res: Response) {
+    try {
+      const { roundId } = req.params;
+      const roundBefore = await this.sealedBidService.getRound(roundId);
+      if (!roundBefore) {
+        res.status(404).json({
+          success: false,
+          error: `Round ${roundId} not found`,
+        });
+        return;
+      }
+
+      const caller =
+        req.body.manager ||
+        roundBefore.manager ||
+        (req.headers["x-api-key"] as string) ||
+        "demo-manager";
+
+      const round = await this.sealedBidService.cancelRound(roundId, caller);
+
+      // Record the cancel in the CRE run ledger for agent-governed rounds —
+      // cancelling bypasses the close policy gate, so the audit trail is the
+      // accountability surface here.
+      if (round.governanceRunId) {
+        recordSealedBidEvent({
+          runId: round.governanceRunId,
+          eventType: "round_cancelled",
+          payload: {
+            roundId: round.roundId,
+            bidCount: round.bids.length,
+            cancelledBy: caller,
+          },
+        }).catch((err) =>
+          logger.warn("Failed to record round_cancelled governance event", err),
+        );
+      }
+
+      fireAndForgetAudit(this.auditLog, "sealed_bid.round_cancelled", {
+        roundId: round.roundId,
+        backend: round.backend,
+        bidCount: round.bids.length,
+        cancelledBy: caller,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: {
+          roundId: round.roundId,
+          status: round.status,
+          note: "Round cancelled — bids archived without disclosure, escrow returned",
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error(
+        `SealedBid: cancelRound failed for ${req.params.roundId}`,
+        error,
+      );
+      res.status(error.message?.includes("not found") ? 404 : 400).json({
+        success: false,
+        error: error.message || "Failed to cancel round",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
    * POST /api/vendor/sealed-bid/rounds/:roundId/reveal
    * Reveal the winning bid after off-chain "decryption".
    */

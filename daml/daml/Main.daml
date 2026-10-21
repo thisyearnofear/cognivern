@@ -77,6 +77,10 @@ template SealedBidAuction
     deadline        : Time
     maxBids         : Int
     settlementAsset : Optional (ContractId PaymentDeposit)
+    earlyCloseAllowed : Bool
+    -- earlyCloseAllowed: when False, CloseAndReveal aborts before `deadline`.
+    -- Appended last so the field is a valid package upgrade for auctions
+    -- created by earlier versions of this model.
   where
     signatory manager
     observer eligibleBidders
@@ -149,6 +153,10 @@ template SealedBidAuction
               [] -> abort "specific bidder submitted no bid"
               (w :: _) -> pure (fst w, snd w, map fst others)
         now <- getTime
+        -- On-ledger deadline enforcement: when `earlyCloseAllowed` is False
+        -- the deadline is a ledger guarantee, not an app-layer policy.
+        assertMsg "deadline not reached"
+          (earlyCloseAllowed || now >= deadline)
         -- (1) Settle value: transfer the escrowed deposit to the winner.
         -- This is the atomic value-settlement step — the payment moves
         -- on-ledger in the same transaction as the reveal.
@@ -174,6 +182,43 @@ template SealedBidAuction
           serviceCategory
           revealedAt      = now
           settledAsset    = settledCid
+
+    -- Manager cancels the auction outright — the reverse-state counterpart
+    -- to creation. Bids listed in bidCids are consumed silently (same
+    -- privacy model as CloseAndReveal: losing amounts are never disclosed)
+    -- and the escrowed settlement deposit returns to the manager in the
+    -- same transaction. Emits an AuctionCancelled marker so eligible
+    -- bidders see a terminal state rather than a contract that vanished.
+    --
+    -- bidCids is caller-supplied (as in CloseAndReveal): the ledger cannot
+    -- prove "no bids exist", and does not need to — the manager is the
+    -- only party harmed by a premature cancel, and every bidder sees the
+    -- cancellation event. This is the only archive path for zero-bid
+    -- rounds, which CloseAndReveal refuses via its non-empty assert.
+    choice Cancel : ContractId AuctionCancelled
+      with
+        bidCids : [ContractId Bid]
+      controller manager
+      do
+        bids <- mapA fetch bidCids
+        assertMsg "cancel only consumes this round's bids"
+          (all (\b -> b.roundId == roundId && b.manager == manager) bids)
+        mapA_ (`exercise` Consume) bidCids
+        now <- getTime
+        settledCid <- case settlementAsset of
+          Some depositCid -> do
+            newDepositCid <- exercise depositCid Transfer with recipient = manager
+            pure (Some newDepositCid)
+          None -> pure None
+        create AuctionCancelled with
+          manager
+          eligibleBidders
+          roundId
+          description
+          serviceCategory
+          bidCount     = length bidCids
+          cancelledAt  = now
+          settledAsset = settledCid
 
 -- ── Bid ─────────────────────────────────────────────────────────────────────
 -- A sealed bid. Signatory is the bidder (they authorize it) — observer is
@@ -224,6 +269,26 @@ template AuctionResult
     description     : Text
     serviceCategory : Text
     revealedAt      : Time
+    settledAsset    : Optional (ContractId PaymentDeposit)
+  where
+    signatory manager
+    observer eligibleBidders
+
+-- ── AuctionCancelled ────────────────────────────────────────────────────────
+-- The terminal marker emitted by Cancel. Visible to eligible bidders so a
+-- cancelled round is a disclosed fact, not a contract that silently vanished.
+-- `settledAsset` carries the deposit contract ID returned to the manager when
+-- the round escrowed value — auditors can verify the escrow unwound on-ledger.
+-- `bidCount` records how many bids were consumed without disclosing them.
+template AuctionCancelled
+  with
+    manager         : Party
+    eligibleBidders : [Party]
+    roundId         : Text
+    description     : Text
+    serviceCategory : Text
+    bidCount        : Int
+    cancelledAt     : Time
     settledAsset    : Optional (ContractId PaymentDeposit)
   where
     signatory manager

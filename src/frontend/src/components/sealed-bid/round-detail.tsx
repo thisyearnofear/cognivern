@@ -50,6 +50,13 @@ const DEMO_BIDDERS = ["Alice", "Bob", "Charlie"] as const;
 function LifecycleSteps({ status }: { status: string }) {
   const order = ["open", "closed", "revealed"] as const;
   const labels: Record<string, string> = { open: "Bidding", closed: "Closed", revealed: "Decided" };
+  if (status === "cancelled") {
+    return (
+      <p className="text-[11px] text-muted-foreground">
+        Round cancelled — bids archived without disclosure
+      </p>
+    );
+  }
   const activeIdx = Math.max(0, order.indexOf(status as (typeof order)[number]));
   return (
     <ol aria-label="Round progress" className="flex items-center gap-1.5 text-[11px]">
@@ -91,6 +98,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   const [proposalDetails, setProposalDetails] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [revealing, setRevealing] = useState(false);
   const [selectionMethod, setSelectionMethod] = useState<
     "lowest-bid" | "highest-bid"
@@ -190,6 +198,24 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
     }
   }
 
+  async function handleCancel() {
+    if (!window.confirm("Cancel this round? Bids are archived without disclosure and any escrowed deposit returns to the manager.")) return;
+    setCancelling(true);
+    try {
+      const res = await apiClient.cancelSealedBidRound({
+        roundId,
+        manager: "Auctioneer",
+      });
+      if (!res.success) throw new Error(res.error || "Cancel failed");
+      toast.success("Round cancelled — bids archived, escrow returned");
+      await refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Cancel failed");
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   async function handleReveal() {
     setRevealing(true);
     try {
@@ -275,6 +301,8 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               <Badge className="bg-emerald-600 hover:bg-emerald-600">Open for bids</Badge>
             ) : round.status === "closed" ? (
               <Badge variant="secondary">Closed · ready to reveal</Badge>
+            ) : round.status === "cancelled" ? (
+              <Badge variant="outline" className="text-muted-foreground">Cancelled</Badge>
             ) : (
               <Badge variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-400">Decided</Badge>
             )}
@@ -454,7 +482,18 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
         </form>
       )}
 
-      {round.status !== "revealed" && round.bids.length > 0 && (
+      {round.status === "cancelled" && (
+        <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground flex items-start gap-2">
+          <X className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>
+            <span className="font-medium text-foreground">This round was cancelled.</span>{" "}
+            Any bids were archived without disclosure
+            {round.settledAssetCid ? " and the escrowed deposit returned to the manager" : ""}.
+          </span>
+        </div>
+      )}
+
+      {round.status !== "revealed" && round.status !== "cancelled" && (
         <div className="rounded-xl border bg-card p-4 space-y-3">
           {!isProduction && (
             <p className="rounded-md bg-muted px-3 py-1.5 text-[11px] text-muted-foreground">
@@ -526,6 +565,22 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
                   never surface.
                 </p>
               </>
+            )}
+            {(round.status === "open" || round.status === "closed") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                onClick={handleCancel}
+                disabled={cancelling}
+              >
+                {cancelling ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <X className="h-4 w-4 mr-1" />
+                )}
+                Cancel round
+              </Button>
             )}
           </div>
           )}

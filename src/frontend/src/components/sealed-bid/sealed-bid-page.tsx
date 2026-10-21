@@ -33,6 +33,8 @@ function StatusPill({ status }: { status: string }) {
     return <Badge variant="secondary">Closed · ready to reveal</Badge>;
   if (status === "revealed")
     return <Badge variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-400">Decided</Badge>;
+  if (status === "cancelled")
+    return <Badge variant="outline" className="text-muted-foreground">Cancelled</Badge>;
   return <Badge variant="outline" className="capitalize">{status}</Badge>;
 }
 
@@ -75,7 +77,7 @@ function WorkspaceStatusLine() {
 export function SealedBidPage() {
   const { data: rounds, isLoading, error } = useSealedBidRounds();
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "closed" | "revealed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "closed" | "revealed" | "cancelled">("all");
   const [showCreate, setShowCreate] = useState(false);
   const [showAgentCreate, setShowAgentCreate] = useState(false);
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
@@ -229,7 +231,7 @@ export function SealedBidPage() {
                 className="h-9 w-full sm:w-64 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
               />
               <div className="flex gap-1" role="group" aria-label="Filter by status">
-                {(["all", "open", "closed", "revealed"] as const).map((s) => (
+                {(["all", "open", "closed", "revealed", "cancelled"] as const).map((s) => (
                   <button
                     key={s}
                     type="button"
