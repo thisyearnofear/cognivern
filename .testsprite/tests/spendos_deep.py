@@ -8,12 +8,21 @@ and held-spend workflow.
 import time
 import requests
 
-BASE = __import__("os").environ.get("ENDPOINT_URL", "https://cognivern.thisyearnofear.com").rstrip("/")
-API_KEY = "sapience-hackathon-key"
-AUTH = {"x-api-key": API_KEY}
+BASE = __import__("os").environ.get("ENDPOINT_URL", "https://api.cognivern.persidian.com").rstrip("/")
+# The workspace key is injected by TestSprite at run time (see __AUTH_HEADERS__);
+# the legacy literal is only a local fallback.
+API_KEY = __AUTH_CREDENTIAL__ or "sapience-hackathon-key"
+AUTH = __AUTH_HEADERS__ or {"x-api-key": API_KEY}
 TIMEOUT = 15
 MAX_RETRIES = 5
 RETRY_DELAY = 8
+# Total wall-clock the retry loop may spend sleeping for one request. The
+# per-attempt backoff is multiplicative, so without this cap a module with
+# many calls can spend minutes parked in time.sleep() and blow the runner's
+# own timeout. When the budget is exhausted the last response is returned so
+# the assertion reports the real status.
+RETRY_BUDGET = 45
+TRANSIENT_STATUS = (429, 502, 503)
 
 VALID_SPEND = {
     "agentId": "test-agent-sprite",
@@ -25,16 +34,31 @@ VALID_SPEND = {
 
 
 def _request(method, url, **kwargs):
-    """Send an HTTP request with retry on 502/503 (server temporarily down)."""
+    """Send an HTTP request, retrying transient upstream failures.
+
+    The live deployment answers 502/503 when it is briefly overloaded and 429
+    when the per-IP rate limiter trips. Both are transient, so they are retried
+    with a backoff; every other status is returned to the caller as-is.
+    """
     kwargs.setdefault("timeout", TIMEOUT)
     last_resp = None
+    slept = 0
     for attempt in range(MAX_RETRIES):
-        r = requests.request(method, url, **kwargs)
-        if r.status_code not in (502, 503):
+        try:
+            r = requests.request(method, url, **kwargs)
+        except requests.exceptions.RequestException:
+            if attempt < MAX_RETRIES - 1 and slept < RETRY_BUDGET:
+                delay = min(RETRY_DELAY * (attempt + 1), RETRY_BUDGET - slept)
+                time.sleep(delay)
+                slept += delay
+            continue
+        if r.status_code not in TRANSIENT_STATUS:
             return r
         last_resp = r
-        if attempt < MAX_RETRIES - 1:
-            time.sleep(RETRY_DELAY)
+        if attempt < MAX_RETRIES - 1 and slept < RETRY_BUDGET:
+            delay = min(RETRY_DELAY * (attempt + 1), RETRY_BUDGET - slept)
+            time.sleep(delay)
+            slept += delay
     return last_resp
 
 
@@ -188,7 +212,14 @@ def test_encrypted_spend_ows_mode_validates_fields():
 
 
 def test_confirm_decision_confirm():
-    """POST /api/spend/:decisionId/confirm with action=confirm returns approved."""
+    """POST /api/spend/:decisionId/confirm refuses honestly with 501.
+
+    Held spends are CRE runs. The canonical operator-approval path is
+    POST /api/cre/runs/:runId/approval. This endpoint used to echo success
+    without approving anything — a fabricated approval — and now returns 501
+    pointing at the canonical endpoint. That refusal is the behaviour under
+    test.
+    """
     r = _request(
         "POST",
         f"{BASE}/api/spend/test-decision-sprite/confirm",
@@ -196,19 +227,14 @@ def test_confirm_decision_confirm():
         headers=AUTH,
         timeout=15,
     )
-    assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
+    assert r.status_code == 501, f"expected 501, got {r.status_code}: {r.text[:200]}"
     body = r.json()
-    assert body.get("success") is True
-    data = body.get("data", {})
-    assert data.get("decisionId") == "test-decision-sprite"
-    assert data.get("action") == "confirm"
-    assert data.get("outcome") == "approve"
-    assert "confirmedAt" in data, "missing confirmedAt"
-    assert "confirmedBy" in data, "missing confirmedBy"
+    assert body.get("success") is False
+    assert body.get("canonicalEndpoint") == "/api/cre/runs/test-decision-sprite/approval"
 
 
 def test_confirm_decision_reject():
-    """POST /api/spend/:decisionId/confirm with action=reject returns denied."""
+    """POST /api/spend/:decisionId/confirm refuses honestly with 501 for reject too."""
     r = _request(
         "POST",
         f"{BASE}/api/spend/test-decision-sprite/confirm",
@@ -216,16 +242,14 @@ def test_confirm_decision_reject():
         headers=AUTH,
         timeout=15,
     )
-    assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
+    assert r.status_code == 501, f"expected 501, got {r.status_code}: {r.text[:200]}"
     body = r.json()
-    assert body.get("success") is True
-    data = body.get("data", {})
-    assert data.get("action") == "reject"
-    assert data.get("outcome") == "deny"
+    assert body.get("success") is False
+    assert body.get("canonicalEndpoint") == "/api/cre/runs/test-decision-sprite/approval"
 
 
 def test_confirm_decision_invalid_action():
-    """POST /api/spend/:decisionId/confirm with invalid action returns 400."""
+    """POST /api/spend/:decisionId/confirm refuses with 501 before parsing action."""
     r = _request(
         "POST",
         f"{BASE}/api/spend/test-decision-sprite/confirm",
@@ -233,7 +257,7 @@ def test_confirm_decision_invalid_action():
         headers=AUTH,
         timeout=15,
     )
-    assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:200]}"
+    assert r.status_code == 501, f"expected 501, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is False
     assert "confirm" in body.get("error", "").lower() or "reject" in body.get("error", "").lower()

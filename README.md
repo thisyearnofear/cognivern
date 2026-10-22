@@ -75,6 +75,7 @@ For the public/demo path, most optional integrations can remain disabled. See th
 - [Docs index](./docs/README.md) — full documentation index and program status
 - [Developer Guide](./docs/DEV.md) — architecture, API reference, integrations
 - [Repository Map](./docs/REPOSITORY_MAP.md) — where to make changes by feature
+- [Verification](./docs/TESTING.md) — the live-target test suite, the loop, and what it does not cover
 - [Contributing](./CONTRIBUTING.md) — setup, workflow, tests
 - [Deployment](./docs/DEPLOYMENT.md) — production configuration
 
@@ -83,6 +84,14 @@ For the public/demo path, most optional integrations can remain disabled. See th
 **Governed spend:** agents propose, policy evaluates, wallets execute, evidence records — the agent never holds a key. On top of that substrate: confidential policy evaluation (Fhenix), confidential vendor selection (Canton sealed-bid rounds), verified intelligence rails (Telegraph/x402), and proof anchors (0G, X Layer). Integrations include Dynamic MPC wallets, KeeperHub, Cleanverse, and Flare — see the [docs index](./docs/README.md) for each rail.
 
 **Roadmap direction:** funded mandates → attributable execution → outcome accounting → external capital allocation. Govern → attribute → measure → allocate.
+
+## Verification
+
+**Every pull request is verified against the live deployment.** The suite is generated in the TestSprite portal against the running service, exported into this repo (21 modules across 13 API domains), and run on every PR by [`.github/workflows/testsprite.yml`](./.github/workflows/testsprite.yml). Eleven **failed** run bundles are recorded locally under `.testsprite/runs/` — gitignored, because run artifacts are bulky and machine-local; the portal is the system of record for runs, and CI re-uploads failure bundles as a 7-day artifact. The durable evidence in the repo is the exported suite and [`docs/history/LOOP.md`](./docs/history/LOOP.md), which cites a test id per iteration.
+
+The suite is written to check that the service is **telling the truth about itself**, not just that the happy path returns 200. The service declares which endpoints are public (`PUBLIC_API_PATHS`) and the middleware enforces it — that declaration is a claim about the running service, and it went stale repeatedly. Seven of the first eleven verification iterations turned up that single class of bug: `/api/governance/policies` returning **401** while listed as public, `/auth/*` blocked while listed as public, `/api/spendos/status` 404 with no route handler, and `/metrics/ux-events`, `/fhenix/encrypt`, `/mcp/governance-check` and `/projects/:id/*` missing from the list entirely. The fix that ended the class was structural — `isPublicApiPath()` gained parameterised path matching instead of another one-off entry.
+
+A happy-path smoke test finds none of those. What the suite covers, and what it does not, is in [`docs/TESTING.md`](./docs/TESTING.md); the iteration log is [`docs/history/LOOP.md`](./docs/history/LOOP.md).
 
 ## License
 

@@ -1,6 +1,6 @@
 {
   "backendProjectId": "8be1ec9e-a2c5-484a-8a2e-422b87832028",
   "frontendProjectId": "ea66de39-f1f5-4a40-98ad-fdf4e6c31fcd",
-  "backendUrl": "https://cognivern.thisyearnofear.com",
+  "backendUrl": "https://api.cognivern.persidian.com",
   "frontendUrl": "https://cognivern.vercel.app"
 }

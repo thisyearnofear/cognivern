@@ -8,6 +8,7 @@ commit it or copy its contents into public docs.
 
 - [REPOSITORY_MAP.md](./REPOSITORY_MAP.md) — where to make changes by feature
 - [DEV.md](./DEV.md) — architecture, local setup, API reference
+- [TESTING.md](./TESTING.md) — TestSprite verification: live-target suite, exported modules, the loop, what it does not cover
 - [TESTER_GUIDE.md](./TESTER_GUIDE.md) — canonical live/demo walkthrough
 - [DEPLOYMENT.md](./DEPLOYMENT.md) — production configuration and release ops
 
@@ -47,6 +48,7 @@ never bake deadlines into `AGENTS.md` or rail docs.
 
 | Program | Type | Status | Reference |
 | --- | --- | --- | --- |
+| TestSprite Season 4 | Hackathon | Preparing — submissions close Oct 22 2026 23:59 PT; $3,000 project pool + separate $1,000 CLI pool (Oct 29) | [submission](./history/TESTSPRITE_S4_SUBMISSION.md) · [verification doc](./TESTING.md) |
 | HackCanton S3 | Hackathon | Concluded Oct 21 2026 — not shortlisted; [retro](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md#retrospective) | [submission](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md) |
 | Prezenti AI Builder Sponsorship | Sponsorship (not a hackathon) | Applying — hard close Dec 29 2026; Celo mainnet milestone required | [PREZENTI_SPONSORSHIP.md](./PREZENTI_SPONSORSHIP.md) |
 | HackCanton S2 | Hackathon | Concluded | [CANTON.md](./CANTON.md) (rail stays live) |

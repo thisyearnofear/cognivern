@@ -660,7 +660,7 @@ pnpm lint
 
 ### TestSprite Integration Tests
 
-The project includes 24 TestSprite CLI backend tests, 30 MCP-generated Playwright frontend tests, and checked-in Playwright smoke coverage for the current public/demo UI. The checked-in suite includes:
+The project includes 21 TestSprite CLI backend tests, 30 MCP-generated Playwright frontend tests, and checked-in Playwright smoke coverage for the current public/demo UI. The checked-in suite includes:
 
 - `tests/e2e/landing.spec.ts` — public landing page content and primary CTAs;
 - `tests/e2e/demo-flow.spec.ts` — governed and ungoverned spend-demo paths;

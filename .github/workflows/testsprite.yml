@@ -25,18 +25,45 @@ jobs:
       - name: Install TestSprite CLI
         run: npm install -g @testsprite/testsprite-cli
 
+      # The suite hits the live deployment, so a missing credential is a hard
+      # error rather than a skip: a green check must mean the suite really ran.
+      - name: Require TestSprite credentials
+        if: ${{ env.TESTSPRITE_API_KEY == '' }}
+        run: |
+          echo "::error::TESTSPRITE_API_KEY is not set. The TestSprite check cannot"
+          echo "::error::verify the live deployment without it. Add it as an Actions"
+          echo "::error::repository secret, then re-run."
+          exit 1
+
+      # The suite hits the live deployment. Dispatching all 21 tests at once
+      # (what `test run --all` does) overwhelms the single backend instance:
+      # nginx answers 502 and the per-IP limiter answers 429, so a parallel run
+      # fails on infrastructure rather than on assertions. Run the tests one at
+      # a time instead and collect a verdict per test.
       - name: Run all backend tests
         run: |
-          testsprite test run --all --project "$PROJECT_ID" \
-            --wait --timeout 300 --output json
+          testsprite test list --project "$PROJECT_ID" --output json \
+            | jq -r '.items[].id' > /tmp/test-ids.txt
+          status=0
+          while read -r testId; do
+            [ -n "$testId" ] || continue
+            if ! testsprite test run "$testId" --project "$PROJECT_ID" \
+              --wait --timeout 300; then
+              echo "::error::TestSprite test $testId did not pass"
+              status=1
+            fi
+          done < /tmp/test-ids.txt
+          exit $status
 
       - name: Download failure bundles on failure
         if: failure()
         run: |
           # Pull failure artifacts for any failed runs
           testsprite test list --project "$PROJECT_ID" --status failed --output json | \
-            jq -r '.items[].lastRunId // empty' | \
-            while read -r runId; do
+            jq -r '.items[].id // empty' | \
+            while read -r testId; do
+              runId=$(testsprite test result "$testId" --output json | jq -r '.runIdIfAvailable // empty')
+              [ -n "$runId" ] || continue
               testsprite test artifact get "$runId" \
                 --out ".testsprite/runs/${runId}" || true
             done
@@ -47,4 +74,10 @@ jobs:
         with:
           name: testsprite-failures
           path: .testsprite/runs/
+          # `.testsprite/runs/` is a dotfile directory: upload-artifact skips
+          # hidden paths unless this is set, which would upload nothing.
+          include-hidden-files: true
           retention-days: 7
+          if-no-files-found: warn
+          compression-level: 6
+          overwrite: false

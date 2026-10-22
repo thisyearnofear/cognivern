@@ -6,9 +6,11 @@ and evaluation endpoints against the live Cognivern instance.
 import time
 import requests
 
-BASE = __import__("os").environ.get("ENDPOINT_URL", "https://cognivern.thisyearnofear.com").rstrip("/")
-API_KEY = "sapience-hackathon-key"
-AUTH = {"x-api-key": API_KEY}
+BASE = __import__("os").environ.get("ENDPOINT_URL", "https://api.cognivern.persidian.com").rstrip("/")
+# The workspace key is injected by TestSprite at run time (see __AUTH_HEADERS__);
+# the legacy literal is only a local fallback.
+API_KEY = __AUTH_CREDENTIAL__ or "sapience-hackathon-key"
+AUTH = __AUTH_HEADERS__ or {"x-api-key": API_KEY}
 
 VALID_POLICY = {
     "name": "TestSprite Test Policy",
@@ -19,19 +21,41 @@ VALID_POLICY = {
 
 MAX_RETRIES = 5
 RETRY_DELAY = 8
+TRANSIENT_STATUS = (429, 502, 503)
+# Total wall-clock the retry loop may spend sleeping for one request. The
+# per-attempt backoff is multiplicative, so without this cap a module with
+# many calls can spend minutes parked in time.sleep() and blow the runner's
+# own timeout. When the budget is exhausted the last response is returned so
+# the assertion reports the real status.
+RETRY_BUDGET = 45
 
 
 def _request(method, url, **kwargs):
-    """Send an HTTP request with retry on 502/503 (server temporarily down)."""
+    """Send an HTTP request, retrying transient upstream failures.
+
+    The live deployment answers 502/503 when it is briefly overloaded and 429
+    when the per-IP rate limiter trips. Both are transient, so they are retried
+    with a backoff; every other status is returned to the caller as-is.
+    """
     kwargs.setdefault("timeout", 15)
     last_resp = None
+    slept = 0
     for attempt in range(MAX_RETRIES):
-        r = requests.request(method, url, **kwargs)
-        if r.status_code not in (502, 503):
+        try:
+            r = requests.request(method, url, **kwargs)
+        except requests.exceptions.RequestException:
+            if attempt < MAX_RETRIES - 1 and slept < RETRY_BUDGET:
+                delay = min(RETRY_DELAY * (attempt + 1), RETRY_BUDGET - slept)
+                time.sleep(delay)
+                slept += delay
+            continue
+        if r.status_code not in TRANSIENT_STATUS:
             return r
         last_resp = r
-        if attempt < MAX_RETRIES - 1:
-            time.sleep(RETRY_DELAY)
+        if attempt < MAX_RETRIES - 1 and slept < RETRY_BUDGET:
+            delay = min(RETRY_DELAY * (attempt + 1), RETRY_BUDGET - slept)
+            time.sleep(delay)
+            slept += delay
     return last_resp
 
 
