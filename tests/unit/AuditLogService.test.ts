@@ -67,7 +67,7 @@ describe("AuditLogService persists logs deterministically via CRE store", () => 
     expect(logs[0].severity).toBe("low");
     expect(logs[0].complianceStatus).toBe("compliant");
 
-    await fs.promises.rm(tempDir, { recursive: true, force: true });
+    await fs.promises.rm(tempDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   });
 });
 
@@ -131,7 +131,7 @@ describe("AuditLogService captures 0G rootHash in CRE evidence", () => {
     expect(runs.length).toBe(1);
     expect(runs[0].evidence?.zeroGRootHash).toBe("0xzeroroot");
 
-    await fs.promises.rm(tempDir, { recursive: true, force: true });
+    await fs.promises.rm(tempDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   });
 
   it("logEvent stores zeroGRootHash when anchor succeeds", async () => {
@@ -164,7 +164,7 @@ describe("AuditLogService captures 0G rootHash in CRE evidence", () => {
     expect(runs.length).toBe(1);
     expect(runs[0].evidence?.zeroGRootHash).toBe("0xeventroot");
 
-    await fs.promises.rm(tempDir, { recursive: true, force: true });
+    await fs.promises.rm(tempDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   });
 });
 
@@ -211,7 +211,7 @@ describe("AuditLogService dual-anchors to both 0G and Filecoin", () => {
     expect(runs[0].evidence?.zeroGRootHash).toBe("0xzeroroot");
     expect(runs[0].evidence?.filecoinCid).toBe("sha256:filecoinhash");
 
-    await fs.promises.rm(tempDir, { recursive: true, force: true });
+    await fs.promises.rm(tempDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   });
 
   it("logAction stores zeroGRootHash only when Filecoin fails", async () => {
@@ -249,7 +249,7 @@ describe("AuditLogService dual-anchors to both 0G and Filecoin", () => {
     expect(runs[0].evidence?.zeroGRootHash).toBe("0xzeroroot");
     expect(runs[0].evidence?.filecoinCid).toBeUndefined();
 
-    await fs.promises.rm(tempDir, { recursive: true, force: true });
+    await fs.promises.rm(tempDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   });
 
   it("logAction stores filecoinCid only when 0G fails", async () => {
@@ -288,6 +288,6 @@ describe("AuditLogService dual-anchors to both 0G and Filecoin", () => {
     expect(runs[0].evidence?.zeroGRootHash).toBeUndefined();
     expect(runs[0].evidence?.filecoinCid).toBe("sha256:filecoinonly");
 
-    await fs.promises.rm(tempDir, { recursive: true, force: true });
+    await fs.promises.rm(tempDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   });
 });

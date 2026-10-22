@@ -5,6 +5,10 @@ vi.mock("@backend/services/blockchain/FilecoinStorageService.js", () => ({
   FilecoinStorageService: class {
     enabled = false;
   },
+  filecoinStorageService: {
+    enabled: false,
+    verifyDetailed: vi.fn(async () => ({ verified: false })),
+  },
 }));
 
 const { AuditLogController } = await import(

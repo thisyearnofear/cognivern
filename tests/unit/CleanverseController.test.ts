@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 function response() {
   return {
@@ -16,6 +16,15 @@ function response() {
 }
 
 describe('CleanverseController', () => {
+  beforeEach(() => {
+    vi.stubEnv('CLEANVERSE_API_ID', 'test-id');
+    vi.stubEnv('CLEANVERSE_API_KEY', 'test-key');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('reports Access USDC configuration without secrets', async () => {
     const { CleanverseController } = await import(
       '../../src/backend/modules/api/controllers/CleanverseController.js'
