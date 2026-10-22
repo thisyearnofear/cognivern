@@ -88,13 +88,13 @@ artifacts.
 
 ## Season 4 mechanics
 
-- [ ] TestSprite 3.0 web portal suite generated against the live targets
+- [x] TestSprite 3.0 web portal suite generated against the live targets
 - [ ] GitHub App installed on `thisyearnofear/cognivern` — **the same account
       that generated the suite**; a mismatch is disqualifying
 - [ ] **Blocking PRs enabled** so the check holds the merge
 - [ ] At least one PR opened inside the window (Oct 16–22) carrying a
       TestSprite comment or status check
-- [ ] Both live targets reachable throughout the build phase
+- [x] Both live targets reachable throughout the build phase
 - [ ] Public repo, README covering the app, the live URLs, and what the suite
       covers
 - [ ] Posted in `#hackathon-s4-submissions` with the template
