@@ -8,7 +8,11 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      max_memory_restart: '512M',
+      // CoFHE zk proving (encryptInputs) spikes RSS well past 512M while the
+      // WASM prover runs — the event loop is also blocked during the proof, so
+      // pm2's SIGINT can't be serviced and the kill lands mid-request. 1.5G
+      // covers baseline (~200M) + concurrent proves with leak protection intact.
+      max_memory_restart: '1536M',
       kill_timeout: 5000,
       listen_timeout: 10000,
       node_args: '-r dotenv/config --loader /opt/cognivern/app/config/esm-dir-loader.mjs',

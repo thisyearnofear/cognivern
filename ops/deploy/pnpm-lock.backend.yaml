@@ -17,8 +17,8 @@ importers:
         specifier: 1.2.11
         version: 1.2.11(bufferutil@4.1.0)(ethers@6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
       '@cofhe/sdk':
-        specifier: 0.5.2
-        version: 0.5.2(ethers@6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(viem@2.56.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)(zod@3.25.76))
+        specifier: 1.0.1
+        version: 1.0.1(ethers@6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(viem@2.56.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)(zod@3.25.76))
       '@ledgerhq/context-module':
         specifier: ^2.0.0
         version: 2.5.0(@ledgerhq/device-management-kit@1.6.0(bufferutil@4.1.0)(rxjs@7.8.2)(utf-8-validate@5.0.10))(bufferutil@4.1.0)(utf-8-validate@5.0.10)
@@ -137,6 +137,24 @@ packages:
 
   '@cofhe/sdk@0.5.2':
     resolution: {integrity: sha512-OJ1c6GF5CmpumQhWg4GLxx0V+Gyo3N5XcjuAfXzVy5g9PEGq4VpkfvnDBqmwc0K6+m9kff29Jtw/KfUE5v+xQw==}
+    peerDependencies:
+      '@nomicfoundation/hardhat-ethers': ^3.0.0
+      '@wagmi/core': ^2.0.0
+      ethers: ^5.0.0 || ^6.0.0
+      hardhat: ^2.0.0
+      viem: ^2.38.6
+    peerDependenciesMeta:
+      '@nomicfoundation/hardhat-ethers':
+        optional: true
+      '@wagmi/core':
+        optional: true
+      ethers:
+        optional: true
+      hardhat:
+        optional: true
+
+  '@cofhe/sdk@1.0.1':
+    resolution: {integrity: sha512-zdUmfHShRVRZIfAAmZleWUrdZ3TDqWbGLQ/9GWkD+xHOyVirbiaZOkmdDWdwrUegrp1ssa+ePYwCqji7g04wtg==}
     peerDependencies:
       '@nomicfoundation/hardhat-ethers': ^3.0.0
       '@wagmi/core': ^2.0.0
@@ -2117,6 +2135,24 @@ packages:
   zod@4.0.0:
     resolution: {integrity: sha512-9diLdTPc/L7w/5jI4C3gHYNiGHDV9IZYxo1e5LSD8cabi65WVTWWb+g2BGPEpUUCOxR4D+6O5B0AzyMdUAXwrw==}
 
+  zustand@5.0.13:
+    resolution: {integrity: sha512-efI2tVaVQPqtOh114loML/Z80Y4NP3yc+Ff0fYiZJPauNeWZeIp/bRFD7I9bfmCOYBh/PHxlglQ9+wvlwnPikQ==}
+    engines: {node: '>=12.20.0'}
+    peerDependencies:
+      '@types/react': '>=18.0.0'
+      immer: '>=9.0.6'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
+      use-sync-external-store:
+        optional: true
+
   zustand@5.0.1:
     resolution: {integrity: sha512-pRET7Lao2z+n5R/HduXMio35TncTlSW68WsYBq2Lg1ASspsNGjpwLAsij3RpouyV6+kHMwwwzP0bZPD70/Jx/w==}
     engines: {node: '>=12.20.0'}
@@ -2166,6 +2202,23 @@ snapshots:
       viem: 2.56.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)(zod@3.25.76)
       zod: 4.0.0
       zustand: 5.0.1(immer@10.1.1)
+    optionalDependencies:
+      ethers: 6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+    transitivePeerDependencies:
+      - '@types/react'
+      - react
+      - use-sync-external-store
+
+  '@cofhe/sdk@1.0.1(ethers@6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(viem@2.56.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)(zod@3.25.76))':
+    dependencies:
+      iframe-shared-storage: 1.0.34
+      immer: 10.1.1
+      node-tfhe: 1.5.3
+      tfhe: 1.5.3
+      tweetnacl: 1.0.3
+      viem: 2.56.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)(zod@3.25.76)
+      zod: 4.0.0
+      zustand: 5.0.13(immer@10.1.1)
     optionalDependencies:
       ethers: 6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
     transitivePeerDependencies:
@@ -4360,6 +4413,10 @@ snapshots:
   zod@3.25.76: {}
 
   zod@4.0.0: {}
+
+  zustand@5.0.13(immer@10.1.1):
+    optionalDependencies:
+      immer: 10.1.1
 
   zustand@5.0.1(immer@10.1.1):
     optionalDependencies:

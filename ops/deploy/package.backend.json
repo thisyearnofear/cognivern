@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@0gfoundation/0g-storage-ts-sdk": "1.2.11",
-    "@cofhe/sdk": "0.5.2",
+    "@cofhe/sdk": "1.0.1",
     "@ledgerhq/context-module": "^2.0.0",
     "@ledgerhq/device-management-kit": "1.6.0",
     "@ledgerhq/device-signer-kit-ethereum": "1.16.0",

@@ -288,6 +288,13 @@ pm2 restart cognivern-backend --update-env
 pm2 save
 ```
 
+`max_memory_restart` for `cognivern-backend` is 1536M (see
+`config/ecosystem.config.cjs`): the CoFHE WASM prover spikes RSS past
+512M during `encryptInputs`, and the old 512M cap restarted the process
+mid-request — 502s plus in-memory state loss. `pm2 restart --update-env`
+does not apply cap changes; recreate the entry with
+`pm2 delete cognivern-backend && pm2 start config/ecosystem.config.cjs --only cognivern-backend && pm2 save`.
+
 PM2 must run in `fork` mode (not cluster) — SQLite requires single-process access.
 
 ## Log Rotation

@@ -48,6 +48,30 @@ on `/v2/dars`; see `docs/CANTON.md` → Next model work.
 If you rebuild, **keep the package name `daml`** or those `#daml:`
 references break.
 
+## CoFHE SDK floor: 1.0.1, and the pm2 memory cap is load-bearing
+
+- The live verifier (`testnet-cofhe-vrf.fhenix.zone`) only serves
+  `/verifyBatch` and rejects zkPoK proofs whose metadata lacks
+  `contract_address` — only `@cofhe/sdk` **1.0.1** builds it. Older SDKs
+  surface as `CofheError: ZK proof verification failed` (400 on bid
+  submit) or "CoFHE encryption service unavailable" (503 on
+  `/api/fhenix/encrypt`). Do not downgrade.
+- `encryptInputs` requires `.setConsumingContract()` and returns
+  `[...ctHash, batchSignature]`; auditor permits are now serialized
+  sharing ACPs via `client.acp.*`. Permits issued under <=0.5.x do not
+  unseal — reissue through `issueAuditPermit`.
+- `config/ecosystem.config.cjs` `max_memory_restart: 1536M` exists
+  because the WASM prover spikes RSS past 512M and blocks the event
+  loop: at the old cap pm2 SIGKILLed mid-request -> nginx 502 + wiped
+  in-memory state. `pm2 restart --update-env` does NOT apply cap
+  changes — recreate the entry:
+  `pm2 delete cognivern-backend && pm2 start config/ecosystem.config.cjs --only cognivern-backend`.
+- `@reineira-os/sdk` is delisted from npm (metadata + tarball 404).
+  `ops/deploy/pnpm-lock.backend.yaml` cannot be regenerated from
+  scratch — patch it (the reineira entry stays valid via the server's
+  warm pnpm store) or restore the dep before running
+  `regen-backend-lockfile.sh`.
+
 ## Process lessons
 
 Verify the running system before claiming it is broken. Read the existing docs first.

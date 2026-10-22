@@ -251,18 +251,8 @@ export class FhenixPolicyService {
       };
     }
 
-    await this.ensureConnected();
-
     // 1. Encrypt amount for Fhenix (use uint128, max supported by CoFHE SDK)
-    const encryptedInputs = await withTimeout(
-      this.client
-        .encryptInputs([Encryptable.uint128(input.amountWei)])
-        .setChainId(this.config.chainId ?? 421614)
-        .execute(),
-      this.config.evaluateTimeoutMs || 30000,
-    );
-
-    const amountCt = encryptedInputs[0];
+    const amountCt = await this.encryptAmountCt(input.amountWei);
 
     // 2. Submit to Fhenix contract
     const hash = await this.walletClient.writeContract({
@@ -490,17 +480,12 @@ export class FhenixPolicyService {
       throw new Error('Private key not configured for permit creation');
     }
 
-    const permit = await this.client.permits.createSharing(
-      {
-        issuer: account as `0x${string}`,
-        recipient: auditor as `0x${string}`,
-      },
-      {
-        publicClient: this.publicClient,
-        walletClient: this.walletClient,
-      },
-    );
-    return JSON.stringify(permit);
+    const acp = await this.client.acp.createSharing({
+      issuer: account,
+      recipient: auditor,
+      name: `cognivern-audit-${policyId}`,
+    });
+    return JSON.stringify(this.client.acp.serialize(acp));
   }
 
   /**
@@ -538,14 +523,15 @@ export class FhenixPolicyService {
    * Decrypt a value for viewing (for auditor use).
    *
    * Uses the CoFHE SDK's decryptForView builder:
-   *   client.decryptForView(ctHash)
+   *   client.decryptForView(ctHash, utype)
    *     .setChainId(chainId)
-   *     .withPermit(permitObject)
+   *     .withACP(acpObject)
    *     .execute()
    *
    * @param contractAddress - The Fhenix contract address (used for chain context)
    * @param encryptedValue  - JSON string with { ctHash, chainId? } or a plain ctHash string
-   * @param permit          - Serialized CoFHE Permit (JSON string)
+   * @param permit          - Serialized sharing ACP (JSON string, as produced
+   *                          by issueAuditPermit / client.acp.serialize)
    */
   async unsealValue(
     contractAddress: string,
@@ -558,7 +544,7 @@ export class FhenixPolicyService {
 
     await this.ensureConnected();
 
-    const parsedPermit = JSON.parse(permit);
+    const parsedAcp = this.client.acp.deserialize(JSON.parse(permit));
 
     let ctHash: bigint;
     let utype: number = FheTypes.Uint128;
@@ -581,7 +567,7 @@ export class FhenixPolicyService {
       this.client
         .decryptForView(ctHash, utype as FheTypes)
         .setChainId(chainId)
-        .withPermit(parsedPermit)
+        .withACP(parsedAcp)
         .execute(),
       this.config.evaluateTimeoutMs || 30000,
     );
@@ -631,21 +617,33 @@ export class FhenixPolicyService {
       };
     }
 
+    return this.encryptAmountCt(amountWei);
+  }
+
+  /**
+   * Encrypt a spend amount for the policy contract. Since @cofhe/sdk 0.7 the
+   * verifier binds the consuming contract into the signed batch, so the
+   * contract address must be committed up front; execute() returns
+   * [ctHash, batchSignature] rather than a full InItem struct, which we
+   * reassemble here.
+   */
+  private async encryptAmountCt(amountWei: bigint): Promise<EncryptedAmount> {
     if (!this.client) {
       throw new Error('CoFHE client not available');
     }
 
     await this.ensureConnected();
 
-    const encryptedInputs = await withTimeout(
+    const [ctHash, signature] = await withTimeout(
       this.client
         .encryptInputs([Encryptable.uint128(amountWei)])
         .setChainId(this.config.chainId ?? 421614)
+        .setConsumingContract(this.config.contractAddress)
         .execute(),
       this.config.evaluateTimeoutMs || 30000,
     );
 
-    return encryptedInputs[0];
+    return { ctHash, securityZone: 0, utype: FheTypes.Uint128, signature };
   }
 
   /**
@@ -660,21 +658,8 @@ export class FhenixPolicyService {
   }): Promise<{ decisionId: string; txHash: string }> {
     logger.info(`Requesting DeFi action on Fhenix: agent=${input.agentId}, target=${input.target}`);
 
-    if (!this.client) {
-      throw new Error('CoFHE client not available');
-    }
-
-    await this.ensureConnected();
-
     // 1. Encrypt amount
-    const encryptedInputs = await withTimeout(
-      this.client
-        .encryptInputs([Encryptable.uint128(input.amountWei)])
-        .setChainId(this.config.chainId ?? 421614)
-        .execute(),
-      this.config.evaluateTimeoutMs || 30000,
-    );
-    const amountCt = encryptedInputs[0];
+    const amountCt = await this.encryptAmountCt(input.amountWei);
 
     // 2. Submit requestDeFiAction to Fhenix contract
     const hash = await this.walletClient.writeContract({
