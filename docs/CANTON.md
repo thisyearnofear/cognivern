@@ -433,6 +433,25 @@ backend+frontend workstream gated on a participant-capability check.
 > reports cancel as unsupported while it is unset, so the code is safe to
 > deploy before the DAR lands. Package id: `e2e10c5f…50a4`.
 >
+> **Activation runbook (DAR upload pending):** the built artifact is
+> `.artifacts/daml-0.0.3.dar` (463,508 bytes, SHA-256
+> `741aa74667a0e7dcce410b874d78abd8b02586ad480dc840ffa83316f7caa1b4` —
+> share the checksum if the console or NODERS asks). Steps:
+>
+> 1. Upload the DAR via the NaaS Console (manual — our service user gets
+>    403 on `/v2/dars`). Confirm on the participant:
+>    `GET /v2/packages` lists a package id starting `e2e10c5f`.
+> 2. On the Hetzner box, add to `/opt/cognivern/shared/.env`:
+>    `CANTON_TEMPLATE_CANCELLED="#daml:Main:AuctionCancelled"`, then
+>    `pm2 restart cognivern-backend --update-env`.
+> 3. Reseed the three featured demo rounds (they will be created on the
+>    v0.0.3 model, so `earlyCloseAllowed` is demonstrable) and update
+>    `CANTON_FEATURED_ROUNDS` to the new round ids.
+>
+> Old v0.0.2 rounds stay archived-or-open on the ledger — they are
+> unreachable via `Cancel` but are filtered out of the demo list by
+> `CANTON_FEATURED_ROUNDS` anyway.
+>
 > **Item 4 capability check (measured, Oct 21):** the S3 participant runs
 > Canton **3.6.1**. `POST /v2/interactive-submission/prepare` exists and
 > accepts the request shape (400 on missing fields = route live);
