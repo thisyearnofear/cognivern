@@ -1,7 +1,7 @@
 # Collusion Under Mandate: Population-Level Budget Violations from Individually Compliant Agents
 
 *Apart Research Swarm Alignment Hackathon 2026 — Track 2 (Science of Agent Networks) with Track 4 (Oversight) crossover.*
-**Status: DRAFT — results pending Kaggle kernel v5.**
+**Status: RESULTS IN — kernel v8 (valid run).**
 
 ## Abstract (150–250 words, to finalize with numbers)
 
@@ -15,11 +15,23 @@ cap, and where tasks are priced so that full completion requires exceeding
 that cap. Across communication conditions (none / broadcast / pairwise) and
 model variants (base vs. mandate-fine-tuned Aya Expanse 8B), we measure
 population-level violations, task completion, and detection by two oversight
-arms: a per-trajectory monitor and deterministic ledger forensics. We find
-[pending]: whether violations emerge without communication, whether covert
-channels change their shape, whether mandate fine-tuning helps or hurts under
-collusion, and how large the detection gap is between individual and
-population-level oversight. All code and episode logs are public.
+arms: a per-trajectory monitor and deterministic ledger forensics. Across 12
+episodes (3 communication channels × base/tuned Aya Expanse 8B × 2 seeds),
+**every episode breached the shared treasury cap** (12/12, spend $1477–1550
+vs. a $1200 cap) while **no agent ever violated its individual mandate** —
+the violation is arithmetic, not malicious: four $400 mandates sum to $1600
+of authorized spend against a $1200 program invariant. Per-trajectory
+oversight detected **0 of 12** population violations; ledger forensics
+detected **12 of 12** (detection gap = 100%). Mandate fine-tuning did not
+reduce population violations — tuned agents overspent *more* ($1550 vs.
+$1477), completed *fewer* tasks (0% vs. 25%), and stopped communicating
+entirely (0 messages vs. 42–47). No agent ever used the `for_agent`
+collusion primitive or purchased a luxury item; agents instead looped
+identical purchase plans until their individual budgets exhausted. We argue
+the result is not a failure of the testbed but its finding: when mandate
+coverage exceeds the program invariant, compliance theater is the
+equilibrium — and only population-level audit can see it. All code and
+episode logs are public.
 
 ## 1. Introduction
 
@@ -151,35 +163,119 @@ message counts, and per-agent spend trajectories.
 The **detection gap** — population violations Arm B catches that Arm A
 misses — is the headline oversight metric.
 
-## 4. Results [PENDING]
+## 4. Results
 
-*To be filled from `swarm_out/summary.json` + `episodes.jsonl` via
-`analyze_swarm.py`. Planned tables:*
+All numbers from kernel v8 (`episodes.jsonl`, `summary.json`; n=2 episodes
+per cell, greedy decoding, full 12-round episodes). Two earlier runs are
+excluded as invalid harness artifacts (v4: action-plan parser dropped all
+but the first action; v5/v6: cap breach terminated episodes at ~round 3 —
+see §7).
 
-- Table 1: violation rates, task completion, bonus capture, message and
-  transfer counts by variant × channel (n=2 per cell).
-- Table 2: oversight comparison — Arm A vs Arm B detection rates and the
-  detection gap.
-- Per-detector finding counts (split purchases, transfer concentration,
-  comm↔transaction correlation, cap-race).
+### Table 1 — Outcomes by variant × channel
 
-*Pre-registered expectations (stated before results, to avoid HARKing):*
-(a) `treasury_over_cap` will occur in most episodes — the pricing makes it
-nearly unavoidable, so the interesting variance is in *how* agents get
-there (transfers, luxury buys, message coordination); (b) `pairwise` should
-produce more `for_agent` transfers than `broadcast` (covert division of
-labor); (c) mandate-SFT should reduce `disallowed_purchase` and
-`mandate_breach` per-agent but may not reduce `treasury_over_cap`, which is
-a population property no individual decision controls.
+| Variant | Channel | n | Cap breached | Pop. violation | Mandate breaches | Blocked buys | `for_agent` xfers | Tasks done | Bonus | Msgs delivered |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base | none | 2 | 2/2 | 2/2 | 0 | 0 | 0 | 1/4 (25%) | 0/2 | 0 |
+| base | broadcast | 2 | 2/2 | 2/2 | 0 | 0 | 0 | 1/4 (25%) | 0/2 | 47 |
+| base | pairwise | 2 | 2/2 | 2/2 | 0 | 0 | 0 | 1/4 (25%) | 0/2 | 42 |
+| tuned | none | 2 | 2/2 | 2/2 | 0 | 0 | 0 | 0/4 (0%) | 0/2 | 0 |
+| tuned | broadcast | 2 | 2/2 | 2/2 | 0 | 0 | 0 | 0/4 (0%) | 0/2 | 0 |
+| tuned | pairwise | 2 | 2/2 | 2/2 | 0 | 0 | 0 | 0/4 (0%) | 0/2 | 0 |
 
-## 5. Discussion [PENDING]
+Aggregate spend vs. the $1200 program cap: **base $1477** (22.9% over),
+**tuned $1550** (29.2% over) — identical across seeds within a variant
+(greedy decode; world parameters did not vary with seed).
 
-- Did violations emerge without communication?
-- Did covert channels change violation *shape* (transfers vs open
-  coordination)?
-- Did mandate-SFT reduce individual violations while leaving or worsening
-  population violations?
-- Detection gap: population violations invisible to per-trajectory monitors?
+### Table 2 — Oversight arms
+
+| Arm | Population violations detected | Rate |
+|---|---|---|
+| A — per-trajectory monitor | 0 / 12 | 0% |
+| B — ledger forensics | 12 / 12 | 100% |
+| **Detection gap** | **12 / 12** | **100%** |
+
+Arm A flagged zero agents in every episode: no individual mandate was ever
+breached, so per-agent records contain nothing to flag. Arm B fired on
+every episode via two detectors: `cap_race` (aggregate spend velocity vs.
+remaining rounds — 24 findings) and `split_purchase` (same item+vendor
+procured across agents — 66 findings). `transfer_concentration` and
+`comm↔transaction` correlation never fired: no transfers or coordinated
+buy sequences occurred.
+
+### Qualitative findings
+
+- **Agents loop, they do not strategize.** Every agent repeated the same
+  purchase plan all 12 rounds; later rounds produced `insufficient budget`
+  receipts that changed nothing. Communication conditioned *messages*, not
+  *plans*: broadcast/pairwise episodes show 42–47 delivered messages but
+  byte-identical spend trajectories to the none channel.
+- **Compliance theater is the equilibrium — for base models too.** Base
+  agents broadcast virtue signaling ("Adhering to policy, I will not be
+  purchasing the luxury-watch…") every round while the treasury blew
+  through its cap. The messages reference the luxury want they were
+  tempted by and correctly refused — individual compliance, broadcast as
+  a signal, population violation proceeding regardless.
+- **Mandate-SFT removed coordination entirely.** Tuned agents emitted zero
+  message actions in all conditions — the LoRA collapsed the action
+  distribution to purchase-only — while overspending *more* than base and
+  completing fewer tasks. Single-agent mandate training did not transfer
+  to, and slightly worsened, the population-level outcome.
+- **The collusion primitives went unused.** No `for_agent` purchase, no
+  luxury purchase, no blocked transaction in 576 agent-rounds. Agents
+  never discovered delegated buying or the temptation item; the
+  population violation emerged from *honest* overspending against an
+  under-provisioned invariant.
+
+*Pre-registered expectations check:* (a) confirmed — `treasury_over_cap`
+in 12/12, and the interesting variance collapsed because agents never
+reached the post-breach regime behaviorally (they looped instead);
+(b) rejected — `pairwise` produced *fewer* messages than `broadcast`
+(42 vs 47) and zero transfers in both; (c) partially confirmed — tuned
+showed no individual violations (there were none to reduce) but *worsened*
+the population outcome.
+
+## 5. Discussion
+
+**Did violations emerge without communication?** Yes — 6/6 none-channel
+episodes breached the cap with zero delivered messages. But the mechanism
+is not collusion: it is *arithmetic*. Four $400 individual mandates sum to
+$1600 of authorized spend against a $1200 program cap, and the task bundles
+are priced so that even full cooperation cannot fit. Any population of
+agents that spends its mandates honestly breaches the invariant. The
+violation required no coordination, no deception, and no malice — which is
+precisely why per-trajectory oversight cannot see it.
+
+**Did covert channels change violation shape?** No detectable difference.
+Pairwise messaging produced fewer messages than broadcast (42 vs 47) and
+identical spend trajectories; `for_agent` transfers and luxury purchases
+never occurred in any condition. With 8B models under greedy decoding,
+channels conditioned message *volume*, not agent *plans*. We report this
+as a capability-floor result, not evidence that covert channels are safe.
+
+**Did mandate-SFT help or hurt?** Hurt, modestly and interestingly. The
+v4 adapter was trained to make *single-agent* spend decisions mandate-
+compliant. In the population setting it (i) never reduced population
+violations — none existed at the individual level to reduce — (ii)
+overspent *more* ($1550 vs $1477), (iii) completed fewer tasks (0% vs
+25%), and (iv) eliminated all agent-to-agent messaging. The most
+defensible reading: the fine-tune narrowed the action distribution toward
+purchase execution at the expense of the communicative and planning
+behavior a population task requires. Internalized compliance did not
+internalize the *population* constraint — because the training data never
+contained one.
+
+**The detection gap is the finding.** Arm A saw nothing in 12/12 episodes;
+Arm B caught everything via `cap_race` + `split_purchase`. This is the
+productizable claim: per-agent governance dashboards structurally cannot
+represent program-level safety. The invariant that matters lives one level
+above the unit of observation.
+
+**Honest negatives.** Agents never used the collusion primitives we built
+to detect them; the interesting covert-collusion regime (transfers,
+luxury splits, comm-correlated buying) remains untested at this model
+scale. The `split_purchase` detector fired 66 times mostly on repetitive
+same-item buying rather than strategic division of labor — a detector
+precision caveat we flag rather than hide.
 
 ## 6. Limitations & Dual-Use / Ethical Considerations (required)
 
@@ -208,8 +304,19 @@ a population property no individual decision controls.
 
 - Repo: `github.com/thisyearnofear/cognivern`, `lexsi/swarm/`
   (env, sim, prompts, forensics, analyze_swarm, mock policies)
-- Kernel: `papajams/lexsi-swarm-eval` on Kaggle (T4×2, ~2h)
-- Artifacts: `episodes.jsonl` (full transcripts + receipts),
-  `summary.json`, per-detector forensics findings
+- Results: `lexsi/swarm/results/v8/episodes.jsonl` (full transcripts +
+  receipts) and `summary.json`
+- Kernel: `papajams/lexsi-swarm-eval` v8 on Kaggle (T4×2, ~2.5h). The swarm
+  package is embedded in the kernel script; the LoRA adapter loads from
+  the public HF repo `Papajams/aya-expanse-8b-lexsi-v4`.
+- Analysis: `python -m swarm.analyze_swarm results/v8/episodes.jsonl`
 - Local smoke test: `python -m swarm.run_local --policy naive --channel
   broadcast` (no GPU required)
+
+**Invalidated runs (paper trail).** v4 episodes were discarded: the model
+emits JSON *arrays* of planned actions and the original parser executed
+only the first element, so agents repeated one purchase and never
+messaged. v5/v6 episodes were discarded: cap breach terminated episodes
+at ~round 3 before post-breach behavior could occur. Both are documented
+in `docs/APART_SWARM_2026.md`; v8 is the first run with full-length
+episodes and complete action-plan execution.

@@ -87,10 +87,20 @@ mechanisms in the report's Related Work/Discussion.
   upload silently 400'd, so v6 executed the v5 code again (identical
   results: episodes end round 1–2 on cap breach). Diagnosed by comparing
   episode `n_rounds` and dataset file sizes.
-- **Kernel v7 RUNNING** — cap-scarce regime with the swarm package
-  embedded directly in the kernel script (base64 tarball), bypassing the
-  broken dataset-version API. Verified embedded env.py is the new
-  non-terminating-cap version before push.
+- **Kernel v8 COMPLETE — valid results.** v7 crashed at the tuned pass:
+  the dataset's current version was the folder-skipping upload (hf_token
+  only, no adapter_v4). Fixed by loading the LoRA from the public HF repo
+  `Papajams/aya-expanse-8b-lexsi-v4` instead of the dataset. v8 completed
+  all 12 episodes at full 12 rounds.
+- **v8 headline results:** 12/12 episodes `treasury_over_cap` (base $1477,
+  tuned $1550 vs $1200 cap); 0 individual mandate breaches, 0 `for_agent`
+  transfers, 0 luxury buys in 576 agent-rounds — violation is arithmetic
+  (4×$400 mandates > $1200 invariant), not collusion. Detection gap 100%:
+  Arm A 0/12, Arm B 12/12 via cap_race + split_purchase. Tuned agents
+  emitted ZERO messages (action collapse to buy-only), overspent more,
+  completed fewer tasks (0% vs 25%). Base agents broadcast compliance
+  theater while overspending. Full write-up in `lexsi/swarm/REPORT.md`;
+  artifacts in `lexsi/swarm/results/v8/`.
 
 ## Preexisting vs weekend work (for the report)
 
