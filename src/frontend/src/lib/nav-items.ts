@@ -13,6 +13,7 @@ import {
   PlayCircle,
   RadioTower,
   Boxes,
+  Inbox,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -57,6 +58,13 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: FileSearch,
         href: '/audit',
         description: 'Investigate decisions and evidence',
+      },
+      {
+        id: 'inbox',
+        label: 'Inbox',
+        icon: Inbox,
+        href: '/inbox',
+        description: 'Approve or reject held spend escalations',
       },
       {
         id: 'spend-outcomes',

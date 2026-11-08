@@ -115,6 +115,13 @@ export interface Run {
     zeroGProofV2?: ProofAnchorReceipt;
     xlayerProofV2?: ProofAnchorReceipt;
   };
+  /** Present on CRE-backed runs; used by the escalation inbox. */
+  requiresApproval?: boolean;
+  approvalState?: 'not_required' | 'pending' | 'approved' | 'rejected';
+  approvalReason?: string;
+  suspicionScore?: number;
+  suspicionLabel?: string;
+  estimatedCostUsd?: number;
 }
 
 export interface RunEvent {

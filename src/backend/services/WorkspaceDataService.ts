@@ -861,6 +861,12 @@ function creRunToRun(cr: CreRun): Run {
     duration: durationMs > 0 ? `${Math.round(durationMs / 1000)}s` : "—",
     artifacts: cr.metrics?.artifactCount || 0,
     timestamp: cr.startedAt,
+    requiresApproval: cr.requiresApproval,
+    approvalState: cr.approvalState,
+    approvalReason: cr.approvalReason,
+    suspicionScore: cr.evidence?.suspicion?.composite,
+    suspicionLabel: cr.evidence?.suspicion?.label,
+    estimatedCostUsd: cr.metrics?.estimatedCostUsd,
   };
 }
 
