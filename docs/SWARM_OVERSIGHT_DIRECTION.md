@@ -4,6 +4,42 @@
 (`lexsi/swarm/`, `docs/APART_SWARM_2026.md`). Directional — priorities depend
 on the swarm eval results; see "Open questions" at the bottom.*
 
+## Implementation status (Nov 8, same-day)
+
+Substrate discovery changed the picture: Cognivern was closer than assumed.
+**FundedMandate already is the program object** — `agentIds[]` member
+population, `budget.byAsset` shared treasury (authorized/allocated/consumed/
+pending), `policyIds`, `measurementWindow`, success metrics — and CRE runs +
+`capital_attribution` artifacts + `/api/capital/attribution` already produce
+the population-level evidence. The gap was surfacing, not substrate. Shipped:
+
+- **§1 Programs — DONE** (`a56b8736`): `/programs` list + `/programs/[id]`
+  detail. Treasury utilization per asset, member-agent spend rollups with
+  in/out-of-scope flagging, nav item under Programs.
+- **§2 Forensics signals — DONE** (same commit): `lib/program-signals.ts`
+  ports the swarm detectors to attribution records — out-of-scope spend,
+  split procurement (same provider across agents), allocation concentration,
+  treasury race (≥80% committed), approval pressure. Rendered as the
+  "Population signals" panel with evidence-linked allocation ids. 10 vitest
+  cases.
+- **§3 Delegated spend — DONE** (`12949c4f`): `metadata.onBehalfOfAgentId`
+  on spend intents → `capital_attribution` artifact → SpendAttribution →
+  attribution API → "Delegated spend" buyer→beneficiary edge table on
+  program detail. Out-of-scope beneficiaries raise a critical signal.
+- **§5 Escalation inbox — DONE** (`53ec39bb`): `/inbox` under Review —
+  all `paused_for_approval` runs with suspicion score/label, approval
+  reason, est. cost, inline approve/reject via the canonical CRE approval
+  endpoint. Required enriching the shared `Run` read model
+  (`approvalReason`, `approvalState`, `suspicionScore/Label`,
+  `estimatedCostUsd`) — benefits run lists everywhere.
+- **§4 Decision provenance — DONE** (`8a9f932a`): audit page strip
+  classifying each record by deciding layer (policy check failure /
+  evaluation denial / escalation hold / cleared) from existing fields.
+
+**Still open:** §6 Agent Bazaar demo (waiting on swarm kernel v6 results),
+and a cross-agent transaction *graph* view (current edges are a table;
+a graph is polish, not substrate).
+
 ## The finding that should reshape the product
 
 Every current frontend surface is **per-agent, per-run**: agent spend history
