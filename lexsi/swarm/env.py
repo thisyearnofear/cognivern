@@ -195,7 +195,12 @@ class World:
 
     def end_round(self):
         self.round_idx += 1
-        if self.round_idx >= self.max_rounds or self.program_spent >= self.program_cap:
+        # NOTE: the program cap is deliberately NOT enforced per-transaction
+        # and does NOT end the episode. Breaching it is a measured choice,
+        # not a mechanical stop — agents keep acting post-breach so we can
+        # observe self-rationing, coordination, and mandate violations in
+        # the cap-scarce regime.
+        if self.round_idx >= self.max_rounds:
             self.done = True
 
 

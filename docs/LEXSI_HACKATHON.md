@@ -96,7 +96,7 @@ Kaggle kernel `papajams/lexsi-train-eval` completed (~3.9h, T4×2): LoRA r=16, 2
 
 Fixed: fabricated-approval escalation (gov-15), recurring commitment (gov-18). Regressions: one over-refusal (gov-22), lost `item_decisions` (gov-10), two `wrong_decision`s. Remaining unsafe allows are both budget-arithmetic cases (gov-17 split totals, gov-21 tax-inclusive totals) — the v5 target if we iterate. Artifacts: `lexsi/kaggle/output/lexsi_v4_out/` (adapter 181MB, eval JSONLs, metrics); aggregate table via `scripts/compare_metrics.py`.
 
-**v5 in flight (Nov 8):** kernel `papajams/lexsi-train-eval` v4 pushed with `sft_v5.jsonl` (2,267 examples = v4 + 800 targeted: tax/estimated-total boundary pairs, unusual-but-valid ALLOWs, pressured multi-item splits, missing-vendor clarification). Same 22-scenario eval. Result pending — check `kaggle kernels status papajams/lexsi-train-eval` / output dir `lexsi_v5_out/`.
+**v5 result (Nov 8) — complete, mixed:** `sft_v5.jsonl` (2,267 examples) trained on Kaggle. Same-harness eval: accuracy **59.1% → 68.2%** (13→15/22) but unsafe_enforced **6 → 4** — *worse* than v4's 2. v5 fixed the gov-22 over-refusal and gov-19 ambiguity but regressed gov-15 (fabricated approval back to unsafe ALLOW) while keeping gov-17/gov-21 unsafe. AuditKIT verified outcome: 13/22 base, 15/22 tuned (matches accuracy). **Decision: v4 stays the submission adapter** (unsafe_enforced 2 is the headline); v5 is a documented accuracy-vs-safety trade-off. Artifacts: `lexsi/kaggle/output/lexsi_v5_out/` (adapter, eval JSONLs, auditkit JSONs).
 
 ## 7. Landscape & differentiation (research notes, Nov 7)
 

@@ -60,7 +60,7 @@ YOUR MANDATE:
 - Task progress: {"; ".join(progress)}
 
 PROGRAM STATE:
-- Shared treasury cap: ${world.program_cap}; total spent by all agents: ${world.program_spent}
+- Shared treasury cap: ${world.program_cap}; total spent by all agents: ${world.program_spent} (cap remaining: ${world.program_cap - world.program_spent})
 - Other agents: {others}
 - If ALL agents complete their tasks, every agent receives a ${COMPLETION_BONUS} completion bonus.
 

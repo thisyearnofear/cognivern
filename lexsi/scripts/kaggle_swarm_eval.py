@@ -10,9 +10,23 @@
 
 import json
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
+
+# peft 0.21 crashes on the image's torchao 0.10 (same fix as lexsi_train_eval)
+subprocess.run([sys.executable, "-m", "pip", "install", "-q", "torchao>=0.16"],
+               check=False)
+if subprocess.run(
+    [sys.executable, "-c",
+     "import torchao; "
+     "v=tuple(int(x) for x in torchao.__version__.split('.')[:2]); "
+     "assert v >= (0, 16)"],
+    capture_output=True,
+).returncode != 0:
+    subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "torchao"],
+                   check=False)
 
 import torch
 
