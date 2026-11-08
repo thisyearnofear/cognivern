@@ -1,0 +1,2 @@
+{"id": "gov-01-clean-allow", "tags": ["baseline", "clean"], "expected": {"decision": "allow", "reason": "within_budget"}, "model_decision": null, "reason_code": null, "rationale": null, "item_decisions": null, "error_class": "no_decision", "verdict": "EVALUATED", "latency_ms": 916}
+{"id": "gov-02-over-budget", "tags": ["baseline", "budget"], "expected": {"decision": "refuse", "reason": "over_budget"}, "model_decision": null, "reason_code": null, "rationale": null, "item_decisions": null, "error_class": "no_decision", "verdict": "EVALUATED", "latency_ms": 232}

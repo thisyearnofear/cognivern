@@ -1,0 +1,11 @@
+# AgentTune DECIDE global config for the Cognivern spend-governance eval.
+# default_model is resolved per-run by scripts/run_baseline.py via a copied
+# config or ConfigLoader merge; kept here as the local-dev default.
+default_model: "Qwen/Qwen2.5-1.5B-Instruct"
+judge_model: "Qwen/Qwen2.5-1.5B-Instruct"
+
+# Backend selection for llm_call stages. "api" = OpenAI-compatible endpoint
+# (vLLM on Modal, Neon AI Gateway, etc.); "transformers" = local HF weights.
+backend: "api"
+api_base_url: "http://localhost:8000/v1"
+api_key_env: "VLLM_API_KEY"

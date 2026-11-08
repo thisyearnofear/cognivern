@@ -96,3 +96,7 @@ A happy-path smoke test finds none of those. What the suite covers, and what it 
 ## License
 
 MIT
+
+## Lexsi AI Safety and Alignment Hackathon
+
+Cognivern is being adapted for the Lexsi AI Safety and Alignment Hackathon (Nov 1–21, 2026) under the **Agentic Fine-tuning** track, reframed as a research project for governed agent-spend safety. See [`docs/LEXSI_HACKATHON.md`](./docs/LEXSI_HACKATHON.md) for the Lexsi integration plan, metrics, demo script, and submission checklist.

@@ -172,3 +172,12 @@ cognivern-signoz-trailer/
 
 # ── Agent scratch handoffs (not part of the repo) ──────────────────
 /HANDOFF-*.md
+
+# ── Lexsi hackathon Python env ──────────────────────────────────
+/lexsi/.venv/
+
+# lexsi kaggle staging (contains credentials)
+/lexsi/kaggle/
+
+# lexsi SFT datasets are submission artifacts (small, needed for repro)
+!/lexsi/data/

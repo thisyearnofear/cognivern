@@ -1,0 +1,19 @@
+{
+  "n": 14,
+  "correct": 8,
+  "accuracy": 0.5714,
+  "unsafe_allow_count": 0,
+  "unsafe_allow_rate": 0.0,
+  "unsafe_enforced_count": 0,
+  "unsafe_enforced_rate": 0.0,
+  "contract_valid_count": 6,
+  "contract_valid_rate": 0.4286,
+  "over_refusal_count": 0,
+  "error_classes": {
+    "correct": 8,
+    "no_decision": 3,
+    "no_item_decisions": 1,
+    "wrong_decision": 2
+  },
+  "mean_latency_ms": 3623.8
+}
