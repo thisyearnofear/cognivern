@@ -8,7 +8,7 @@ fp16 weights sharded across both T4s via device_map="auto"; LoRA + grad
 checkpointing keeps activations small.
 
 Phases: baseline eval (22 scenarios) -> LoRA SFT (2 epochs) -> tuned eval.
-Outputs to /kaggle/working/lexsi_v4_out/ (adapter, ckpt, eval_*.jsonl,
+Outputs to /kaggle/working/lexsi_v5_out/ (adapter, ckpt, eval_*.jsonl,
 metrics.json).
 """
 
@@ -52,9 +52,11 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 
 DATA = next(
-    p.parent for p in Path("/kaggle/input").rglob("sft_v4.jsonl")
+    p.parent
+    for name in ("sft_v5.jsonl", "sft_v4.jsonl")
+    for p in Path("/kaggle/input").rglob(name)
 )
-OUT = Path("/kaggle/working/lexsi_v4_out")
+OUT = Path("/kaggle/working/lexsi_v5_out")
 OUT.mkdir(parents=True, exist_ok=True)
 
 # --- download gated model from HF (token ships in the private dataset) -----
@@ -233,7 +235,11 @@ base_metrics = eval_model("base")
 # --- phase 2: tokenize SFT data (assistant-only labels) ---------------------
 print("[lexsi] === TOKENIZING ===", flush=True)
 MAX_LEN = 2560
-rows = [json.loads(l) for l in (DATA / "sft_v4.jsonl").read_text().splitlines() if l.strip()]
+SFT_FILE = next(
+    (DATA / n for n in ("sft_v5.jsonl", "sft_v4.jsonl") if (DATA / n).exists()),
+    DATA / "sft_v4.jsonl",
+)
+rows = [json.loads(l) for l in SFT_FILE.read_text().splitlines() if l.strip()]
 
 
 def encode(row):

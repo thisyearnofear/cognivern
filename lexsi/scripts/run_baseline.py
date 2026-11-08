@@ -208,6 +208,108 @@ async def run_all(runner, scenarios: list[dict]) -> list[dict]:
     return results
 
 
+def build_episode(sc: dict, r: dict):
+    """Wrap one DECIDE run as an AuditKIT AgentEpisode (recorded mode).
+
+    final_state carries everything the governance predicate needs: the
+    tolerant judgment decision, the contract-emitted decision, per-item
+    decisions, and contract validity. Ground truth stays on the case, not
+    the episode — the model never sees it.
+    """
+    from auditkit.agent_eval.types import AgentEpisode
+
+    decide_out = {
+        "decision": r.get("emitted_decision"),
+        "judgment": r.get("model_decision"),
+        "contract_valid": r.get("contract_valid"),
+        "item_decisions": r.get("item_decisions"),
+        "reason_code": r.get("reason_code"),
+    }
+    return AgentEpisode(
+        case_id=sc["id"],
+        source_format="agenttune-decide",
+        final_answer=r.get("raw_response"),
+        final_state=decide_out,
+        metadata={
+            "workflow": "spend_governance",
+            "latency_ms": r.get("latency_ms"),
+            "error_class": r.get("error_class"),
+        },
+    )
+
+
+def _governance_predicate(episode, case):
+    """Deterministic outcome oracle: did the agent reach the correct
+    governed-spend decision? Reads expected ground truth from the case and
+    the episode's final_state. Returns True/False/None (unknown)."""
+    fs = getattr(episode, "final_state", None) or {}
+    expected = (getattr(case, "metadata", None) or {}).get("expected") or {}
+    judgment = fs.get("judgment")
+    if judgment is None or not expected:
+        return None
+    return classify(str(judgment), expected, fs.get("item_decisions")) == "correct"
+
+
+def auditkit_eval(scenarios: list[dict], results: list[dict]) -> dict | None:
+    """Score the episodes with AuditKIT agent_eval (recorded mode).
+
+    AgentTune produced the trajectories; AuditKIT supplies the verified
+    outcome headline. Returns per-case verdicts plus the run summary, or
+    None if auditkit is unavailable.
+    """
+    try:
+        from auditkit import CustomPredicate
+        from auditkit.agent_eval import AgentCase, AgentEvalRunner, AgentEvalSpec
+        from auditkit.agent_eval.types import AgentEpisode  # noqa: F401
+    except Exception as exc:  # pragma: no cover - auditkit optional locally
+        print(f"[auditkit] unavailable, skipping: {exc}")
+        return None
+
+    oracle = CustomPredicate(_governance_predicate, version="lexsi-governance-v1",
+                             name="governance_decision_oracle")
+    by_id = {r["id"]: r for r in results}
+    cases, episodes = [], []
+    for sc in scenarios:
+        r = by_id.get(sc["id"])
+        if r is None:
+            continue
+        cases.append(
+            AgentCase(
+                id=sc["id"],
+                task=scenario_input(sc),
+                category=",".join(sc.get("tags", [])) or "governance",
+                outcome=oracle,
+                metadata={"expected": sc["expected"]},
+            )
+        )
+        episodes.append(build_episode(sc, r))
+
+    spec = AgentEvalSpec(
+        cases=cases, episodes=episodes, mode="recorded", name="lexsi-governance"
+    )
+    result = AgentEvalRunner().run(spec)
+
+    verdicts = {}
+    for row in result.rows:
+        cid = getattr(row, "case_id", None) or (row.get("case_id") if isinstance(row, dict) else None)
+        outcome = getattr(row, "outcome", None) or (row.get("outcome") if isinstance(row, dict) else {})
+        verdicts[cid] = outcome.get("verdict") if isinstance(outcome, dict) else getattr(outcome, "verdict", None)
+    for r in results:
+        r["auditkit_verdict"] = verdicts.get(r["id"])
+
+    summary = None
+    try:
+        summary = result.summary()
+    except Exception:
+        pass
+    payload = {"per_case": verdicts, "summary_text": summary}
+    try:
+        payload["result"] = result.to_dict()
+    except Exception:
+        pass
+    return payload
+
+
 def summarize(results: list[dict]) -> dict:
     n = len(results)
     counts = {}
@@ -265,11 +367,14 @@ def main() -> None:
     install_raw_capture()
     results = asyncio.run(run_all(runner, scenarios))
 
+    auditkit = auditkit_eval(scenarios, results)
     summary = summarize(results)
     out_dir = Path(args.out) if args.out else LEXSI_DIR / "results" / time.strftime("%Y%m%d-%H%M%S")
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "results.jsonl").write_text("\n".join(json.dumps(r) for r in results) + "\n")
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+    if auditkit is not None:
+        (out_dir / "auditkit.json").write_text(json.dumps(auditkit, indent=2) + "\n")
     print("\n=== SUMMARY ===")
     print(json.dumps(summary, indent=2))
     print(f"\nWrote {out_dir}")

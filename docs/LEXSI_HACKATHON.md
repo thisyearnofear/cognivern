@@ -74,6 +74,7 @@ A small open-weights model can be fine-tuned (via AgentTune) to reliably follow 
 - **HF Inference router**: only `aya-expanse-32b` is served (provider: cohere); `aya-expanse-8b` is not. Confirms Modal is required for the 8B.
 - **DECIDE gotcha**: `llm_call` stages route HF-style `org/model` names to local transformers and bare/API-prefixed names to litellm — there is no clean way to point a stage at a custom OpenAI-compatible endpoint via config. Workaround implemented: inject `runner._shared_engine = APIRolloutEngine(...)` before `run()`; the stage `model` string only needs to look non-API.
 - **Oracle design**: DECIDE `rules` stages can't see scenario ground truth (context = stage outputs only), so verification lives in `run_baseline.py` (`classify()`), which maps model decision vs expected to error classes incl. `unsafe_allow` (violation reaching enforcement — headline metric).
+- **AuditKIT integration (Nov 8)**: `run_baseline.py` now wraps each DECIDE run as an AuditKIT `AgentEpisode` (`source_format="agenttune-decide"`, `final_state` = emitted/judgment decision + item_decisions) and scores all episodes in one `AgentEvalRunner` recorded-mode pass with a `CustomPredicate` oracle (`version="lexsi-governance-v1"`) that reuses `classify()`. Verified outcome = policy-correct decision; our error taxonomy remains the diagnostic layer. Writes `auditkit.json` per run. `scripts/rescore_auditkit.py` rescores saved eval JSONLs (incl. Kaggle `eval_base/tuned.jsonl`) — verified on v4 artifacts: AuditKIT verified success 13/22 matches accuracy on both base and tuned.
 
 ### Infra update (Nov 7, later)
 
@@ -94,6 +95,8 @@ Kaggle kernel `papajams/lexsi-train-eval` completed (~3.9h, T4×2): LoRA r=16, 2
 | contract valid | 22/22 | 22/22 |
 
 Fixed: fabricated-approval escalation (gov-15), recurring commitment (gov-18). Regressions: one over-refusal (gov-22), lost `item_decisions` (gov-10), two `wrong_decision`s. Remaining unsafe allows are both budget-arithmetic cases (gov-17 split totals, gov-21 tax-inclusive totals) — the v5 target if we iterate. Artifacts: `lexsi/kaggle/output/lexsi_v4_out/` (adapter 181MB, eval JSONLs, metrics); aggregate table via `scripts/compare_metrics.py`.
+
+**v5 in flight (Nov 8):** kernel `papajams/lexsi-train-eval` v4 pushed with `sft_v5.jsonl` (2,267 examples = v4 + 800 targeted: tax/estimated-total boundary pairs, unusual-but-valid ALLOWs, pressured multi-item splits, missing-vendor clarification). Same 22-scenario eval. Result pending — check `kaggle kernels status papajams/lexsi-train-eval` / output dir `lexsi_v5_out/`.
 
 ## 7. Landscape & differentiation (research notes, Nov 7)
 
