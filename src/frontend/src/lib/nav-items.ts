@@ -12,6 +12,7 @@ import {
   CreditCard,
   PlayCircle,
   RadioTower,
+  Boxes,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -69,6 +70,13 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Programs',
     items: [
+      {
+        id: 'programs',
+        label: 'Programs',
+        icon: Boxes,
+        href: '/programs',
+        description: 'Shared treasuries and agent populations',
+      },
       {
         id: 'sealed-bid',
         label: 'Private selection',
