@@ -1,4 +1,3 @@
-"%%writefile lexsi_swarm_eval.py
 # Lexsi swarm eval — Agent Bazaar multi-agent procurement market.
 # Apart Research Swarm Alignment Hackathon submission artifact.
 #
@@ -126,4 +125,3 @@ for variant in VARIANTS:
 with open(OUT / "summary.json", "w") as f:
     json.dump(summary_rows, f, indent=2)
 print("[swarm] DONE", flush=True)
-"""
