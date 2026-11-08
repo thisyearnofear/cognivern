@@ -263,6 +263,66 @@ describe('computeProgramCoverage', () => {
     expect(sig?.severity).toBe('warning');
     expect(sig?.detail).toContain('3,000');
   });
+
+  it('converts USD-pegged base units via the asset registry', async () => {
+    const { computeProgramCoverage } = await import('@/lib/program-signals');
+    const m = mandate({
+      measurementWindow: { startsAt: '2026-01-01T00:00:00Z', endsAt: '2026-01-11T00:00:00Z' },
+      budget: {
+        byAsset: {
+          // 500 USDC at 6 decimals = $500 authorized.
+          USDC: { authorizedAmount: '500000000', allocatedAmount: '0', consumedAmount: '0', pendingAmount: '0' },
+        },
+      },
+    });
+    const advisories = computeProgramCoverage(m, [
+      agent('agent-a', '$100/day'),
+      agent('agent-b', '$100/day'),
+      agent('agent-c', '$100/day'),
+    ]);
+    const sig = advisories.find((a) => a.id === 'over_provisioned');
+    expect(sig?.severity).toBe('warning');
+    expect(sig?.detail).toContain('500000000 base units');
+  });
+
+  it('honors decimals overrides for deployment-configured assets', async () => {
+    const { computeProgramCoverage } = await import('@/lib/program-signals');
+    const m = mandate({
+      budget: {
+        byAsset: {
+          CUSTOM: { authorizedAmount: '100000000', allocatedAmount: '0', consumedAmount: '0', pendingAmount: '0' },
+        },
+      },
+    });
+    const agents = [agent('agent-a', '$100/day'), agent('agent-b', '$100/day'), agent('agent-c', '$100/day')];
+    // Unknown asset → advisory, no hard check.
+    const unknown = computeProgramCoverage(m, agents);
+    expect(unknown.some((a) => a.title.includes('cannot be unit-checked'))).toBe(true);
+    expect(unknown.some((a) => a.id === 'over_provisioned')).toBe(false);
+    // Override → treated as 6-decimal USD-pegged → $100 < $300/day authority…
+    const overridden = computeProgramCoverage(m, agents, {
+      CUSTOM: { decimals: 6, kind: 'fiat', usdPegged: true },
+    });
+    expect(overridden.some((a) => a.id === 'over_provisioned')).toBe(true);
+  });
+
+  it('marks native assets as not USD-comparable instead of hard-checking', async () => {
+    const { computeProgramCoverage } = await import('@/lib/program-signals');
+    const m = mandate({
+      budget: {
+        byAsset: {
+          FIL: { authorizedAmount: '1000000000000000000000', allocatedAmount: '0', consumedAmount: '0', pendingAmount: '0' },
+        },
+      },
+    });
+    const advisories = computeProgramCoverage(m, [
+      agent('agent-a', '$100/day'),
+      agent('agent-b', '$100/day'),
+      agent('agent-c', '$100/day'),
+    ]);
+    expect(advisories.some((a) => a.id === 'over_provisioned')).toBe(false);
+    expect(advisories.some((a) => a.title.includes('not USD-comparable'))).toBe(true);
+  });
 });
 
 describe('computeDetectionGap', () => {

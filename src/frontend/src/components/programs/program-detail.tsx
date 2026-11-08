@@ -28,6 +28,7 @@ import {
   treasuryTrajectory,
   type ProgramSignal,
 } from "@/lib/program-signals";
+import type { AssetUnitOverride } from "@cognivern/shared";
 import { useAuthStore } from "@/stores/auth-store";
 
 function toBigInt(value: string | undefined): bigint {
@@ -89,6 +90,7 @@ export function ProgramDetail() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [assetOverrides, setAssetOverrides] = useState<Record<string, AssetUnitOverride>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -96,10 +98,11 @@ export function ProgramDetail() {
       setLoading(true);
       setError(null);
       try {
-        const [mandateRes, attributionRes, agentsRes] = await Promise.all([
+        const [mandateRes, attributionRes, agentsRes, cleanverseRes] = await Promise.all([
           apiClient.getMandate(mandateId),
           apiClient.getSpendAttribution(mandateId),
           apiClient.getAgents(),
+          apiClient.getCleanverseStatus().catch(() => null),
         ]);
         if (cancelled) return;
         if (!mandateRes.success || !mandateRes.data) {
@@ -111,6 +114,15 @@ export function ProgramDetail() {
         }
         if (agentsRes.success && agentsRes.data) {
           setAgents(agentsRes.data);
+        }
+        if (cleanverseRes?.success && cleanverseRes.data?.aTokenSymbol && cleanverseRes.data.aTokenDecimals) {
+          setAssetOverrides({
+            [cleanverseRes.data.aTokenSymbol]: {
+              decimals: cleanverseRes.data.aTokenDecimals,
+              kind: 'fiat',
+              usdPegged: true,
+            },
+          });
         }
       } catch (reason) {
         if (!cancelled) {
@@ -143,8 +155,8 @@ export function ProgramDetail() {
     [mandate, records],
   );
   const coverageAdvisories = useMemo(
-    () => (mandate ? computeProgramCoverage(mandate, agents) : []),
-    [mandate, agents],
+    () => (mandate ? computeProgramCoverage(mandate, agents, assetOverrides) : []),
+    [mandate, agents, assetOverrides],
   );
   const detectionGap = useMemo(
     () => (mandate ? computeDetectionGap(mandate, records) : null),
@@ -221,7 +233,7 @@ export function ProgramDetail() {
           <div className="space-y-2">
             {coverageAdvisories.map((advisory) => (
               <div
-                key={advisory.id}
+                key={`${advisory.id}-${advisory.title}`}
                 className={`flex items-start gap-3 rounded-xl border bg-card p-3 ${
                   advisory.severity === "warning"
                     ? "border-amber-500/50"

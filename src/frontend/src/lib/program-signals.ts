@@ -10,6 +10,7 @@
 
 import type { Agent, FundedMandate, SpendAttributionReport } from './api-client';
 import { parseBudget } from './budget-format';
+import { baseUnitsToHuman, resolveAssetUnit, type AssetUnitOverride } from '@cognivern/shared';
 
 export type AttributionRecord = SpendAttributionReport['records'][number];
 
@@ -359,6 +360,9 @@ export function detectProgramSignals(
 // amounts are base units per asset. We only hard-flag over-provisioning for
 // fiat-denominated assets where units are comparable, and always surface
 // the raw authority estimate so operators can verify asset decimals.
+// Unit resolution uses the shared asset registry (`@cognivern/shared`
+// asset-units): fiat/USD-pegged assets convert base units → dollars for a
+// hard over-provisioning check; unknown/native assets stay advisory-only.
 
 export interface CoverageAdvisory {
   id:
@@ -371,8 +375,6 @@ export interface CoverageAdvisory {
   detail: string;
 }
 
-const FIAT_ASSETS = new Set(['usd', 'usdc', 'ausdc', 'usdt', 'dai']);
-
 function windowDays(mandate: FundedMandate): number | null {
   const window = mandate.measurementWindow;
   if (!window?.startsAt || !window.endsAt) return null;
@@ -384,6 +386,7 @@ function windowDays(mandate: FundedMandate): number | null {
 export function computeProgramCoverage(
   mandate: FundedMandate,
   agents: Agent[],
+  assetOverrides?: Record<string, AssetUnitOverride>,
 ): CoverageAdvisory[] {
   const advisories: CoverageAdvisory[] = [];
   const memberIds = new Set(mandate.agentIds);
@@ -420,22 +423,39 @@ export function computeProgramCoverage(
       id: 'authority_estimate',
       severity: 'info',
       title: `Population authority ≈ $${authority.toLocaleString()} ${windowNote}`,
-      detail: `${members.length} member agent(s) hold ≈$${dailyAuth.toLocaleString()}/day of spend authority. Mandate amounts are asset base units — verify decimals before comparing to treasury.`,
+      detail: `${members.length} member agent(s) hold ≈$${dailyAuth.toLocaleString()}/day of spend authority.`,
     });
 
-    // Hard over-provisioning check — only where units are comparable.
+    // Hard over-provisioning check — only where the asset registry can
+    // convert authorized base units into USD-comparable whole units.
     for (const [asset, budget] of Object.entries(mandate.budget.byAsset)) {
-      if (!FIAT_ASSETS.has(asset.toLowerCase())) continue;
-      const authorized = Number(toBigInt(budget.authorizedAmount));
-      if (!Number.isFinite(authorized) || authorized <= 0) continue;
-      // Assume stablecoins are dollar-denominated whole units here; base-unit
-      // assets (wei) are excluded by the fiat set + this guard.
-      if (authority > authorized) {
+      const unit = resolveAssetUnit(asset, assetOverrides?.[asset]);
+      if (unit.kind === 'unknown') {
+        advisories.push({
+          id: 'authority_estimate',
+          severity: 'info',
+          title: `${asset} treasury cannot be unit-checked`,
+          detail: `No decimals/kind metadata for asset "${asset}" — population authority (≈$${authority.toLocaleString()}) cannot be compared to its authorized amount. Add it to the asset registry or pass a decimals override.`,
+        });
+        continue;
+      }
+      const authorizedHuman = baseUnitsToHuman(budget.authorizedAmount, unit.decimals);
+      if (authorizedHuman === null || authorizedHuman <= 0) continue;
+      if (!unit.usdPegged) {
+        advisories.push({
+          id: 'authority_estimate',
+          severity: 'info',
+          title: `${asset} treasury is not USD-comparable`,
+          detail: `Authorized ${formatTokenAmount(toBigInt(budget.authorizedAmount))} ${asset} (${unit.decimals} decimals) is a native/non-USD asset — verify against population authority ≈$${authority.toLocaleString()} manually.`,
+        });
+        continue;
+      }
+      if (authority > authorizedHuman) {
         advisories.push({
           id: 'over_provisioned',
           severity: 'warning',
-          title: `Mandate likely over-provisioned (${asset})`,
-          detail: `Member agents hold ≈$${authority.toLocaleString()} of authority ${windowNote}, exceeding the $${authorized.toLocaleString()} ${asset} authorized treasury. Honest compliance can breach the program invariant — the swarm finding: coverage must not exceed the cap.`,
+          title: `Mandate over-provisioned (${asset})`,
+          detail: `Member agents hold ≈$${authority.toLocaleString()} of authority ${windowNote}, exceeding the $${authorizedHuman.toLocaleString()} ${asset} authorized treasury (${budget.authorizedAmount} base units @ ${unit.decimals} decimals). Honest compliance can breach the program invariant — the swarm finding: coverage must not exceed the cap.`,
         });
       }
     }
