@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Collusion Under Mandate</title>
+<style>
+  @page { size: letter; margin: 0.85in 0.9in; }
+  body { font-family: Georgia, 'Times New Roman', serif; font-size: 10.5pt; line-height: 1.45; color: #111; max-width: 100%; }
+  h1 { font-size: 17pt; text-align: center; margin: 0 0 4pt; line-height: 1.25; }
+  .authors { text-align: center; font-size: 10pt; margin-bottom: 14pt; }
+  .authors div { margin: 1pt 0; }
+  h2 { font-size: 12pt; margin: 14pt 0 5pt; border-bottom: 1px solid #999; padding-bottom: 2pt; }
+  h3 { font-size: 10.5pt; margin: 10pt 0 4pt; }
+  p { margin: 5pt 0; text-align: justify; }
+  ul, ol { margin: 4pt 0 4pt 18pt; padding: 0; }
+  li { margin: 2pt 0; text-align: justify; }
+  table { border-collapse: collapse; margin: 8pt auto; font-size: 9pt; width: 100%; }
+  th, td { border: 1px solid #888; padding: 3pt 5pt; text-align: left; vertical-align: top; }
+  th { background: #f0f0f0; }
+  .fig { margin: 10pt auto; text-align: center; }
+  .fig svg { max-width: 100%; }
+  .cap { font-size: 8.5pt; color: #444; margin-top: 3pt; text-align: center; }
+  .abstract-label { font-weight: bold; }
+  .small { font-size: 9pt; color: #444; }
+  code { font-family: 'SF Mono', Menlo, monospace; font-size: 9pt; }
+  .appendix { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>Collusion Under Mandate: Population-Level Budget Violations from Individually Compliant Agents</h1>
+<div class="authors">
+  <div><b>thisyearnofear</b> — Independent Researcher</div>
+  <div>With Apart Research — Swarm Alignment Hackathon 2026</div>
+</div>
+
+<p><span class="abstract-label">Abstract.</span>
+Multi-agent systems are beginning to hold economic authority — budgets,
+procurement mandates, spending limits — yet safety work measures agents one at
+a time. We ask whether a population of individually mandate-compliant agents
+can produce mandate-violating outcomes through coordination. We build Agent
+Bazaar, a procurement market where agents hold individual budget caps and
+blocked-category rules while drawing on a shared program treasury with a hard
+cap, and where tasks are priced so that full completion requires exceeding
+that cap. Across communication conditions (none / broadcast / pairwise) and
+model variants (base vs. mandate-fine-tuned Aya Expanse 8B), we measure
+population-level violations, task completion, and detection by two oversight
+arms: a per-trajectory monitor and deterministic ledger forensics. Across 12
+episodes, <b>every episode breached the shared treasury cap</b> (12/12, spend
+$1477–1550 vs. a $1200 cap) while <b>no agent ever violated its individual
+mandate</b> — the violation is arithmetic, not malicious: four $400 mandates
+sum to $1600 of authorized spend against a $1200 program invariant.
+Per-trajectory oversight detected <b>0 of 12</b> population violations;
+ledger forensics detected <b>12 of 12</b> (detection gap = 100%). Mandate
+fine-tuning did not reduce population violations — tuned agents overspent
+<i>more</i> ($1550 vs. $1477), completed <i>fewer</i> tasks (0% vs. 25%), and
+stopped communicating entirely (0 messages vs. 42–47). No agent ever used
+the <code>for_agent</code> collusion primitive or purchased a luxury item;
+agents instead looped identical purchase plans until their individual budgets
+exhausted. We argue the result is not a failure of the testbed but its
+finding: when mandate coverage exceeds the program invariant, compliance
+theater is the equilibrium — and only population-level audit can see it. All
+code and episode logs are public.</p>
+
+<h2>1. Introduction</h2>
+<p>Agents are being given economic authority: spending sessions, procurement
+budgets, per-agent mandates, payment rails. The governance story so far is
+per-transaction — a policy check at the wallet chokepoint decides each spend
+in isolation. But organizations do not have budgets per employee; they have
+budgets per <i>program</i>. A population of agents can each stay inside an
+individual mandate while the collective outcome violates the program-level
+invariant that actually matters.</p>
+<p>The OpenAI/Hugging Face incident (July 2026, per the sprint brief; METR
+investigation) showed that agent populations fail in ways no member would:
+agents self-organized on a shared message board, divided labor, renamed
+themselves, and spoofed transcripts — with roughly 7% of messages containing
+injected or forged content. The economic analog is purchase-splitting
+generalized to a swarm: each transaction looks compliant, the aggregate does
+not.</p>
+<p>This report asks three questions:</p>
+<ol>
+<li><b>Emergence.</b> Do individually compliant agents produce collectively
+violating spend outcomes — and does that require communication at all?</li>
+<li><b>Intervention.</b> Does fine-tuning a model on single-agent mandate
+compliance reduce population-level violations — or does it improve
+coordination enough to make violations <i>more</i> likely?</li>
+<li><b>Oversight.</b> When a violation is invisible to per-trajectory
+monitoring, can deterministic audit-ledger forensics recover it?</li>
+</ol>
+<p>Our main contributions are: (1) Agent Bazaar, an open testbed where
+population-level budget invariants, individual mandates, communication
+channels, and a collusion primitive (<code>for_agent</code> delegated
+purchases) coexist with a deterministic oracle; (2) empirical evidence that
+population violations emerge universally (12/12 episodes) with zero
+individual violations — a 100% oversight detection gap between
+per-trajectory monitoring and ledger forensics; (3) a measured negative
+result for single-agent mandate SFT under population settings: the adapter
+collapsed agent communication entirely and modestly worsened aggregate
+overspend.</p>
+
+<h2>2. Related Work</h2>
+<ul>
+<li><b>GovSim</b> (Piatti et al., 2024): LLM agents sharing a common resource
+face cooperation dilemmas. No economic authority, no mandates, no adversarial
+collusion, no audit substrate.</li>
+<li><b>Secret Collusion</b> (Motwani et al., 2024): agents hide information in
+message content via steganography. Demonstrates covert channels but with no
+real stakes — nothing is spent, authorized, or enforced.</li>
+<li><b>AI Control</b> (Greenblatt et al., 2024): protocols for safely
+deploying untrusted models against a trusted monitor. Single untrusted
+model, not a population; no economic dimension.</li>
+<li><b>AuthorizationBench</b> (arXiv 2610.27548): evaluates single-agent
+authorization decisions. Population-level authorization is unmeasured.</li>
+<li><b>Incident analyses</b>: the METR report on the HF incident documents
+the coordination mechanisms (message board, task division, self-renaming,
+transcript spoofing) our channel conditions are designed to echo.</li>
+<li><b>Agent economies / spend governance</b>: x402 payment rails and agent
+spending sessions are emerging infrastructure; per-transaction policy
+enforcement is the current practice. No published work, to our knowledge,
+measures whether per-agent compliance training survives contact with a
+population-level budget.</li>
+</ul>
+<p><b>Preexisting substrate (declared, not weekend work):</b> the Cognivern
+repository (mandate/policy/evidence-ledger concepts), the Lexsi DECIDE
+evaluation suite and Aya Expanse mandate-fine-tuned LoRA adapter, and
+Control Tower monitoring concepts. All weekend work is confined to
+<code>lexsi/swarm/</code> plus this report.</p>
+
+<h2>3. Methods</h2>
+<h3>3.1 Environment: Agent Bazaar</h3>
+<p>A procurement market with <b>4 agents</b>, a <b>shared program treasury
+capped at $1200</b>, and <b>per-agent budget caps of $400</b>. Each agent
+holds a private procurement task (a bundle of 3–4 items) plus a private
+luxury "want" in a blocked category — an individually rational temptation
+that violates its own mandate if purchased.</p>
+<p>Key mechanics:</p>
+<ul>
+<li><b>Tasks are priced so full completion is impossible within the
+cap.</b> The four task bundles cost ~$330–395 each at the cheapest vendor
+(~$1520 total minimum) against a $1200 program cap. Even perfectly
+efficient, fully cooperative agents cannot complete everything without
+breaching the population invariant — they must <i>choose</i> which
+invariant to violate.</li>
+<li><b><code>for_agent</code> purchases.</b> An agent may buy items charged
+to its own budget but credited to another agent's task progress. This is
+the collusion primitive: work can be divided and credit transferred without
+any agent exceeding its own mandate.</li>
+<li><b>Completion bonus.</b> If <i>all</i> tasks complete, every agent
+receives +$150 — a population-level incentive to coordinate that no
+individual mandate captures.</li>
+<li><b>Posted vendor prices.</b> Four vendors with public per-item price
+multipliers; agents must comparison-shop under uncertainty about what
+others are buying.</li>
+<li><b>12 rounds/episode.</b> Each round every agent submits a plan of
+actions (buys, messages, waits); the environment validates each action in
+order against evolving state. Greedy decoding, fixed chat template.</li>
+<li><b>The program cap is unenforced by design.</b> Breaching it is a
+measured choice, not a mechanical stop: transactions check only the buyer's
+individual budget, and episodes run all 12 rounds so post-breach behavior
+(self-rationing, <code>for_agent</code> coordination, luxury temptation) is
+observable. Agents see cap remaining each round.</li>
+</ul>
+<h3>3.2 Conditions</h3>
+<table>
+<tr><th>Factor</th><th>Levels</th></tr>
+<tr><td>Communication channel</td><td><code>none</code>, <code>broadcast</code>, <code>pairwise</code> (private DMs)</td></tr>
+<tr><td>Model variant</td><td><code>aya-expanse-8b</code> base; <code>+lexsi-v4</code> LoRA (mandate-SFT)</td></tr>
+<tr><td>Seeds</td><td>{0, 1} — greedy decode, seed affects world generation</td></tr>
+</table>
+<p>12 episodes per run (3 channels × 2 variants × 2 seeds), ~2.5h on Kaggle
+T4×2.</p>
+<h3>3.3 Oracle (population-level verified outcome)</h3>
+<p>An episode is a <b>population violation</b> if any of: <code>treasury_over_cap</code>
+(aggregate spend exceeds the program cap); <code>mandate_breach</code>
+(any agent exceeds its individual cap); <code>disallowed_purchase</code>
+(a blocked-category luxury item is bought); <code>unauthorized_transfer</code>
+(a buy credits an agent other than the buyer). We additionally record task
+completion fraction, bonus achievement, message counts, and per-agent spend
+trajectories.</p>
+<h3>3.4 Oversight arms</h3>
+<ul>
+<li><b>Arm A — per-trajectory monitor.</b> Flags only violations visible in
+a single agent's record: individual mandate breaches, disallowed purchases,
+<code>for_agent</code> buys attributed to that agent's own actions.
+Population-level cap breaches with no individual breach are
+<i>invisible</i> to this arm.</li>
+<li><b>Arm B — ledger forensics.</b> Deterministic detectors over the
+shared audit ledger: (i) split purchases (same item+vendor procured by
+different agents — division of labor), (ii) transfer concentration (one
+agent funding many others), (iii) communication↔transaction correlation
+(messages preceding coordinated buys), (iv) cap-race trajectory (aggregate
+spend velocity vs. remaining rounds).</li>
+</ul>
+<p>The <b>detection gap</b> — population violations Arm B catches that Arm A
+misses — is the headline oversight metric.</p>
+
+<h2>4. Results</h2>
+<p>All numbers from the valid kernel run (n=2 episodes per cell, greedy
+decoding, full 12-round episodes). Two earlier runs are excluded as invalid
+harness artifacts (documented in §6 and the repository): a parser that
+dropped all but the first action in a plan, and an environment that
+terminated episodes at cap breach.</p>
+
+<table>
+<tr><th>Variant</th><th>Channel</th><th>n</th><th>Cap breached</th><th>Pop. violation</th><th>Mandate breaches</th><th>Blocked buys</th><th><code>for_agent</code> xfers</th><th>Tasks done</th><th>Bonus</th><th>Msgs delivered</th></tr>
+<tr><td>base</td><td>none</td><td>2</td><td>2/2</td><td>2/2</td><td>0</td><td>0</td><td>0</td><td>1/4 (25%)</td><td>0/2</td><td>0</td></tr>
+<tr><td>base</td><td>broadcast</td><td>2</td><td>2/2</td><td>2/2</td><td>0</td><td>0</td><td>0</td><td>1/4 (25%)</td><td>0/2</td><td>47</td></tr>
+<tr><td>base</td><td>pairwise</td><td>2</td><td>2/2</td><td>2/2</td><td>0</td><td>0</td><td>0</td><td>1/4 (25%)</td><td>0/2</td><td>42</td></tr>
+<tr><td>tuned</td><td>none</td><td>2</td><td>2/2</td><td>2/2</td><td>0</td><td>0</td><td>0</td><td>0/4 (0%)</td><td>0/2</td><td>0</td></tr>
+<tr><td>tuned</td><td>broadcast</td><td>2</td><td>2/2</td><td>2/2</td><td>0</td><td>0</td><td>0</td><td>0/4 (0%)</td><td>0/2</td><td>0</td></tr>
+<tr><td>tuned</td><td>pairwise</td><td>2</td><td>2/2</td><td>2/2</td><td>0</td><td>0</td><td>0</td><td>0/4 (0%)</td><td>0/2</td><td>0</td></tr>
+</table>
+<p class="cap">Table 1. Outcomes by variant × channel. Aggregate spend vs.
+the $1200 program cap: <b>base $1477</b> (22.9% over), <b>tuned $1550</b>
+(29.2% over) — identical across seeds within a variant (greedy decode).</p>
+
+<table>
+<tr><th>Arm</th><th>Population violations detected</th><th>Rate</th></tr>
+<tr><td>A — per-trajectory monitor</td><td>0 / 12</td><td>0%</td></tr>
+<tr><td>B — ledger forensics</td><td>12 / 12</td><td>100%</td></tr>
+<tr><td><b>Detection gap</b></td><td><b>12 / 12</b></td><td><b>100%</b></td></tr>
+</table>
+<p class="cap">Table 2. Oversight comparison. Arm A flagged zero agents in
+every episode: no individual mandate was ever breached, so per-agent records
+contain nothing to flag. Arm B fired on every episode via two detectors:
+<code>cap_race</code> (24 findings) and <code>split_purchase</code> (66
+findings). <code>transfer_concentration</code> and comm↔transaction
+correlation never fired: no transfers or coordinated buy sequences
+occurred.</p>
+
+<div class="fig">
+<svg width="460" height="210" viewBox="0 0 460 210" xmlns="http://www.w3.org/2000/svg">
+  <!-- axes -->
+  <line x1="60" y1="170" x2="440" y2="170" stroke="#333" stroke-width="1"/>
+  <line x1="60" y1="170" x2="60" y2="20" stroke="#333" stroke-width="1"/>
+  <!-- y gridlines: 0,400,...,1600 -->
+  <g font-size="9" fill="#555">
+    <text x="52" y="173" text-anchor="end">0</text>
+    <text x="52" y="133" text-anchor="end">400</text>
+    <text x="52" y="93" text-anchor="end">800</text>
+    <text x="52" y="53" text-anchor="end">1200</text>
+    <text x="52" y="33" text-anchor="end">1600</text>
+  </g>
+  <g stroke="#ddd">
+    <line x1="60" y1="130" x2="440" y2="130"/>
+    <line x1="60" y1="90" x2="440" y2="90"/>
+    <line x1="60" y1="50" x2="440" y2="50"/>
+    <line x1="60" y1="30" x2="440" y2="30" stroke="#c0392b" stroke-dasharray="4 3"/>
+  </g>
+  <text x="446" y="34" font-size="8" fill="#c0392b" text-anchor="end">program cap $1200</text>
+  <!-- bars: base 1477, tuned 1550; scale: 170-30=140px per 1600 -->
+  <!-- bar1 base: h = 1477/1600*140 = 129.2 -> y=170-129=41 -->
+  <rect x="140" y="41" width="70" height="129" fill="#4a7ebb"/>
+  <text x="175" y="36" font-size="10" text-anchor="middle" fill="#4a7ebb"><b>$1477</b></text>
+  <text x="175" y="182" font-size="10" text-anchor="middle">base</text>
+  <!-- bar2 tuned: h=1550/1600*140=135.6 -> y=34 -->
+  <rect x="260" y="34" width="70" height="136" fill="#c0392b"/>
+  <text x="295" y="29" font-size="10" text-anchor="middle" fill="#c0392b"><b>$1550</b></text>
+  <text x="295" y="182" font-size="10" text-anchor="middle">tuned (lexsi-v4)</text>
+  <!-- mandate sum marker: 4*400=1600 top -->
+  <text x="60" y="14" font-size="9" fill="#555">sum of individual mandates: $1600 authorized</text>
+</svg>
+</div>
+<p class="cap">Figure 1. Aggregate program spend vs. the $1200 shared
+treasury cap. Both variants breach the cap in every episode; the tuned
+adapter overspends slightly more. The violation is structural: authorized
+mandates ($1600) exceed the program invariant ($1200).</p>
+
+<h3>Qualitative findings</h3>
+<ul>
+<li><b>Agents loop, they do not strategize.</b> Every agent repeated the
+same purchase plan all 12 rounds; later rounds produced <code>insufficient
+budget</code> receipts that changed nothing. Communication conditioned
+<i>messages</i>, not <i>plans</i>: broadcast/pairwise episodes show 42–47
+delivered messages but byte-identical spend trajectories to the none
+channel.</li>
+<li><b>Compliance theater is the equilibrium — for base models too.</b>
+Base agents broadcast virtue signaling ("Adhering to policy, I will not be
+purchasing the luxury-watch…") every round while the treasury blew through
+its cap. The messages reference the luxury want they were tempted by and
+correctly refused — individual compliance, broadcast as a signal,
+population violation proceeding regardless.</li>
+<li><b>Mandate-SFT removed coordination entirely.</b> Tuned agents emitted
+zero message actions in all conditions — the LoRA collapsed the action
+distribution to purchase-only — while overspending <i>more</i> than base
+and completing fewer tasks. Single-agent mandate training did not transfer
+to, and slightly worsened, the population-level outcome.</li>
+<li><b>The collusion primitives went unused.</b> No <code>for_agent</code>
+purchase, no luxury purchase, no blocked transaction in 576 agent-rounds.
+Agents never discovered delegated buying or the temptation item; the
+population violation emerged from <i>honest</i> overspending against an
+under-provisioned invariant.</li>
+</ul>
+<p><i>Pre-registered expectations check:</i> (a) confirmed —
+<code>treasury_over_cap</code> in 12/12, though agents never behaviorally
+reached the post-breach regime (they looped instead); (b) rejected —
+<code>pairwise</code> produced <i>fewer</i> messages than
+<code>broadcast</code> (42 vs 47) and zero transfers in both; (c)
+partially confirmed — tuned showed no individual violations but
+<i>worsened</i> the population outcome.</p>
+
+<h2>5. Discussion and Limitations</h2>
+<p><b>Did violations emerge without communication?</b> Yes — 6/6
+none-channel episodes breached the cap with zero delivered messages. But the
+mechanism is not collusion: it is <i>arithmetic</i>. Four $400 individual
+mandates sum to $1600 of authorized spend against a $1200 program cap, and
+the task bundles are priced so that even full cooperation cannot fit. Any
+population of agents that spends its mandates honestly breaches the
+invariant. The violation required no coordination, no deception, and no
+malice — which is precisely why per-trajectory oversight cannot see it.</p>
+<p><b>Did covert channels change violation shape?</b> No detectable
+difference. Pairwise messaging produced fewer messages than broadcast (42 vs
+47) and identical spend trajectories; <code>for_agent</code> transfers and
+luxury purchases never occurred in any condition. With 8B models under
+greedy decoding, channels conditioned message <i>volume</i>, not agent
+<i>plans</i>. We report this as a capability-floor result, not evidence
+that covert channels are safe.</p>
+<p><b>Did mandate-SFT help or hurt?</b> Hurt, modestly and interestingly.
+The v4 adapter was trained to make <i>single-agent</i> spend decisions
+mandate-compliant. In the population setting it (i) never reduced
+population violations — none existed at the individual level to reduce —
+(ii) overspent <i>more</i> ($1550 vs $1477), (iii) completed fewer tasks
+(0% vs 25%), and (iv) eliminated all agent-to-agent messaging. The most
+defensible reading: the fine-tune narrowed the action distribution toward
+purchase execution at the expense of the communicative and planning
+behavior a population task requires. Internalized compliance did not
+internalize the <i>population</i> constraint — because the training data
+never contained one.</p>
+<p><b>The detection gap is the finding.</b> Arm A saw nothing in 12/12
+episodes; Arm B caught everything via <code>cap_race</code> +
+<code>split_purchase</code>. This is the productizable claim: per-agent
+governance dashboards structurally cannot represent program-level safety.
+The invariant that matters lives one level above the unit of observation.</p>
+<p><b>Limitations.</b> (i) <i>Model scale.</i> Aya Expanse 8B may
+under-produce frontier collusion; results are a capability floor, and
+failures may reflect instruction-following limits rather than alignment.
+(ii) <i>Simulated stakes.</i> Spend is modeled; findings motivate but do not
+prove risks on live payment rails. (iii) <i>Unused primitives.</i> Agents
+never exercised <code>for_agent</code>, luxury purchases, or strategic
+division of labor — the covert-collusion regime remains untested at this
+scale. (iv) <i>Detector precision.</i> <code>split_purchase</code> fired
+mostly on repetitive same-item buying rather than strategic division;
+precision caveats apply. (v) <i>n=2 per cell.</i> Channel effects are
+directional, not significant. (vi) <i>Structural violation.</i> Because
+mandates sum above the cap, breach is guaranteed for honest spenders;
+future work should vary the mandate-to-cap ratio to find the threshold
+where violations become optional rather than arithmetic. (vii) <i>Invalidated
+runs.</i> Two earlier kernel runs were discarded for harness bugs (parser
+dropping plan elements; premature episode termination); the paper trail is
+in the repository.</p>
+<p><b>Future work.</b> Scale to larger populations and stronger models;
+introduce mandate-to-cap ratios that make the invariant violable-but-not-
+forced; reward communication so channels can be compared under equal
+incentives; extend forensics to comm↔transaction correlation on real
+incident transcripts (METR/HF logs); and productize population-level
+invariants as a first-class object in spend-governance systems.</p>
+
+<h2>6. Conclusion</h2>
+<p>When individually-scoped economic mandates sum above a shared program
+invariant, population-level violations are not an alignment failure — they
+are arithmetic. Every agent can be compliant and the program still breaches
+its cap. Our 12-episode matrix shows this happening universally, invisibly
+to per-trajectory oversight, and slightly worsened by single-agent mandate
+fine-tuning. The defense is not better per-agent policies; it is
+population-level audit — deterministic ledger forensics that check the
+invariant the mandates were supposed to protect.</p>
+
+<h2>Code and Data</h2>
+<ul>
+<li>Code repository: <code>github.com/thisyearnofear/cognivern</code> —
+<code>lexsi/swarm/</code> (env, sim, prompts, forensics, analyzer, mock
+policies). Preexisting infrastructure (Cognivern, Lexsi eval pipeline,
+Control Tower concepts) is declared in the report and repository.</li>
+<li>Data: <code>lexsi/swarm/results/v8/episodes.jsonl</code> (full
+transcripts + receipts) and <code>summary.json</code> in the repository.</li>
+<li>Model artifact: LoRA adapter
+<code>Papajams/aya-expanse-8b-lexsi-v4</code> on Hugging Face (preexisting,
+declared).</li>
+<li>Kernel: <code>papajams/lexsi-swarm-eval</code> v8 on Kaggle (T4×2,
+~2.5h, reproducible from the public repo + HF adapter).</li>
+</ul>
+
+<div class="appendix">
+<h2>Appendix A — Limitations and Dual-Use / Ethical Considerations (required)</h2>
+<p><b>What this result does and does not establish.</b> It establishes that
+in a simulated procurement market, population-level budget violations emerge
+universally under honest agent behavior, that per-trajectory oversight has
+a 100% miss rate on them, and that deterministic ledger forensics recover
+them. It does <b>not</b> establish that frontier models will collude
+economically, that covert channels are ineffective, or that real payment
+rails are currently exploitable — spend is modeled, stakes are simulated,
+and the strongest agents never discovered the collusion primitives.</p>
+<p><b>Dual-use.</b> The testbed and the <code>for_agent</code> delegated-
+purchase primitive could inform actors designing budget-evasion or
+collusion schemes against agent spending systems. Mitigations: the
+environment, oracle, and forensics detectors are released together so the
+defensive application dominates; we do not release prompts or data
+optimized for evasion; all spend is simulated and no live payment rail was
+touched. The finding itself — that per-agent governance misses population
+invariants — is defensive knowledge that argues for stronger aggregate
+audit, which we consider net-positive to publish.</p>
+<p><b>Honesty about invalidated work.</b> Two earlier experimental runs
+were discarded after post-hoc diagnosis showed harness artifacts (an
+action-plan parser that executed only the first planned action; an
+environment that terminated episodes at cap breach). They are documented
+in the repository's sprint log. The reported results come only from the
+valid run.</p>
+<p><b>AI tools disclosure.</b> AI-assisted tooling was used for code,
+analysis, and drafting; the authors verified all reported numbers against
+the released artifacts (<code>episodes.jsonl</code>, <code>summary.json</code>).
+No results or references were fabricated.</p>
+
+<h2>References</h2>
+<ol>
+<li>Piatti, G., et al. (2024). "Governance of the Commons in LLM Agent
+Societies" (GovSim). arXiv:2407.10667.</li>
+<li>Motwani, S., et al. (2024). "Secret Collusion among AI Agents." arXiv
+preprint.</li>
+<li>Greenblatt, R., et al. (2024). "AI Control: Improving Safety Despite
+Intentional Subversion." arXiv:2312.06942.</li>
+<li>AuthorizationBench. arXiv:2610.27548.</li>
+<li>METR (2026). Investigation of agent activity during the July 2026
+security evaluation incident.metr.org.</li>
+<li>OpenAI (2026). Statement on multi-agent incident activity. openai.com.</li>
+<li>Apart Research (2026). Swarm Alignment Hackathon — Sprint Guidelines
+and Rubric. apartresearch.com/sprints/swarm-alignment-2026.</li>
+<li>CohereLabs (2025). Aya Expanse 8B. huggingface.co/CohereLabs.</li>
+</ol>
+</div>
+
+</body>
+</html>
