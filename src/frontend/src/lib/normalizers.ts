@@ -64,6 +64,40 @@ export function normalizeAuditLogs(
 }
 
 /**
+ * Which governance layer produced the recorded decision — the
+ * defense-in-depth provenance view. Derived from fields already on the
+ * audit record; it does not claim a layer that isn't evidenced.
+ *
+ * - `policy`: a concrete policy check failed → deterministic rule blocked.
+ * - `evaluation`: denied without a failed check → the aggregate governance
+ *   evaluation (rules + model scoring) rejected it.
+ * - `escalation`: held → flagged for operator review before execution.
+ * - `cleared`: approved → passed every layer.
+ */
+export type DecisionLayer = 'policy' | 'evaluation' | 'escalation' | 'cleared';
+
+export function decisionLayer(log: NormalizedAuditLog): DecisionLayer {
+  if (log.decision === 'held') return 'escalation';
+  if (log.decision === 'denied') {
+    return log.policyChecks.some((check) => !check.result) ? 'policy' : 'evaluation';
+  }
+  return 'cleared';
+}
+
+export function summarizeDecisionLayers(
+  logs: NormalizedAuditLog[],
+): Record<DecisionLayer, number> {
+  const counts: Record<DecisionLayer, number> = {
+    policy: 0,
+    evaluation: 0,
+    escalation: 0,
+    cleared: 0,
+  };
+  for (const log of logs) counts[decisionLayer(log)] += 1;
+  return counts;
+}
+
+/**
  * Check if a normalized decision is a rejection.
  */
 export function isRejected(decision: NormalizedDecision): boolean {

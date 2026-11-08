@@ -38,6 +38,7 @@ import { decisionNodeId, scrollDecisionIntoView } from '@/lib/deep-link';
 import { TimelineNode } from './timeline-node';
 import { EmptyAuditState } from './empty-audit-state';
 import { AuditMetrics } from './audit-metrics';
+import { DecisionProvenance } from './decision-provenance';
 import { ProofDetails } from './proof-details';
 
 /**
@@ -384,6 +385,11 @@ export function AuditPage() {
           avgLatency={avgLatency}
           critical={critical}
         />
+      )}
+
+      {/* Decision provenance — which governance layer produced each outcome */}
+      {!error && !isLoading && filteredLogs.length > 0 && (
+        <DecisionProvenance logs={filteredLogs} />
       )}
 
       {/* Decision Timeline */}
