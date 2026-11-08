@@ -179,5 +179,8 @@ cognivern-signoz-trailer/
 # lexsi kaggle staging (contains credentials)
 /lexsi/kaggle/
 
+# lexsi public HF staging (built artifacts uploaded to HF; not source)
+/lexsi/hf_public/
+
 # lexsi SFT datasets are submission artifacts (small, needed for repro)
 !/lexsi/data/

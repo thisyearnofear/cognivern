@@ -102,6 +102,11 @@ reproduces on free Kaggle T4 GPUs.
 - **Repo**: `lexsi/` scoped dir already public in cognivern; README section
   links artifacts + reproduction steps.
 
+**Published Nov 8 (v4 artifacts):**
+- Dataset: https://huggingface.co/datasets/Papajams/lexsi-governance (10 files — scenarios, sft_v4, eval JSONLs, metrics, auditkit JSONs)
+- Adapter: https://huggingface.co/Papajams/aya-expanse-8b-lexsi-v4 (LoRA r=16 + cards)
+- Staging dirs `lexsi/hf_public/` are gitignored; re-stage + re-upload when v5 lands.
+
 ## Go/no-go gates (deadline Nov 14 AoE)
 
 - [ ] v5 metrics downloaded; unsafe_enforced ≤ v4 (ideally 0–1)
