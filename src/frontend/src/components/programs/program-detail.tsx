@@ -15,13 +15,17 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PageState } from "@/components/ui/error-state";
 import {
   apiClient,
+  type Agent,
   type FundedMandate,
   type SpendAttributionReport,
 } from "@/lib/api-client";
 import {
+  computeDetectionGap,
+  computeProgramCoverage,
   delegatedSpendEdges,
   detectProgramSignals,
   rollupAgentSpend,
+  treasuryTrajectory,
   type ProgramSignal,
 } from "@/lib/program-signals";
 import { useAuthStore } from "@/stores/auth-store";
@@ -45,6 +49,32 @@ const SEVERITY_STYLE: Record<ProgramSignal["severity"], { icon: typeof Info; cla
   info: { icon: Info, className: "border-border text-muted-foreground" },
 };
 
+/** Minimal cumulative-spend sparkline — no axes, shape only. */
+function TrajectorySparkline({ points }: { points: number[] }) {
+  const width = 560;
+  const height = 72;
+  const max = Math.max(...points, 1);
+  const step = points.length > 1 ? width / (points.length - 1) : width;
+  const path = points
+    .map((v, i) => `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)},${(height - (v / max) * (height - 8) - 4).toFixed(1)}`)
+    .join(" ");
+  const last = points[points.length - 1];
+  const lastX = (points.length - 1) * step;
+  const lastY = height - (last / max) * (height - 8) - 4;
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="mt-3 h-16 w-full"
+      preserveAspectRatio="none"
+      role="img"
+      aria-label="Cumulative spend trajectory"
+    >
+      <path d={path} fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary" />
+      <circle cx={lastX} cy={lastY} r="3" className="fill-primary" />
+    </svg>
+  );
+}
+
 /**
  * Program detail — one funded mandate's population view: shared treasury,
  * member agents, delegated spend edges, and population-level signals.
@@ -56,6 +86,7 @@ export function ProgramDetail() {
   const workspaceId = useAuthStore((state) => state.workspace?.id);
   const [mandate, setMandate] = useState<FundedMandate | null>(null);
   const [attribution, setAttribution] = useState<SpendAttributionReport | null>(null);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,9 +96,10 @@ export function ProgramDetail() {
       setLoading(true);
       setError(null);
       try {
-        const [mandateRes, attributionRes] = await Promise.all([
+        const [mandateRes, attributionRes, agentsRes] = await Promise.all([
           apiClient.getMandate(mandateId),
           apiClient.getSpendAttribution(mandateId),
+          apiClient.getAgents(),
         ]);
         if (cancelled) return;
         if (!mandateRes.success || !mandateRes.data) {
@@ -76,6 +108,9 @@ export function ProgramDetail() {
         setMandate(mandateRes.data);
         if (attributionRes.success && attributionRes.data) {
           setAttribution(attributionRes.data);
+        }
+        if (agentsRes.success && agentsRes.data) {
+          setAgents(agentsRes.data);
         }
       } catch (reason) {
         if (!cancelled) {
@@ -105,6 +140,18 @@ export function ProgramDetail() {
   );
   const delegatedEdges = useMemo(
     () => (mandate ? delegatedSpendEdges(mandate, records) : []),
+    [mandate, records],
+  );
+  const coverageAdvisories = useMemo(
+    () => (mandate ? computeProgramCoverage(mandate, agents) : []),
+    [mandate, agents],
+  );
+  const detectionGap = useMemo(
+    () => (mandate ? computeDetectionGap(mandate, records) : null),
+    [mandate, records],
+  );
+  const trajectory = useMemo(
+    () => (mandate ? treasuryTrajectory(mandate, records) : null),
     [mandate, records],
   );
 
@@ -146,6 +193,56 @@ export function ProgramDetail() {
         />
       </div>
 
+      {/* Detection gap — the product's core metric */}
+      {detectionGap && detectionGap.signalCount > 0 && (
+        <div
+          className={`flex items-start gap-3 rounded-xl border p-4 ${
+            detectionGap.detected
+              ? "border-destructive/50 bg-destructive/5"
+              : "border-border bg-card"
+          }`}
+        >
+          <ShieldAlert
+            className={`mt-0.5 h-4 w-4 shrink-0 ${detectionGap.detected ? "text-destructive" : "text-muted-foreground"}`}
+          />
+          <div>
+            <p className="text-sm font-medium">
+              Detection gap: {detectionGap.detected ? "open" : "closed"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{detectionGap.explanation}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Mandate coverage — issuance-time lint (P1) */}
+      {coverageAdvisories.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium">Mandate coverage</h2>
+          <div className="space-y-2">
+            {coverageAdvisories.map((advisory) => (
+              <div
+                key={advisory.id}
+                className={`flex items-start gap-3 rounded-xl border bg-card p-3 ${
+                  advisory.severity === "warning"
+                    ? "border-amber-500/50"
+                    : "border-border"
+                }`}
+              >
+                {advisory.severity === "warning" ? (
+                  <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                ) : (
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                )}
+                <div>
+                  <p className="text-sm font-medium">{advisory.title}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{advisory.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Population signals — the swarm-forensics layer */}
       <section className="space-y-3">
         <h2 className="text-sm font-medium">Population signals</h2>
@@ -167,7 +264,12 @@ export function ProgramDetail() {
                   <div className="flex items-start gap-3">
                     <Icon className="mt-0.5 h-4 w-4 shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{signal.title}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium">{signal.title}</p>
+                        <Badge variant="outline" className="text-[10px]">
+                          {signal.confidence} confidence
+                        </Badge>
+                      </div>
                       <p className="mt-1 text-xs text-muted-foreground">{signal.detail}</p>
                       {signal.evidence.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -235,6 +337,29 @@ export function ProgramDetail() {
             </tbody>
           </table>
         </div>
+        {trajectory && trajectory.points.length > 1 && (
+          <div className="rounded-xl border bg-card p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-sm font-medium">
+                Spend trajectory · {trajectory.asset}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {trajectory.daysToCap != null
+                  ? trajectory.daysToCap <= 0
+                    ? "cap headroom exhausted"
+                    : `≈${Math.ceil(trajectory.daysToCap)}d to cap at current rate`
+                  : trajectory.ratePerDay != null
+                    ? `committing ≈${Math.round(trajectory.ratePerDay).toLocaleString()}/day`
+                    : "insufficient time span for a rate"}
+              </p>
+            </div>
+            <TrajectorySparkline points={trajectory.points.map((p) => Number(p.committed))} />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Cumulative committed spend derived from attribution records; cap
+              projection uses the mandate&apos;s authorized headroom for {trajectory.asset}.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* Member agents — funded-by edges */}
@@ -246,6 +371,7 @@ export function ProgramDetail() {
               <tr className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
                 <th className="px-4 py-2 font-medium">Agent</th>
                 <th className="px-4 py-2 font-medium">Scope</th>
+                <th className="px-4 py-2 font-medium">Budget</th>
                 <th className="px-4 py-2 text-right font-medium">Records</th>
                 <th className="px-4 py-2 text-right font-medium">Allocated</th>
                 <th className="px-4 py-2 text-right font-medium">Consumed</th>
@@ -256,7 +382,7 @@ export function ProgramDetail() {
             <tbody>
               {agentRollups.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  <td colSpan={8} className="px-4 py-6 text-center text-sm text-muted-foreground">
                     No spend records attributed to this program yet.
                   </td>
                 </tr>
@@ -270,6 +396,9 @@ export function ProgramDetail() {
                       ) : (
                         <Badge variant="destructive">out of scope</Badge>
                       )}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {agents.find((a) => a.id === rollup.agentId)?.budget ?? "—"}
                     </td>
                     <td className="px-4 py-2.5 text-right font-mono">{rollup.recordCount}</td>
                     <td className="px-4 py-2.5 text-right font-mono">{fmt(rollup.allocated)}</td>

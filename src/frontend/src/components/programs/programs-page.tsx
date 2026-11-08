@@ -11,7 +11,11 @@ import {
   type FundedMandate,
   type SpendAttributionReport,
 } from "@/lib/api-client";
-import { detectProgramSignals, type AttributionRecord } from "@/lib/program-signals";
+import {
+  computeDetectionGap,
+  detectProgramSignals,
+  type AttributionRecord,
+} from "@/lib/program-signals";
 import { useAuthStore } from "@/stores/auth-store";
 
 interface ProgramCard {
@@ -21,6 +25,7 @@ interface ProgramCard {
   criticalSignals: number;
   totalSignals: number;
   heldCount: number;
+  detectionGap: boolean;
 }
 
 function toBigInt(value: string | undefined): bigint {
@@ -112,6 +117,7 @@ export function ProgramsPage() {
         criticalSignals: signals.filter((s) => s.severity === "critical").length,
         totalSignals: signals.length,
         heldCount: records.filter((r) => r.status === "held").length,
+        detectionGap: computeDetectionGap(mandate, records).detected,
       };
     });
   }, [mandates, attribution]);
@@ -195,6 +201,11 @@ export function ProgramsPage() {
                   <Badge variant="destructive">
                     <ShieldAlert className="mr-1 h-3 w-3" />
                     {card.criticalSignals} critical
+                  </Badge>
+                )}
+                {card.detectionGap && (
+                  <Badge variant="outline" className="border-destructive/50 text-destructive">
+                    detection gap
                   </Badge>
                 )}
               </div>
