@@ -15,15 +15,98 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageState } from "@/components/ui/error-state";
 import { Textarea } from "@/components/ui/textarea";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, type FundedMandate, type SpendAttributionReport } from "@/lib/api-client";
 import type { Run as SharedRun } from "@cognivern/shared";
 import { useAuthStore } from "@/stores/auth-store";
 
 type ApprovalResponse = Awaited<ReturnType<typeof apiClient.submitRunApproval>>;
+type AttributionRecord = SpendAttributionReport["records"][number];
 
 interface PendingItem {
   run: SharedRun;
   reason?: string;
+}
+
+function toBigInt(value: string | undefined): bigint {
+  if (!value || !/^\d+$/.test(value)) return BigInt(0);
+  try {
+    return BigInt(value);
+  } catch {
+    return BigInt(0);
+  }
+}
+
+interface EvidenceContext {
+  records: AttributionRecord[];
+  /** Program name → utilization + held-sibling count, for context. */
+  programs: Array<{ name: string; utilization: number; heldSiblings: number }>;
+}
+
+function evidenceForRun(
+  runId: string,
+  records: AttributionRecord[],
+  mandates: Map<string, FundedMandate>,
+): EvidenceContext | null {
+  const related = records.filter((r) => r.runId === runId);
+  if (related.length === 0) return null;
+  const mandateIds = [...new Set(related.map((r) => r.mandateId).filter(Boolean))] as string[];
+  const programs = mandateIds
+    .map((id) => mandates.get(id))
+    .filter((m): m is FundedMandate => Boolean(m))
+    .map((m) => ({
+      name: m.name,
+      utilization: mandateUtilization(m),
+      heldSiblings: records.filter(
+        (r) => r.mandateId === m.id && r.status === "held" && r.runId !== runId,
+      ).length,
+    }));
+  return { records: related, programs };
+}
+
+function EvidencePacket({ context }: { context: EvidenceContext }) {
+  return (
+    <div className="mt-3 rounded-lg border border-dashed bg-muted/30 p-3">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        Evidence packet
+      </p>
+      <div className="mt-1.5 space-y-1">
+        {context.records.slice(0, 4).map((r) => (
+          <p key={r.allocationId} className="font-mono text-[11px] text-muted-foreground">
+            {r.agentId} · {r.provider ?? r.asset} · {r.consumedAmount || r.allocatedAmount}{" "}
+            {r.asset} · {r.status}
+            {r.onBehalfOfAgentId && r.onBehalfOfAgentId !== r.agentId
+              ? ` · on behalf of ${r.onBehalfOfAgentId}`
+              : ""}
+          </p>
+        ))}
+        {context.records.length > 4 && (
+          <p className="text-[11px] text-muted-foreground">
+            +{context.records.length - 4} more record(s)
+          </p>
+        )}
+      </div>
+      {context.programs.map((p) => (
+        <p key={p.name} className="mt-1.5 text-[11px] text-muted-foreground">
+          Program <span className="font-medium text-foreground">{p.name}</span> —{" "}
+          {Math.round(p.utilization * 100)}% treasury committed
+          {p.heldSiblings > 0 && ` · ${p.heldSiblings} other held record(s) in this program`}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+/** Worst committed/authorized ratio across a mandate's assets (0..1+). */
+function mandateUtilization(mandate: FundedMandate): number {
+  let worst = 0;
+  for (const budget of Object.values(mandate.budget.byAsset)) {
+    const authorized = toBigInt(budget.authorizedAmount);
+    if (authorized === BigInt(0)) continue;
+    const committed = toBigInt(budget.consumedAmount) + toBigInt(budget.pendingAmount);
+    const ratio = Number(committed) / Number(authorized);
+    if (ratio > worst) worst = ratio;
+  }
+  return worst;
 }
 
 function isPendingApproval(run: SharedRun): boolean {
@@ -45,6 +128,8 @@ export function InboxPage() {
   const router = useRouter();
   const workspaceId = useAuthStore((state) => state.workspace?.id);
   const [pending, setPending] = useState<PendingItem[] | null>(null);
+  const [attribution, setAttribution] = useState<SpendAttributionReport | null>(null);
+  const [mandates, setMandates] = useState<Map<string, FundedMandate>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reasons, setReasons] = useState<Record<string, string>>({});
@@ -52,11 +137,19 @@ export function InboxPage() {
   const [results, setResults] = useState<Record<string, ApprovalResponse>>({});
 
   const load = useCallback(async () => {
-    const res = await apiClient.getRuns();
-    if (!res.success || !res.data) {
-      throw new Error(res.error || "Could not load runs");
+    const [runsRes, attributionRes, mandatesRes] = await Promise.all([
+      apiClient.getRuns(),
+      apiClient.getSpendAttribution(),
+      apiClient.getMandates(),
+    ]);
+    if (!runsRes.success || !runsRes.data) {
+      throw new Error(runsRes.error || "Could not load runs");
     }
-    return (res.data as SharedRun[])
+    if (attributionRes.success && attributionRes.data) setAttribution(attributionRes.data);
+    if (mandatesRes.success && mandatesRes.data) {
+      setMandates(new Map(mandatesRes.data.map((m) => [m.id, m])));
+    }
+    return (runsRes.data as SharedRun[])
       .filter(isPendingApproval)
       .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
       .map((run) => ({ run, reason: run.approvalReason }));
@@ -135,6 +228,9 @@ export function InboxPage() {
             const itemBusy = busy[run.id];
             const result = results[run.id];
             const transferStatus = result?.transfer?.transferStatus;
+            const evidence = attribution
+              ? evidenceForRun(run.id, attribution.records, mandates)
+              : null;
             return (
               <div key={run.id} className="rounded-xl border bg-card p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -160,6 +256,7 @@ export function InboxPage() {
                     {run.approvalReason && (
                       <p className="mt-1.5 text-xs text-amber-600">{run.approvalReason}</p>
                     )}
+                    {evidence && <EvidencePacket context={evidence} />}
                   </div>
                   <Button
                     variant="outline"
