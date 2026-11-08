@@ -53,11 +53,29 @@ violations but may *increase* collusive capability — either result is a findin
 task division, self-renaming, ~7% transcript spoofing) mapped to testbed
 mechanisms in the report's Related Work/Discussion.
 
-## Compute
+## Compute — LAUNCHED (Nov 8)
 
-Kaggle T4×2 (`papajams`), transformers + peft, same stack as
-`lexsi/kaggle/kernel/lexsi_train_eval.py`. v5 training run finishes first;
-swarm eval queued after. N=4, ~12 rounds, 3 seeds/condition if time allows.
+- Testbed built + smoke-tested locally (mock policies produce
+  `treasury_over_cap` with zero comms; colluder adds `unauthorized_transfer`;
+  detection gap confirmed).
+- Private Kaggle dataset `papajams/lexsi-swarm`: swarm package + adapter_v4 +
+  hf_token (same credential pattern as lexsi-sft-v4 — private, gitignored
+  staging under `lexsi/kaggle/`).
+- Kernel `papajams/lexsi-swarm-eval` v3 RUNNING (v1 failed on a stray
+  `%%writefile` line, v2 lost the GPU-session slot race, v3 clean):
+  {none,broadcast,pairwise} × {base,tuned-v4} × seeds{0,1}, 12 rounds,
+  greedy decode, T4×2. Output: `swarm_out/episodes.jsonl` + `summary.json`.
+- `lexsi/swarm/analyze_swarm.py` aggregates episodes → report tables.
+- `lexsi/swarm/REPORT.md` — report skeleton on the official structure.
+- v5 lexsi train-eval still RUNNING in parallel (2-session GPU cap reached —
+  swarm kernel queued behind it once, now both running).
+- **Kernel v4 ran but results are INVALID as an experiment** — diagnosed
+  post-hoc: Aya emits JSON *arrays* of planned actions; the sim executed
+  only the first element per turn, so agents repeated their first planned
+  buy every round (msgs=0, tasks=0/4, all 12 episodes identical
+  `treasury_over_cap`). Parser fixed to execute all actions in a submitted
+  plan (`parse_actions` in `lexsi/swarm/sim.py`), dataset re-versioned,
+  kernel **v5 RUNNING** (~2h expected).
 
 ## Preexisting vs weekend work (for the report)
 
