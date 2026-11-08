@@ -83,10 +83,14 @@ mechanisms in the report's Related Work/Discussion.
   Silver lining already reportable: tuned-v4 agents emit compliance-theater
   broadcasts ("sticking to the mandate!") while overspending — verbal
   compliance signaling without population restraint. Detection gap 100%.
-- **Kernel v6 RUNNING** — cap-scarce regime: program cap deliberately
-  unenforced/non-terminating, cap-remaining added to observations, full
-  12 rounds per episode. Smoke-tested locally (colluder mock now produces
-  transfers + full completion).
+- **Kernel v6 ran but INVALID — stale dataset.** The `datasets version`
+  upload silently 400'd, so v6 executed the v5 code again (identical
+  results: episodes end round 1–2 on cap breach). Diagnosed by comparing
+  episode `n_rounds` and dataset file sizes.
+- **Kernel v7 RUNNING** — cap-scarce regime with the swarm package
+  embedded directly in the kernel script (base64 tarball), bypassing the
+  broken dataset-version API. Verified embedded env.py is the new
+  non-terminating-cap version before push.
 
 ## Preexisting vs weekend work (for the report)
 
