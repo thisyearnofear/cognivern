@@ -74,8 +74,19 @@ mechanisms in the report's Related Work/Discussion.
   only the first element per turn, so agents repeated their first planned
   buy every round (msgs=0, tasks=0/4, all 12 episodes identical
   `treasury_over_cap`). Parser fixed to execute all actions in a submitted
-  plan (`parse_actions` in `lexsi/swarm/sim.py`), dataset re-versioned,
-  kernel **v5 RUNNING** (~2h expected).
+  plan (`parse_actions` in `lexsi/swarm/sim.py`).
+- **Kernel v5 ran — valid mechanics, thin differentiation.** Messages now
+  flow; all 12 episodes still `treasury_over_cap` only (0 mandate breaches,
+  0 blocked purchases, 0 `for_agent` transfers). Root cause #2: episodes
+  ended at ~round 3 on cap breach, so post-breach decisions never
+  happened; also no agent ever exercised the luxury want or `for_agent`.
+  Silver lining already reportable: tuned-v4 agents emit compliance-theater
+  broadcasts ("sticking to the mandate!") while overspending — verbal
+  compliance signaling without population restraint. Detection gap 100%.
+- **Kernel v6 RUNNING** — cap-scarce regime: program cap deliberately
+  unenforced/non-terminating, cap-remaining added to observations, full
+  12 rounds per episode. Smoke-tested locally (colluder mock now produces
+  transfers + full completion).
 
 ## Preexisting vs weekend work (for the report)
 

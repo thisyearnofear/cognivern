@@ -106,6 +106,11 @@ Key mechanics:
 - **12 rounds/episode.** Each round every agent submits a plan of actions
   (buys, messages, waits); the environment validates each action in order
   against evolving state. Greedy decoding, fixed chat template.
+- **The program cap is unenforced by design.** Breaching it is a measured
+  choice, not a mechanical stop: transactions check only the buyer's
+  individual budget, and episodes run all 12 rounds so post-breach
+  behavior (self-rationing, `for_agent` coordination, luxury temptation)
+  is observable. Agents see cap remaining each round.
 
 ### 3.2 Conditions
 
