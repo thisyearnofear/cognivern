@@ -174,3 +174,133 @@ describe('delegatedSpendEdges', () => {
     expect(sig?.detail).toContain('rogue-agent');
   });
 });
+
+describe('delegated_without_coverage', () => {
+  it('flags in-scope beneficiaries with no spend records of their own', () => {
+    const m = mandate();
+    const signals = detectProgramSignals(m, [
+      record({ agentId: 'agent-a', onBehalfOfAgentId: 'agent-b' }),
+    ]);
+    const sig = signals.find((s) => s.id === 'delegated_without_coverage');
+    expect(sig?.severity).toBe('warning');
+    expect(sig?.detail).toContain('agent-b');
+  });
+
+  it('does not flag beneficiaries who also spend themselves', () => {
+    const m = mandate();
+    const signals = detectProgramSignals(m, [
+      record({ agentId: 'agent-a', onBehalfOfAgentId: 'agent-b' }),
+      record({ allocationId: 'alloc-2', agentId: 'agent-b' }),
+    ]);
+    expect(signals.some((s) => s.id === 'delegated_without_coverage')).toBe(false);
+  });
+});
+
+describe('signal confidence', () => {
+  it('grades split procurement by pattern strength', () => {
+    const m = mandate();
+    // Two agents, same provider, same asset → medium confidence, info severity.
+    const weak = detectProgramSignals(m, [
+      record({ agentId: 'agent-a', provider: 'VendA' }),
+      record({ allocationId: 'alloc-2', agentId: 'agent-b', provider: 'VendA' }),
+    ]);
+    const weakSig = weak.find((s) => s.id === 'split_procurement');
+    expect(weakSig?.confidence).toBe('medium');
+    expect(weakSig?.severity).toBe('info');
+
+    // Three agents → high confidence, warning severity.
+    const strong = detectProgramSignals(m, [
+      record({ agentId: 'agent-a', provider: 'VendA' }),
+      record({ allocationId: 'alloc-2', agentId: 'agent-b', provider: 'VendA' }),
+      record({ allocationId: 'alloc-3', agentId: 'agent-c', provider: 'VendA' }),
+    ]);
+    const strongSig = strong.find((s) => s.id === 'split_procurement');
+    expect(strongSig?.confidence).toBe('high');
+    expect(strongSig?.severity).toBe('warning');
+  });
+});
+
+describe('computeProgramCoverage', () => {
+  const agent = (id: string, budget: string) => ({
+    id,
+    name: id,
+    role: 'agent',
+    status: 'active' as const,
+    trades: 0,
+    budget,
+    chain: 'filecoin',
+  });
+
+  it('flags members with no spend budget', async () => {
+    const { computeProgramCoverage } = await import('@/lib/program-signals');
+    const advisories = computeProgramCoverage(mandate(), [
+      agent('agent-a', '$100/day'),
+      agent('agent-b', '$0'),
+      agent('agent-c', 'unlimited'),
+    ]);
+    const sig = advisories.find((a) => a.id === 'uncovered_member');
+    expect(sig?.severity).toBe('warning');
+    expect(sig?.detail).toContain('agent-b');
+  });
+
+  it('warns when population authority exceeds a fiat treasury', async () => {
+    const { computeProgramCoverage } = await import('@/lib/program-signals');
+    const m = mandate({
+      measurementWindow: { startsAt: '2026-01-01T00:00:00Z', endsAt: '2026-01-11T00:00:00Z' },
+      budget: {
+        byAsset: {
+          USD: { authorizedAmount: '500', allocatedAmount: '0', consumedAmount: '0', pendingAmount: '0' },
+        },
+      },
+    });
+    const advisories = computeProgramCoverage(m, [
+      agent('agent-a', '$100/day'),
+      agent('agent-b', '$100/day'),
+      agent('agent-c', '$100/day'),
+    ]);
+    const sig = advisories.find((a) => a.id === 'over_provisioned');
+    // 3 × $100/day × 10 days = $3000 > $500 authorized.
+    expect(sig?.severity).toBe('warning');
+    expect(sig?.detail).toContain('3,000');
+  });
+});
+
+describe('computeDetectionGap', () => {
+  it('detects a gap when population signals fire with no individual overspend', async () => {
+    const { computeDetectionGap } = await import('@/lib/program-signals');
+    const gap = computeDetectionGap(mandate(), [
+      record({ agentId: 'agent-a', provider: 'VendA', consumedAmount: '100', allocatedAmount: '100' }),
+      record({ allocationId: 'alloc-2', agentId: 'agent-b', provider: 'VendA', consumedAmount: '100', allocatedAmount: '100' }),
+      record({ allocationId: 'alloc-3', agentId: 'agent-c', provider: 'VendA', consumedAmount: '100', allocatedAmount: '100' }),
+    ]);
+    expect(gap.detected).toBe(true);
+    expect(gap.individuallyVisibleViolations).toBe(0);
+  });
+
+  it('reports no gap when an agent individually overspent', async () => {
+    const { computeDetectionGap } = await import('@/lib/program-signals');
+    const gap = computeDetectionGap(mandate(), [
+      record({ agentId: 'agent-a', consumedAmount: '500', allocatedAmount: '100' }),
+    ]);
+    expect(gap.individuallyVisibleViolations).toBe(1);
+  });
+});
+
+describe('treasuryTrajectory', () => {
+  it('builds a cumulative committed series per dominant asset', async () => {
+    const { treasuryTrajectory } = await import('@/lib/program-signals');
+    const traj = treasuryTrajectory(mandate(), [
+      record({ recordedAt: '2026-01-02T00:00:00Z', consumedAmount: '100', allocatedAmount: '0' }),
+      record({ allocationId: 'alloc-2', recordedAt: '2026-01-04T00:00:00Z', consumedAmount: '100', allocatedAmount: '0' }),
+    ]);
+    expect(traj?.asset).toBe('USDC');
+    expect(traj?.points).toHaveLength(2);
+    expect(traj?.points[1].committed).toBe(BigInt(200));
+    expect(traj?.ratePerDay).not.toBeNull();
+  });
+
+  it('returns null with no records', async () => {
+    const { treasuryTrajectory } = await import('@/lib/program-signals');
+    expect(treasuryTrajectory(mandate(), [])).toBeNull();
+  });
+});
