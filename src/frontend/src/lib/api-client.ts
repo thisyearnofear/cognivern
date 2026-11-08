@@ -365,6 +365,7 @@ export interface SpendAttributionReport {
     agentId: string;
     mandateId?: string;
     asset: string;
+    onBehalfOfAgentId?: string;
     requestedAmount: string;
     allocatedAmount: string;
     consumedAmount: string;

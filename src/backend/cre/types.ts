@@ -9,6 +9,10 @@ export interface SpendAttribution {
   budgetId?: string;
   intentId: string;
   agentId: string;
+  /** Set when `agentId` spent mandate funds on behalf of another agent —
+   *  the delegated-spend edge. The buyer's budget is charged; the
+   *  beneficiary's task/mandate scope receives the value. */
+  onBehalfOfAgentId?: string;
   policyId?: string;
   asset: string;
   requestedAmount: string;

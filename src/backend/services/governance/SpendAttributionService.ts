@@ -94,6 +94,7 @@ export function getRunSpendAttribution(run: CreRun): SpendAttribution | undefine
     workspaceId: stringField("workspaceId"),
     mandateId: stringField("mandateId"),
     budgetId: stringField("budgetId"),
+    onBehalfOfAgentId: stringField("onBehalfOfAgentId"),
     policyId: stringField("policyId"),
     provider: stringField("provider"),
     executionId: stringField("executionId"),

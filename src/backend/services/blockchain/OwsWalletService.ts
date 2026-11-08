@@ -1407,6 +1407,11 @@ export class OwsWalletService {
         : recorder.getRun().projectId;
     const requestedAmount = intent.amount;
     const recordedAt = new Date().toISOString();
+    const onBehalfOfAgentId =
+      typeof metadata.onBehalfOfAgentId === 'string' &&
+      metadata.onBehalfOfAgentId.trim().length > 0
+        ? metadata.onBehalfOfAgentId.trim()
+        : undefined;
     const cleanverse = metadata.cleanverse as Record<string, unknown> | undefined;
     const cleanverseIdentity = metadata.cleanverseIdentity as CleanverseIdentityScreening | undefined;
     const compliance =
@@ -1442,6 +1447,7 @@ export class OwsWalletService {
         budgetId,
         intentId: intent.id,
         agentId: intent.agentId,
+        ...(onBehalfOfAgentId ? { onBehalfOfAgentId } : {}),
         policyId: params.policyId,
         asset: intent.asset,
         requestedAmount,

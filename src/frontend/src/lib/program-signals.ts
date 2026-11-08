@@ -14,6 +14,15 @@ export type AttributionRecord = SpendAttributionReport['records'][number];
 
 export type SignalSeverity = 'info' | 'warning' | 'critical';
 
+export interface DelegatedSpendEdge {
+  buyerAgentId: string;
+  beneficiaryAgentId: string;
+  beneficiaryInScope: boolean;
+  recordCount: number;
+  totalConsumed: bigint;
+  evidence: SignalEvidence[];
+}
+
 export interface SignalEvidence {
   label: string;
   reference: string;
@@ -91,6 +100,48 @@ export function rollupAgentSpend(
   );
 }
 
+/**
+ * Delegated-spend edges: buyer → beneficiary pairs from `onBehalfOfAgentId`
+ * attribution records. The swarm `for_agent` analog — one agent's budget
+ * funds another's scope. Edges to beneficiaries outside the mandate
+ * population are the population-level violation per-trajectory monitors
+ * cannot see.
+ */
+export function delegatedSpendEdges(
+  mandate: FundedMandate,
+  records: AttributionRecord[],
+): DelegatedSpendEdge[] {
+  const memberIds = new Set(mandate.agentIds);
+  const edges = new Map<string, DelegatedSpendEdge>();
+  for (const rec of records) {
+    if (!rec.onBehalfOfAgentId || rec.onBehalfOfAgentId === rec.agentId) continue;
+    const key = `${rec.agentId}→${rec.onBehalfOfAgentId}`;
+    let edge = edges.get(key);
+    if (!edge) {
+      edge = {
+        buyerAgentId: rec.agentId,
+        beneficiaryAgentId: rec.onBehalfOfAgentId,
+        beneficiaryInScope: memberIds.has(rec.onBehalfOfAgentId),
+        recordCount: 0,
+        totalConsumed: BigInt(0),
+        evidence: [],
+      };
+      edges.set(key, edge);
+    }
+    edge.recordCount += 1;
+    edge.totalConsumed += toBigInt(rec.consumedAmount || rec.allocatedAmount);
+    if (edge.evidence.length < 8) {
+      edge.evidence.push({
+        label: `${rec.agentId} → ${rec.onBehalfOfAgentId} · ${rec.provider ?? rec.asset}`,
+        reference: rec.allocationId,
+      });
+    }
+  }
+  return [...edges.values()].sort(
+    (a, b) => (b.totalConsumed > a.totalConsumed ? 1 : b.totalConsumed < a.totalConsumed ? -1 : 0),
+  );
+}
+
 const CONSUMED_STATUSES = new Set(['consumed', 'held']);
 
 /** Detect population-level signals for one mandate from its attribution records. */
@@ -117,6 +168,29 @@ export function detectProgramSignals(
       detail: `${outOfScope.length} record(s) across ${agents.length} agent(s) not in this mandate's authorized agent list.`,
       evidence: outOfScope.slice(0, 8).map((r) => ({
         label: `${r.agentId} · ${r.provider ?? r.asset}`,
+        reference: r.allocationId,
+      })),
+    });
+  }
+
+  // 1b. Delegated spend to out-of-scope beneficiaries: an in-scope buyer
+  //     funding an agent outside the mandate population — the productized
+  //     `for_agent`/unauthorized-transfer analog.
+  const badDelegations = scoped.filter(
+    (r) =>
+      r.onBehalfOfAgentId &&
+      r.onBehalfOfAgentId !== r.agentId &&
+      !memberIds.has(r.onBehalfOfAgentId),
+  );
+  if (badDelegations.length > 0) {
+    const beneficiaries = [...new Set(badDelegations.map((r) => r.onBehalfOfAgentId))];
+    signals.push({
+      id: 'out_of_scope_spend',
+      severity: 'critical',
+      title: 'Delegated spend to agents outside the mandate',
+      detail: `${badDelegations.length} record(s) fund ${beneficiaries.join(', ')} — agent(s) not in this mandate's authorized population.`,
+      evidence: badDelegations.slice(0, 8).map((r) => ({
+        label: `${r.agentId} → ${r.onBehalfOfAgentId} · ${r.provider ?? r.asset}`,
         reference: r.allocationId,
       })),
     });

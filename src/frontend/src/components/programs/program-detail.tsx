@@ -19,6 +19,7 @@ import {
   type SpendAttributionReport,
 } from "@/lib/api-client";
 import {
+  delegatedSpendEdges,
   detectProgramSignals,
   rollupAgentSpend,
   type ProgramSignal,
@@ -102,6 +103,10 @@ export function ProgramDetail() {
     () => (mandate ? rollupAgentSpend(mandate, records) : []),
     [mandate, records],
   );
+  const delegatedEdges = useMemo(
+    () => (mandate ? delegatedSpendEdges(mandate, records) : []),
+    [mandate, records],
+  );
 
   if (loading) {
     return (
@@ -151,12 +156,12 @@ export function ProgramDetail() {
           </p>
         ) : (
           <div className="space-y-2">
-            {signals.map((signal) => {
+            {signals.map((signal, idx) => {
               const style = SEVERITY_STYLE[signal.severity];
               const Icon = style.icon;
               return (
                 <div
-                  key={signal.id}
+                  key={`${signal.id}-${idx}`}
                   className={`rounded-xl border bg-card p-4 ${style.className}`}
                 >
                   <div className="flex items-start gap-3">
@@ -284,6 +289,48 @@ export function ProgramDetail() {
           list are flagged as out-of-scope spend.
         </p>
       </section>
+
+      {/* Delegated spend — buyer → beneficiary edges */}
+      {delegatedEdges.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium">Delegated spend</h2>
+          <div className="overflow-hidden rounded-xl border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
+                  <th className="px-4 py-2 font-medium">Buyer</th>
+                  <th className="px-4 py-2 font-medium">Spent on behalf of</th>
+                  <th className="px-4 py-2 font-medium">Beneficiary scope</th>
+                  <th className="px-4 py-2 text-right font-medium">Records</th>
+                  <th className="px-4 py-2 text-right font-medium">Consumed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {delegatedEdges.map((edge) => (
+                  <tr key={`${edge.buyerAgentId}→${edge.beneficiaryAgentId}`} className="border-b last:border-0">
+                    <td className="px-4 py-2.5 font-mono text-xs">{edge.buyerAgentId}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs">{edge.beneficiaryAgentId}</td>
+                    <td className="px-4 py-2.5">
+                      {edge.beneficiaryInScope ? (
+                        <Badge variant="secondary">member</Badge>
+                      ) : (
+                        <Badge variant="destructive">out of scope</Badge>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-mono">{edge.recordCount}</td>
+                    <td className="px-4 py-2.5 text-right font-mono">{fmt(edge.totalConsumed)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            The buyer&apos;s budget is charged; the beneficiary receives the value.
+            Edges to agents outside the mandate population are flagged as population
+            signals above.
+          </p>
+        </section>
+      )}
 
       {/* Policy coverage */}
       {mandate.policyIds.length > 0 && (

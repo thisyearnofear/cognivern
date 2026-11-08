@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  delegatedSpendEdges,
   detectProgramSignals,
   rollupAgentSpend,
   type AttributionRecord,
@@ -141,5 +142,35 @@ describe('detectProgramSignals', () => {
     ]);
     const sig = signals.find((s) => s.id === 'approval_pressure');
     expect(sig?.severity).toBe('warning');
+  });
+});
+
+describe('delegatedSpendEdges', () => {
+  it('groups buyer→beneficiary pairs and flags out-of-scope beneficiaries', () => {
+    const m = mandate();
+    const edges = delegatedSpendEdges(m, [
+      record({ agentId: 'agent-a', onBehalfOfAgentId: 'agent-b', consumedAmount: '100' }),
+      record({ allocationId: 'alloc-2', agentId: 'agent-a', onBehalfOfAgentId: 'agent-b', consumedAmount: '50' }),
+      record({ allocationId: 'alloc-3', agentId: 'agent-c', onBehalfOfAgentId: 'rogue', consumedAmount: '25' }),
+      record({ allocationId: 'alloc-4', agentId: 'agent-b' }), // no delegation
+    ]);
+    expect(edges).toHaveLength(2);
+    const ab = edges.find((e) => e.beneficiaryAgentId === 'agent-b');
+    expect(ab?.buyerAgentId).toBe('agent-a');
+    expect(ab?.recordCount).toBe(2);
+    expect(ab?.totalConsumed).toBe(BigInt(150));
+    expect(ab?.beneficiaryInScope).toBe(true);
+    const rogue = edges.find((e) => e.beneficiaryAgentId === 'rogue');
+    expect(rogue?.beneficiaryInScope).toBe(false);
+  });
+
+  it('flags delegated spend to out-of-scope beneficiaries as critical', () => {
+    const m = mandate();
+    const signals = detectProgramSignals(m, [
+      record({ agentId: 'agent-a', onBehalfOfAgentId: 'rogue-agent' }),
+    ]);
+    const sig = signals.find((s) => s.id === 'out_of_scope_spend');
+    expect(sig?.severity).toBe('critical');
+    expect(sig?.detail).toContain('rogue-agent');
   });
 });
