@@ -72,6 +72,23 @@ The in-product dashboard is `/telegraph` — categories, questions, the
 governed-consumption stats panel, and the intelligence ledger (settlements,
 burn by intent, recent calls with dispositions).
 
+### Re-running the evidence (judge CLI)
+
+`tooling/scripts/agents/telegraph-demo.ts` is a dependency-free CLI over the
+live API so reviewers can reproduce the ledger, run a compliant call, and
+trigger verification sampling themselves:
+
+```bash
+export COGNIVERN_TOKEN=<workspace JWT>   # COGNIVERN_API defaults to production
+pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts ledger
+pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts compliant-call '<json>'
+pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts verify-sample <programId> [limit] [evaluatorMinerId]
+pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts report <programId>
+```
+
+Every command prints the raw API response — run IDs, dispositions, and
+leaderboard rows are the evidence, not a summary of it.
+
 ## Signal digest (production consumption pattern)
 
 The digest is the real consumer: it pulls the daemon's organic high-interest
