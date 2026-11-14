@@ -28,6 +28,7 @@ import { Logger } from "@backend/shared/logging/Logger.js";
 import {
   TelegraphConfig,
   TelegraphMinerIntegration,
+  TelegraphMinerEndpoint,
   TelegraphMinerRequest,
   TelegraphMinerResponse,
   TelegraphEngineAskRequest,
@@ -47,6 +48,31 @@ function microUsdcToUsd(microUsdc?: number): string {
     return "0.01";
   }
   return (microUsdc / 1_000_000).toFixed(4);
+}
+
+/** Miners suffix generic intents (`X_GENERAL`); callers use the base name. */
+export function baseIntent(intent: string): string {
+  return intent.trim().toUpperCase().replace(/_GENERAL$/, "");
+}
+
+/**
+ * Pick the endpoint serving `intent` on a multi-endpoint miner. Endpoint
+ * descriptions lead with the intent token ("GAS_PRICE. Answers ..."), so the
+ * first whitespace/dot-delimited token is compared on the base-intent form.
+ * Falls back to the first endpoint when nothing matches.
+ */
+function selectEndpointForIntent(
+  miner: TelegraphMinerIntegration,
+  intent?: string,
+): TelegraphMinerEndpoint | undefined {
+  const endpoints = miner.endpoints ?? [];
+  if (!intent || endpoints.length <= 1) return endpoints[0];
+  const wanted = baseIntent(intent);
+  const match = endpoints.find((e) => {
+    const head = (e.description ?? "").trim().split(/[\s.]/, 1)[0] ?? "";
+    return baseIntent(head) === wanted;
+  });
+  return match ?? endpoints[0];
 }
 
 export class TelegraphService {
@@ -211,6 +237,10 @@ export class TelegraphService {
 
   /**
    * Get available miners, optionally filtered by intent.
+   *
+   * Miners register suffixed intents (`SANCTIONS_SCREENING_MATCH_GENERAL`)
+   * while callers and missions use the base name, so matching strips a
+   * trailing `_GENERAL` on both sides.
    */
   async getMiners(intent?: string): Promise<TelegraphMinerIntegration[]> {
     const miners = await this.refreshMiners();
@@ -219,7 +249,10 @@ export class TelegraphService {
       return miners;
     }
 
-    return miners.filter((m) => m.supported_intents?.includes(intent));
+    const wanted = baseIntent(intent);
+    return miners.filter((m) =>
+      (m.supported_intents ?? []).some((si) => baseIntent(si) === wanted),
+    );
   }
 
   /**
@@ -397,13 +430,15 @@ export class TelegraphService {
         );
       }
 
-      const endpoint = miner.endpoints[0];
+      // Multi-endpoint miners (e.g. txlens) declare the intent at the head of
+      // each endpoint description ("GAS_PRICE. Answers ..."). Pick the endpoint
+      // for the requested intent; fall back to the first endpoint.
+      const endpoint = selectEndpointForIntent(miner, request.intent);
       if (!endpoint) {
         throw new Error(`Miner ${miner.name} has no endpoints`);
       }
 
       const subnetId = miner.id;
-      const url = `${this.config.nodeUrl}/miner-dispatcher/v1/${subnetId}${endpoint.path}`;
       const upperMethod = (endpoint.method ?? "POST").toUpperCase();
 
       // Map caller-facing params to provider-facing names.
@@ -416,10 +451,20 @@ export class TelegraphService {
       }
 
       const contentType = endpoint.content_type ?? "application/json";
-      let body: BodyInit;
+      let body: BodyInit | undefined;
       let headers: Record<string, string> = { Accept: "application/json" };
+      let url = `${this.config.nodeUrl}/miner-dispatcher/v1/${subnetId}${endpoint.path}`;
 
-      if (endpoint.multipart_fields && endpoint.multipart_fields.length > 0) {
+      if (upperMethod === "GET") {
+        // GET endpoints take query params (?name=...) — a JSON body on GET is
+        // rejected by fetch before it ever reaches the miner.
+        const qs = new URLSearchParams();
+        for (const [k, v] of Object.entries(mappedParams)) {
+          qs.set(k, typeof v === "object" ? JSON.stringify(v) : String(v));
+        }
+        const query = qs.toString();
+        if (query) url += `?${query}`;
+      } else if (endpoint.multipart_fields && endpoint.multipart_fields.length > 0) {
         const form = new FormData();
         for (const [k, v] of Object.entries(mappedParams)) {
           form.append(k, String(v));

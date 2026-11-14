@@ -13,6 +13,8 @@ import {
   Wallet,
   Activity,
   FileSearch,
+  Trophy,
+  FlaskConical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +40,101 @@ import { UpstreamComputeCard } from './upstream-compute-card';
 
 function pct(n: number): string {
   return `${Math.round(n * 100)}%`;
+}
+
+function LeaderboardCard({
+  programId,
+  leaderboard,
+}: {
+  programId: string;
+  leaderboard: CreditProgramReport['leaderboard'];
+}) {
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  async function runSample() {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const res = await apiClient.verifyCreditProgramSample(programId, 3);
+      if (!res.success) throw new Error(res.error || 'Verification sample failed');
+      setNotice(
+        res.data?.skippedNoCandidates
+          ? 'No unverified open-tier calls to sample.'
+          : `Verified ${res.data?.attempted ?? 0} call(s) via Telegraph evaluators.`,
+      );
+      await mutate(`/api/credit-programs/${programId}/report`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Verification sample failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const rows = leaderboard ?? [];
+  const hasVerdicts = rows.some((r) => r.sampledCalls > 0);
+
+  return (
+    <div className="rounded-xl border bg-card p-4">
+      <div className="flex items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-sm font-medium">
+          <Trophy className="size-3.5 text-muted-foreground" /> Verified-answer leaderboard
+        </p>
+        <Button size="sm" variant="outline" onClick={runSample} disabled={busy}>
+          {busy ? <Loader2 className="size-3.5 animate-spin" /> : <FlaskConical className="size-3.5" />}
+          Verify sample
+        </Button>
+      </div>
+      <p className="mt-1 text-[0.7rem] text-muted-foreground">
+        Cost per verified correct answer, judged by paid Telegraph evaluator miners. Only
+        open-tier calls can be sampled — their excerpts are the only content we persist.
+      </p>
+      {notice && <p className="mt-2 text-xs text-muted-foreground">{notice}</p>}
+      <div className="mt-3 space-y-2">
+        {rows.length === 0 && (
+          <p className="text-xs text-muted-foreground">No model spend yet.</p>
+        )}
+        {rows.map((row) => (
+          <div key={row.model} className="rounded-lg border border-border/60 p-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium">{row.model}</span>
+              <span className="text-muted-foreground">
+                {row.sampledCalls}/{row.okCalls} verified
+              </span>
+            </div>
+            <div className="mt-1.5 grid grid-cols-3 gap-2 text-[0.7rem]">
+              <div>
+                <p className="text-muted-foreground">correct</p>
+                <p className="font-medium">
+                  {row.correctCount}
+                  {row.verifiedAccuracy !== null ? ` · ${pct(row.verifiedAccuracy)}` : ''}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">incorrect / unknown</p>
+                <p className="font-medium">
+                  {row.incorrectCount} / {row.unknownCount}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">cost / verified correct</p>
+                <p className="font-medium">
+                  {row.costPerVerifiedCorrectUsd !== null
+                    ? formatUsd(row.costPerVerifiedCorrectUsd)
+                    : '—'}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+        {rows.length > 0 && !hasVerdicts && (
+          <p className="text-[0.7rem] text-muted-foreground">
+            No verdicts yet — run a verification sample to price correctness.
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function ValidationCard({ programId, report }: { programId: string; report: CreditProgramReport }) {
@@ -403,6 +500,8 @@ function OverviewTab({
             multipliers. The tier is the participant&apos;s own choice — the sponsor never sets it.
           </p>
         </div>
+
+        <LeaderboardCard programId={programId} leaderboard={report.leaderboard} />
 
         <ValidationCard programId={programId} report={report} />
 

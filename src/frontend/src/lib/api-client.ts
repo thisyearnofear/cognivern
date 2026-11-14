@@ -1912,6 +1912,31 @@ class ApiClient {
     return this.fetch(`/api/credit-programs/${encodeURIComponent(programId)}/report`);
   }
 
+  async verifyCreditProgramSample(
+    programId: string,
+    limit = 3,
+  ): Promise<
+    ApiResponse<{
+      attempted: number;
+      skippedNoCandidates: boolean;
+      verdicts: Array<{
+        recordId: string;
+        model: string;
+        verdict: 'correct' | 'incorrect' | 'unknown';
+        evaluatorMinerId?: string;
+        evaluatorMinerName?: string;
+        confidence: number | null;
+        telegraphRunId: string | null;
+        detail?: string;
+      }>;
+    }>
+  > {
+    return this.fetch(
+      `/api/credit-programs/${encodeURIComponent(programId)}/verify-sample`,
+      { method: 'POST', body: JSON.stringify({ limit }) },
+    );
+  }
+
   async getCreditProgramFunding(
     programId: string,
   ): Promise<ApiResponse<{ funding: CreditProgramFunding }>> {
@@ -2149,6 +2174,64 @@ class ApiClient {
   > {
     return this.fetch('/api/telegraph/stats');
   }
+
+  async getTelegraphLedger(): Promise<ApiResponse<TelegraphLedgerReport>> {
+    return this.fetch('/api/telegraph/ledger');
+  }
+}
+
+// Telegraph expense-ledger projection (GET /api/telegraph/ledger).
+export interface TelegraphLedgerRecord {
+  runId: string;
+  timestamp: string;
+  agentId?: string;
+  mandateId?: string;
+  minerId?: string;
+  minerName?: string;
+  intent?: string;
+  confidence: number | null;
+  confidenceMet: boolean | null;
+  costUsd: number;
+  paid: boolean;
+  paymentNetwork?: string;
+  latencyMs?: number;
+  disposition: 'approved' | 'held_pending' | 'released' | 'quarantined' | 'blocked' | 'failed';
+  approvalState?: string;
+  complianceVerdict?: string;
+  complianceRunId?: string;
+  gateBlocked?: boolean;
+}
+
+export interface TelegraphLedgerReport {
+  generatedAt: string;
+  totals: {
+    calls: number;
+    paidCalls: number;
+    spendUsd: number;
+    approved: number;
+    heldPending: number;
+    released: number;
+    quarantined: number;
+    blocked: number;
+    failed: number;
+  };
+  byIntent: Array<{
+    intent: string;
+    calls: number;
+    spendUsd: number;
+    approved: number;
+    held: number;
+    failed: number;
+  }>;
+  byMiner: Array<{
+    minerId: string;
+    minerName: string;
+    calls: number;
+    spendUsd: number;
+    avgConfidence: number | null;
+  }>;
+  byMandate: Array<{ mandateId: string; calls: number; spendUsd: number }>;
+  records: TelegraphLedgerRecord[];
 }
 
 // Types for the sealed-bid endpoints. Kept in this file so both apiClient
@@ -2460,6 +2543,18 @@ export interface CreditProgramReport {
     costUsd: number;
   }>;
   byTaskClass: Array<{ taskClass: string; requestCount: number; costUsd: number }>;
+  leaderboard?: Array<{
+    model: string;
+    okCalls: number;
+    totalCostUsd: number;
+    sampledCalls: number;
+    correctCount: number;
+    incorrectCount: number;
+    unknownCount: number;
+    sampledCostUsd: number;
+    costPerVerifiedCorrectUsd: number | null;
+    verifiedAccuracy: number | null;
+  }>;
   participants: Array<{
     handle: string;
     projectTag: string | null;

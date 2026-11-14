@@ -168,3 +168,34 @@ CREATE TABLE IF NOT EXISTS credit_ledger_commitments (
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS idx_credit_commitments_program
   ON credit_ledger_commitments (program_id, created_at);
+--> statement-breakpoint
+
+-- Decision-model enrichment for task_class (see
+-- services/decisions/runwareDecisions.ts). One row per record at most.
+CREATE TABLE IF NOT EXISTS inference_record_decisions (
+  record_id TEXT PRIMARY KEY,
+  task_class TEXT NOT NULL,
+  confidence REAL NOT NULL,
+  model TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (record_id) REFERENCES inference_records(id)
+);
+--> statement-breakpoint
+
+-- Telegraph-verified correctness verdicts for sampled inference calls
+-- (Mission 10: cost per verified correct answer). One row per record at
+-- most; verdict is the evaluator miner's assertion — 'unknown' when the
+-- response carried no parseable judgement. telegraph_run_id links the CRE
+-- run that paid for the evaluation.
+CREATE TABLE IF NOT EXISTS inference_record_verdicts (
+  record_id TEXT PRIMARY KEY,
+  verdict TEXT NOT NULL,
+  evaluator_miner_id TEXT,
+  evaluator_miner_name TEXT,
+  evaluator_confidence REAL,
+  evaluator_detail TEXT,
+  telegraph_run_id TEXT,
+  cost_usd TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (record_id) REFERENCES inference_records(id)
+);

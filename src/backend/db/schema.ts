@@ -402,6 +402,21 @@ export const inferenceRecordDecisions = sqliteTable("inference_record_decisions"
   createdAt: text("created_at").notNull(),
 });
 
+// ── Telegraph-verified correctness verdicts (Mission 10 leaderboard) ────────
+// See services/credits/InferenceVerdictStore.ts. One verdict per record;
+// 'unknown' means the evaluator returned nothing parseable.
+export const inferenceRecordVerdicts = sqliteTable("inference_record_verdicts", {
+  recordId: text("record_id").primaryKey(),
+  verdict: text("verdict").notNull(),
+  evaluatorMinerId: text("evaluator_miner_id"),
+  evaluatorMinerName: text("evaluator_miner_name"),
+  evaluatorConfidence: real("evaluator_confidence"),
+  evaluatorDetail: text("evaluator_detail"),
+  telegraphRunId: text("telegraph_run_id"),
+  costUsd: text("cost_usd"),
+  createdAt: text("created_at").notNull(),
+});
+
 // ── Cohort-validation evidence: does the receipt travel? ────────────────────
 // See services/credits/ValidationStore.ts. Open events carry no identity.
 export const reportShareEvents = sqliteTable("report_share_events", {

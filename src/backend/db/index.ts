@@ -692,6 +692,24 @@ function migrate(db: Database.Database): void {
       FOREIGN KEY (record_id) REFERENCES inference_records(id)
     );
 
+    -- Telegraph-verified correctness verdicts for sampled inference calls
+    -- (Mission 10: cost per verified correct answer). One row per record at
+    -- most; verdict is the evaluator miner's assertion — 'unknown' when the
+    -- response carried no parseable judgement. telegraph_run_id links the CRE
+    -- run that paid for the evaluation.
+    CREATE TABLE IF NOT EXISTS inference_record_verdicts (
+      record_id TEXT PRIMARY KEY,
+      verdict TEXT NOT NULL,
+      evaluator_miner_id TEXT,
+      evaluator_miner_name TEXT,
+      evaluator_confidence REAL,
+      evaluator_detail TEXT,
+      telegraph_run_id TEXT,
+      cost_usd TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (record_id) REFERENCES inference_records(id)
+    );
+
     -- Anchored ledger commitments: a Merkle root over per-participant balance
     -- states, anchored to 0G Storage + Filecoin so balances are externally
     -- verifiable (see services/credits/LedgerCommitmentService.ts). Status is

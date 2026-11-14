@@ -393,3 +393,28 @@ export function useTelegraphStats() {
     },
   );
 }
+
+export function useTelegraphLedger() {
+  return useApiWithDemo(
+    "/api/telegraph/ledger",
+    async () => (await apiClient.getTelegraphLedger()).data,
+    {
+      generatedAt: new Date().toISOString(),
+      totals: {
+        calls: 0,
+        paidCalls: 0,
+        spendUsd: 0,
+        approved: 0,
+        heldPending: 0,
+        released: 0,
+        quarantined: 0,
+        blocked: 0,
+        failed: 0,
+      },
+      byIntent: [],
+      byMiner: [],
+      byMandate: [],
+      records: [],
+    },
+  );
+}

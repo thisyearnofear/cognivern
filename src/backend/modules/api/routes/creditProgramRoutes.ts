@@ -18,6 +18,9 @@ export function createCreditProgramRoutes(controller: CreditProgramController): 
   router.patch("/credit-programs/:programId", (req, res) => controller.update(req, res));
 
   router.get("/credit-programs/:programId/report", (req, res) => controller.report(req, res));
+  router.post("/credit-programs/:programId/verify-sample", (req, res) =>
+    controller.verifySample(req, res),
+  );
   router.get("/credit-programs/:programId/activity", (req, res) => controller.activity(req, res));
   router.get("/credit-programs/:programId/funding", (req, res) => controller.funding(req, res));
   router.get("/credit-programs/:programId/reconcile", (req, res) => controller.reconcile(req, res));

@@ -33,7 +33,8 @@ Money lives in **two layers** and it is worth keeping them apart:
 | `POST /api/credit-programs/:id/participants` | Provision the cohort — returns `cvk_` keys **once** (only a scrypt hash is stored). |
 | `POST /api/credit-programs/:id/top-up` | Bulk top-up every active participant. |
 | `PATCH .../participants/:pid/allocation` | Per-person adjustment. |
-| `GET .../report`, `.../activity`, `.../reconcile` | Money view, per-call feed, ledger re-derivation with drift. |
+| `GET .../report`, `.../activity`, `.../reconcile` | Money view, per-call feed, ledger re-derivation with drift. `report` also carries the verified-answer `leaderboard`. |
+| `POST .../verify-sample` | Mission 10: pays Telegraph `LLM_OUTPUT_EVALUATION` miners to judge a bounded sample (≤10/request) of unverdicted ok-records; verdicts persist in `inference_record_verdicts` and each evaluation is a governed CRE run. |
 | `GET .../funding` | Layer 1↔2 reconciliation: upstream balance vs pool vs worst-case commitment. |
 | `GET/POST .../commitments` | Anchored-commitment history and anchor-now. |
 | `PATCH .../participants/:pid/status`, `.../rotate-key`, `GET .../ledger` | Suspend/revoke, re-issue keys, line-by-line history. |
@@ -134,6 +135,34 @@ travels instead of asserting it:
   fingerprint columns by design.
 - The report view carries a 1–5 usefulness rating + would-reuse flag.
 - All three are reporting only; none gates, prices, or alters any flow.
+
+## Verified-answer leaderboard (Telegraph S2, Mission 10)
+
+`GET .../report` includes a per-model `leaderboard`: ok calls, sampled calls,
+correct/incorrect/unknown verdict counts, verified accuracy (unknowns
+excluded), and **cost per verified correct answer** — sampled-record cost ÷
+verified-correct count. Verdicts come from `POST .../verify-sample`, which
+pays an evaluator miner per sampled call through the governed Telegraph path
+(`telegraph.signal` CRE runs under the program's workspace).
+
+Evaluator selection: the request accepts an optional `evaluatorMinerId`
+override; otherwise the service picks automatically — preferring miners with
+a real evaluation endpoint (`/evaluate-output`-style), then ranking by the
+miner’s protocol score **for `LLM_OUTPUT_EVALUATION` specifically** (the
+registry `scores` array is per-intent; the top generic-intent claimant is not
+necessarily an evaluator). A held or failed evaluation never releases its
+signal, so it persists `unknown` with the call status as detail rather than
+parsing an unreleased response.
+
+Live smoke (2026-11-14): a seeded open-tier record ("17 + 25" → "42") was
+judged `correct` by AssistWire LLM Output Evaluation — $0.01 paid, approved
+at 0.95 confidence, verdict linked to its CRE run, and the leaderboard
+reported cost-per-verified-correct of $0.005 for the sampled model.
+
+Honesty bounds: only `open`-tier records carry excerpts, so only those can be
+sampled — private/detailed calls are never sent to an evaluator. A verdict is
+the evaluator miner's assertion linked to a paid run, not independent ground
+truth; `unknown` verdicts are stored and never counted as correct.
 
 ## Known caveats
 

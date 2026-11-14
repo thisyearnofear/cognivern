@@ -29,7 +29,7 @@
  * /api/telegraph/status endpoint and the dashboard.
  */
 
-import { telegraphService, telegraphGovernanceHelper } from "../../../src/backend/services/telegraph/index.js";
+import { telegraphService, telegraphGovernanceHelper, recordTelegraphGovernedCall } from "../../../src/backend/services/telegraph/index.js";
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -38,6 +38,13 @@ const STATS_FILE = join(DATA_DIR, "telegraph-stats.json");
 
 const MIN_INTEREST = parseFloat(process.env.TELEGRAPH_SIGNAL_MIN_INTEREST ?? "6");
 const SIGNAL_LIMIT = parseInt(process.env.TELEGRAPH_SIGNAL_LIMIT ?? "5", 10);
+// Workspace the digest's CRE runs belong to. When unset, calls still execute
+// and stats accumulate, but no run is persisted (standalone/dev mode).
+const CRE_PROJECT_ID = process.env.TELEGRAPH_CRE_PROJECT_ID || null;
+const MANDATE_ID = process.env.TELEGRAPH_DIGEST_MANDATE_ID || "telegraph-governed-consumption";
+// Hard ceiling on paid miner spend per digest run (USD). Judging rules treat
+// manufactured call volume as a violation — keep consumption demand-driven.
+const MAX_SPEND_USD = parseFloat(process.env.TELEGRAPH_MAX_SPEND_USD ?? "1");
 
 interface TelegraphStats {
   totalCalls: number;
@@ -197,11 +204,33 @@ async function runDigest() {
       const endpoint = (miner.endpoints ?? [])[0];
       const params = buildParams(endpoint, miner as any, routing, text);
 
+      if (runSpend >= MAX_SPEND_USD) {
+        console.log(`    → SKIP: per-run spend ceiling $${MAX_SPEND_USD} reached`);
+        continue;
+      }
+
+      const agentId = `telegraph-digest-${Date.now()}`;
+      const description = `Signal digest: ${category} — ${text.slice(0, 80)}`;
       const result = await telegraphGovernanceHelper.governedMinerCall({
-        agentId: `telegraph-digest-${Date.now()}`,
-        mandateId: "hackathon-track-3-demo",
-        minerRequest: { minerId: minerSlug, params, confidenceThreshold: 0.7 },
-        description: `Signal digest: ${category} — ${text.slice(0, 80)}`,
+        agentId,
+        workspaceId: CRE_PROJECT_ID ?? undefined,
+        mandateId: MANDATE_ID,
+        minerRequest: {
+          minerId: minerSlug,
+          intent: routing.intent ? String(routing.intent) : undefined,
+          params,
+          confidenceThreshold: 0.7,
+        },
+        description,
+      });
+
+      // Persist the call as a CRE run: held signals pause for operator
+      // approval in the escalation inbox instead of dead-ending in stats.
+      await recordTelegraphGovernedCall({
+        result,
+        projectId: CRE_PROJECT_ID,
+        agentId,
+        description,
       });
 
       if (result.success) {

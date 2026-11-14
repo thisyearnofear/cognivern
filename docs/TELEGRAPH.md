@@ -44,6 +44,9 @@ TELEGRAPH_CONFIDENCE_THRESHOLD=0.7     # default
 TELEGRAPH_EVM_NETWORK=eip155:*         # payments settle on Base Sepolia
 TELEGRAPH_SVM_NETWORK=solana:*
 TELEGRAPH_REFRESH_INTERVAL_MS=300000
+TELEGRAPH_CRE_PROJECT_ID=<workspace-id>   # digest: persist calls as CRE runs (unset = stats-only)
+TELEGRAPH_DIGEST_MANDATE_ID=...           # mandate tag on digest artifacts (default: telegraph-governed-consumption)
+TELEGRAPH_MAX_SPEND_USD=1                 # hard per-run paid-call ceiling for the digest
 ```
 
 `paymentReady` in `/api/telegraph/status` is the honest readiness gate: true
@@ -59,10 +62,15 @@ threshold, `paymentReady`, daemon health) · `miners` + `miners/:id`
 (registry, intents, `signal_mapping`, scores, price) · `intents` (grouped,
 real `requestCount` aggregates) · `daemon/categories` + `daemon/questions`
 (free signal feed with per-question routing hints) · `stats` (governed
-consumption counters the digest writes to `data/telegraph-stats.json`).
+consumption counters the digest writes to `data/telegraph-stats.json`) ·
+`ledger` (expense-ledger projection over persisted `telegraph.signal` CRE
+runs for the caller's workspace — settlement count, spend, burn by
+intent/miner/mandate, and per-call dispositions including held-signal
+resolution).
 
-The in-product dashboard is `/telegraph` — categories, questions, and the
-governed-consumption stats panel.
+The in-product dashboard is `/telegraph` — categories, questions, the
+governed-consumption stats panel, and the intelligence ledger (settlements,
+burn by intent, recent calls with dispositions).
 
 ## Signal digest (production consumption pattern)
 
@@ -101,7 +109,47 @@ never auto-approved. Threshold: `TELEGRAPH_CONFIDENCE_THRESHOLD` globally or
 `confidenceThreshold` per call (0.7 balanced; 0.8–0.9 conservative; 0.5–0.6
 permissive).
 
-Every call records a `telegraph.signal` CRE artifact:
+Every call is persisted as a CRE run (`workflow: "governance"`, `mode: "cre"`)
+carrying a `telegraph.signal` artifact — via `recordTelegraphGovernedCall`
+(`services/telegraph/TelegraphRunRecorder.ts`). Approved and failed calls
+complete immediately; **held calls pause for operator approval** and surface
+in the escalation inbox (`POST /api/cre/runs/:runId/approval` resolves them —
+approve releases the signal, reject quarantines it). In-product calls go
+through `POST /api/telegraph/call` (direct miner) and
+`POST /api/telegraph/engine-ask` (engine-routed); both require workspace auth
+and return `runId`/`runStatus`.
+
+`POST /api/telegraph/compliant-call` adds compliance-on-payment: it first buys
+a screening verdict from a compliance miner (default intent
+`SANCTIONS_SCREENING_MATCH`; override via `compliance.intent`/`minerId`,
+subject via `compliance.params`), persists that screen as its own governed
+run, and only proceeds to the paid call on an explicit `clear` verdict. A
+`hit` or inconclusive screen blocks the purchase — the blocked attempt is
+recorded as a failed gate-decision run, and cleared payments carry a
+`compliance` block (verdict + screening run id) inside their
+`telegraph.signal` artifact. The ledger surfaces both as `blocked`
+dispositions and per-record screen verdicts.
+
+### Registry intent matching
+
+Miners register suffixed intents (`SANCTIONS_SCREENING_MATCH_GENERAL`,
+`LLM_OUTPUT_EVALUATION_GENERAL`) while callers and missions use the base
+name. `getMiners(intent)` and endpoint routing both compare on the base form
+(trailing `_GENERAL` stripped), so `SANCTIONS_SCREENING_MATCH` matches every
+active sanctions miner. On multi-endpoint miners (e.g. TxLens), the endpoint
+is picked by the intent token leading each endpoint description; GET
+endpoints receive params as a query string — a JSON body on GET is rejected
+before it reaches the miner.
+
+Live smoke (2026-11-14, real x402 payments on Base Sepolia): a sanctions
+screen against `SANCTIONS_SCREENING_MATCH` returned `clear` ($0.01, zk-sanctions),
+the gated parent call to TxLens `GAS_PRICE` settled ($0.01), and the ledger
+showed both paid calls with the parent's `complianceVerdict: "clear"`. An
+earlier run with no matching miner correctly blocked with zero spend.
+
+The digest persists runs only when `TELEGRAPH_CRE_PROJECT_ID` is set; without
+it the script still consumes signals and accumulates `telegraph-stats.json`
+but writes no runs.
 
 ```ts
 {

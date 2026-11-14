@@ -10,7 +10,9 @@ import {
   useTelegraphCategories,
   useTelegraphQuestions,
   useTelegraphStats,
+  useTelegraphLedger,
 } from "@/hooks/use-api";
+import type { TelegraphLedgerReport } from "@/lib/api-client";
 import {
   Activity,
   CheckCircle2,
@@ -70,6 +72,7 @@ export function TelegraphPage() {
             {status.enabled ? (
               <>
                 <ConsumptionSection />
+                <LedgerSection />
                 <CategoriesSection />
                 <QuestionsSection />
               </>
@@ -381,6 +384,207 @@ function ConsumptionSection() {
         </>
       )}
     </div>
+  );
+}
+
+/* ─── Expense ledger ────────────────────────────────────────── */
+
+const DISPOSITION_LABEL: Record<string, { label: string; className: string }> = {
+  approved: { label: "Approved", className: "bg-emerald-600 hover:bg-emerald-600 text-white" },
+  held_pending: { label: "Held — awaiting review", className: "" },
+  released: { label: "Released", className: "bg-sky-600 hover:bg-sky-600 text-white" },
+  quarantined: { label: "Quarantined", className: "bg-rose-600 hover:bg-rose-600 text-white" },
+  blocked: { label: "Blocked — compliance", className: "bg-orange-600 hover:bg-orange-600 text-white" },
+  failed: { label: "Failed", className: "" },
+};
+
+function LedgerBadge({ disposition }: { disposition: string }) {
+  const d = DISPOSITION_LABEL[disposition] ?? { label: disposition, className: "" };
+  if (disposition === "held_pending") {
+    return (
+      <Badge variant="secondary" className="gap-1">
+        <ShieldAlert className="h-3 w-3" />
+        {d.label}
+      </Badge>
+    );
+  }
+  if (disposition === "failed") {
+    return (
+      <Badge variant="destructive" className="gap-1">
+        <XCircle className="h-3 w-3" />
+        {d.label}
+      </Badge>
+    );
+  }
+  return <Badge className={d.className}>{d.label}</Badge>;
+}
+
+function LedgerSection() {
+  const { data, isLoading, error } = useTelegraphLedger();
+
+  return (
+    <div className="rounded-xl border bg-card p-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <DollarSign className="h-5 w-5 text-primary" />
+        <h2
+          className="text-lg font-semibold"
+          style={{ fontFamily: "var(--font-space-grotesk)" }}
+        >
+          Intelligence ledger
+        </h2>
+        {data && data.totals.calls > 0 ? (
+          <Badge variant="outline">{data.totals.paidCalls} paid settlements</Badge>
+        ) : null}
+      </div>
+      <p className="text-xs text-muted-foreground -mt-2">
+        Every paid miner call is a CRE run with a signed{" "}
+        <span className="font-mono">telegraph.signal</span> artifact. Held signals
+        wait in the escalation inbox; released and quarantined dispositions are
+        recorded here.
+      </p>
+
+      {isLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
+      ) : error ? (
+        <PageState
+          variant="error"
+          title="Could not load the intelligence ledger"
+          message={error instanceof Error ? error.message : "Request failed"}
+        />
+      ) : !data || data.totals.calls === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No governed calls recorded for this workspace yet. Paid miner calls via{" "}
+          <span className="font-mono">/api/telegraph/call</span>, the engine-ask
+          endpoint, or the signal digest appear here with their receipts.
+        </p>
+      ) : (
+        <LedgerBody data={data} />
+      )}
+    </div>
+  );
+}
+
+function LedgerBody({ data }: { data: TelegraphLedgerReport }) {
+  const { totals } = data;
+  return (
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="rounded-lg border border-border bg-muted/20 p-4">
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Layers className="h-3 w-3" /> Settlements
+          </p>
+          <p className="text-2xl font-semibold mt-1">{totals.paidCalls}</p>
+          <p className="text-[10px] text-muted-foreground">{totals.calls} calls</p>
+        </div>
+        <div className="rounded-lg border border-border bg-muted/20 p-4">
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <DollarSign className="h-3 w-3" /> Spend
+          </p>
+          <p className="text-2xl font-semibold mt-1">${totals.spendUsd.toFixed(2)}</p>
+          <p className="text-[10px] text-muted-foreground">x402 USDC</p>
+        </div>
+        <div className="rounded-lg border border-border bg-muted/20 p-4">
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <ShieldCheck className="h-3 w-3 text-emerald-600" /> Cleared
+          </p>
+          <p className="text-2xl font-semibold mt-1 text-emerald-600 dark:text-emerald-400">
+            {totals.approved + totals.released}
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            {totals.released} released from hold
+          </p>
+        </div>
+        <div className="rounded-lg border border-border bg-muted/20 p-4">
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <ShieldAlert className="h-3 w-3" /> Held / rejected
+          </p>
+          <p className="text-2xl font-semibold mt-1">
+            {totals.heldPending + totals.quarantined + totals.blocked}
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            {totals.heldPending} awaiting review · {totals.quarantined} quarantined
+            {totals.blocked > 0 ? ` · ${totals.blocked} compliance-blocked` : ""}
+          </p>
+        </div>
+      </div>
+
+      {data.byIntent.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Burn by intent
+          </p>
+          <div className="divide-y divide-border rounded-lg border border-border">
+            {data.byIntent.slice(0, 6).map((row) => (
+              <div key={row.intent} className="px-4 py-2.5 flex items-center justify-between gap-4">
+                <div className="min-w-0 flex items-center gap-2">
+                  <Badge variant="outline" className="font-mono text-[10px]">
+                    {row.intent}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {row.calls} call{row.calls === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-xs shrink-0">
+                  <span className="text-muted-foreground">
+                    {row.approved} cleared · {row.held} held · {row.failed} failed
+                  </span>
+                  <span className="font-medium">${row.spendUsd.toFixed(2)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {data.records.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Recent settlements
+          </p>
+          <div className="divide-y divide-border rounded-lg border border-border">
+            {data.records.slice(0, 8).map((r) => (
+              <div key={r.runId} className="p-3 flex items-start justify-between gap-4">
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-medium leading-snug">
+                    {r.minerName ?? r.minerId ?? "unknown miner"}
+                    {r.intent && (
+                      <span className="ml-2 font-mono text-[10px] text-muted-foreground">
+                        {r.intent}
+                      </span>
+                    )}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                    {r.mandateId && r.mandateId !== "unscoped" && (
+                      <span>mandate {r.mandateId}</span>
+                    )}
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {timeAgo(r.timestamp)}
+                    </span>
+                    {r.paymentNetwork && (
+                      <span className="font-mono text-[10px]">{r.paymentNetwork}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right shrink-0 space-y-1">
+                  <LedgerBadge disposition={r.disposition} />
+                  <p className="text-[10px] text-muted-foreground">
+                    ${r.costUsd.toFixed(4)}
+                    {r.confidence !== null ? ` · conf ${r.confidence.toFixed(2)}` : ""}
+                    {r.complianceVerdict ? ` · screen ${r.complianceVerdict}` : ""}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

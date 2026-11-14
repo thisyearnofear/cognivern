@@ -8,7 +8,8 @@ import { Request, Response } from "express";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { Logger } from "@backend/shared/logging/Logger.js";
-import { telegraphService } from "@backend/services/telegraph/index.js";
+import { telegraphService, telegraphGovernanceHelper, recordTelegraphGovernedCall, recordTelegraphGateDecision, runComplianceScreen, buildTelegraphLedgerReport } from "@backend/services/telegraph/index.js";
+import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
 
 const logger = new Logger("TelegraphController");
 const STATS_FILE = join(process.cwd(), "data", "telegraph-stats.json");
@@ -293,6 +294,333 @@ export class TelegraphController {
       res.status(500).json({
         success: false,
         error: error.message || "Failed to get daemon questions",
+      });
+    }
+  }
+
+  /**
+   * POST /api/telegraph/call
+   *
+   * Paid direct miner call through the governed path. The miner response is
+   * confidence-gated and persisted as a CRE run: approved/failed calls
+   * complete immediately, held calls pause for operator approval in the
+   * escalation inbox.
+   */
+  async callMiner(req: Request, res: Response) {
+    try {
+      if (!telegraphService.getEnabled()) {
+        res.status(503).json({ success: false, error: "Telegraph integration is not enabled" });
+        return;
+      }
+      if (!req.workspaceId) {
+        res.status(401).json({ success: false, error: "Workspace authentication required" });
+        return;
+      }
+
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const minerId = typeof body.minerId === "string" ? body.minerId.trim() : "";
+      if (!minerId) {
+        res.status(400).json({ success: false, error: "minerId is required" });
+        return;
+      }
+      const params =
+        typeof body.params === "object" && body.params !== null
+          ? (body.params as Record<string, unknown>)
+          : {};
+      const agentId =
+        (typeof body.agentId === "string" && body.agentId.trim()) ||
+        req.userId ||
+        `workspace-${req.workspaceId}`;
+
+      const result = await telegraphGovernanceHelper.governedMinerCall({
+        agentId,
+        workspaceId: req.workspaceId,
+        mandateId: typeof body.mandateId === "string" ? body.mandateId : undefined,
+        policyId: typeof body.policyId === "string" ? body.policyId : undefined,
+        minerRequest: {
+          minerId,
+          intent: typeof body.intent === "string" ? body.intent : undefined,
+          params,
+          confidenceThreshold:
+            typeof body.confidenceThreshold === "number" ? body.confidenceThreshold : undefined,
+        },
+        description:
+          typeof body.description === "string" ? body.description : undefined,
+      });
+
+      const run = await recordTelegraphGovernedCall({
+        result,
+        projectId: req.workspaceId,
+        agentId,
+        description: typeof body.description === "string" ? body.description : undefined,
+      });
+
+      res.json({
+        success: true,
+        data: { ...result, runId: run?.runId ?? null, runStatus: run?.status ?? null },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error("Telegraph governed call endpoint failed", { error });
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to execute governed Telegraph call",
+      });
+    }
+  }
+
+  /**
+   * POST /api/telegraph/engine-ask
+   *
+   * Paid engine-routed ask through the governed path (same CRE run
+   * persistence as /api/telegraph/call).
+   */
+  async engineAsk(req: Request, res: Response) {
+    try {
+      if (!telegraphService.getEnabled()) {
+        res.status(503).json({ success: false, error: "Telegraph integration is not enabled" });
+        return;
+      }
+      if (!req.workspaceId) {
+        res.status(401).json({ success: false, error: "Workspace authentication required" });
+        return;
+      }
+
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const query = typeof body.query === "string" ? body.query.trim() : "";
+      if (!query) {
+        res.status(400).json({ success: false, error: "query is required" });
+        return;
+      }
+      const agentId =
+        (typeof body.agentId === "string" && body.agentId.trim()) ||
+        req.userId ||
+        `workspace-${req.workspaceId}`;
+
+      const result = await telegraphGovernanceHelper.governedEngineAsk({
+        agentId,
+        workspaceId: req.workspaceId,
+        mandateId: typeof body.mandateId === "string" ? body.mandateId : undefined,
+        policyId: typeof body.policyId === "string" ? body.policyId : undefined,
+        engineRequest: {
+          query,
+          intent: typeof body.intent === "string" ? body.intent : undefined,
+          confidenceThreshold:
+            typeof body.confidenceThreshold === "number" ? body.confidenceThreshold : undefined,
+        },
+        description:
+          typeof body.description === "string" ? body.description : undefined,
+      });
+
+      const run = await recordTelegraphGovernedCall({
+        result,
+        projectId: req.workspaceId,
+        agentId,
+        description: typeof body.description === "string" ? body.description : undefined,
+      });
+
+      res.json({
+        success: true,
+        data: { ...result, runId: run?.runId ?? null, runStatus: run?.status ?? null },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error("Telegraph governed engine ask failed", { error });
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to execute governed engine ask",
+      });
+    }
+  }
+
+  /**
+   * POST /api/telegraph/compliant-call
+   *
+   * Compliance-on-payment (Mission 02): runs a screening call against a
+   * compliance miner first, then — only on an explicit "clear" verdict —
+   * executes the requested paid miner call. The parent run's
+   * telegraph.signal artifact carries a `compliance` block linking the
+   * screening run, so each settlement arrives with its proof attached.
+   * A hit or inconclusive screen blocks the purchase; the blocked attempt
+   * is itself persisted as a failed gate-decision run.
+   *
+   * Body: same as /api/telegraph/call plus:
+   *   compliance: { minerId?, intent?, params: {...} }
+   */
+  async compliantCall(req: Request, res: Response) {
+    try {
+      if (!telegraphService.getEnabled()) {
+        res.status(503).json({ success: false, error: "Telegraph integration is not enabled" });
+        return;
+      }
+      if (!req.workspaceId) {
+        res.status(401).json({ success: false, error: "Workspace authentication required" });
+        return;
+      }
+
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const minerId = typeof body.minerId === "string" ? body.minerId.trim() : "";
+      const compliance = body.compliance as Record<string, unknown> | undefined;
+      const complianceParams =
+        compliance && typeof compliance.params === "object" && compliance.params !== null
+          ? (compliance.params as Record<string, unknown>)
+          : null;
+
+      if (!minerId) {
+        res.status(400).json({ success: false, error: "minerId is required" });
+        return;
+      }
+      if (!compliance || !complianceParams || Object.keys(complianceParams).length === 0) {
+        res.status(400).json({
+          success: false,
+          error: "compliance.params is required — the subject to screen (e.g. name, address, tx hash)",
+        });
+        return;
+      }
+
+      const agentId =
+        (typeof body.agentId === "string" && body.agentId.trim()) ||
+        req.userId ||
+        `workspace-${req.workspaceId}`;
+      const mandateId = typeof body.mandateId === "string" ? body.mandateId : undefined;
+      const description = typeof body.description === "string" ? body.description : undefined;
+
+      const screen = await runComplianceScreen({
+        agentId,
+        workspaceId: req.workspaceId,
+        mandateId,
+        policyId: typeof body.policyId === "string" ? body.policyId : undefined,
+        screen: {
+          minerId: typeof compliance.minerId === "string" ? compliance.minerId : undefined,
+          intent: typeof compliance.intent === "string" ? compliance.intent : undefined,
+          params: complianceParams,
+        },
+        description,
+      });
+
+      const complianceBlock = {
+        gate: "compliance",
+        verdict: screen.verdict,
+        detail: screen.detail ?? null,
+        screeningRunId: screen.runId,
+        screeningMinerId: screen.minerId ?? null,
+        screeningMinerName: screen.minerName ?? null,
+        intent: screen.intent ?? null,
+        confidence: screen.confidence,
+        costUsd: screen.costUsd ?? null,
+      };
+
+      if (screen.blocked) {
+        const gateRun = await recordTelegraphGateDecision({
+          projectId: req.workspaceId,
+          agentId,
+          mandateId,
+          description,
+          gate: "compliance",
+          reason: screen.blockReason ?? `screening verdict ${screen.verdict}`,
+          compliance: complianceBlock as unknown as Record<string, unknown>,
+          intendedCall: { minerId, intent: body.intent ?? null, params: body.params ?? null },
+        });
+        res.json({
+          success: true,
+          data: {
+            blocked: true,
+            status: "denied",
+            reason: screen.blockReason,
+            compliance: complianceBlock,
+            runId: gateRun?.runId ?? null,
+            runStatus: gateRun?.status ?? null,
+            timestamp: new Date().toISOString(),
+          },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const params =
+        typeof body.params === "object" && body.params !== null
+          ? (body.params as Record<string, unknown>)
+          : {};
+
+      const result = await telegraphGovernanceHelper.governedMinerCall({
+        agentId,
+        workspaceId: req.workspaceId,
+        mandateId,
+        policyId: typeof body.policyId === "string" ? body.policyId : undefined,
+        minerRequest: {
+          minerId,
+          intent: typeof body.intent === "string" ? body.intent : undefined,
+          params,
+          confidenceThreshold:
+            typeof body.confidenceThreshold === "number" ? body.confidenceThreshold : undefined,
+        },
+        description,
+      });
+
+      // Attach the compliance proof to the payment's artifact before persisting.
+      const artifactData = result.artifact?.data;
+      if (artifactData && typeof artifactData === "object") {
+        (artifactData as Record<string, unknown>).compliance = complianceBlock;
+      }
+
+      const run = await recordTelegraphGovernedCall({
+        result,
+        projectId: req.workspaceId,
+        agentId,
+        description,
+      });
+
+      res.json({
+        success: true,
+        data: {
+          ...result,
+          blocked: false,
+          compliance: complianceBlock,
+          runId: run?.runId ?? null,
+          runStatus: run?.status ?? null,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error("Telegraph compliant call endpoint failed", { error });
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to execute compliant Telegraph call",
+      });
+    }
+  }
+
+  /**
+   * GET /api/telegraph/ledger
+   *
+   * Expense-ledger projection over persisted telegraph.signal CRE runs for
+   * the requesting workspace: settlement count, burn by intent/miner/
+   * mandate, and per-call dispositions including held-signal resolution.
+   */
+  async getLedger(req: Request, res: Response) {
+    try {
+      if (!telegraphService.getEnabled()) {
+        res.status(503).json({ success: false, error: "Telegraph integration is not enabled" });
+        return;
+      }
+      if (!req.workspaceId) {
+        res.status(401).json({ success: false, error: "Workspace authentication required" });
+        return;
+      }
+
+      const runs = await creRunStore.list();
+      const workspaceRuns = runs.filter((run) => run.projectId === req.workspaceId);
+
+      res.json({
+        success: true,
+        data: buildTelegraphLedgerReport(workspaceRuns),
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error("Failed to build Telegraph ledger", { error });
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to build Telegraph ledger",
       });
     }
   }

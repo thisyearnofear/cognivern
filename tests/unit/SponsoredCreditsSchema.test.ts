@@ -28,6 +28,7 @@ const CREDIT_TABLES = [
   "credit_participants",
   "credit_ledger",
   "inference_records",
+  "inference_record_verdicts",
 ] as const;
 
 beforeAll(() => {

@@ -28,6 +28,14 @@ import {
   sharedInferenceRecordStore,
   type InferenceRecordStore,
 } from "@backend/services/credits/InferenceRecordStore.js";
+import {
+  sharedInferenceVerdictStore,
+  type InferenceVerdictStore,
+} from "@backend/services/credits/InferenceVerdictStore.js";
+import {
+  sharedInferenceVerificationService,
+  type InferenceVerificationService,
+} from "@backend/services/inference/InferenceVerificationService.js";
 import { nanoToUsd } from "@backend/services/credits/money.js";
 import { describeTiers, isDisclosureTier } from "@backend/services/credits/disclosure.js";
 import { buildFundingView, type UpstreamStatus } from "@backend/services/credits/funding.js";
@@ -60,6 +68,9 @@ export class CreditProgramController {
     private readonly validation: ValidationStore = sharedValidationStore(),
     private readonly upstreamCredentials: UpstreamCredentialService =
       sharedUpstreamCredentialService(),
+    private readonly verdicts: InferenceVerdictStore = sharedInferenceVerdictStore(),
+    private readonly verification: InferenceVerificationService =
+      sharedInferenceVerificationService(),
   ) {}
 
   // ── Programs ─────────────────────────────────────────────────────────────
@@ -759,6 +770,10 @@ export class CreditProgramController {
         disclosureMix,
         byModel: this.records.programModelBreakdown(program.id),
         byTaskClass: this.records.programTaskClassBreakdown(program.id),
+        // Mission 10: cost per verified correct answer per model. Only
+        // open-tier records can be sampled (their excerpts are the only
+        // content ever persisted), so early programs may show empty rows.
+        leaderboard: this.verdicts.leaderboard(program.id),
         // Cohort-validation evidence: does the receipt travel? Share/open
         // counts plus organiser ratings — the judges' slide, computed live.
         validation: this.validation.summary(program.id),
@@ -783,6 +798,42 @@ export class CreditProgramController {
         ],
       },
     });
+  }
+
+  /**
+   * POST /api/credit-programs/:programId/verify-sample
+   *
+   * Mission 10 trigger: pays Telegraph evaluator miners to judge a bounded
+   * sample of this program's unverdicted ok-records. Each call is a governed,
+   * persisted CRE run; verdicts feed the leaderboard on /report.
+   * Body: { limit?: number } — capped at 10 paid evaluations per request.
+   */
+  async verifySample(req: Request, res: Response): Promise<void> {
+    const program = this.requireProgram(req, res);
+    if (!program) return;
+
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const limit = Number.isFinite(Number(body.limit)) ? Number(body.limit) : 3;
+    const evaluatorMinerId =
+      typeof body.evaluatorMinerId === "string" && body.evaluatorMinerId.trim()
+        ? body.evaluatorMinerId.trim()
+        : undefined;
+
+    try {
+      const result = await this.verification.verifySample({
+        programId: program.id,
+        workspaceId: program.workspaceId,
+        limit,
+        evaluatorMinerId,
+      });
+      res.json({ success: true, data: result });
+    } catch (error) {
+      logger.error(`Verification sample failed: ${(error as Error).message}`);
+      res.status(502).json({
+        success: false,
+        error: (error as Error).message || "Verification sample failed",
+      });
+    }
   }
 
   /**
