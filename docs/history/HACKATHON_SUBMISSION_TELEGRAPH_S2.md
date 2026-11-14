@@ -23,7 +23,8 @@ evaluator miners into a cost-per-verified-answer leaderboard.
 | Claim | Evidence |
 | --- | --- |
 | Compliance proof attached to payment | `POST /api/telegraph/compliant-call` — sanctions screen `clear` (run `b1d33930`) → parent `GAS_PRICE` settled (run `6b1c1b4c`, TxLens, `complianceVerdict: "clear"` in its `telegraph.signal` artifact) |
-| Expense ledger with reverse states | `GET /api/telegraph/ledger` — 23 calls, $0.22 spend, dispositions `approved / held_pending / released / quarantined / blocked / failed` |
+| Compliance gate blocks real money | `compliant-call` screening a real OFAC SDN-listed wallet via **Counterproof Sanctions Screener** (miner `731002`, top-ranked on `SANCTIONS_SCREENING_MATCH_GENERAL`) → verdict `hit` (`matched=true`, ISIL KHORASAN on US/UN/EU/UK lists) → parent `GAS_PRICE` purchase **denied before settlement**. Screening run `5f22f7ec`, gate-decision run `cb44a45b`; only the $0.01 screen was paid |
+| Expense ledger with reverse states | `GET /api/telegraph/ledger` — 47 calls, $0.44 spend, dispositions `approved / held_pending / released / quarantined / blocked / failed` |
 | Human-in-the-loop | `/inbox` — held telegraph runs approve (release) or reject (quarantine); UI-verified approve on run `55c4484a` |
 | Verified-answer economics | `POST /api/credit-programs/:id/verify-sample` — Groq `openai/gpt-oss-120b` program `prog_3c75599c-3913-4fcc-8edd-2aedc5674f08`; leaderboard: 20 ok calls, 19 sampled, 6 correct / 1 incorrect / 12 unknown, `verifiedAccuracy 0.857`, `costPerVerifiedCorrectUsd ≈ $0.0065` |
 | Cross-miner agreement | `verify-sample {"agreement":true}` — two distinct evaluators (TxLens + AssistWire) per record; verdicts persist only on unanimous decided verdicts, else `unknown` with per-evaluator breakdown. Live result: 3 unanimous `correct`, 7 `no consensus` — mostly TxLens held/unparseable, plus one genuine evaluator disagreement (TxLens `incorrect` vs AssistWire `correct`) |
