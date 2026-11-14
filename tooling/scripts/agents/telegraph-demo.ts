@@ -13,7 +13,10 @@
  *   compliant-call '<json>'                  POST /api/telegraph/compliant-call
  *   miners [intent]                          GET /api/telegraph/miners?intent=
  *   intents                                  GET /api/telegraph/intents
- *   verify-sample <programId> [limit] [eval] POST .../verify-sample
+ *   verify-sample <programId> [limit] [eval] [--agreement]
+ *                                             POST .../verify-sample
+ *                                             (--agreement: two evaluators,
+ *                                             unanimous verdicts only)
  *   report <programId>                       GET .../report (leaderboard)
  *
  * Env:
@@ -87,15 +90,18 @@ switch (cmd) {
     break;
   }
   case "verify-sample": {
-    const [programId, limit, evaluatorMinerId] = args;
+    const agreement = args.includes("--agreement");
+    const positional = args.filter((a) => a !== "--agreement");
+    const [programId, limit, evaluatorMinerId] = positional;
     if (!programId) {
-      console.error("usage: telegraph-demo.ts verify-sample <programId> [limit] [evaluatorMinerId]");
+      console.error("usage: telegraph-demo.ts verify-sample <programId> [limit] [evaluatorMinerId] [--agreement]");
       process.exit(2);
     }
     out(
       await req("POST", `/api/credit-programs/${programId}/verify-sample`, {
         limit: limit ? Number(limit) : undefined,
         evaluatorMinerId: evaluatorMinerId || undefined,
+        agreement: agreement || undefined,
       }),
     );
     break;

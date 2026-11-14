@@ -34,7 +34,7 @@ Money lives in **two layers** and it is worth keeping them apart:
 | `POST /api/credit-programs/:id/top-up` | Bulk top-up every active participant. |
 | `PATCH .../participants/:pid/allocation` | Per-person adjustment. |
 | `GET .../report`, `.../activity`, `.../reconcile` | Money view, per-call feed, ledger re-derivation with drift. `report` also carries the verified-answer `leaderboard`. |
-| `POST .../verify-sample` | Mission 10: pays Telegraph `LLM_OUTPUT_EVALUATION` miners to judge a bounded sample (≤10/request) of unverdicted ok-records; verdicts persist in `inference_record_verdicts` and each evaluation is a governed CRE run. |
+| `POST .../verify-sample` | Mission 10: pays Telegraph `LLM_OUTPUT_EVALUATION` miners to judge a bounded sample (≤10/request) of unverdicted ok-records; verdicts persist in `inference_record_verdicts` and each evaluation is a governed CRE run. `agreement: true` judges each record with **two distinct evaluators** — the verdict only stands on unanimous decided verdicts, otherwise it persists `unknown` with the per-evaluator breakdown ("no consensus: …"). Doubles verification spend per record; that spend is itself ledgered. |
 | `GET .../funding` | Layer 1↔2 reconciliation: upstream balance vs pool vs worst-case commitment. |
 | `GET/POST .../commitments` | Anchored-commitment history and anchor-now. |
 | `PATCH .../participants/:pid/status`, `.../rotate-key`, `GET .../ledger` | Suspend/revoke, re-issue keys, line-by-line history. |
@@ -180,7 +180,8 @@ override; otherwise the service picks automatically — preferring miners with
 a real evaluation endpoint (`/evaluate-output`-style), then ranking by the
 miner’s protocol score **for `LLM_OUTPUT_EVALUATION` specifically** (the
 registry `scores` array is per-intent; the top generic-intent claimant is not
-necessarily an evaluator). A held or failed evaluation never releases its
+necessarily an evaluator), and demoting miners whose verdict history is ≥50%
+`unknown` over ≥2 samples. A held or failed evaluation never releases its
 signal, so it persists `unknown` with the call status as detail rather than
 parsing an unreleased response.
 
@@ -193,6 +194,9 @@ Honesty bounds: only `open`-tier records carry excerpts, so only those can be
 sampled — private/detailed calls are never sent to an evaluator. A verdict is
 the evaluator miner's assertion linked to a paid run, not independent ground
 truth; `unknown` verdicts are stored and never counted as correct.
+`agreement` mode raises the bar — two paid evaluators must return the same
+decided verdict — but even unanimous miner assertions are not independent
+ground truth; they are correlated opinions with receipts.
 
 ## Known caveats
 

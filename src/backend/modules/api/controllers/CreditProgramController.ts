@@ -825,6 +825,7 @@ export class CreditProgramController {
         workspaceId: program.workspaceId,
         limit,
         evaluatorMinerId,
+        agreement: body.agreement === true,
       });
       res.json({ success: true, data: result });
     } catch (error) {
