@@ -124,6 +124,19 @@ export class CreRunStore {
     return this.runs;
   }
 
+  /**
+   * Re-read shared persistence into the local cache. Writes already reload
+   * under the store lock, but pure readers (e.g. the Telegraph ledger) would
+   * otherwise serve a stale snapshot of runs another process appended.
+   */
+  async refresh() {
+    await this.ensureLoaded();
+    if (!this.persistence.lockPath) return;
+    await withRunStoreLock(this.persistence.lockPath, async () => {
+      await this.reloadFromPersistence();
+    });
+  }
+
   async get(runId: string) {
     await this.ensureLoaded();
     return this.runs.find((r) => r.runId === runId);

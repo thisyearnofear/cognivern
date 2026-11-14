@@ -608,6 +608,9 @@ export class TelegraphController {
         return;
       }
 
+      // Digest and other processes append runs out-of-process; refresh the
+      // shared snapshot so the ledger reflects them, not a stale load.
+      await creRunStore.refresh();
       const runs = await creRunStore.list();
       const workspaceRuns = runs.filter((run) => run.projectId === req.workspaceId);
 
