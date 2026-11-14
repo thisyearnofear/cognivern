@@ -395,26 +395,97 @@ export function useTelegraphStats() {
 }
 
 export function useTelegraphLedger() {
+  // Fixed timestamps: demo data must stay render-pure (no Date.now() in render).
+  const iso = (minsAgo: number) =>
+    new Date(Date.UTC(2026, 10, 14, 12, 0) - minsAgo * 60_000).toISOString();
   return useApiWithDemo(
     "/api/telegraph/ledger",
     async () => (await apiClient.getTelegraphLedger()).data,
     {
-      generatedAt: new Date().toISOString(),
+      generatedAt: "2026-11-14T12:00:00.000Z",
       totals: {
-        calls: 0,
-        paidCalls: 0,
-        spendUsd: 0,
-        approved: 0,
-        heldPending: 0,
-        released: 0,
+        calls: 7,
+        paidCalls: 5,
+        spendUsd: 0.05,
+        approved: 2,
+        heldPending: 2,
+        released: 1,
         quarantined: 0,
-        blocked: 0,
+        blocked: 2,
         failed: 0,
       },
-      byIntent: [],
-      byMiner: [],
-      byMandate: [],
-      records: [],
+      byIntent: [
+        { intent: "SANCTIONS_SCREENING_MATCH", calls: 2, spendUsd: 0.02, approved: 2, held: 0, failed: 0 },
+        { intent: "GAS_PRICE", calls: 1, spendUsd: 0.01, approved: 1, held: 0, failed: 0 },
+        { intent: "LLM_OUTPUT_EVALUATION", calls: 1, spendUsd: 0.01, approved: 0, held: 1, failed: 0 },
+        { intent: "FACT_CHECK", calls: 2, spendUsd: 0.01, approved: 0, held: 1, failed: 0 },
+        { intent: "CHAT_COMPLETION", calls: 1, spendUsd: 0.01, approved: 0, held: 0, failed: 0 },
+      ],
+      byMiner: [
+        { minerId: "710637", minerName: "Sanctions Name Evidence", calls: 1, spendUsd: 0.01, avgConfidence: 0.95 },
+        { minerId: "9002", minerName: "TxLens", calls: 1, spendUsd: 0.01, avgConfidence: 1 },
+        { minerId: "7441", minerName: "AssistWire LLM Output Evaluation", calls: 1, spendUsd: 0.01, avgConfidence: 0.95 },
+        { minerId: "901", minerName: "Telegraph Groq LPU Miner", calls: 1, spendUsd: 0.01, avgConfidence: 0.5 },
+        { minerId: "717190", minerName: "Qarinah ProofPack", calls: 2, spendUsd: 0.01, avgConfidence: 0.44 },
+        { minerId: "compliance-gate", minerName: "compliance gate", calls: 2, spendUsd: 0, avgConfidence: null },
+      ],
+      byMandate: [
+        { mandateId: "mission-02-stablecoin", calls: 3, spendUsd: 0.02 },
+        { mandateId: "mission-10-model-economy", calls: 1, spendUsd: 0.01 },
+        { mandateId: "unscoped", calls: 3, spendUsd: 0.02 },
+      ],
+      records: [
+        {
+          runId: "demo-bb8cfa02", timestamp: iso(12), agentId: "ops-demo",
+          mandateId: "mission-02-stablecoin", minerId: "9002", minerName: "TxLens",
+          intent: "GAS_PRICE", confidence: 1, confidenceMet: true, costUsd: 0.01,
+          paid: true, paymentNetwork: "eip155:*", latencyMs: 2558,
+          disposition: "approved", complianceVerdict: "clear",
+          complianceRunId: "demo-793b6d40",
+        },
+        {
+          runId: "demo-793b6d40", timestamp: iso(13), agentId: "ops-demo",
+          mandateId: "mission-02-stablecoin", minerId: "710637", minerName: "Sanctions Name Evidence",
+          intent: "SANCTIONS_SCREENING_MATCH", confidence: 0.95, confidenceMet: true,
+          costUsd: 0.01, paid: true, paymentNetwork: "eip155:*", latencyMs: 1900,
+          disposition: "approved",
+        },
+        {
+          runId: "demo-gate-01", timestamp: iso(40), agentId: "ops-demo",
+          mandateId: "mission-02-stablecoin", minerName: "compliance gate",
+          confidence: null, confidenceMet: null, costUsd: 0, paid: false,
+          disposition: "blocked", gateBlocked: true, complianceVerdict: "hit",
+        },
+        {
+          runId: "demo-eval-01", timestamp: iso(90), agentId: "verifier:prog-demo",
+          mandateId: "mission-10-model-economy", minerId: "7441",
+          minerName: "AssistWire LLM Output Evaluation", intent: "LLM_OUTPUT_EVALUATION",
+          confidence: 0.95, confidenceMet: true, costUsd: 0.01, paid: true,
+          paymentNetwork: "eip155:*", latencyMs: 3200,
+          disposition: "held_pending", approvalState: "pending",
+        },
+        {
+          runId: "demo-chat-01", timestamp: iso(180), agentId: "telegraph-digest",
+          minerId: "901", minerName: "Telegraph Groq LPU Miner",
+          intent: "CHAT_COMPLETION", confidence: 0.5, confidenceMet: false,
+          costUsd: 0.01, paid: true, paymentNetwork: "eip155:*",
+          disposition: "released", approvalState: "approved",
+        },
+        {
+          runId: "demo-fact-01", timestamp: iso(240), agentId: "telegraph-digest",
+          minerId: "717190", minerName: "Qarinah ProofPack",
+          intent: "FACT_CHECK", confidence: 0.44, confidenceMet: false,
+          costUsd: 0.01, paid: true, paymentNetwork: "eip155:*",
+          disposition: "held_pending", approvalState: "pending",
+        },
+        {
+          runId: "demo-fact-02", timestamp: iso(300), agentId: "telegraph-digest",
+          minerId: "717190", minerName: "Qarinah ProofPack",
+          intent: "FACT_CHECK", confidence: 0.44, confidenceMet: false,
+          costUsd: 0, paid: false,
+          disposition: "blocked", gateBlocked: true, complianceVerdict: "unknown",
+        },
+      ],
     },
   );
 }
