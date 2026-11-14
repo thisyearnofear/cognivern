@@ -469,10 +469,120 @@ function LedgerSection() {
   );
 }
 
+const TRAJECTORY_COLORS: Record<string, string> = {
+  approved: "#10b981",
+  released: "#0ea5e9",
+  held_pending: "#f59e0b",
+  quarantined: "#f43f5e",
+  blocked: "#f97316",
+  failed: "#64748b",
+};
+
+/** Cumulative x402 spend over the ledger window — the treasury trajectory. */
+function SpendTrajectory({
+  records,
+}: {
+  records: TelegraphLedgerReport["records"];
+}) {
+  const paid = records
+    .filter((r) => r.paid)
+    .map((r) => ({
+      t: Date.parse(r.timestamp),
+      cost: r.costUsd,
+      disposition: r.disposition,
+    }))
+    .sort((a, b) => a.t - b.t);
+  if (paid.length < 2) return null;
+
+  const W = 600;
+  const H = 120;
+  const P = 10;
+  const t0 = paid[0].t;
+  const span = Math.max(1, paid[paid.length - 1].t - t0);
+  const total = paid.reduce((s, p) => s + p.cost, 0);
+  if (total <= 0) return null;
+
+  const prefix = paid.reduce<number[]>((acc, p) => [...acc, (acc.at(-1) ?? 0) + p.cost], []);
+  const pts = paid.map((p, i) => {
+    const cum = prefix[i];
+    return {
+      x: P + ((p.t - t0) / span) * (W - 2 * P),
+      y: H - P - (cum / total) * (H - 2 * P),
+      cum,
+      cost: p.cost,
+      disposition: p.disposition,
+    };
+  });
+
+  const line = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const area = `${line} L${pts[pts.length - 1].x.toFixed(1)},${H - P} L${pts[0].x.toFixed(1)},${H - P} Z`;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Spend trajectory
+        </p>
+        <p className="text-xs text-muted-foreground">
+          ${total.toFixed(2)} cumulative · {paid.length} settlements
+        </p>
+      </div>
+      <div className="rounded-lg border border-border bg-muted/10 p-3">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="h-28 w-full"
+          preserveAspectRatio="none"
+          role="img"
+          aria-label="Cumulative spend over time"
+        >
+          <defs>
+            <linearGradient id="spend-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+          <path d={area} fill="url(#spend-fill)" />
+          <path
+            d={line}
+            fill="none"
+            stroke="var(--primary)"
+            strokeWidth="2"
+            vectorEffect="non-scaling-stroke"
+          />
+          {pts.map((p, i) => (
+            <circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r="4"
+              fill={TRAJECTORY_COLORS[p.disposition] ?? "#64748b"}
+              stroke="var(--card)"
+              strokeWidth="1.5"
+            >
+              <title>{`$${p.cost.toFixed(4)} · ${p.disposition}`}</title>
+            </circle>
+          ))}
+        </svg>
+        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+          {Object.entries(TRAJECTORY_COLORS)
+            .filter(([d]) => paid.some((p) => p.disposition === d))
+            .map(([d, color]) => (
+              <span key={d} className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                {DISPOSITION_LABEL[d]?.label ?? d}
+              </span>
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LedgerBody({ data }: { data: TelegraphLedgerReport }) {
   const { totals } = data;
   return (
     <>
+      <SpendTrajectory records={data.records} />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="rounded-lg border border-border bg-muted/20 p-4">
           <p className="text-xs text-muted-foreground flex items-center gap-1">
