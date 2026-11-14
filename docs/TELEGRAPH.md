@@ -277,6 +277,13 @@ parametric-cover contract).
 
 ## Season II direction
 
+> **Status (2026-11-14):** Season II is live (Nov 1 – Dec 1 2026, $10K, 3
+> tracks). We entered Track 03 Apps & Agents on missions 02 (agent expense
+> ledger + compliance-on-payment) and 10 (model economy). Items 1–3 below
+> shipped; see the [S2 submission doc](./history/HACKATHON_SUBMISSION_TELEGRAPH_S2.md)
+> for live evidence. Submission form opens later via Anjoman
+> (anjoman.ai → dashboard → Hackathon).
+
 Season II: ~30 days, $10K pool, same three tracks (Miner, Evaluator,
 Application/Agent across 15 commercial missions); rules and prize split
 publish with the Season II page at telegraphprotocol.com. Registration opens

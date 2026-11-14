@@ -52,6 +52,45 @@ Workspace auth: a workspace JWT (`Authorization: Bearer`). API base:
 - `unknown` verdicts are stored and excluded from accuracy — never counted correct.
 - Only `open`-disclosure-tier records are sampled; private/detailed content is never sent to evaluators.
 
+## Apps & Agents — five commercial questions (draft answers)
+
+**01 Who is it for?**
+Teams and agents buying ranked intelligence through Telegraph who need to
+prove what they spent, why it was allowed, and whether the answer was right —
+hackathon builders today, procurement/compliance teams and agent operators
+tomorrow. The problem recurs on every paid call an agent makes.
+
+**02 What does it improve?**
+Raw Telegraph calls settle with a receipt but no policy context: no mandate,
+no compliance check, no human recourse, no answer-quality signal. Cognivern
+adds the governance layer — compliance verdicts attached to the payment
+itself, dispositions on every settlement, an approval inbox for the unsure
+cases, and a cost-per-verified-answer metric — at ~$0.01–0.02 of governance
+overhead per call.
+
+**03 What does it do today?**
+Live on production: 47 governed Telegraph calls ($0.44 x402 spend), a real
+OFAC-listed wallet screened by top-ranked miner Counterproof that blocked a
+downstream payment before settlement, 20 metered inference calls through our
+OpenAI-compatible gateway, and 19 evaluator-sampled records producing a
+verified-answer leaderboard (85.7% accuracy, $0.0065 per verified-correct).
+Every claim re-runnable via `tooling/scripts/agents/telegraph-demo.ts`.
+
+**04 Why would someone adopt it?**
+Because "the agent paid a stranger and nobody can prove it was allowed" stops
+being acceptable the moment spend is real. Mandates, compliance-on-payment,
+and verified-answer economics are the difference between a demo and an
+auditable agent economy. Before production: mainnet rail, more evaluator
+coverage, and independent (non-miner) ground-truth checks.
+
+**05 How can someone try it?**
+`cognivern.persidian.com/telegraph` for the ledger and inbox;
+`POST /api/telegraph/compliant-call`, `GET /api/telegraph/ledger`, and
+`POST /api/credit-programs/:id/verify-sample` on the API; the CLI in
+`tooling/scripts/agents/telegraph-demo.ts` re-runs the evidence. Maintained
+by the Cognivern team; docs in `docs/TELEGRAPH.md` and
+`docs/SPONSORED_CREDITS.md`.
+
 ## Submission checklist status
 
 - [x] One product, one story — governed agent spend, compliance-on-payment, verified answers

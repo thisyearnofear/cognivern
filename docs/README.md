@@ -43,7 +43,7 @@ commit it or copy its contents into public docs.
 
 ## Program status
 
-Status as of **2026-10-21**. Update this table when a program changes state;
+Status as of **2026-11-14**. Update this table when a program changes state;
 never bake deadlines into `AGENTS.md` or rail docs.
 
 | Program | Type | Status | Reference |
@@ -55,7 +55,7 @@ never bake deadlines into `AGENTS.md` or rail docs.
 | Cleanverse Build: Trusted Assets | Hackathon | Concluded Aug 9 2026 | [history submission](./history/HACKATHON_SUBMISSION_CLEANVERSE.md) |
 | KeeperHub — Agents Onchain | Hackathon | Concluded Aug 13 2026 | [history submission](./history/HACKATHON_SUBMISSION_KEEPERHUB.md) |
 | Flare Summer Signal | Hackathon | Concluded Aug 14 2026 | [history submission](./history/FLARE_SUMMER_SIGNAL.md) |
-| Telegraph Protocol S2 | Hackathon | Preparing — season not yet open (~30 days, $10K, 3 tracks) | [TELEGRAPH.md — Season II direction](./TELEGRAPH.md#season-ii-direction) |
+| Telegraph Protocol S2 | Hackathon | Active — submissions close Dec 1 2026 23:59 UTC via Anjoman; form opens later; $10K, 3 tracks. Entered Track 03 Apps & Agents, missions 02 + 10 | [submission](./history/HACKATHON_SUBMISSION_TELEGRAPH_S2.md) · [TELEGRAPH.md](./TELEGRAPH.md) · [SPONSORED_CREDITS.md](./SPONSORED_CREDITS.md) |
 | Telegraph Protocol S1 Track 3 | Hackathon | Concluded Sep 7 2026 — no placement; [retrospective](./TELEGRAPH.md#season-i-retrospective) | [history submission](./history/HACKATHON_SUBMISSION_TELEGRAPH.md) |
 
 ## History
