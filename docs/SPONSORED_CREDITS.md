@@ -98,6 +98,34 @@ Compliance, stated plainly: pooling one person's promo codes may violate
 that sponsor's terms. The organiser owns that call — these rails meter what
 is legitimately routed, nothing more.
 
+## OpenAI-compatible upstream (any provider)
+
+`backend: "openai-compat"` routes a program through any provider that speaks
+the OpenAI chat-completions shape — Groq, Cerebras, Venice, OpenAI itself,
+or a self-hosted endpoint. Configuration:
+
+- `OPENAI_COMPAT_BASE_URL` — provider base (e.g. `https://api.groq.com/openai/v1`).
+- `OPENAI_COMPAT_API_KEY` — optional **platform fallback** key. A per-program
+  upstream credential (same encrypted store as Anthropic) takes precedence;
+  when neither exists the backend reports `backend_not_configured` and calls
+  deny loudly — there is deliberately **no silent fallback** to another
+  provider, since that would misreport which upstream was billed.
+- Model allowlists are the program's `allowedModels`, enforced before the
+  upstream call; `GET /v1/models` is allowlist-filtered regardless of what
+  the provider advertises (some providers return an empty catalog — that's
+  provider behaviour, not a gateway failure).
+
+Provider quirks worth knowing: Groq reasoning models (e.g.
+`openai/gpt-oss-120b`) put chain-of-thought in a separate `reasoning` field —
+the gateway returns `content` only. Model IDs are provider-specific and go
+stale (Groq deprecated `llama-3.3-70b-versatile`); a `model_not_found` error
+is surfaced to the caller as-is, unbilled.
+
+Live evidence (2026-11-14): a Groq-backed program served 10 real metered
+calls on `openai/gpt-oss-120b` (~$0.02 total), and `verify-sample` paid TxLens
+evaluator runs that judged 3 sampled records `correct` — leaderboard then
+reported `costPerVerifiedCorrectUsd ≈ $0.00177`, `verifiedAccuracy: 1`.
+
 ## Verifiable anchoring
 
 Periodically (hourly; also on close and on demand) the backend builds a Merkle
@@ -120,7 +148,9 @@ ownership map.
 `ZEROG_NATIVE_DECIMALS`, `GATEWAY_STATIC_PRICES`, `GATEWAY_HOLD_SAFETY_FACTOR`,
 `GATEWAY_DEFAULT_MAX_OUTPUT_TOKENS`, `GATEWAY_EXCERPT_MAX_CHARS`,
 `GATEWAY_CATALOG_*`, `GATEWAY_UPSTREAM_TIMEOUT_MS`,
-`CREDIT_COMMITMENT_INTERVAL_MS`. All documented in `.env.example`.
+`CREDIT_COMMITMENT_INTERVAL_MS`, plus the OpenAI-compatible pair
+`OPENAI_COMPAT_BASE_URL` / `OPENAI_COMPAT_API_KEY` (see above). All documented
+in `.env.example`.
 
 ## Validation telemetry (does the receipt travel?)
 
