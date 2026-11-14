@@ -24,6 +24,7 @@ import type { InferenceBackend } from "./types.js";
 import { ModelPricingService } from "./ModelPricingService.js";
 import { sharedZeroGRouterBackend } from "./ZeroGRouterBackend.js";
 import { sharedAnthropicBackend } from "./AnthropicBackend.js";
+import { sharedOpenAICompatBackend } from "./OpenAICompatBackend.js";
 
 export interface RegisteredBackend {
   backend: InferenceBackend;
@@ -86,5 +87,8 @@ function ensureDefaults(): void {
   }
   if (!registry.has("anthropic")) {
     registerBackend(sharedAnthropicBackend());
+  }
+  if (!registry.has("openai-compat")) {
+    registerBackend(sharedOpenAICompatBackend());
   }
 }

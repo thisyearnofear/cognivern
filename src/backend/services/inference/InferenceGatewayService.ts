@@ -130,9 +130,12 @@ export class InferenceGatewayService {
    * did not choose would bill the wrong pocket.
    */
   private upstreamKeyFor(context: GatewayContext, backendId: string): string | undefined {
-    if (backendId !== "anthropic") return undefined;
+    if (backendId !== "anthropic" && backendId !== "openai-compat") return undefined;
     const credential = this.credentials.getCredential(context.program.id);
     if (!credential) {
+      // openai-compat may fall back to the platform env key; anthropic has
+      // no env key by design — a missing credential must deny loudly.
+      if (backendId === "openai-compat") return undefined;
       throw new GatewayDeniedError({
         code: "backend_not_configured",
         message:

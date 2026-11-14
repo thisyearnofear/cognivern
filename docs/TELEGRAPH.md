@@ -142,10 +142,21 @@ endpoints receive params as a query string — a JSON body on GET is rejected
 before it reaches the miner.
 
 Live smoke (2026-11-14, real x402 payments on Base Sepolia): a sanctions
-screen against `SANCTIONS_SCREENING_MATCH` returned `clear` ($0.01, zk-sanctions),
-the gated parent call to TxLens `GAS_PRICE` settled ($0.01), and the ledger
-showed both paid calls with the parent's `complianceVerdict: "clear"`. An
-earlier run with no matching miner correctly blocked with zero spend.
+screen against `SANCTIONS_SCREENING_MATCH` returned `clear` ($0.01,
+Sanctions Name Evidence), the gated parent call to TxLens `GAS_PRICE` settled
+($0.01, confidence 1.0, real Base block data), and the ledger showed both
+paid calls with the parent's `complianceVerdict: "clear"`. An earlier run
+with no matching miner correctly blocked with zero spend.
+
+Live loop verified end-to-end (same day, production workspace
+`e7c4a84b-…`): held digest calls were approved and rejected through
+`POST /api/cre/runs/:runId/approval` — released/quarantined dispositions
+appear in the ledger — and a fresh `compliant-call` plus an engine-ask at a
+0.99 confidence threshold produced approved, held, and (via UI click)
+released records. **`TELEGRAPH_CRE_PROJECT_ID` must be a real live-tier
+workspace id** — it was briefly pointed at a phantom demo-tier workspace
+(`968e717a-…`, ownerless), which made `/api/cre/runs` serve demo data and hid
+every telegraph run from the operator's actual login.
 
 The digest persists runs only when `TELEGRAPH_CRE_PROJECT_ID` is set; without
 it the script still consumes signals and accumulates `telegraph-stats.json`
