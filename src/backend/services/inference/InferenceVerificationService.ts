@@ -150,7 +150,9 @@ export function parseEvaluationVerdict(data: unknown): {
     : { verdict: "unknown", detail: "no parseable verdict in evaluator response" };
 }
 
-async function pickEvaluatorMiner(): Promise<{ minerId: string } | null> {
+async function pickEvaluatorMiner(
+  reliability?: Map<string, { total: number; unknown: number }>,
+): Promise<{ minerId: string } | null> {
   const miners = await telegraphService.getMiners(EVALUATION_INTENT);
   const active = miners.filter(
     (m) => (m.activation_status ?? m.status ?? "active") === "active",
@@ -174,7 +176,19 @@ async function pickEvaluatorMiner(): Promise<{ minerId: string } | null> {
   // miner ranked highest on, not necessarily this one. Match the intent.
   const intentScore = (m: TelegraphMinerIntegration): number =>
     m.scores?.find((s) => baseIntent(s.intent_id) === EVALUATION_INTENT)?.score ?? -1;
+  // A miner with a track record of unparseable verdicts is a bad evaluator —
+  // demote it below peers regardless of protocol score. Needs >=2 samples so
+  // one unlucky response doesn't blacklist a miner.
+  const isFlaky = (m: TelegraphMinerIntegration): boolean => {
+    if (!reliability) return false;
+    const id = String(m.id ?? m.slug ?? m.name ?? "");
+    const stats = reliability.get(id);
+    return !!stats && stats.total >= 2 && stats.unknown / stats.total >= 0.5;
+  };
   pool.sort((a, b) => {
+    const fa = isFlaky(a) ? 1 : 0;
+    const fb = isFlaky(b) ? 1 : 0;
+    if (fb !== fa) return fa - fb;
     const sa = intentScore(a);
     const sb = intentScore(b);
     if (sb !== sa) return sb - sa;
@@ -206,7 +220,7 @@ export class InferenceVerificationService {
 
     const evaluator = params.evaluatorMinerId
       ? { minerId: params.evaluatorMinerId }
-      : await pickEvaluatorMiner();
+      : await pickEvaluatorMiner(this.verdicts.evaluatorReliability());
     const results: VerifySampleResult["verdicts"] = [];
 
     if (!evaluator) {

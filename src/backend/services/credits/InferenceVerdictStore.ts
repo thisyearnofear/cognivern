@@ -131,6 +131,31 @@ export class InferenceVerdictStore {
     }));
   }
 
+  /**
+   * Per-evaluator verdict outcomes across ALL programs — used to demote
+   * evaluators that historically return unparseable ('unknown') verdicts.
+   * Miner ids are protocol-global, so cross-program history is the signal.
+   */
+  evaluatorReliability(): Map<string, { total: number; unknown: number }> {
+    const rows = this.db
+      .prepare(
+        `SELECT evaluator_miner_id AS miner_id,
+                COUNT(*) AS total,
+                COALESCE(SUM(CASE WHEN verdict = 'unknown' THEN 1 ELSE 0 END), 0) AS unknown
+         FROM inference_record_verdicts
+         WHERE evaluator_miner_id IS NOT NULL
+         GROUP BY evaluator_miner_id`,
+      )
+      .all() as Array<Record<string, unknown>>;
+
+    return new Map(
+      rows.map((r) => [
+        String(r.miner_id),
+        { total: Number(r.total ?? 0), unknown: Number(r.unknown ?? 0) },
+      ]),
+    );
+  }
+
   leaderboard(programId: string): LeaderboardRow[] {
     const rows = this.db
       .prepare(

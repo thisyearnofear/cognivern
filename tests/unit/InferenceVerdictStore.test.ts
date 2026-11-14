@@ -76,10 +76,10 @@ beforeAll(() => {
   // No excerpts → never a candidate.
   insertRecord("m", "model-a", { excerpts: false });
 
-  store.insert({ recordId: a1, verdict: "correct", telegraphRunId: "run-1" });
-  store.insert({ recordId: a2, verdict: "correct", telegraphRunId: "run-2" });
-  store.insert({ recordId: a3, verdict: "incorrect", telegraphRunId: "run-3" });
-  store.insert({ recordId: b1, verdict: "unknown", telegraphRunId: "run-4" });
+  store.insert({ recordId: a1, verdict: "correct", evaluatorMinerId: "eval-a", telegraphRunId: "run-1" });
+  store.insert({ recordId: a2, verdict: "correct", evaluatorMinerId: "eval-a", telegraphRunId: "run-2" });
+  store.insert({ recordId: a3, verdict: "incorrect", evaluatorMinerId: "eval-b", telegraphRunId: "run-3" });
+  store.insert({ recordId: b1, verdict: "unknown", evaluatorMinerId: "eval-b", telegraphRunId: "run-4" });
 });
 
 afterAll(() => {
@@ -124,6 +124,12 @@ describe("InferenceVerdictStore", () => {
     expect(ids).not.toContain("rec-err");
     expect(ids).not.toContain("rec-a1"); // already verdicted
     expect(ids).toHaveLength(0);
+  });
+
+  it("reports per-evaluator reliability for flaky-miner demotion", () => {
+    const rel = store.evaluatorReliability();
+    expect(rel.get("eval-a")).toEqual({ total: 2, unknown: 0 });
+    expect(rel.get("eval-b")).toEqual({ total: 2, unknown: 1 });
   });
 
   it("does not double-insert a verdict for the same record", () => {
