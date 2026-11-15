@@ -1,4 +1,9 @@
 import { Router } from 'express';
+import {
+  evaluateMandateDecision,
+  mandateDecisionRequestSchema,
+} from '@backend/services/governance/SpendMandateDecisionService.js';
+import { AuditLogService } from '@backend/services/governance/AuditLogService.js';
 import type { SpendController } from '@backend/modules/api/controllers/SpendController.js';
 import type { OwsController } from '@backend/modules/api/controllers/OwsController.js';
 import type { OwsWalletController } from '@backend/modules/api/controllers/OwsWalletController.js';
@@ -30,6 +35,42 @@ export function createSpendRoutes(
   router.post('/spend', (req, res) => spendController.requestSpend(req, res));
   router.post('/spend/encrypted', (req, res) => spendController.requestEncryptedSpend(req, res));
   router.post('/spend/preview', (req, res) => spendController.previewSpend(req, res));
+
+  // Pre-flight mandate decision — deterministic four-way contract
+  // (ALLOW/REFUSE/ESCALATE/ASK_CLARIFICATION) evaluated before any spend is
+  // attempted. Every decision is written to the CRE audit ledger.
+  const mandateAuditLog = new AuditLogService();
+  router.post('/spend/mandate-decision', async (req, res) => {
+    const parsed = mandateDecisionRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid mandate decision request',
+        details: parsed.error.format(),
+      });
+      return;
+    }
+    const { mandate, request } = parsed.data;
+    const decision = evaluateMandateDecision(mandate, request);
+    const workspaceId = req.workspaceId;
+    mandateAuditLog
+      .logEvent({
+        eventType: 'mandate_spend_decision',
+        agentType: mandate.agent_id ?? 'unknown',
+        timestamp: new Date(),
+        projectId: workspaceId,
+        details: {
+          decision: decision.decision,
+          reason_code: decision.reason_code,
+          rule: decision.rule,
+          mandate,
+          request,
+          item_decisions: decision.item_decisions,
+        },
+      })
+      .catch(() => {});
+    res.json({ success: true, data: decision });
+  });
   router.get('/spend/status', (req, res) => spendController.getStatus(req, res));
   router.get('/spend/scan', (req, res) => spendController.scanContract(req, res));
   router.post('/spend/:decisionId/confirm', (req, res) =>

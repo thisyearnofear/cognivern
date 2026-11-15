@@ -16,6 +16,7 @@ commit it or copy its contents into public docs.
 
 - [PRODUCT_MODEL.md](./PRODUCT_MODEL.md) — product promise, loop, and entity glossary
 - [PRODUCT_STRATEGY.md](./PRODUCT_STRATEGY.md) — funded-mandate thesis, GTM, and capital-allocation roadmap (merges the former thesis / GTM canvas / go-to-market docs)
+- [LEXSI_PRODUCT.md](./LEXSI_PRODUCT.md) — Lexsi governed-spend findings → product roadmap (decision contract, unsafe-enforcement metrics, per-tenant eval, adapter rail)
 - [AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md](./AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md) — mandate, outcome, statement, and evidence invariants
 - [OUTCOME_EVIDENCE_PLAN.md](./OUTCOME_EVIDENCE_PLAN.md) — outcome connectors, Capital UI, WebMCP, and server MCP (absorbs the former capital-agent-surfaces plan)
 - [ARCHITECTURE_RAILS.md](./ARCHITECTURE_RAILS.md) — how the rails fit together
@@ -55,6 +56,7 @@ never bake deadlines into `AGENTS.md` or rail docs.
 | Cleanverse Build: Trusted Assets | Hackathon | Concluded Aug 9 2026 | [history submission](./history/HACKATHON_SUBMISSION_CLEANVERSE.md) |
 | KeeperHub — Agents Onchain | Hackathon | Concluded Aug 13 2026 | [history submission](./history/HACKATHON_SUBMISSION_KEEPERHUB.md) |
 | Flare Summer Signal | Hackathon | Concluded Aug 14 2026 | [history submission](./history/FLARE_SUMMER_SIGNAL.md) |
+| Lexsi AI Safety & Alignment | Hackathon | Active — submissions close Nov 15 2026 23:59 AoE; Track 3 Agentic Fine-tuning (AgentTune + AuditKIT), governed-spend decision task; v7 adapter published | [experiment log](./LEXSI_HACKATHON.md) · [product translation](./LEXSI_PRODUCT.md) |
 | Telegraph Protocol S2 | Hackathon | Active — submissions close Dec 1 2026 23:59 UTC via Anjoman; form opens later; $10K, 3 tracks. Entered Track 03 Apps & Agents, missions 02 + 10 | [submission](./history/HACKATHON_SUBMISSION_TELEGRAPH_S2.md) · [TELEGRAPH.md](./TELEGRAPH.md) · [SPONSORED_CREDITS.md](./SPONSORED_CREDITS.md) |
 | Telegraph Protocol S1 Track 3 | Hackathon | Concluded Sep 7 2026 — no placement; [retrospective](./TELEGRAPH.md#season-i-retrospective) | [history submission](./history/HACKATHON_SUBMISSION_TELEGRAPH.md) |
 

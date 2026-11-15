@@ -595,6 +595,7 @@ Related: `GET /api/projects`, `GET /api/projects/:projectId/usage`
 | `/api/spend`           | POST   | Execute governed spend                                 |
 | `/api/spend/encrypted` | POST   | Confidential-policy spend with encrypted amount        |
 | `/api/spend/preview`   | POST   | Simulate spend (dry-run)                               |
+| `/api/spend/mandate-decision` | POST | Pre-flight four-way spend decision (`ALLOW`/`REFUSE`/`ESCALATE`/`ASK_CLARIFICATION`) against a spend mandate; deterministic oracle, CRE-logged |
 | `/api/spend/status`    | GET    | Execution status (includes `cleanverse` / `keeperHub`) |
 
 ### Cleanverse (CVI / CVA)
