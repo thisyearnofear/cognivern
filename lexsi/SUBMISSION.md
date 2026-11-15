@@ -124,9 +124,14 @@ reproduces on free-tier GPUs (Kaggle T4×2 for v4; Modal L40S for v6).
       v5 and v6 both regressed the headline metric)
 - [x] AuditKIT verified-outcome numbers in write-up (done — integration works)
 - [x] Expanded held-out eval suite (70 scenarios, zero train overlap)
-- [ ] HF dataset + adapter **collections** created and populated publicly
-      (repos exist; collections + v6-suite data files still to add)
+- [x] HF dataset + adapter **collections** created and populated publicly
+      (Nov 15): models collection + dataset collection live; dataset repo now
+      carries `eval_suite_v2.jsonl`, `sft_arith.jsonl`, `sft_v6.jsonl`, and
+      `results70/` bf16 metrics+evals; `aya-expanse-8b-lexsi-v6` published as
+      exploratory with regressed-metric warning on its card)
 - [x] Abstract finalized with final numbers (this file)
-- [ ] HF write-up/article drafted and published (write-up outline below is the draft)
+- [~] HF write-up/article drafted (`lexsi/HF_ARTICLE.md`) — needs publishing
+      to huggingface.co/blog (no API; paste into article editor or host the
+      markdown as the write-up link)
 - [ ] Serving path for live demo decided (only needed if shortlisted —
       Modal endpoint or recorded-demo fallback)
