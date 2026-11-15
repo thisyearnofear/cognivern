@@ -126,21 +126,21 @@ The "expensive" iteration: scale the repair loop rather than tune it.
 
 - **Suite v3: 22 → 165 scenarios** (`colab/staging_v7/eval_suite_v3.jsonl`, generator `lexsi/scripts/gen_v3.py`): 22 gov + 48 gen-v2 + **55 new adversarial kinds** (vendor spoof/case, foreign currency, qty math, multi-item variants, distractors, boundary budgets, approval-cat literal, etc. — 17 new kinds) + **40 paraphrase-robustness** variants (oracle labels re-verified; paraphrase pool restricted to `gen-*` rows after an early gov-* label mismatch). Dedup vs all train bodies: 0 leaks (verified post-hoc by mandate+request hash over 4,022 training scenario bodies).
 - **sft_v7.jsonl: 3,300 rows** — 700 replay (protect v4 behavior) + 1,800 balanced oracle (every failure class, not arithmetic-weighted — the v6 lesson) + 800 paraphrase-augmented. Plus 15 DPO seed pairs from v4's actual failures (unused — SFT won first).
-- **Training**: v7 = continue v4 adapter, 2 epochs, LoRA r=16, lr 5e-5 (lower than v6's 1e-4), bf16 Modal L40S. v7f = fresh LoRA on sft_v4+sft_arith+sft_v7_new (4,667 rows) as ablation — first Modal run was cancelled at ~90% of v7f training; retry `lexsi/modal_v7f.py` running.
+- **Training**: v7 = continue v4 adapter, 2 epochs, LoRA r=16, lr 5e-5 (lower than v6's 1e-4), bf16 Modal L40S. v7f = fresh LoRA on sft_v4+sft_arith+sft_v7_new (4,667 rows) as ablation — completed on detached retry `lexsi/modal_v7f.py` (app ap-dt6Y6pxEux95MUAMbZ7IVY).
 - **Colab T4 4-bit cross-check**: `lexsi/colab/lexsi_v7_colab.py` — informational only (bf16 is canonical).
 
 Same-harness bf16 results on all 165 scenarios:
 
-| metric | base | v4 | **v7** |
-|---|---|---|---|
-| accuracy | 91/165 (55.2%) | 113/165 (68.5%) | **158/165 (95.8%)** |
-| unsafe_allow | 50 | 23 | 4 |
-| unsafe_enforced | 50/113 | 23/113 | **3/113 (2.7%)** |
-| contract valid | 165/165 | 165/165 | 165/165 |
+| metric | base | v4 | **v7** | v7f (ablation) |
+|---|---|---|---|---|
+| accuracy | 91/165 (55.2%) | 113/165 (68.5%) | **158/165 (95.8%)** | 155/165 (93.9%) |
+| unsafe_allow | 50 | 23 | 4 | 5 |
+| unsafe_enforced | 50/113 | 23/113 | **3/113 (2.7%)** | 4/113 |
+| contract valid | 165/165 | 165/165 | 165/165 | 165/165 |
 
 v7 = **94% reduction in unsafe_enforced vs base**, 87% vs v4, accuracy +27pts over v4. Residual failures (7/165): gov-17 split-arithmetic, gov-13 scope-creep variant, gov-10 partial items, gen-09208, gov-01/gen-9004 over-refusals, gov-06 escalation→refusal boundary.
 
-**Decision: v7 is the submission adapter** (`Papajams/aya-expanse-8b-lexsi-v7`, published Nov 15, in the models collection), pending the v7f head-to-head (rule: lower unsafe_enforced wins, tie → accuracy). v4/v6 stay published for the iteration story.
+**Decision: v7 is the submission adapter** (`Papajams/aya-expanse-8b-lexsi-v7`, published Nov 15, in the models collection). Head-to-head complete — v7f landed at 93.9% accuracy / unsafe_enforced 4/113 vs v7's 95.8% / 3/113, so continue-training won on the selection rule; v7f artifacts live at staging `out_v7f/` as a documented ablation negative. v4/v6 stay published for the iteration story.
 
 Artifacts: HF dataset `Papajams/lexsi-governance` → `v7/` (suite, sft_v7, dpo pairs, gen_v3.py, results/); HF staging `out_v7/`; Modal volume `lexsi-artifacts:/v7-out/`; code `lexsi/modal_v7.py`, `lexsi/modal_v7f.py`, `lexsi/modal_publish.py`, `lexsi/modal_collection.py`, `lexsi/colab/lexsi_v7_colab.py`.
 

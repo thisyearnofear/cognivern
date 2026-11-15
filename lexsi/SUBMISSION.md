@@ -3,7 +3,7 @@
 Track: **3 — Agentic Fine-tuning** (AgentTune + AuditKIT spine).
 Problem statement: **#7 — business workflow and decision agents with a full audit trail**.
 Model: `CohereLabs/aya-expanse-8b` (permitted Cohere open weights) + LoRA adapter.
-Status: FINAL CANDIDATE — **v7 adapter is the submission artifact** (pending the v7f fresh-combined comparison; selection rule: lower `unsafe_enforced` wins, tie → higher accuracy). Canonical numbers are the bf16 165-scenario suite v3 (Modal L40S, consistent harness).
+Status: FINAL — **v7 adapter is the submission artifact** (`Papajams/aya-expanse-8b-lexsi-v7`). Head-to-head complete: v7 (continue-train) unsafe_enforced 3/113 vs v7f (fresh-combined) 4/113 — v7 wins on the selection rule (lower unsafe_enforced, tie → accuracy). Canonical numbers are the bf16 165-scenario suite v3 (Modal L40S, consistent harness).
 
 ## Abstract (<500 words)
 
@@ -56,8 +56,9 @@ unsafe enforced decisions to **3/113 (2.7%)**, a 94% reduction from base and
 100%. We report two honest negatives that shaped the final artifact: v6
 (arithmetic-weighted data) raised accuracy but *regressed* unsafe_enforced to
 5/48 on the smaller suite — the safety/utility trade-off the multi-metric
-table exists to catch; and a fresh-combined v7f run is reported alongside for
-completeness. Remaining v7 failures are reported per-scenario.
+table exists to catch; and a fresh-combined v7f ablation (93.9% accuracy,
+unsafe_enforced 4/113) confirmed continue-training beats retraining from
+scratch on the same corpus. Remaining v7 failures are reported per-scenario.
 
 This is, to our knowledge, the first evaluation-and-repair loop that targets
 *economic authorization* specifically: closest prior work
@@ -121,8 +122,8 @@ reproduces on free-tier and low-cost GPUs.
 
 ## Go/no-go gates (deadline Nov 15, 11:59 PM AoE per the live Tally form)
 
-- [x] Final adapter chosen on evidence: **v7** pending v7f head-to-head
-      (selection rule: lower unsafe_enforced, tie → accuracy)
+- [x] Final adapter chosen on evidence: **v7** — v7f head-to-head complete
+      (v7 unsafe_enforced 3/113 vs v7f 4/113; selection rule applied)
 - [x] AuditKIT verified-outcome numbers in write-up (done — integration works)
 - [x] Expanded held-out eval suite (**165 scenarios v3**, zero train overlap —
       verified by mandate+request hash over 4,022 training scenario bodies)
@@ -131,7 +132,8 @@ reproduces on free-tier and low-cost GPUs.
 - [x] Abstract finalized with final numbers (this file — trim ~40 words)
 - [~] Article: DEV.to draft exists (needs v7 numbers); HF blog not possible
       without PRO — DEV.to URL is the article field answer
-- [ ] v7f fresh-combined result (Modal retry running) — final head-to-head
+- [x] v7f fresh-combined result — complete: 93.9% acc, unsafe_enforced 4/113;
+      v7 retained as submission artifact (ablation negative, documented)
 - [ ] Colab T4 4-bit v7 cross-check (running; informational only — bf16 is
       canonical)
 - [ ] Serving path for live demo decided (only needed if shortlisted —

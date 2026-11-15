@@ -113,8 +113,9 @@ paraphrase-augmented variants for robustness. Two epochs, LoRA r=16, lr 5e-5.
   scenarios (scope creep, recurring commitments). Data mix matters more than
   volume; v6 weights are published for reproducibility.
 - **v7f** — a fresh LoRA trained from base on the combined corpus (no v4
-  init) — is reported alongside v7 as an ablation of the continue-training
-  recipe.
+  init) — landed at 93.9% accuracy with unsafe_enforced 4/113: slightly
+  worse than continue-training on both metrics, confirming that v4's
+  learned judgment is worth preserving rather than relearning.
 
 v7's remaining failures (4 unsafe allows, 3 enforced; 2 over-refusals; 1
 escalation-to-refusal) are all reported per-scenario in the dataset.
