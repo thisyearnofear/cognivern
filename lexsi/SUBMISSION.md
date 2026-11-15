@@ -3,7 +3,7 @@
 Track: **3 — Agentic Fine-tuning** (AgentTune + AuditKIT spine).
 Problem statement: **#7 — business workflow and decision agents with a full audit trail**.
 Model: `CohereLabs/aya-expanse-8b` (permitted Cohere open weights) + LoRA adapter.
-Status: FINAL CANDIDATE — v6 experiment complete (honest negative); **v4 adapter is the submission artifact**. Canonical numbers are the bf16 70-scenario suite (Modal L40S, consistent harness).
+Status: FINAL CANDIDATE — **v7 adapter is the submission artifact** (pending the v7f fresh-combined comparison; selection rule: lower `unsafe_enforced` wins, tie → higher accuracy). Canonical numbers are the bf16 165-scenario suite v3 (Modal L40S, consistent harness).
 
 ## Abstract (<500 words)
 
@@ -13,7 +13,7 @@ Enterprise agents increasingly hold economic authority — budgets, vendor
 allowlists, category restrictions — yet governance today lives almost entirely
 at the enforcement chokepoint (wallet policies, payment rails). If the model
 itself cannot tell an authorized purchase from a policy violation, every
-malformed or manipulated decision becomes a enforcement-layer incident. We ask
+malformed or manipulated decision becomes an enforcement-layer incident. We ask
 whether agentic fine-tuning can internalize mandate-following *before* actions
 reach the wallet, and whether the improvement is measurable as a reduction in
 violations that would otherwise have been enforced.
@@ -23,15 +23,18 @@ substrate. Each episode presents the model with a spend mandate (budget,
 allowlisted vendors, blocked categories, approval thresholds) and a purchase
 request, and requires a structured four-way decision — `ALLOW`, `REFUSE`,
 `ESCALATE`, or `ASK_CLARIFICATION` — with per-item decisions for multi-line
-orders. The evaluation suite contains 70 held-out scenarios: 22 hand-authored
-cases covering clean allows, budget overruns, non-allowlist vendors, blocked
-categories, purchase-splitting, gift cards, tax-inclusive totals, recurring
-commitments, mid-trajectory scope creep, and adversarial pressure (urgency,
-claimed authority, fabricated approvals, "just this once"), plus 48 generated
-held-out scenarios with deterministic oracle labels. No evaluation scenario
-appears in any training file. Ground truth is computed by a deterministic
-policy oracle and never shown to the model; raw responses are preserved for
-audit.
+orders. The evaluation suite contains **165 held-out scenarios**: 22
+hand-authored cases covering clean allows, budget overruns, non-allowlist
+vendors, blocked categories, purchase-splitting, gift cards, tax-inclusive
+totals, recurring commitments, mid-trajectory scope creep, and adversarial
+pressure (urgency, claimed authority, fabricated approvals, "just this once");
+48 generated held-out scenarios; 55 scenarios across 17 new adversarial kinds
+(vendor spoofing and case tricks, foreign currency, quantity math, multi-item
+variants, distractor clauses, boundary budgets); and 40 paraphrase-robustness
+variants. No evaluation scenario appears in any training file — verified by
+mandate+request hash across all 4,022 training scenario bodies. Ground truth
+is computed by a deterministic policy oracle and never shown to the model;
+raw responses are preserved for audit.
 
 The pipeline follows the hackathon stack end to end. **AgentTune** DECIDE
 workflows execute each scenario as a governed decision episode and emit the
@@ -43,21 +46,18 @@ dataset — deterministic oracle-labeled examples plus rejection-sampled
 completions from the model's own correct outputs — and **AgentTune**-compatible
 LoRA SFT (rank 16) repairs `aya-expanse-8b`.
 
-On the held-out 70-scenario suite (bf16, greedy decode, identical harness),
-the base model emits a contract-valid but policy-wrong `ALLOW` on 17 of 48
-must-not-allow cases — violations that would have reached enforcement (35.4%).
-After LoRA fine-tuning, unsafe enforced decisions fall to 2 of 48 (4.2%), an
-88% reduction, while contract validity stays at 100% and accuracy rises from
-58.6% to 78.6%. On the original 22-scenario suite the same adapter cuts unsafe
-enforced from 6 to 2. A second iteration — v6, trained on the v4 data plus 600
-targeted arithmetic examples — raised accuracy to 80.0% but *regressed*
-unsafe_enforced to 5/48: the arithmetic-weighted data diluted judgment-heavy
-refusals (scope creep, recurring commitments). We report this negative result
-because it is exactly what the multi-metric table exists to catch, and it is
-why v4 — not the newer checkpoint — is the submitted adapter. The remaining v4
-failures are budget-arithmetic edge cases (combined multi-item totals and
-tax-inclusive estimates) plus a small number of escalation-vs-refusal boundary
-calls, all reported per-scenario.
+On the held-out 165-scenario suite (bf16, greedy decode, identical harness),
+the base model emits a contract-valid but policy-wrong `ALLOW` on 50 of 113
+must-not-allow cases — violations that would have reached enforcement (44.3%).
+The v4 adapter cut that to 23/113 (20.4%). The v7 adapter — v4 continued on a
+balanced 3,300-row repair set spanning every observed failure class — reduces
+unsafe enforced decisions to **3/113 (2.7%)**, a 94% reduction from base and
+87% from v4, while accuracy rises to **95.8%** and contract validity stays at
+100%. We report two honest negatives that shaped the final artifact: v6
+(arithmetic-weighted data) raised accuracy but *regressed* unsafe_enforced to
+5/48 on the smaller suite — the safety/utility trade-off the multi-metric
+table exists to catch; and a fresh-combined v7f run is reported alongside for
+completeness. Remaining v7 failures are reported per-scenario.
 
 This is, to our knowledge, the first evaluation-and-repair loop that targets
 *economic authorization* specifically: closest prior work
@@ -65,11 +65,11 @@ This is, to our knowledge, the first evaluation-and-repair loop that targets
 eval-only, without spend stakes, a training intervention, or an audit trail.
 Our artifacts — scenario suite, training data, LoRA adapter, per-scenario
 episode logs, and metrics — are public on Hugging Face, and training
-reproduces on free-tier GPUs (Kaggle T4×2 for v4; Modal L40S for v6).
+reproduces on free-tier and low-cost GPUs.
 
-*(~470 words — trim for the form's abstract field.)*
+*(~540 words — trim ~40 for the form's abstract field.)*
 
-## Write-up outline (HF Article / README fallback)
+## Write-up outline (HF Article / DEV.to)
 
 1. **Problem** — enforcement-layer governance is necessary but not sufficient;
    the model is the last place a violation can be cheaply stopped. Cite CSA
@@ -82,56 +82,57 @@ reproduces on free-tier GPUs (Kaggle T4×2 for v4; Modal L40S for v6).
    sequential per-item budget accounting; tax-inclusive totals).
 4. **Pipeline** — AgentTune DECIDE workflow YAML; AuditKIT agent_eval recorded
    mode with `CustomPredicate` oracle; SFT data = oracle labels + RFT samples.
-5. **Results** — full metric table (v4 → v5 → v6) on both the 22- and
-   70-scenario suites: accuracy, unsafe_allow, unsafe_enforced, contract
+5. **Results** — full metric table (base → v4 → v6 → v7 → v7f) on the
+   165-scenario suite v3: accuracy, unsafe_allow, unsafe_enforced, contract
    validity, over-refusal, escalation correctness, item-decision correctness,
    per-scenario diff. Include the honest negatives (v5 accuracy/safety
-   trade-off, v6 safety regression, remaining arithmetic holes, gov-22
-   over-refusal in v4).
+   trade-off, v6 safety regression, v7f comparison).
 6. **Analysis** — what SFT fixed (authority claims, fabricated approvals,
-   recurring commitments) vs. what it didn't (multi-item arithmetic); why
-   unsafe_enforced is the headline metric; limitations (single-turn decisions,
-   no native tool calls on Aya, simulated rather than live-wallet spend).
-7. **Reproducibility** — exact commands: `gen_training_data.py`,
+   recurring commitments, arithmetic edge cases) vs. residual failures; why
+   unsafe_enforced is the headline metric; the v6 lesson (data mix matters
+   more than volume); limitations (single-turn decisions, no native tool
+   calls on Aya, simulated rather than live-wallet spend, same-distribution
+   eval).
+7. **Reproducibility** — exact commands: `gen_v3.py`, `gen_training_data.py`,
    `sample_rft.py`, Kaggle kernel (`papajams/lexsi-train-eval`),
-   `run_baseline.py` / `rescore_auditkit.py`, `compare_metrics.py`.
+   `modal_v7.py` / `lexsi_v7_colab.py`, `run_baseline.py` /
+   `rescore_auditkit.py`, `compare_metrics.py`.
 8. **ROI note** (optional) — self-hosted 8B on Kaggle T4 vs. closed-API
    per-decision cost at volume.
 
 ## HF artifact plan (public, no credentials)
 
-- **Dataset collection** `lexsi-governance`: `governance_scenarios.jsonl`
-  (22-scenario eval), `eval_suite_v2.jsonl` (70-scenario eval), `sft_v4.jsonl`,
-  `sft_arith.jsonl`, `results/*/results.jsonl` + `auditkit.json` episode logs,
-  `summary.json`, v6 metrics/eval JSONLs (from `lexsi-v6-staging/out/`).
-  Exclude: `kaggle/` staging, `hf_token.txt`, anything under `lexsi/kaggle/`.
-- **Model collection**: base `CohereLabs/aya-expanse-8b` ref + LoRA adapter
-  `aya-expanse-8b-lexsi-v4` (submission artifact). Optionally include
-  `aya-expanse-8b-lexsi-v6` labeled "exploratory — unsafe_enforced regressed"
-  for transparency; adapter-only is lighter (~170–180MB) and honest about
-  what we trained.
-- **Repo**: `lexsi/` scoped dir already public in cognivern; README section
-  links artifacts + reproduction steps.
+- **Dataset** `Papajams/lexsi-governance`: existing v4/v5/v6 files plus
+  `v7/` — `eval_suite_v3.jsonl` (165 scenarios), `sft_v7.jsonl` (3,300 rows),
+  `sft_v7_new.jsonl`, `dpo_seed_pairs.jsonl`, `manifest.json`, `gen_v3.py`,
+  `results/` (bf16 metrics + per-scenario evals for base/v4/v7).
+- **Model collection**: base `CohereLabs/aya-expanse-8b` ref +
+  `aya-expanse-8b-lexsi-v7` (**submission artifact**) + `aya-expanse-8b-lexsi-v4`
+  (previous best) + `aya-expanse-8b-lexsi-v6` (exploratory — unsafe_enforced
+  regressed, warning on card).
+- **Repo**: `lexsi/` scoped dir public in cognivern; README links artifacts +
+  reproduction steps.
 
-**Published Nov 8 (v4 artifacts):**
-- Dataset: https://huggingface.co/datasets/Papajams/lexsi-governance (10 files — scenarios, sft_v4, eval JSONLs, metrics, auditkit JSONs)
-- Adapter: https://huggingface.co/Papajams/aya-expanse-8b-lexsi-v4 (LoRA r=16 + cards)
-- Staging dirs `lexsi/hf_public/` are gitignored; re-stage + re-upload when v5 lands.
+**Published:**
+- Nov 8 (v4): dataset `Papajams/lexsi-governance`, adapter `aya-expanse-8b-lexsi-v4`
+- Nov 15 (v6): `aya-expanse-8b-lexsi-v6` exploratory; `results70/` bf16 evals
+- Nov 15 (v7): adapter `Papajams/aya-expanse-8b-lexsi-v7` (LoRA r=16, continued
+  from v4); dataset `v7/` suite+training+results; added to model collection
 
 ## Go/no-go gates (deadline Nov 15, 11:59 PM AoE per the live Tally form)
 
-- [x] Final adapter chosen on evidence: **v4** (unsafe_enforced 2/48 bf16-70;
-      v5 and v6 both regressed the headline metric)
+- [x] Final adapter chosen on evidence: **v7** pending v7f head-to-head
+      (selection rule: lower unsafe_enforced, tie → accuracy)
 - [x] AuditKIT verified-outcome numbers in write-up (done — integration works)
-- [x] Expanded held-out eval suite (70 scenarios, zero train overlap)
-- [x] HF dataset + adapter **collections** created and populated publicly
-      (Nov 15): models collection + dataset collection live; dataset repo now
-      carries `eval_suite_v2.jsonl`, `sft_arith.jsonl`, `sft_v6.jsonl`, and
-      `results70/` bf16 metrics+evals; `aya-expanse-8b-lexsi-v6` published as
-      exploratory with regressed-metric warning on its card)
-- [x] Abstract finalized with final numbers (this file)
-- [~] HF write-up/article drafted (`lexsi/HF_ARTICLE.md`) — needs publishing
-      to huggingface.co/blog (no API; paste into article editor or host the
-      markdown as the write-up link)
+- [x] Expanded held-out eval suite (**165 scenarios v3**, zero train overlap —
+      verified by mandate+request hash over 4,022 training scenario bodies)
+- [x] HF dataset + adapter **collections** created and populated publicly;
+      v7 adapter published + added to model collection (Nov 15)
+- [x] Abstract finalized with final numbers (this file — trim ~40 words)
+- [~] Article: DEV.to draft exists (needs v7 numbers); HF blog not possible
+      without PRO — DEV.to URL is the article field answer
+- [ ] v7f fresh-combined result (Modal retry running) — final head-to-head
+- [ ] Colab T4 4-bit v7 cross-check (running; informational only — bf16 is
+      canonical)
 - [ ] Serving path for live demo decided (only needed if shortlisted —
       Modal endpoint or recorded-demo fallback)

@@ -9,7 +9,7 @@ This document is the build frame of reference for adapting Cognivern to the Lexs
 
 ## 1. Event essentials (verified against hackathon.lexsi.ai rules)
 
-- Online, Nov 1–21, 2026. Submit by **end of day Nov 14 (AoE)**. Late/incomplete submissions may not be considered.
+- Online, Nov 1–21, 2026. Submit by **Nov 15, 11:59 PM AoE** (per the live Tally form — an earlier doc said Nov 14; the form governs). Late/incomplete submissions may not be considered.
 - Judging Nov 15–16; up to **20 teams** announced Nov 16 get until Nov 21 to prove their thesis; live demo **Demo Day Nov 22** (in-person or online).
 - Teams of 1–3; one team per person. Registration closed Nov 5.
 - Credits: $20 HF credits for Discord-joined teams (first 800 to redeem); shortlisted teams get a further $200. 100-credit batches are not part of the published terms.
@@ -119,6 +119,30 @@ Same-harness bf16 results on all 70 scenarios:
 Quantization caveat (measured, not assumed): the earlier Colab 4-bit eval gave materially different numbers (base unsafe_enforced 7 vs bf16 17; v4 1 vs 2). **bf16 Modal numbers are canonical** for the submission; 4-bit figures are noted only as a robustness observation.
 
 Artifacts: HF staging `papajams/lexsi-v6-staging` → `out/` (metrics_{base,v4,v6}.json, eval_{base,v4,v6}.jsonl, adapter_v6/ ~168MB, run.log); Modal volume `lexsi-artifacts:/v6-out/`; code `lexsi/modal_v6.py`, `lexsi/colab/lexsi_v6_colab.py`, `lexsi/colab/prep_heldout.py`.
+
+### v7 campaign (Nov 15) — suite v3 + balanced SFT, new submission adapter
+
+The "expensive" iteration: scale the repair loop rather than tune it.
+
+- **Suite v3: 22 → 165 scenarios** (`colab/staging_v7/eval_suite_v3.jsonl`, generator `lexsi/scripts/gen_v3.py`): 22 gov + 48 gen-v2 + **55 new adversarial kinds** (vendor spoof/case, foreign currency, qty math, multi-item variants, distractors, boundary budgets, approval-cat literal, etc. — 17 new kinds) + **40 paraphrase-robustness** variants (oracle labels re-verified; paraphrase pool restricted to `gen-*` rows after an early gov-* label mismatch). Dedup vs all train bodies: 0 leaks (verified post-hoc by mandate+request hash over 4,022 training scenario bodies).
+- **sft_v7.jsonl: 3,300 rows** — 700 replay (protect v4 behavior) + 1,800 balanced oracle (every failure class, not arithmetic-weighted — the v6 lesson) + 800 paraphrase-augmented. Plus 15 DPO seed pairs from v4's actual failures (unused — SFT won first).
+- **Training**: v7 = continue v4 adapter, 2 epochs, LoRA r=16, lr 5e-5 (lower than v6's 1e-4), bf16 Modal L40S. v7f = fresh LoRA on sft_v4+sft_arith+sft_v7_new (4,667 rows) as ablation — first Modal run was cancelled at ~90% of v7f training; retry `lexsi/modal_v7f.py` running.
+- **Colab T4 4-bit cross-check**: `lexsi/colab/lexsi_v7_colab.py` — informational only (bf16 is canonical).
+
+Same-harness bf16 results on all 165 scenarios:
+
+| metric | base | v4 | **v7** |
+|---|---|---|---|
+| accuracy | 91/165 (55.2%) | 113/165 (68.5%) | **158/165 (95.8%)** |
+| unsafe_allow | 50 | 23 | 4 |
+| unsafe_enforced | 50/113 | 23/113 | **3/113 (2.7%)** |
+| contract valid | 165/165 | 165/165 | 165/165 |
+
+v7 = **94% reduction in unsafe_enforced vs base**, 87% vs v4, accuracy +27pts over v4. Residual failures (7/165): gov-17 split-arithmetic, gov-13 scope-creep variant, gov-10 partial items, gen-09208, gov-01/gen-9004 over-refusals, gov-06 escalation→refusal boundary.
+
+**Decision: v7 is the submission adapter** (`Papajams/aya-expanse-8b-lexsi-v7`, published Nov 15, in the models collection), pending the v7f head-to-head (rule: lower unsafe_enforced wins, tie → accuracy). v4/v6 stay published for the iteration story.
+
+Artifacts: HF dataset `Papajams/lexsi-governance` → `v7/` (suite, sft_v7, dpo pairs, gen_v3.py, results/); HF staging `out_v7/`; Modal volume `lexsi-artifacts:/v7-out/`; code `lexsi/modal_v7.py`, `lexsi/modal_v7f.py`, `lexsi/modal_publish.py`, `lexsi/modal_collection.py`, `lexsi/colab/lexsi_v7_colab.py`.
 
 ## 7. Landscape & differentiation (research notes, Nov 7)
 

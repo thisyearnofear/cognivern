@@ -48,16 +48,20 @@ tracked as separate diagnostics.
 
 ## Evaluation suite
 
-**70 held-out scenarios**, split-level held out: no scenario in the eval suite
-appears in any training file (verified by ID — training uses a disjoint
-generator namespace).
+**165 held-out scenarios** (suite v3), held out at the scenario level and
+verified by mandate+request hash: none of the 4,022 unique training scenario
+bodies appears in the eval set.
 
 - **22 hand-authored `gov-*` scenarios** covering clean allows, over-budget,
   non-allowlist vendors, blocked categories, purchase-splitting, gift cards,
   tax-inclusive totals, recurring commitments, mid-trajectory scope creep, and
   adversarial pressure.
-- **48 generated `gen-9xxx` scenarios** with deterministic oracle labels,
-  weighted toward the failure classes found in early evals.
+- **48 generated `gen-*` scenarios** from the v2 generator.
+- **55 scenarios across 17 new adversarial kinds**: vendor spoofing and case
+  tricks, foreign currency, quantity math, multi-item variants, distractor
+  clauses, boundary budgets, approval-category literal matches.
+- **40 paraphrase-robustness variants** — same mandate semantics, different
+  surface wording; labels re-verified against the oracle.
 
 ## Pipeline (the required stack, end to end)
 
@@ -74,48 +78,59 @@ generator namespace).
    permitted open-weights model with no native tool-calling template, so the
    decision is a single-turn structured record rather than a tool call.
 
-## Results — canonical bf16, 70-scenario held-out suite
+## Results — canonical bf16, 165-scenario held-out suite
 
-Identical harness, greedy decode, Modal L40S for all three models:
+Identical harness, greedy decode, Modal L40S for all models:
 
-| metric | base | v4 (submission adapter) | v6 (exploratory) |
-|---|---|---|---|
-| accuracy | 58.6% (41/70) | 78.6% (55/70) | 80.0% (56/70) |
-| unsafe enforced | 17/48 (35.4%) | **2/48 (4.2%)** | 5/48 (10.4%) |
-| contract valid | 70/70 | 70/70 | 70/70 |
+| metric | base | v4 | v6 (exploratory) | **v7 (submission)** |
+|---|---|---|---|---|
+| accuracy | 55.2% (91/165) | 68.5% (113/165) | — | **95.8% (158/165)** |
+| unsafe enforced | 50/113 (44.3%) | 23/113 (20.4%) | 5/48 on 70-suite | **3/113 (2.7%)** |
+| contract valid | 165/165 | 165/165 | 70/70 | **165/165** |
 
-The base model emits contract-valid but policy-wrong `ALLOW`s on over a third
-of must-not-allow cases — the exact failure mode that reaches a wallet.
-**v4 cuts unsafe enforced by 88%** while lifting accuracy 20 points and keeping
-contract validity at 100%. On the original 22-scenario suite (Kaggle fp16) the
-same adapter cuts unsafe enforced 6→2.
+*(v6 was evaluated on the earlier 70-scenario suite; it is not part of the
+suite-v3 table.)*
 
-### The honest negative: v6
+The base model emits contract-valid but policy-wrong `ALLOW`s on 44% of
+must-not-allow cases — the exact failure mode that reaches a wallet.
+**v7 cuts unsafe enforced by 94% from base** (and 87% from v4) while lifting
+accuracy to 95.8% and keeping contract validity at 100%. On the original
+22-scenario suite (Kaggle fp16) earlier adapters cut unsafe enforced 6→2.
 
-We ran a second iteration — v6, continuing v4's training on 600 additional
-**targeted arithmetic examples** aimed at the two residual failure classes
-(tax-inclusive totals, multi-item split accounting). It raised accuracy to
-80.0% but **regressed unsafe_enforced to 5/48**: the arithmetic-weighted data
-made the model more permissive — it newly unsafe-allowed judgment-heavy
-scenarios (mid-trajectory scope creep, recurring commitments) while fixing
-arithmetic and clarification cases. Classic safety/utility trade-off, caught
-precisely because the metrics are separated. **v4 is the submitted adapter**;
-v6 weights are published for reproducibility.
+### How v7 was built
 
-v4's remaining failures are budget-arithmetic edge cases (combined multi-item
-totals, tax-inclusive estimates) and a small number of
-escalation-vs-refusal boundary calls — all reported per-scenario in the
-dataset.
+v7 continues v4's adapter on a **balanced 3,300-row repair set**: 700 replay
+rows (protecting v4's existing behavior), 1,800 new oracle-labeled examples
+spanning *every* observed failure class — not just arithmetic — and 800
+paraphrase-augmented variants for robustness. Two epochs, LoRA r=16, lr 5e-5.
+
+### The honest negatives
+
+- **v5** traded safety for accuracy and was discarded.
+- **v6** — v4 + 600 targeted arithmetic examples — raised accuracy to 80.0%
+  on the 70-scenario suite but *regressed* unsafe_enforced to 5/48: the
+  arithmetic-weighted data made the model more permissive on judgment-heavy
+  scenarios (scope creep, recurring commitments). Data mix matters more than
+  volume; v6 weights are published for reproducibility.
+- **v7f** — a fresh LoRA trained from base on the combined corpus (no v4
+  init) — is reported alongside v7 as an ablation of the continue-training
+  recipe.
+
+v7's remaining failures (4 unsafe allows, 3 enforced; 2 over-refusals; 1
+escalation-to-refusal) are all reported per-scenario in the dataset.
 
 ## What worked, what didn't
 
 SFT fixed the *judgment* failures: fabricated approvals, claimed authority,
-recurring-commitment laundering, scope creep. It did not fully fix *arithmetic*
-failures — multi-item totals and tax-inclusive estimates remained the residual
-hole even after targeted data (and targeted data alone regressed safety
-elsewhere). That split is the useful scientific finding: mandate-following and
-arithmetic reliability are partially separable skills, and data targeting one
-can erode the other.
+recurring-commitment laundering, scope creep in most forms, vendor spoofing,
+foreign currency, and quantity math. What remains is a small residue — 7
+failures out of 165, including the hardest arithmetic case (simultaneous
+split purchases over budget, `gov-17`), one scope-creep variant, one
+partial-decision case, and boundary over-refusals on unusual-but-valid
+allows. The useful scientific finding: mandate-following and arithmetic
+reliability are partially separable skills, data targeting one can erode
+the other (v6), and *balanced* coverage of every failure class is what
+finally moved the headline metric (v7).
 
 ## Limitations
 
@@ -135,16 +150,21 @@ can erode the other.
 All artifacts are public:
 
 - **Dataset**: [`Papajams/lexsi-governance`](https://huggingface.co/datasets/Papajams/lexsi-governance)
-  — `eval_suite_v2.jsonl` (70 scenarios), `sft_v4.jsonl` / `sft_arith.jsonl` /
-  `sft_v6.jsonl`, `results70/` per-scenario metrics and eval logs.
-- **Adapters**: [`aya-expanse-8b-lexsi-v4`](https://huggingface.co/Papajams/aya-expanse-8b-lexsi-v4)
-  (submission) · [`aya-expanse-8b-lexsi-v6`](https://huggingface.co/Papajams/aya-expanse-8b-lexsi-v6)
-  (exploratory).
+  — `v7/eval_suite_v3.jsonl` (165 scenarios), `v7/sft_v7.jsonl` (3,300 rows),
+  `v7/dpo_seed_pairs.jsonl`, `v7/gen_v3.py`, `v7/results/` per-scenario
+  metrics and eval logs for base/v4/v7; earlier `eval_suite_v2.jsonl`,
+  `sft_v4/v5/v6` files and `results70/` logs also included.
+- **Adapters**: [`aya-expanse-8b-lexsi-v7`](https://huggingface.co/Papajams/aya-expanse-8b-lexsi-v7)
+  (submission) · [`aya-expanse-8b-lexsi-v4`](https://huggingface.co/Papajams/aya-expanse-8b-lexsi-v4)
+  (previous best) · [`aya-expanse-8b-lexsi-v6`](https://huggingface.co/Papajams/aya-expanse-8b-lexsi-v6)
+  (exploratory — safety regression documented).
 - **Code**: [`lexsi/`](https://github.com/thisyearnofear/cognivern/tree/main/lexsi)
-  in the cognivern repo — oracle + scenario generators, AgentTune workflow,
-  AuditKIT scoring, Kaggle/Colab/Modal training and eval scripts.
+  in the cognivern repo — oracle + scenario generators (`gen_v3.py`),
+  AgentTune workflow, AuditKIT scoring, Kaggle/Colab/Modal training and eval
+  scripts (`modal_v7.py`, `lexsi_v7_colab.py`).
 
-Training reproduces on free-tier GPUs (Kaggle T4×2 for v4; Modal L40S for v6).
+Training reproduces on free-tier and low-cost GPUs (Kaggle T4×2 for v4;
+Modal L40S for v6/v7 canonical bf16 runs; Colab T4 for 4-bit iteration).
 
 ## Why this matters
 
