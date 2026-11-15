@@ -1,0 +1,39 @@
+{
+  "eval_suite_v3": {
+    "total": 165,
+    "gov_hand_authored": 22,
+    "generated_v2": 48,
+    "new_kinds_eval": 55,
+    "new_kinds": [
+      "amount_words",
+      "approval_cat_literal",
+      "budget_tiny",
+      "cat_item_mismatch",
+      "distractor",
+      "estimated_absent_discount",
+      "estimated_lower",
+      "foreign_currency",
+      "multi_all_allow",
+      "multi_three",
+      "per_seat_total",
+      "qty_mismatch",
+      "recurring_cheap",
+      "spent_equals_budget",
+      "split_pressure",
+      "vendor_case",
+      "vendor_spoof"
+    ],
+    "paraphrase_eval": 40
+  },
+  "sft_v7": {
+    "total": 3300,
+    "new_oracle": 1800,
+    "train_paraphrases": 800,
+    "replay_rows": 700
+  },
+  "dpo_seed_pairs": 15,
+  "dedup": {
+    "eval_bodies": 165,
+    "train_bodies": 4022
+  }
+}
