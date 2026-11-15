@@ -130,8 +130,10 @@ reproduces on free-tier and low-cost GPUs.
 - [x] HF dataset + adapter **collections** created and populated publicly;
       v7 adapter published + added to model collection (Nov 15)
 - [x] Abstract finalized with final numbers (this file — trim ~40 words)
-- [~] Article: DEV.to draft exists (needs v7 numbers); HF blog not possible
-      without PRO — DEV.to URL is the article field answer
+- [x] Article: **published on DEV.to** —
+      https://dev.to/papajams/can-a-small-open-weights-model-learn-to-enforce-its-own-spending-mandate-4ln3
+      (cover image + results chart; HF blog not possible without PRO —
+      DEV.to URL is the article field answer)
 - [x] v7f fresh-combined result — complete: 93.9% acc, unsafe_enforced 4/113;
       v7 retained as submission artifact (ablation negative, documented)
 - [ ] Colab T4 4-bit v7 cross-check (running; informational only — bf16 is
