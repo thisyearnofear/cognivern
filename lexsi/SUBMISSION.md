@@ -3,7 +3,7 @@
 Track: **3 — Agentic Fine-tuning** (AgentTune + AuditKIT spine).
 Problem statement: **#7 — business workflow and decision agents with a full audit trail**.
 Model: `CohereLabs/aya-expanse-8b` (permitted Cohere open weights) + LoRA adapter.
-Status: FINAL — **v7 adapter is the submission artifact** (`Papajams/aya-expanse-8b-lexsi-v7`). Head-to-head complete: v7 (continue-train) unsafe_enforced 3/113 vs v7f (fresh-combined) 4/113 — v7 wins on the selection rule (lower unsafe_enforced, tie → accuracy). Canonical numbers are the bf16 165-scenario suite v3 (Modal L40S, consistent harness).
+Status: FINAL — **v7 adapter is the submission artifact** (`Papajams/aya-expanse-8b-lexsi-v7`). Head-to-head complete: v7 (continue-train) unsafe_enforced 3/113 vs v7f (fresh-combined) 4/113 — v7 kept on the selection rule (lower unsafe_enforced, tie → accuracy); the one-scenario gap is within noise. Counting the partial-order scenario `gov-10`, which the `unsafe_enforced` denominator excludes, v7 is 4/114 and v7f 5/114. Canonical numbers are the bf16 165-scenario suite v3 (Modal L40S, consistent harness).
 
 ## Abstract (<500 words)
 
@@ -19,56 +19,50 @@ reach the wallet, and whether the improvement is measurable as a reduction in
 violations that would otherwise have been enforced.
 
 We build a governed-spend decision task on Cognivern's mandate/policy/evidence
-substrate. Each episode presents the model with a spend mandate (budget,
-allowlisted vendors, blocked categories, approval thresholds) and a purchase
-request, and requires a structured four-way decision — `ALLOW`, `REFUSE`,
-`ESCALATE`, or `ASK_CLARIFICATION` — with per-item decisions for multi-line
-orders. The evaluation suite contains **165 held-out scenarios**: 22
-hand-authored cases covering clean allows, budget overruns, non-allowlist
-vendors, blocked categories, purchase-splitting, gift cards, tax-inclusive
-totals, recurring commitments, mid-trajectory scope creep, and adversarial
-pressure (urgency, claimed authority, fabricated approvals, "just this once");
-48 generated held-out scenarios; 55 scenarios across 17 new adversarial kinds
-(vendor spoofing and case tricks, foreign currency, quantity math, multi-item
-variants, distractor clauses, boundary budgets); and 40 paraphrase-robustness
-variants. No evaluation scenario appears in any training file — verified by
-mandate+request hash across all 4,022 training scenario bodies. Ground truth
-is computed by a deterministic policy oracle and never shown to the model;
-raw responses are preserved for audit.
+substrate. Each episode presents a spend mandate and a purchase request and
+requires a structured four-way decision — `ALLOW`, `REFUSE`, `ESCALATE`, or
+`ASK_CLARIFICATION` — with per-item decisions for multi-line orders. Ground
+truth comes from a deterministic policy oracle never shown to the model. The
+evaluation suite has **165 held-out scenarios**: 22 hand-authored, 48
+generated, 55 across 17 new adversarial kinds (vendor spoofing, foreign
+currency, quantity math, distractor clauses, boundary budgets), and 40
+paraphrase variants. No evaluation scenario appears in any training file
+(mandate+request hash over 4,022 training bodies).
 
-The pipeline follows the hackathon stack end to end. **AgentTune** DECIDE
-workflows execute each scenario as a governed decision episode and emit the
-event log; **AuditKIT** `agent_eval` scores every episode with a verified-outcome
-oracle (did the agent reach the policy-correct decision), keeping contract
-validity, unsafe-enforcement, and over-refusal as separate diagnostics rather
-than collapsing them into one accuracy number. Failure traces feed a repair
-dataset — deterministic oracle-labeled examples plus rejection-sampled
-completions from the model's own correct outputs — and **AgentTune**-compatible
-LoRA SFT (rank 16) repairs `aya-expanse-8b`.
+The pipeline chains the track stack. An **AgentTune** DECIDE workflow defines
+and runs the governed decision episode; **AuditKIT** `agent_eval` scores every
+saved episode as a verified outcome in recorded mode, with contract validity,
+unsafe enforcement, and over-refusal kept as separate diagnostics. Failure
+traces feed a repair dataset — oracle-labeled examples plus rejection-sampled
+completions from the model's own correct outputs — and LoRA SFT (rank 16)
+repairs `aya-expanse-8b`.
 
-On the held-out 165-scenario suite (bf16, greedy decode, identical harness),
-the base model emits a contract-valid but policy-wrong `ALLOW` on 50 of 113
-must-not-allow cases — violations that would have reached enforcement (44.3%).
-The v4 adapter cut that to 23/113 (20.4%). The v7 adapter — v4 continued on a
-balanced 3,300-row repair set spanning every observed failure class — reduces
-unsafe enforced decisions to **3/113 (2.7%)**, a 94% reduction from base and
-87% from v4, while accuracy rises to **95.8%** and contract validity stays at
-100%. We report two honest negatives that shaped the final artifact: v6
-(arithmetic-weighted data) raised accuracy but *regressed* unsafe_enforced to
-5/48 on the smaller suite — the safety/utility trade-off the multi-metric
-table exists to catch; and a fresh-combined v7f ablation (93.9% accuracy,
-unsafe_enforced 4/113) confirmed continue-training beats retraining from
-scratch on the same corpus. Remaining v7 failures are reported per-scenario.
+On the 165-scenario suite (bf16, greedy, identical harness), the base model
+emits a contract-valid but policy-wrong `ALLOW` on 50 of 113 must-not-allow
+cases (44.3%). The v4 adapter cut that to 23/113 (20.4%). The v7 adapter — v4
+continued on a balanced 3,300-row repair set — reaches **3/113 (2.7%)**, or
+4/114 (3.5%) counting one partial-order scenario the metric's denominator
+excludes, while accuracy rises from 55.2% to **95.8%** and contract validity
+stays at 100%.
 
-This is, to our knowledge, the first evaluation-and-repair loop that targets
-*economic authorization* specifically: closest prior work
-(AuthorizationBench, arXiv 2610.27548) benchmarks authorization alignment
-eval-only, without spend stakes, a training intervention, or an audit trail.
-Our artifacts — scenario suite, training data, LoRA adapter, per-scenario
-episode logs, and metrics — are public on Hugging Face, and training
-reproduces on free-tier and low-cost GPUs.
+We report what limits that result. The gain over v4 is concentrated on
+generator-family scenarios: the new adversarial kinds entered the evaluation
+suite and the training generator together, so the suite measures transfer to
+unseen instances and paraphrases, not to unseen kinds. On the 22 hand-authored
+scenarios, unsafe allows fall 6 → 3 from base, but v7 is no safer than v4
+(2 → 3). Two negatives shaped the artifact: v6 (arithmetic-weighted data)
+raised accuracy while *regressing* unsafe enforcement, the trade-off the
+multi-metric table exists to catch; and a from-scratch ablation (v7f, 4/113)
+was within noise of v7, so we claim only that retraining did not help. Spend
+is simulated and decisions are single-turn.
 
-*(~540 words — trim ~40 for the form's abstract field.)*
+To our knowledge this is the first evaluation-and-repair loop targeting
+*economic authorization* specifically; the closest prior work,
+AuthorizationBench (arXiv 2610.27548), is evaluation-only and not
+spend-specific. The scenario suite, training data, adapters, per-scenario
+logs, and AuditKIT scores are public on Hugging Face.
+
+*(482 words.)*
 
 ## Write-up outline (HF Article / DEV.to)
 
@@ -129,13 +123,19 @@ reproduces on free-tier and low-cost GPUs.
       verified by mandate+request hash over 4,022 training scenario bodies)
 - [x] HF dataset + adapter **collections** created and populated publicly;
       v7 adapter published + added to model collection (Nov 15)
-- [x] Abstract finalized with final numbers (this file — trim ~40 words)
+- [x] Abstract finalized with final numbers (this file — 482 words, under the 500 limit)
 - [x] Article: **published on DEV.to** —
       https://dev.to/papajams/can-a-small-open-weights-model-learn-to-enforce-its-own-spending-mandate-4ln3
       (cover image + results chart; HF blog not possible without PRO —
       DEV.to URL is the article field answer)
 - [x] v7f fresh-combined result — complete: 93.9% acc, unsafe_enforced 4/113;
       v7 retained as submission artifact (ablation negative, documented)
+- [x] Pre-submission audit (Nov 15): AuditKIT recorded-mode rescoring of the
+      165-scenario logs published (`v7/results/auditkit_*.json`; verified
+      outcome 91/113/158/155 = harness accuracy); v7f logs published; per-subset
+      table + `gov-10` accounting + generator-family caveat added to article,
+      abstract, dataset and model cards; collections and `lexsi/README.md`
+      updated; `dpo_seed_pairs.jsonl` labelled eval-derived / unused
 - [ ] Colab T4 4-bit v7 cross-check (running; informational only — bf16 is
       canonical)
 - [ ] Serving path for live demo decided (only needed if shortlisted —

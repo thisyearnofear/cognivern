@@ -142,6 +142,21 @@ v7 = **94% reduction in unsafe_enforced vs base**, 87% vs v4, accuracy +27pts ov
 
 **Decision: v7 is the submission adapter** (`Papajams/aya-expanse-8b-lexsi-v7`, published Nov 15, in the models collection). Head-to-head complete — v7f landed at 93.9% accuracy / unsafe_enforced 4/113 vs v7's 95.8% / 3/113, so continue-training won on the selection rule; v7f artifacts live at staging `out_v7f/` as a documented ablation negative. v4/v6 stay published for the iteration story.
 
+**Pre-submission audit (Nov 15) — what the headline does and does not show.** Recomputed from the published per-scenario logs:
+
+| subset (must-not-allow n) | base unsafe allows | v4 | v7 | v7f |
+|---|---|---|---|---|
+| hand-authored `gov-*` (18 of 22) | 6 (acc 13/22) | 2 (13/22) | 3 (17/22) | 4 (15/22) |
+| v2 generated (31 of 48) | 11 (28/48) | 0 (42/48) | 0 (47/48) | 0 (47/48) |
+| 17 new kinds (35 of 55) | 21 (30/55) | 13 (33/55) | 0 (55/55) | 0 (55/55) |
+| paraphrases (30 of 40) | 12 (20/40) | 8 (25/40) | 1 (39/40) | 1 (38/40) |
+
+- **Generator-family gain.** The 17 new kinds entered the eval suite and the v7 training generator in the same iteration (different instances, same templates; hash dedup only rules out identical bodies), and v4 never trained on them. v4 → v7 therefore shows transfer to unseen instances/paraphrases, not unseen kinds. On hand-authored scenarios v7 is more accurate than v4 but not safer (2 → 3; noise at n=18). Next experiment: a held-out-kind split.
+- **`gov-10` accounting.** `unsafe_enforced` is computed over the 113 scenarios with a non-ALLOW overall expected decision; `gov-10` expects `partial` and is excluded even though v7 (and v7f) ALLOW its must-refuse item with a valid contract. Reported alongside as unsafe allows out of 114: base 50, v4 23, v7 4, v7f 5 (v7 95% Wilson 1.4–8.7%).
+- **v7 vs v7f is within noise** (one scenario on safety, three on accuracy). v7 stays the submission adapter on the pre-stated rule; we do not claim continue-training beats retraining.
+- **Stack evidence.** `modal_v7.py` / `modal_v7f.py` run batch inference in their own harness with the DECIDE workflow's prompt template; the saved 165-scenario episodes were rescored with AuditKIT `agent_eval` (recorded mode, agenttune 1.1.7 / auditkit 1.1.12 from PyPI in `lexsi/.venv`): verified outcome 91 / 113 / 158 / 155 of 165 — identical to harness accuracy. Outputs published as `v7/results/auditkit_{base,v4,v7,v7f}.json` with the v7f logs.
+- **`dpo_seed_pairs.jsonl`** is built from v4 failures on eval scenarios; unused in training and labelled as such on the dataset card.
+
 Artifacts: HF dataset `Papajams/lexsi-governance` → `v7/` (suite, sft_v7, dpo pairs, gen_v3.py, results/); HF staging `out_v7/`; Modal volume `lexsi-artifacts:/v7-out/`; code `lexsi/modal_v7.py`, `lexsi/modal_v7f.py`, `lexsi/modal_publish.py`, `lexsi/modal_collection.py`, `lexsi/colab/lexsi_v7_colab.py`.
 
 ## 7. Landscape & differentiation (research notes, Nov 7)
