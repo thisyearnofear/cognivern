@@ -596,6 +596,8 @@ Related: `GET /api/projects`, `GET /api/projects/:projectId/usage`
 | `/api/spend/encrypted` | POST   | Confidential-policy spend with encrypted amount        |
 | `/api/spend/preview`   | POST   | Simulate spend (dry-run)                               |
 | `/api/spend/mandate-decision` | POST | Pre-flight four-way spend decision (`ALLOW`/`REFUSE`/`ESCALATE`/`ASK_CLARIFICATION`) against a spend mandate; deterministic oracle, CRE-logged |
+| `/api/spend/mandate-eval` | POST | Compliance regression harness — run a `{mandate, request, expected}` scenario suite through the oracle; returns per-scenario verdicts + Lexsi metrics (accuracy, unsafe_enforced, error classes); CRE-logged |
+| `/api/spend/mandate-decisions/summary` | GET | Aggregates `mandate_spend_decision` CRE events into per-decision-type and per-agent counts |
 | `/api/spend/status`    | GET    | Execution status (includes `cleanverse` / `keeperHub`) |
 
 ### Cleanverse (CVI / CVA)

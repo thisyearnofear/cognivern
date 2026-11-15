@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import {
   evaluateMandateDecision,
+  evaluateMandateSuite,
   mandateDecisionRequestSchema,
 } from '@backend/services/governance/SpendMandateDecisionService.js';
 import { AuditLogService } from '@backend/services/governance/AuditLogService.js';
+import { creRunStore } from '@backend/cre/storage/CreRunStore.js';
 import type { SpendController } from '@backend/modules/api/controllers/SpendController.js';
 import type { OwsController } from '@backend/modules/api/controllers/OwsController.js';
 import type { OwsWalletController } from '@backend/modules/api/controllers/OwsWalletController.js';
@@ -60,6 +62,8 @@ export function createSpendRoutes(
         timestamp: new Date(),
         projectId: workspaceId,
         details: {
+          event_type: 'mandate_spend_decision',
+          agent_id: mandate.agent_id ?? 'unknown',
           decision: decision.decision,
           reason_code: decision.reason_code,
           rule: decision.rule,
@@ -70,6 +74,72 @@ export function createSpendRoutes(
       })
       .catch(() => {});
     res.json({ success: true, data: decision });
+  });
+
+  // Compliance regression harness — run a workspace-supplied scenario suite
+  // (mandate + request + expected decision) through the deterministic oracle
+  // and return per-scenario verdicts plus the same metrics used for the Lexsi
+  // eval (accuracy, unsafe_enforced, error classes).
+  router.post('/spend/mandate-eval', async (req, res) => {
+    const body = req.body as { scenarios?: unknown };
+    if (!Array.isArray(body?.scenarios) || body.scenarios.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: 'scenarios must be a non-empty array of {mandate, request, expected}',
+      });
+      return;
+    }
+    if (body.scenarios.length > 500) {
+      res.status(400).json({ success: false, error: 'max 500 scenarios per eval' });
+      return;
+    }
+    const { results, metrics } = evaluateMandateSuite(
+      body.scenarios as Parameters<typeof evaluateMandateSuite>[0],
+    );
+    const workspaceId = req.workspaceId;
+    mandateAuditLog
+      .logEvent({
+        eventType: 'mandate_eval_run',
+        agentType: 'mandate-eval',
+        timestamp: new Date(),
+        projectId: workspaceId,
+        details: {
+          event_type: 'mandate_eval_run',
+          n: metrics.n,
+          accuracy: metrics.accuracy,
+          unsafe_enforced_count: metrics.unsafe_enforced_count,
+          error_classes: metrics.error_classes,
+        },
+      })
+      .catch(() => {});
+    res.json({ success: true, data: { metrics, results } });
+  });
+
+  // Decision assurance summary — aggregates mandate_spend_decision CRE events
+  // into per-decision-type counts so the ledger surfaces the four-way decision
+  // distribution (allow/refuse/escalate/ask_clarification) per workspace.
+  router.get('/spend/mandate-decisions/summary', async (req, res) => {
+    const runs = await creRunStore.list();
+    const byDecision: Record<string, number> = {};
+    const byAgent: Record<string, Record<string, number>> = {};
+    let total = 0;
+    for (const run of runs) {
+      for (const artifact of run.artifacts ?? []) {
+        const data = artifact.data as Record<string, unknown> | undefined;
+        if (data?.event_type !== 'mandate_spend_decision') continue;
+        const decision = String(data.decision ?? 'unknown').toUpperCase();
+        byDecision[decision] = (byDecision[decision] ?? 0) + 1;
+        const agent = String(data.agent_id ?? run.provenance?.model ?? 'unknown');
+        byAgent[agent] = byAgent[agent] ?? {};
+        byAgent[agent][decision] = (byAgent[agent][decision] ?? 0) + 1;
+        total += 1;
+        break; // one decision artifact per run
+      }
+    }
+    res.json({
+      success: true,
+      data: { total, by_decision: byDecision, by_agent: byAgent },
+    });
   });
   router.get('/spend/status', (req, res) => spendController.getStatus(req, res));
   router.get('/spend/scan', (req, res) => spendController.scanContract(req, res));

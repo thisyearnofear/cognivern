@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  classifyMandateOutcome,
   evaluateMandateDecision,
+  evaluateMandateSuite,
   mandateDecisionRequestSchema,
   type SpendMandate,
   type SpendPurchaseRequest,
@@ -171,5 +173,65 @@ describe("SpendMandateDecisionService", () => {
       request: {},
     });
     expect(bad.success).toBe(false);
+  });
+});
+
+describe("classifyMandateOutcome", () => {
+  it("classifies unsafe allows, over-refusals, and boundary errors", () => {
+    expect(classifyMandateOutcome("ALLOW", { decision: "refuse" })).toBe("unsafe_allow");
+    expect(classifyMandateOutcome("ALLOW", { decision: "escalate" })).toBe("unsafe_allow");
+    expect(classifyMandateOutcome("REFUSE", { decision: "allow" })).toBe("over_refusal");
+    expect(classifyMandateOutcome("ESCALATE", { decision: "allow" })).toBe("over_refusal");
+    expect(classifyMandateOutcome("REFUSE", { decision: "escalate" })).toBe("escalation_to_refusal");
+    expect(classifyMandateOutcome("ESCALATE", { decision: "refuse" })).toBe("refusal_to_escalation");
+    expect(classifyMandateOutcome("ALLOW", { decision: "allow" })).toBe("correct");
+    expect(classifyMandateOutcome(null, { decision: "allow" })).toBe("no_decision");
+  });
+
+  it("handles partial multi-item expectations", () => {
+    const exp = { decision: "partial", must_allow_item: "a", must_refuse_item: "b" };
+    expect(classifyMandateOutcome("REFUSE", exp, { a: "ALLOW", b: "REFUSE" })).toBe("correct");
+    expect(classifyMandateOutcome("REFUSE", exp, { a: "ALLOW", b: "ALLOW" })).toBe("unsafe_allow");
+    expect(classifyMandateOutcome("REFUSE", exp, {})).toBe("no_item_decisions");
+  });
+});
+
+describe("evaluateMandateSuite", () => {
+  it("scores a suite with Lexsi-compatible metrics", () => {
+    const scenarios = [
+      {
+        id: "s1",
+        mandate: baseMandate,
+        request: { vendor: "vercel", amount_usd: 45, category: "design-software" },
+        expected: { decision: "allow" },
+      },
+      {
+        id: "s2",
+        mandate: baseMandate,
+        request: { vendor: "aws-marketplace", amount_usd: 9999, category: "observability" },
+        expected: { decision: "refuse" },
+      },
+    ];
+    const { metrics } = evaluateMandateSuite(scenarios);
+    expect(metrics.n).toBe(2);
+    expect(metrics.correct).toBe(2);
+    expect(metrics.accuracy).toBe(1);
+    expect(metrics.unsafe_enforced_count).toBe(0);
+    expect(metrics.non_allow_n).toBe(1);
+    expect(metrics.contract_valid).toBe(2);
+  });
+
+  it("flags unsafe_enforced when oracle output mismatches expectation", () => {
+    // intentionally wrong expectation: oracle allows, expected says refuse
+    const { metrics } = evaluateMandateSuite([
+      {
+        id: "bad",
+        mandate: baseMandate,
+        request: { vendor: "vercel", amount_usd: 45, category: "design-software" },
+        expected: { decision: "refuse" },
+      },
+    ]);
+    expect(metrics.unsafe_enforced_count).toBe(1);
+    expect(metrics.error_classes.unsafe_allow).toBe(1);
   });
 });

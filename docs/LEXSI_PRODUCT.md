@@ -58,20 +58,27 @@ about Cognivern's roadmap — and the build order that follows. Durable context:
       (`SpendMandateDecisionService`, deterministic oracle port; every call
       writes a `mandate_spend_decision` CRE event). Deterministic layer only;
       structured-policy requests covered.
-- [ ] **Unsafe-enforcement metrics on the spend ledger** — surface
-      per-agent/per-mandate decision outcomes (allowed / refused /
-      escalated / clarified) and flag contract-valid ALLOWs that violated
+- [~] **Unsafe-enforcement metrics on the spend ledger** — v1 shipped:
+      `GET /api/spend/mandate-decisions/summary` aggregates CRE
+      `mandate_spend_decision` events into per-decision-type and per-agent
+      counts (the decision distribution half of the KPI). Still needed: the
+      decision→violation join — flagging contract-valid ALLOWs that violated
       mandate terms discovered downstream (e.g., Telegraph compliance
-      screening). Needs a decision→violation join across CRE runs.
+      screening) — requires correlating decision events with later
+      enforcement outcomes across CRE runs.
 - [ ] **Model-assisted decision path** — optional adapter call for requests
       the deterministic layer can't judge (ambiguous vendor names,
       justification-text pressure like urgency/claimed authority, which the
       hand-authored gov-* scenarios cover but the oracle does not). Host the
       LoRA behind an internal endpoint; keep deterministic as canonical.
-- [ ] **Per-tenant eval/regression service** — generalize
-      `lexsi/scripts/gen_v3.py` + oracle into a workspace-scoped scenario
-      generator; run on mandate/policy/model changes as a compliance
-      regression gate.
+- [~] **Per-tenant eval/regression service** — v1 shipped:
+      `POST /api/spend/mandate-eval` accepts a workspace-supplied scenario
+      suite (`{mandate, request, expected}`), runs it through the oracle, and
+      returns per-scenario verdicts plus Lexsi-compatible metrics (accuracy,
+      unsafe_enforced, error classes); every run writes a
+      `mandate_eval_run` CRE event. Still needed: the scenario *generator*
+      (port `lexsi/scripts/gen_v3.py` kinds) and scheduling it as a gate on
+      mandate/policy/model changes.
 - [ ] **Adapter fine-tuning rail** — premium offering: fine-tune a tenant
       adapter from their CRE decision traces using the balanced-mix recipe
       (replay + per-class coverage — the v6 lesson is now an engineering
