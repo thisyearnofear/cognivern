@@ -98,6 +98,28 @@ Fixed: fabricated-approval escalation (gov-15), recurring commitment (gov-18). R
 
 **v5 result (Nov 8) — complete, mixed:** `sft_v5.jsonl` (2,267 examples) trained on Kaggle. Same-harness eval: accuracy **59.1% → 68.2%** (13→15/22) but unsafe_enforced **6 → 4** — *worse* than v4's 2. v5 fixed the gov-22 over-refusal and gov-19 ambiguity but regressed gov-15 (fabricated approval back to unsafe ALLOW) while keeping gov-17/gov-21 unsafe. AuditKIT verified outcome: 13/22 base, 15/22 tuned (matches accuracy). **Decision: v4 stays the submission adapter** (unsafe_enforced 2 is the headline); v5 is a documented accuracy-vs-safety trade-off. Artifacts: `lexsi/kaggle/output/lexsi_v5_out/` (adapter, eval JSONLs, auditkit JSONs).
 
+### v6 experiment (Nov 15) — expanded suite + targeted arithmetic SFT, honest negative
+
+Two upgrades over the v4/v5 runs, executed on Modal L40S (bf16, no quantization — the free Colab T4 4-bit attempt OOM'd and was abandoned):
+
+- **Eval suite expanded 22 → 70 scenarios** (`colab/staging/eval_suite_v2.jsonl`): the 22 hand-authored `gov-*` scenarios plus 48 generated held-out `gen-9xxx` scenarios. Zero overlap with any training file (`train_bodies_excluded: 1400` at prep time).
+- **Targeted arithmetic SFT**: `sft_arith.jsonl` — 600 oracle-labeled rows weighted toward v4's residual failure classes (`tax_over` 169, `multi_mixed` 121, `est_total_ok` 97, `multi` 90, `boundary` 65, `multi_pressure` 58). v6 = fresh LoRA r=16/α=32 (v4 recipe) on `sft_v4.jsonl` + `sft_arith.jsonl` = 2,067 rows, 2 epochs, ~35 min on L40S.
+
+Same-harness bf16 results on all 70 scenarios:
+
+| metric | base | v4 | v6 |
+|---|---|---|---|
+| accuracy | 41/70 (58.6%) | 55/70 (78.6%) | **56/70 (80.0%)** |
+| unsafe_allow | 17 (35.4%) | **2 (4.2%)** | 5 (10.4%) |
+| unsafe_enforced | 17/48 | **2/48** | 5/48 |
+| contract valid | 70/70 | 70/70 | 70/70 |
+
+**Decision: v4 remains the submission adapter.** v6 improved accuracy slightly and fixed six v4 errors (incl. gov-11 clarification, gov-22 over-refusal) but *regressed the headline metric*: unsafe_enforced 2 → 5. The arithmetic-weighted data diluted judgment-heavy refusals — v6 newly unsafe-allowed gov-13 (mid-trajectory scope creep), gov-18 (recurring commitment — v4 had this correct), and gen-9036, while still missing gov-17/gov-21 arithmetic cases. This is a clean, reportable negative: targeted SFT on one failure class can erode adjacent judgment classes; the metric table catches it.
+
+Quantization caveat (measured, not assumed): the earlier Colab 4-bit eval gave materially different numbers (base unsafe_enforced 7 vs bf16 17; v4 1 vs 2). **bf16 Modal numbers are canonical** for the submission; 4-bit figures are noted only as a robustness observation.
+
+Artifacts: HF staging `papajams/lexsi-v6-staging` → `out/` (metrics_{base,v4,v6}.json, eval_{base,v4,v6}.jsonl, adapter_v6/ ~168MB, run.log); Modal volume `lexsi-artifacts:/v6-out/`; code `lexsi/modal_v6.py`, `lexsi/colab/lexsi_v6_colab.py`, `lexsi/colab/prep_heldout.py`.
+
 ## 7. Landscape & differentiation (research notes, Nov 7)
 
 ### Prior art we must cite and differentiate from

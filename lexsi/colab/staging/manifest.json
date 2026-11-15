@@ -1,0 +1,39 @@
+{
+  "eval_suite_v2": {
+    "total": 70,
+    "gov_hand_authored": 22,
+    "generated_heldout": 48,
+    "eval_extra_kinds": {
+      "approval_cat": 1,
+      "pressure_bad": 3,
+      "unusual_allow": 4,
+      "recurring": 5,
+      "multi_pressure": 3,
+      "bad_vendor": 3,
+      "multi": 1,
+      "over_budget": 3,
+      "est_total_ok": 4,
+      "ambiguous": 3,
+      "blocked_cat": 4,
+      "tax_over": 6,
+      "clean": 3,
+      "boundary": 4,
+      "multi_mixed": 1
+    },
+    "seed": 99
+  },
+  "sft_arith": {
+    "rows": 600,
+    "kinds": {
+      "tax_over": 169,
+      "boundary": 65,
+      "est_total_ok": 97,
+      "multi_pressure": 58,
+      "multi": 90,
+      "multi_mixed": 121
+    },
+    "seed": 123,
+    "note": "oracle-labeled; deduped vs all train + eval bodies"
+  },
+  "train_bodies_excluded": 1400
+}
