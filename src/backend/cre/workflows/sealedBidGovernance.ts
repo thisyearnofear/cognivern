@@ -45,6 +45,7 @@ export interface RecordSealedBidEventParams {
     | 'bid_withdrawn'
     | 'round_closed'
     | 'round_cancelled'
+    | 'vendor_screened'
     | 'winner_revealed';
   payload: Record<string, unknown>;
 }
@@ -56,6 +57,7 @@ type InternalEventType =
   | 'policy_checked'
   | 'round_closed'
   | 'round_cancelled'
+  | 'vendor_screened'
   | 'winner_revealed';
 
 interface SealedBidRunStore {

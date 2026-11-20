@@ -37,7 +37,7 @@ export interface SealedBidRound {
   // through the governance layer. `createdByAgent` is the agent id;
   // `governanceRunId` is the CRE run that records the tamper-evident event
   // trail (round_created, bid_submitted, policy_checked, round_closed,
-  // winner_revealed).
+  // vendor_screened, winner_revealed).
   createdByAgent?: string;
   governanceRunId?: string;
   // Funded-mandate linkage — present when the round was created under a

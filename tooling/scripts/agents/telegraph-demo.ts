@@ -18,6 +18,11 @@
  *                                             (--agreement: two evaluators,
  *                                             unanimous verdicts only)
  *   report <programId>                       GET .../report (leaderboard)
+ *   anjoman-task '<json>'                    POST /api/telegraph/anjoman-task
+ *   screen-round <roundId> ['<json>']        POST .../rounds/:id/screen-bidders
+ *   reveal <roundId> '<json>'                POST .../rounds/:id/reveal
+ *                                             (add "requireScreened": true to
+ *                                             gate the award on verdicts)
  *
  * Env:
  *   COGNIVERN_API    default https://api.cognivern.persidian.com
@@ -30,6 +35,10 @@
  *     "compliance": {"intent": "SANCTIONS_SCREENING_MATCH",
  *       "params": {"name": "Acme Robotics Ltd", "jurisdiction": "US"}}
  *   }'
+ *
+ * Vendor screening loop (Anjoman → sealed-bid award gate):
+ *   telegraph-demo.ts screen-round <roundId> '{"vendorDetails":{"Alice":"acme.eth"}}'
+ *   telegraph-demo.ts reveal <roundId> '{"selectionMethod":"specific","specificBidder":"Alice","requireScreened":true}'
  */
 
 const API = (process.env.COGNIVERN_API ?? "https://api.cognivern.persidian.com").replace(/\/$/, "");
@@ -81,12 +90,43 @@ switch (cmd) {
     out(await req("GET", "/api/telegraph/intents"));
     break;
   case "call":
-  case "compliant-call": {
+  case "compliant-call":
+  case "anjoman-task": {
     if (!args[0]) {
       console.error(`usage: telegraph-demo.ts ${cmd} '<json body>'`);
       process.exit(2);
     }
     out(await req("POST", `/api/telegraph/${cmd}`, JSON.parse(args[0])));
+    break;
+  }
+  case "screen-round": {
+    const [roundId, json] = args;
+    if (!roundId) {
+      console.error("usage: telegraph-demo.ts screen-round <roundId> ['<json body>']");
+      process.exit(2);
+    }
+    out(
+      await req(
+        "POST",
+        `/api/vendor/sealed-bid/rounds/${encodeURIComponent(roundId)}/screen-bidders`,
+        json ? JSON.parse(json) : {},
+      ),
+    );
+    break;
+  }
+  case "reveal": {
+    const [roundId, json] = args;
+    if (!roundId || !json) {
+      console.error(`usage: telegraph-demo.ts reveal <roundId> '<json body>'`);
+      process.exit(2);
+    }
+    out(
+      await req(
+        "POST",
+        `/api/vendor/sealed-bid/rounds/${encodeURIComponent(roundId)}/reveal`,
+        JSON.parse(json),
+      ),
+    );
     break;
   }
   case "verify-sample": {
@@ -116,6 +156,6 @@ switch (cmd) {
     break;
   }
   default:
-    console.log("commands: ledger | status | miners [intent] | intents | call <json> | compliant-call <json> | verify-sample <programId> [limit] [eval] | report <programId>");
+    console.log("commands: ledger | status | miners [intent] | intents | call <json> | compliant-call <json> | anjoman-task <json> | verify-sample <programId> [limit] [eval] | report <programId> | screen-round <roundId> [json] | reveal <roundId> <json>");
     process.exit(cmd ? 2 : 0);
 }

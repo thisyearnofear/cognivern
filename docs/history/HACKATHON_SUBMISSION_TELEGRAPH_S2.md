@@ -28,7 +28,8 @@ evaluator miners into a cost-per-verified-answer leaderboard.
 | Human-in-the-loop | `/inbox` — held telegraph runs approve (release) or reject (quarantine); UI-verified approve on run `55c4484a` |
 | Verified-answer economics | `POST /api/credit-programs/:id/verify-sample` — Groq `openai/gpt-oss-120b` program `prog_3c75599c-3913-4fcc-8edd-2aedc5674f08`; leaderboard: 20 ok calls, 19 sampled, 6 correct / 1 incorrect / 12 unknown, `verifiedAccuracy 0.857`, `costPerVerifiedCorrectUsd ≈ $0.0065` |
 | Cross-miner agreement | `verify-sample {"agreement":true}` — two distinct evaluators (TxLens + AssistWire) per record; verdicts persist only on unanimous decided verdicts, else `unknown` with per-evaluator breakdown. Live result: 3 unanimous `correct`, 7 `no consensus` — mostly TxLens held/unparseable, plus one genuine evaluator disagreement (TxLens `incorrect` vs AssistWire `correct`) |
-| Judge re-runnability | `tooling/scripts/agents/telegraph-demo.ts` — dependency-free CLI over the live API (`ledger`, `compliant-call`, `verify-sample`, `report`) |
+| Anjoman delegated screening → award gate | `POST /api/vendor/sealed-bid/rounds/:id/screen-bidders` — one governed Anjoman task per bidder → `sealed_bid.vendor_screened` events on the round's hash-signed timeline → `/reveal` with `requireScreened` refuses to award an unscreened or hit vendor (403 + verdict map). Code + 27 tests landed; live run pending `ANJOMAN_API_KEY` |
+| Judge re-runnability | `tooling/scripts/agents/telegraph-demo.ts` — dependency-free CLI over the live API (`ledger`, `compliant-call`, `anjoman-task`, `verify-sample`, `report`, `screen-round`, `reveal`) |
 | Demo video | `~/Downloads/telegraph-s2-motion.mp4` (local artifact, ~108s, 1080p) |
 
 Workspace auth: a workspace JWT (`Authorization: Bearer`). API base:
@@ -41,6 +42,8 @@ Workspace auth: a workspace JWT (`Authorization: Bearer`). API base:
 - `feat(telegraph): judge-facing CLI for re-running live evidence`
 - `feat(telegraph): cumulative spend trajectory on intelligence ledger`
 - `test(inference): cover openai-compat backend contract` (7 tests)
+- Anjoman API-key rail — `AnjomanService` (`/agent/chat`, async-job poll/cancel, escrow balance) + `governedAnjomanTask` (`telegraph.signal`, `paymentMethod: "anjoman_api_key"`, fail-safe held)
+- Anjoman-delegated vendor screening for sealed-bid rounds — `sealed_bid.vendor_screened` governance events + `requireScreened` reveal gate + UI badges + judge CLI
 - Ledger/compliance/CRE rails from earlier commits (`18ccb457`, `47988448`, …)
 
 ## Honesty bounds (say these out loud)
@@ -74,6 +77,9 @@ OFAC-listed wallet screened by top-ranked miner Counterproof that blocked a
 downstream payment before settlement, 20 metered inference calls through our
 OpenAI-compatible gateway, and 19 evaluator-sampled records producing a
 verified-answer leaderboard (85.7% accuracy, $0.0065 per verified-correct).
+The new Anjoman rail delegates multi-step due-diligence — one governed task
+per bidder screens sanctions, reputation, and wallet risk across ranked
+specialists — and the verdicts gate the Canton sealed-bid award itself.
 Every claim re-runnable via `tooling/scripts/agents/telegraph-demo.ts`.
 
 **04 Why would someone adopt it?**

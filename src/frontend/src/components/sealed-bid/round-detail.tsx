@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import {
@@ -10,8 +10,10 @@ import {
   CheckCircle2,
   Loader2,
   Lock,
+  ScanSearch,
   Send,
   Share2,
+  ShieldAlert,
   ShieldCheck,
   ShieldX,
   Sparkles,
@@ -41,6 +43,7 @@ import { useSealedBidLiveUpdates } from "@/hooks/use-sealed-bid-stream";
 import {
   apiClient,
   type PolicyCheck,
+  type VendorVerdict,
 } from "@/lib/api-client";
 import { useAuthStore } from "@/stores/auth-store";
 import { mutate } from "swr";
@@ -111,11 +114,39 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   // Policy gate state — populated when closeRound returns 403 with
   // policyChecks. Cleared on successful close or when the round changes.
   const [policyChecks, setPolicyChecks] = useState<PolicyCheck[] | null>(null);
+  // Vendor screening (Anjoman). `screenGate` mirrors policyChecks: populated
+  // when reveal returns 403 "Vendor screening gate failed". requireScreened
+  // defaults on for agent-governed rounds — null means "use the default".
+  const [screening, setScreening] = useState(false);
+  const [requireScreened, setRequireScreened] = useState<boolean | null>(null);
+  const [screenGate, setScreenGate] = useState<{
+    reason: string;
+    verdicts: Record<string, string>;
+  } | null>(null);
 
   // Governance timeline — only fetched for agent-governed rounds (rounds
   // with a governanceRunId). SWR null-keys for non-governed rounds.
   const { data: governanceTimeline, isLoading: governanceLoading } =
     useGovernanceTimeline(roundId, round?.governanceRunId);
+
+  // Latest vendor_screened verdict per bidder — the same reduction the
+  // reveal gate applies server-side, read from the same hash-signed timeline.
+  const screenVerdicts = useMemo(() => {
+    const out: Record<string, VendorVerdict> = {};
+    for (const e of governanceTimeline?.events ?? []) {
+      if (e.eventType !== "vendor_screened") continue;
+      const b = e.payload?.bidder;
+      const v = e.payload?.verdict;
+      if (
+        typeof b === "string" &&
+        (v === "clear" || v === "hit" || v === "unknown")
+      ) {
+        out[b] = v;
+      }
+    }
+    return out;
+  }, [governanceTimeline]);
+  const effectiveRequireScreened = requireScreened ?? !!round?.governanceRunId;
 
   const workspaceMode = useAuthStore((s) => s.workspaceMode);
   const isAuthed = useAuthStore((s) => s.isConnected);
@@ -305,15 +336,56 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
     }
   }
 
+  async function handleScreen() {
+    setScreening(true);
+    try {
+      const res = await apiClient.screenSealedBidBidders({ roundId });
+      if (!res.success) throw new Error(res.error || "Screening failed");
+      const screenings = res.data?.screenings ?? [];
+      const hits = screenings.filter((s) => s.verdict === "hit").length;
+      const unknowns = screenings.filter((s) => s.verdict === "unknown").length;
+      const n = res.data?.screenedBidders ?? 0;
+      toast.success(
+        `Screened ${n} vendor${n === 1 ? "" : "s"} via Anjoman` +
+          (hits ? ` — ${hits} flagged` : "") +
+          (unknowns ? ` — ${unknowns} inconclusive` : ""),
+      );
+      await refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Screening failed");
+    } finally {
+      setScreening(false);
+    }
+  }
+
   async function handleReveal() {
     localActionRef.current = "revealed";
     setRevealing(true);
+    setScreenGate(null);
     try {
       const res = await apiClient.revealSealedBidWinner({
         roundId,
         selectionMethod,
+        requireScreened: effectiveRequireScreened || undefined,
       });
-      if (!res.success) throw new Error(res.error || "Reveal failed");
+      if (!res.success) {
+        // 403 from the screening gate — surface reason + verdict map inline,
+        // same pattern as the policy-gate panel on close.
+        if (res.error === "Vendor screening gate failed") {
+          const gate = res as {
+            reason?: string;
+            verdicts?: Record<string, string>;
+          };
+          setScreenGate({
+            reason: gate.reason ?? "Reveal blocked",
+            verdicts: gate.verdicts ?? {},
+          });
+          localActionRef.current = null;
+          toast.error("Vendor screening gate blocked reveal");
+          return;
+        }
+        throw new Error(res.error || "Reveal failed");
+      }
       toast.success(
         `Winner revealed — ${displayPartyName(res.data?.winner) || "?"} at $${res.data?.winningBid}`,
       );
@@ -469,6 +541,20 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
             <div className="text-sm font-semibold flex items-center gap-2 flex-wrap">
               Winner: {displayPartyName(round.winner)} at $
               {round.winningBid.toLocaleString()}
+              {screenVerdicts[round.winner] && (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                    screenVerdicts[round.winner] === "clear"
+                      ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      : screenVerdicts[round.winner] === "hit"
+                        ? "border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400"
+                        : "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                  }`}
+                >
+                  <ScanSearch className="h-3 w-3" />
+                  {screenVerdicts[round.winner]} screen
+                </span>
+              )}
               {round.settledAssetCid && (
                 <motion.span
                   key={`settled-${round.settledAssetCid}`}
@@ -702,6 +788,17 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
                   )}
                   Reveal winner
                 </Button>
+                {round.governanceRunId && (
+                  <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={effectiveRequireScreened}
+                      onChange={(e) => setRequireScreened(e.target.checked)}
+                      className="h-3.5 w-3.5 accent-primary"
+                    />
+                    Require screened vendors
+                  </label>
+                )}
                 <p className="text-xs text-muted-foreground w-full">
                   <Clock className="h-3 w-3 inline mr-1" /> The selection records
                   the winner and archives losing bids together. Losing amounts
@@ -726,6 +823,104 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               </Button>
             )}
           </div>
+          )}
+
+          {/* Vendor screening — Anjoman due-diligence per bidder. Only shown
+              for agent-governed rounds: verdicts sign the governance timeline,
+              which is also the state the requireScreened reveal gate reads. */}
+          {round.governanceRunId && round.bids.length > 0 && (
+            <div className="space-y-2 border-t border-border/60 pt-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                {canManage && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleScreen}
+                    disabled={screening}
+                  >
+                    {screening ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <ScanSearch className="h-4 w-4 mr-2" />
+                    )}
+                    Screen vendors
+                  </Button>
+                )}
+                <span className="text-[11px] text-muted-foreground">
+                  Anjoman due-diligence — verdicts sign the governance timeline
+                  below and can gate the reveal
+                </span>
+              </div>
+              {Object.keys(screenVerdicts).length > 0 && (
+                <ul className="flex flex-wrap gap-1.5" aria-label="Vendor screening verdicts">
+                  {round.bids.map((b) => {
+                    const v = screenVerdicts[b.bidder];
+                    return (
+                      <li
+                        key={b.bidder}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                          v === "clear"
+                            ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
+                            : v === "hit"
+                              ? "border-red-500/40 text-red-700 dark:text-red-400"
+                              : v === "unknown"
+                                ? "border-amber-500/40 text-amber-700 dark:text-amber-400"
+                                : "border-border text-muted-foreground"
+                        }`}
+                      >
+                        {v === "clear" ? (
+                          <ShieldCheck className="h-3 w-3" />
+                        ) : v === "hit" ? (
+                          <ShieldX className="h-3 w-3" />
+                        ) : (
+                          <ShieldAlert className="h-3 w-3" />
+                        )}
+                        {displayPartyName(b.bidder)} · {v ?? "unscreened"}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {/* Screening-gate rejection — shown when reveal returns 403
+              "Vendor screening gate failed" with reason + verdict map. */}
+          {screenGate && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-lg border border-red-500/40 bg-red-500/5 p-3 space-y-2"
+            >
+              <div className="flex items-center gap-2 text-sm font-semibold text-red-600 dark:text-red-400">
+                <ShieldX className="h-4 w-4" />
+                Vendor screening gate blocked reveal
+              </div>
+              <p className="text-xs text-muted-foreground">{screenGate.reason}</p>
+              {Object.keys(screenGate.verdicts).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.entries(screenGate.verdicts).map(([b, v]) => (
+                    <span
+                      key={b}
+                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                        v === "clear"
+                          ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
+                          : v === "hit"
+                            ? "border-red-500/40 text-red-700 dark:text-red-400"
+                            : "border-amber-500/40 text-amber-700 dark:text-amber-400"
+                      }`}
+                    >
+                      {displayPartyName(b)} · {v}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                Verdicts are read from the round&apos;s hash-signed governance
+                timeline — the same record shown below. Re-screen bidders or
+                award a cleared vendor via a specific selection to proceed.
+              </p>
+            </motion.div>
           )}
 
           {/* Policy gate results — shown when closeRound returns 403 with

@@ -78,6 +78,7 @@ export async function recordSealedBidEvent(params: {
     | "bid_withdrawn"
     | "round_closed"
     | "round_cancelled"
+    | "vendor_screened"
     | "winner_revealed";
   payload: Record<string, unknown>;
 }): Promise<{ eventHash: string; timestamp: string }>;
@@ -334,6 +335,24 @@ No amount — the withdrawn bid is archived without disclosure.
 ```
 Cancel bypasses the close policy gate, so this event is the accountability
 record for it.
+
+### `vendor_screened` (recorded by `screenBidders` per bidder)
+```json
+{
+  "roundId": "0x31a7b245...",
+  "bidder": "alice-cognivern",
+  "verdict": "clear",
+  "detail": "VERDICT: CLEAR",
+  "screeningRunId": "5f22f7ec-…",
+  "jobId": "anjoman-job-…",
+  "costUsd": "0.0450"
+}
+```
+One event per screened bidder, recorded by the Anjoman vendor-screening
+endpoint (`POST /rounds/:id/screen-bidders`). `verdict` is
+`clear | hit | unknown` — anything ambiguous is `unknown`, never silently
+clear. The latest event per bidder is the screening state `requireScreened`
+reads back at reveal time; re-screens overwrite it.
 
 ### `winner_revealed` (recorded by `revealWinner`)
 ```json

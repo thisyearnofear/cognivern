@@ -9,6 +9,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { Logger } from "@backend/shared/logging/Logger.js";
 import { telegraphService, telegraphGovernanceHelper, recordTelegraphGovernedCall, recordTelegraphGateDecision, runComplianceScreen, buildTelegraphLedgerReport } from "@backend/services/telegraph/index.js";
+import { anjomanService } from "@backend/services/anjoman/index.js";
 import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
 
 const logger = new Logger("TelegraphController");
@@ -24,6 +25,9 @@ export class TelegraphController {
   async getStatus(_req: Request, res: Response) {
     try {
       const enabled = telegraphService.getEnabled();
+      // Anjoman is a separate rail (API key, not the node): report it even
+      // when the direct-miner integration is disabled.
+      const anjoman = await anjomanService.getStatus();
 
       if (!enabled) {
         res.json({
@@ -32,6 +36,7 @@ export class TelegraphController {
             enabled: false,
             reason: "Telegraph integration disabled or not configured",
             hint: "Set TELEGRAPH_ENABLED=true and TELEGRAPH_EVM_PRIVATE_KEY in environment",
+            anjoman,
           },
           timestamp: new Date().toISOString(),
         });
@@ -61,6 +66,7 @@ export class TelegraphController {
           paymentReady,
           paymentError: paymentReady ? null : telegraphService.getPaymentInitError(),
           daemon: daemonHealth,
+          anjoman,
         },
         timestamp: new Date().toISOString(),
       });
@@ -586,6 +592,105 @@ export class TelegraphController {
       res.status(500).json({
         success: false,
         error: error.message || "Failed to execute compliant Telegraph call",
+      });
+    }
+  }
+
+  /**
+   * POST /api/telegraph/anjoman-task
+   *
+   * Delegated multi-specialist task through the Anjoman agent API. Anjoman
+   * plans the request, fans out to ranked Telegraph specialists, retries
+   * failures, and returns one combined answer with `sources` and `costUsd` —
+   * paid from the account's API-key balance rather than per-call x402.
+   *
+   * Same governed persistence as /api/telegraph/call: the task is recorded as
+   * a CRE run carrying a telegraph.signal artifact. Anjoman answers carry no
+   * per-miner confidence, so completed tasks hold for operator review — the
+   * same fail-safe contract as miners without a confidence field.
+   *
+   * Body: { message | intent + params, maxSpendUsd?, conversationId?,
+   *         agentId?, mandateId?, policyId?, description? }
+   */
+  async anjomanTask(req: Request, res: Response) {
+    try {
+      if (!anjomanService.isEnabled()) {
+        res.status(503).json({
+          success: false,
+          error: "Anjoman integration is not enabled — set ANJOMAN_API_KEY",
+        });
+        return;
+      }
+      if (!req.workspaceId) {
+        res.status(401).json({ success: false, error: "Workspace authentication required" });
+        return;
+      }
+
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const message = typeof body.message === "string" ? body.message.trim() : "";
+      const intent = typeof body.intent === "string" ? body.intent : undefined;
+      const params =
+        typeof body.params === "object" && body.params !== null
+          ? (body.params as Record<string, unknown>)
+          : undefined;
+
+      if (!message && !intent) {
+        res.status(400).json({
+          success: false,
+          error: "message is required — or pass intent + params for a canonical ask",
+        });
+        return;
+      }
+      if (intent && !params) {
+        res.status(400).json({
+          success: false,
+          error: "params is required when calling an intent directly",
+        });
+        return;
+      }
+
+      const agentId =
+        (typeof body.agentId === "string" && body.agentId.trim()) ||
+        req.userId ||
+        `workspace-${req.workspaceId}`;
+      const description = typeof body.description === "string" ? body.description : undefined;
+
+      const result = await telegraphGovernanceHelper.governedAnjomanTask({
+        agentId,
+        workspaceId: req.workspaceId,
+        mandateId: typeof body.mandateId === "string" ? body.mandateId : undefined,
+        policyId: typeof body.policyId === "string" ? body.policyId : undefined,
+        task: {
+          message: message || undefined,
+          intent,
+          params,
+          conversationId:
+            typeof body.conversationId === "string" ? body.conversationId : undefined,
+          maxSpendUsd:
+            typeof body.maxSpendUsd === "number" ? body.maxSpendUsd : undefined,
+          timeoutMs:
+            typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
+        },
+        description,
+      });
+
+      const run = await recordTelegraphGovernedCall({
+        result,
+        projectId: req.workspaceId,
+        agentId,
+        description,
+      });
+
+      res.json({
+        success: true,
+        data: { ...result, runId: run?.runId ?? null, runStatus: run?.status ?? null },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error("Anjoman governed task endpoint failed", { error });
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to execute Anjoman task",
       });
     }
   }

@@ -76,6 +76,9 @@ export function createMiscRoutes(
   router.post("/telegraph/compliant-call", (req, res) =>
     telegraphController.compliantCall(req, res),
   );
+  router.post("/telegraph/anjoman-task", (req, res) =>
+    telegraphController.anjomanTask(req, res),
+  );
   router.get("/telegraph/ledger", (req, res) =>
     telegraphController.getLedger(req, res),
   );
@@ -139,6 +142,12 @@ export function createMiscRoutes(
     sealedBidWriteAuth,
     idempotencyMiddleware,
     (req, res) => sealedBidController.cancelRound(req, res),
+  );
+  router.post(
+    "/vendor/sealed-bid/rounds/:roundId/screen-bidders",
+    sealedBidWriteAuth,
+    idempotencyMiddleware,
+    (req, res) => sealedBidController.screenBidders(req, res),
   );
   router.post(
     "/vendor/sealed-bid/rounds/:roundId/reveal",

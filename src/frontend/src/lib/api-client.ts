@@ -1819,10 +1819,37 @@ class ApiClient {
     );
   }
 
+  // Anjoman-delegated vendor due-diligence over a round's bidders. Verdicts
+  // land on the round's governance timeline (vendor_screened events).
+  async screenSealedBidBidders(params: {
+    roundId: string;
+    agentId?: string;
+    bidders?: string[];
+    vendorDetails?: Record<string, string>;
+    maxSpendUsd?: number;
+  }): Promise<ApiResponse<ScreenBiddersResult>> {
+    return this.fetch(
+      `/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/screen-bidders`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          agentId: params.agentId,
+          bidders: params.bidders,
+          vendorDetails: params.vendorDetails,
+          maxSpendUsd: params.maxSpendUsd,
+        }),
+      },
+    );
+  }
+
   async revealSealedBidWinner(params: {
     roundId: string;
     selectionMethod: 'lowest-bid' | 'highest-bid' | 'specific';
     specificBidder?: string;
+    // Gate the award on vendor-screening verdicts recorded on the round's
+    // governance timeline. 403 "Vendor screening gate failed" when verdicts
+    // don't clear the selection (reason + verdicts map in the response).
+    requireScreened?: boolean;
   }): Promise<
     ApiResponse<{
       roundId: string;
@@ -1831,6 +1858,8 @@ class ApiClient {
       winningProposalHash: string;
       status: string;
       totalBids: number;
+      // The winner's latest screening verdict when the gate ran.
+      winnerScreen?: 'clear' | 'hit' | 'unknown' | null;
     }>
   > {
     return this.fetch(
@@ -1840,6 +1869,7 @@ class ApiClient {
         body: JSON.stringify({
           selectionMethod: params.selectionMethod,
           specificBidder: params.specificBidder,
+          requireScreened: params.requireScreened,
         }),
       },
     );
@@ -2331,7 +2361,7 @@ export interface PolicyCheck {
 }
 
 export interface GovernanceEvent {
-  eventType: string; // "round_created" | "bid_submitted" | "policy_checked" | "round_closed" | "winner_revealed"
+  eventType: string; // "round_created" | "bid_submitted" | "policy_checked" | "round_closed" | "round_cancelled" | "vendor_screened" | "winner_revealed"
   timestamp: string; // ISO 8601
   eventHash: string; // SHA-256(runId|eventType|timestamp|canonicalJSON(payload))
   payload: Record<string, unknown>;
@@ -2341,6 +2371,33 @@ export interface GovernanceTimeline {
   runId: string;
   agentId: string;
   events: GovernanceEvent[];
+}
+
+// ── Vendor screening (Anjoman-delegated due-diligence) ────────────────────
+// Mirrors the backend ScreenBiddersResult — one governed task per bidder;
+// verdicts are appended to the round's governance timeline as
+// sealed_bid.vendor_screened events and gate /reveal via requireScreened.
+
+export type VendorVerdict = 'clear' | 'hit' | 'unknown';
+
+export interface VendorScreenResult {
+  bidder: string;
+  verdict: VendorVerdict;
+  detail?: string;
+  runId: string | null;
+  jobId?: string;
+  costUsd?: string;
+  sources?: number;
+}
+
+export interface ScreenBiddersResult {
+  roundId: string;
+  screenings: VendorScreenResult[];
+  screenedBidders: number;
+  unknownBidders: string[];
+  skippedBidders: string[];
+  totalCostUsd: string;
+  governanceRunId?: string;
 }
 
 // Response shape when the policy gate rejects a close attempt (HTTP 403).

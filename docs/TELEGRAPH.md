@@ -28,6 +28,8 @@ Additive-only: everything lives in `src/backend/services/telegraph/` +
 | --- | --- | --- |
 | `TelegraphService` | Miner discovery, x402 payments, node/engine/daemon health | `src/backend/services/telegraph/` |
 | `TelegraphGovernanceHelper` | Confidence routing + `telegraph.signal` artifacts | same |
+| `AnjomanService` | Delegated multi-specialist tasks via API key (`/agent/chat`, async jobs, escrow balance) | `src/backend/services/anjoman/` |
+| `VendorScreeningService` | Per-bidder Anjoman screening → `sealed_bid.vendor_screened` events + reveal gate | `src/backend/services/blockchain/sealed-bid/VendorScreening.ts` |
 | `TelegraphController` | `/api/telegraph/*` status + governed stats | `src/backend/modules/api/controllers/` |
 | Signal digest agent | Scheduled governed consumption loop | `tooling/scripts/agents/telegraph-signal-digest.ts` |
 | Demo script | End-to-end paid call | `tooling/scripts/demo/demo-telegraph.ts` (`pnpm demo:telegraph`) |
@@ -72,6 +74,68 @@ The in-product dashboard is `/telegraph` — categories, questions, the
 governed-consumption stats panel, and the intelligence ledger (settlements,
 burn by intent, recent calls with dispositions).
 
+## Anjoman delegated tasks (API-key rail)
+
+Anjoman (`backend.telegraphprotocol.com`) is the delegation surface on top of
+Telegraph: `POST /agent/chat` takes a whole task, plans it across ranked
+specialists (parallel or serial), retries failures, and returns one combined
+answer with `sources` and total `costUsd`. Calls settle from the account's
+funded balance via a Bearer API key — no per-call x402 signature — which
+removes facilitator round-trips on multi-step work.
+
+```bash
+ANJOMAN_API_KEY=anjoman_...           # setting a key enables the rail
+# ANJOMAN_ENABLED=false               # force-disable even with a key set
+# ANJOMAN_MAX_SPEND_USD=0.25          # per-task cap → maxSpendUsd
+# ANJOMAN_TASK_TIMEOUT_MS=180000      # answers past ~80s arrive as async jobs
+# ANJOMAN_POLL_INTERVAL_MS=2000
+```
+
+`POST /api/telegraph/anjoman-task` (workspace auth) runs a governed task:
+`{message | intent + params, maxSpendUsd?, conversationId?, mandateId?, …}`.
+Answers past ~80s arrive as `202 {jobId}`; the service polls
+`GET /agent/jobs/:id` on the job's typed status (never a bare timer) and
+POSTs `/agent/jobs/:id/cancel` on timeout — closing a connection does not
+stop spend.
+
+Same governed persistence as miner calls: a `telegraph.signal` CRE artifact
+with `cost.paymentMethod: "anjoman_api_key"` (vs `"x402"` on direct calls) and
+`signal.sources` preserving which ranked specialists were paid — so the
+ledger and inbox treat it like every other call. Anjoman answers carry no
+per-miner confidence, so completed tasks deterministically **hold** for
+operator review — the same fail-safe contract as miners without a declared
+`confidence_field`.
+
+`/api/telegraph/status` reports an `anjoman` block (`enabled`, `ready`,
+`reachable`, `escrowBalanceUsd` — a best-effort live balance read proving the
+key works) regardless of whether the direct-miner rail is enabled.
+
+### Vendor screening → sealed-bid award gate
+
+`POST /api/vendor/sealed-bid/rounds/:roundId/screen-bidders` delegates vendor
+due-diligence to Anjoman — one governed task per bidder (capped at
+`ANJOMAN_SCREEN_MAX_BIDDERS`, default 10, each with its own `maxSpendUsd`):
+
+```json
+{ "bidders": ["alice"], "vendorDetails": {"alice": "acme.eth"}, "maxSpendUsd": 0.5 }
+```
+
+The brief asks Anjoman to end with a `VERDICT: CLEAR|HIT|UNKNOWN` line;
+`evaluateVendorVerdict` reads that marker first, then the structured answer
+through the same compliance scanner as miner calls, then a guarded text scan —
+anything ambiguous is `unknown`, never silently `clear`. Every screen appends
+a `sealed_bid.vendor_screened` event (bidder, verdict, screening run id, cost)
+to the round's governance timeline, so the verdicts are part of the same
+hash-signed record a verifier fetches via `/verify`.
+
+`POST …/reveal` accepts `requireScreened: true` to gate the award on that
+state: `selectionMethod: "specific"` requires the target's latest verdict to
+be `clear`; `lowest-bid`/`highest-bid` compute the winner on-ledger from
+sealed amounts, so they require every bidder screened and none `hit` or
+inconclusive — a tainted pool forces the manager to pick a cleared vendor via
+`"specific"` (or cancel) instead of awarding blind. The winning verdict rides
+the reveal response as `winnerScreen`.
+
 ### Re-running the evidence (judge CLI)
 
 `tooling/scripts/agents/telegraph-demo.ts` is a dependency-free CLI over the
@@ -86,8 +150,21 @@ pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts verify-sample <programId>
 pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts report <programId>
 ```
 
-Every command prints the raw API response — run IDs, dispositions, and
-leaderboard rows are the evidence, not a summary of it.
+The Anjoman vendor-screening loop is reproducible end to end:
+
+```bash
+# one governed task per bidder; verdicts sign the round's governance timeline
+pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts screen-round <roundId> \
+  '{"vendorDetails":{"Alice":"acme.eth"}}'
+
+# gated reveal — refuses to award an unscreened or hit vendor
+pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts reveal <roundId> \
+  '{"selectionMethod":"specific","specificBidder":"Alice","requireScreened":true}'
+```
+
+`anjoman-task '<json>'` exercises the raw governed delegation endpoint.
+Every command prints the raw API response — run IDs, dispositions, verdicts,
+and leaderboard rows are the evidence, not a summary of it.
 
 ## Signal digest (production consumption pattern)
 

@@ -26,6 +26,13 @@ import {
   getGovernanceTimeline,
 } from "@backend/cre/workflows/sealedBidGovernance.js";
 import { sealedBidEvents } from "@backend/services/blockchain/sealed-bid/SealedBidEventHub.js";
+import { anjomanService } from "@backend/services/anjoman/index.js";
+import {
+  VendorScreeningService,
+  evaluateScreeningGate,
+  latestScreenVerdicts,
+  type VendorVerdict,
+} from "@backend/services/blockchain/sealed-bid/VendorScreening.js";
 import { FundedMandateService } from "@backend/services/governance/FundedMandateService.js";
 import {
   buildSpendAttributionReport,
@@ -82,9 +89,24 @@ const submitBidSchema = z.object({
   proposalDetails: z.string().optional(),
 });
 
+const screenBiddersSchema = z.object({
+  agentId: z.string().min(1).optional(),
+  /** Screen a subset; default is every bidder on the round. */
+  bidders: z.array(z.string().min(1)).optional(),
+  /** Extra context per bidder (company, wallet, domain) for the brief. */
+  vendorDetails: z.record(z.string()).optional(),
+  /** Per-task Anjoman spend cap in USD. */
+  maxSpendUsd: z.number().positive().optional(),
+  mandateId: z.string().min(1).max(200).optional(),
+});
+
 const revealSchema = z.object({
   selectionMethod: z.enum(["lowest-bid", "highest-bid", "specific"]),
   specificBidder: z.string().optional(),
+  // Reveal gate: refuse to award unless screening verdicts on the round's
+  // governance timeline clear it (see evaluateScreeningGate). Requires an
+  // agent-governed round — that timeline is where verdicts are recorded.
+  requireScreened: z.boolean().optional(),
   // FHE manager-decrypt-and-publish flow. Plaintexts may arrive as string or
   // number (JSON has no bigint); converted to bigint before the backend call.
   decryptionProof: z
@@ -99,6 +121,7 @@ const revealSchema = z.object({
 
 export class SealedBidController {
   private sealedBidService: SealedBidService;
+  private vendorScreening: VendorScreeningService;
   private auditLog: AuditLogService;
 
   constructor(
@@ -106,6 +129,9 @@ export class SealedBidController {
     auditLog?: AuditLogService,
   ) {
     this.sealedBidService = sealedBidService || sharedSealedBidService;
+    this.vendorScreening = new VendorScreeningService({
+      sealedBidService: this.sealedBidService,
+    });
     this.auditLog = auditLog || new AuditLogService();
   }
 
@@ -810,6 +836,81 @@ export class SealedBidController {
   }
 
   /**
+   * POST /api/vendor/sealed-bid/rounds/:roundId/screen-bidders
+   * Run Anjoman-delegated vendor due-diligence over a round's bidders. One
+   * governed task per bidder: Anjoman fans the screening brief out to ranked
+   * specialists (sanctions, reputation, wallet risk) and returns a combined
+   * assessment. Each screen persists a governed telegraph run (when a
+   * workspace is signed in) and appends a sealed_bid.vendor_screened event to
+   * the round's governance timeline — which is what requireScreened reads
+   * back at reveal time. Advisory by itself; the gate is opt-in per reveal.
+   */
+  async screenBidders(req: Request, res: Response) {
+    try {
+      const { roundId } = req.params;
+
+      if (!anjomanService.isEnabled()) {
+        res.status(503).json({
+          success: false,
+          error:
+            "Anjoman rail is not configured — set ANJOMAN_API_KEY to enable vendor screening",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const parse = screenBiddersSchema.safeParse(req.body);
+      if (!parse.success) {
+        res.status(400).json({
+          success: false,
+          error: "Invalid screen-bidders payload",
+          details: parse.error.format(),
+        });
+        return;
+      }
+
+      const { agentId, bidders, vendorDetails, maxSpendUsd, mandateId } =
+        parse.data;
+      const result = await this.vendorScreening.screenBidders({
+        roundId,
+        agentId:
+          agentId ?? req.userId ?? `workspace-${req.workspaceId ?? "anon"}`,
+        workspaceId: req.workspaceId,
+        mandateId,
+        bidders,
+        vendorDetails,
+        maxSpendUsd,
+      });
+
+      fireAndForgetAudit(this.auditLog, "sealed_bid.vendor_screened", {
+        roundId: result.roundId,
+        screenedBidders: result.screenedBidders,
+        verdicts: Object.fromEntries(
+          result.screenings.map((s) => [s.bidder, s.verdict]),
+        ),
+        totalCostUsd: result.totalCostUsd,
+        governanceRunId: result.governanceRunId ?? null,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error(
+        `SealedBid: screenBidders failed for round ${req.params.roundId}`,
+        error,
+      );
+      res.status(error.message?.includes("not found") ? 404 : 500).json({
+        success: false,
+        error: error.message || "Failed to screen bidders",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
    * POST /api/vendor/sealed-bid/rounds/:roundId/reveal
    * Reveal the winning bid after off-chain "decryption".
    */
@@ -827,7 +928,63 @@ export class SealedBidController {
         return;
       }
 
-      const { selectionMethod, specificBidder, decryptionProof } = parse.data;
+      const { selectionMethod, specificBidder, decryptionProof, requireScreened } =
+        parse.data;
+
+      // Vendor-screening gate. Verdicts live on the round's governance
+      // timeline (sealed_bid.vendor_screened events), so the evidence the
+      // gate checks is the same hash-signed record a verifier can fetch via
+      // /verify — not an in-memory flag on this process.
+      let screenVerdicts: Record<string, VendorVerdict> | null = null;
+      if (requireScreened) {
+        const roundBefore = await this.sealedBidService.getRound(roundId);
+        if (!roundBefore) {
+          res.status(404).json({
+            success: false,
+            error: `Round ${roundId} not found`,
+          });
+          return;
+        }
+        if (!roundBefore.governanceRunId) {
+          res.status(409).json({
+            success: false,
+            error:
+              "requireScreened needs an agent-governed round — screening verdicts are recorded on its governance timeline",
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+        const timeline = await getGovernanceTimeline(
+          roundBefore.governanceRunId,
+        ).catch(() => null);
+        if (!timeline) {
+          res.status(409).json({
+            success: false,
+            error:
+              "Governance timeline unavailable — cannot verify vendor screening state",
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+        screenVerdicts = latestScreenVerdicts(timeline.events);
+        const gate = evaluateScreeningGate({
+          selectionMethod,
+          specificBidder,
+          bidders: roundBefore.bids.map((b) => b.bidder),
+          verdicts: screenVerdicts,
+        });
+        if (!gate.allowed) {
+          res.status(403).json({
+            success: false,
+            error: "Vendor screening gate failed",
+            reason: gate.reason,
+            verdicts: gate.verdicts,
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+      }
+
       const request: RevealRequest = {
         selectionMethod,
         specificBidder,
@@ -883,6 +1040,12 @@ export class SealedBidController {
           winningProposalHash: round.winningProposalHash,
           status: round.status,
           totalBids: round.bids.length,
+          // The winner's screening verdict travels on the receipt when the
+          // gate ran — the award's evidence is part of its proof.
+          winnerScreen:
+            screenVerdicts && round.winner
+              ? (screenVerdicts[round.winner] ?? null)
+              : undefined,
           note: `Winner revealed: ${round.winner} at $${round.winningBid} — all losing bids remain encrypted`,
         },
         timestamp: new Date().toISOString(),

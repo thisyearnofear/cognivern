@@ -5,7 +5,10 @@ import {
   CheckCircle2,
   FileText,
   Gavel,
+  ScanSearch,
+  ShieldAlert,
   ShieldCheck,
+  ShieldX,
   Trophy,
   XCircle,
   Hash,
@@ -43,6 +46,12 @@ const EVENT_META: Record<
     label: "Round closed",
     border: "border-l-orange-500/60",
     iconColor: "text-orange-500",
+  },
+  vendor_screened: {
+    icon: ScanSearch,
+    label: "Vendor screened",
+    border: "border-l-cyan-500/60",
+    iconColor: "text-cyan-500",
   },
   winner_revealed: {
     icon: Trophy,
@@ -110,6 +119,11 @@ function EventCard({ event, index }: { event: GovernanceEvent; index: number }) 
     | { name: string; passed: boolean; detail: string }[]
     | undefined;
 
+  // vendor_screened events carry an Anjoman verdict — badge it like the
+  // policy check's allowed/blocked chip.
+  const isVendorScreen = event.eventType === "vendor_screened";
+  const verdict = event.payload?.verdict as string | undefined;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -8 }}
@@ -135,6 +149,26 @@ function EventCard({ event, index }: { event: GovernanceEvent; index: number }) 
                 <XCircle className="h-3 w-3" />
               )}
               {allowed ? "allowed" : "blocked"}
+            </span>
+          )}
+          {isVendorScreen && verdict && (
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                verdict === "clear"
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : verdict === "hit"
+                    ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+              }`}
+            >
+              {verdict === "clear" ? (
+                <ShieldCheck className="h-3 w-3" />
+              ) : verdict === "hit" ? (
+                <ShieldX className="h-3 w-3" />
+              ) : (
+                <ShieldAlert className="h-3 w-3" />
+              )}
+              {verdict}
             </span>
           )}
         </div>
