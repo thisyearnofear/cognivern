@@ -28,7 +28,7 @@ jobs:
         run: |
           base=https://artifactregistry.googleapis.com/download/v1/projects/da-images/locations/europe/repositories/public-generic/files
           curl --fail --location --retry 2 "$base/dpm-sdk:3.4.11:dpm-3.4.11-linux-amd64.tar.gz:download?alt=media" -o sdk.tgz
-          echo '177328b8d8d5781a6eee37fbd172a8445f18e07b46292c40fe32207d4cd72ccd  sdk.tgz' | sha256sum --check
+          echo '177328b8d8b5781a6eee37fbd172a8445f18e07b46292c40fe32207d4cd72ccd  sdk.tgz' | sha256sum --check
           mkdir unpacked
           tar xzf sdk.tgz -C unpacked --strip-components 1
           unpacked/bin/dpm bootstrap "$PWD/unpacked"
