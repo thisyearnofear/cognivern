@@ -24,7 +24,7 @@ args=(--dar "$scripts" --script-name VisibilityProof:visibilityProof)
 dpm script "${args[@]}" --ide-ledger --output-file "$EVIDENCE_DIR/ide.json"
 snap ide-finished
 ready=$(mktemp -d)
-dpm sandbox --dar "$model" --port-file "$ready/port" > "$ready/sandbox.log" 2>&1 &
+dpm sandbox --dar "$model" --ledger-api-port 6865 --canton-port-file "$ready/port" > "$ready/sandbox.log" 2>&1 &
 child=$!
 trap 'rc=$?; kill "$child" 2>/dev/null || true; if ((rc)); then tail -50 "$ready/sandbox.log" >&2; fi; snap exit' EXIT
 # Watch the SDK readiness event; check once after subscribing to avoid a race.
@@ -35,8 +35,8 @@ const timer = setTimeout(() => {console.error('No ready ledger port within 120s'
 const watcher = fs.watch(dir, (event, file) => { if (file === 'port') check(); });
 function check() {
   let value; try {value = fs.readFileSync(`${dir}/port`, 'utf8').trim()} catch (err) {if (err.code === 'ENOENT') return; throw err}
-  if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 65535) return;
-  clearTimeout(timer); watcher.close(); console.log(value);
+  try { if (!Object.keys(JSON.parse(value)).length) return; } catch { return; }
+  clearTimeout(timer); watcher.close(); console.log(6865);
 }
 check();
 JS
