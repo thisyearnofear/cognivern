@@ -1,0 +1,55 @@
+name: Canton private replay
+on:
+  push:
+    branches: [ci/canton-private-replay]
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: pnpm/action-setup@v6.0.9
+        with:
+          version: '9.15.0'
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install verified DPM SDK
+        working-directory: ${{ runner.temp }}
+        run: |
+          base=https://artifactregistry.googleapis.com/download/v1/projects/da-images/locations/europe/repositories/public-generic/files
+          curl --fail --location --retry 2 "$base/dpm-sdk:3.4.11:dpm-3.4.11-linux-amd64.tar.gz:download?alt=media" -o sdk.tgz
+          echo '177328b8d8d5781a6eee37fbd172a8445f18e07b46292c40fe32207d4cd72ccd  sdk.tgz' | sha256sum --check
+          mkdir unpacked
+          tar xzf sdk.tgz -C unpacked --strip-components 1
+          unpacked/bin/dpm bootstrap "$PWD/unpacked"
+          echo "$HOME/.dpm/bin" >> "$GITHUB_PATH"
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y python3-pytest python3-requests python3-venv
+          /usr/bin/python3 -m venv --system-site-packages "$RUNNER_TEMP/replay-venv"
+          echo "$RUNNER_TEMP/replay-venv/bin" >> "$GITHUB_PATH"
+          pnpm --filter cognivern --filter @cognivern/shared install --frozen-lockfile
+      - name: Build sandbox DARs
+        working-directory: daml
+        run: |
+          dpm build
+          (cd scripts && dpm build)
+      - name: Replay four Canton API cases without egress
+        run: |
+          sudo -n env -i HOME="$HOME" PATH="$PATH" \
+            EVIDENCE_DIR="$RUNNER_TEMP/canton-replay" \
+            MODEL_DAR="$PWD/daml/.daml/dist/daml-0.0.3.dar" \
+            SCRIPT_DAR="$PWD/daml/scripts/.daml/dist/daml-scripts-0.0.3.dar" \
+            bash tooling/scripts/verify/canton-staging-replay.sh
+          sudo cat "$RUNNER_TEMP/canton-replay/boot.txt"
