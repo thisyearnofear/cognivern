@@ -1,0 +1,45 @@
+name: Canton visibility evidence
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/cache@v4
+        id: sdk
+        with:
+          path: ~/.dpm
+          key: canton-dpm-linux-amd64-3.4.11-177328b8-v1
+      - name: Install verified SDK
+        if: steps.sdk.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}
+        run: |
+          base=https://artifactregistry.googleapis.com/download/v1/projects/da-images/locations/europe/repositories/public-generic/files
+          curl --fail --location --retry 2 "$base/dpm-sdk:3.4.11:dpm-3.4.11-linux-amd64.tar.gz:download?alt=media" -o sdk.tgz
+          echo '177328b8d8b5781a6eee37fbd172a8445f18e07b46292c40fe32207d4cd72ccd  sdk.tgz' | sha256sum --check
+          mkdir unpacked
+          tar xzf sdk.tgz -C unpacked --strip-components 1
+          unpacked/bin/dpm bootstrap "$PWD/unpacked"
+      - name: Measure in a fresh Linux cgroup
+        run: |
+          sudo -n systemd-run --wait --pipe --collect --property=MemoryAccounting=yes \
+            --uid="$(id -un)" --working-directory="$GITHUB_WORKSPACE/daml" \
+            --setenv="HOME=$HOME" --setenv="PATH=$HOME/.dpm/bin:$PATH" --setenv="JAVA_HOME=$JAVA_HOME" \
+            --setenv="GITHUB_SHA=$GITHUB_SHA" --setenv="EVIDENCE_DIR=$RUNNER_TEMP/evidence" \
+            /bin/bash scripts/measure-visibility.sh
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: canton-visibility-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/evidence/
+          retention-days: 7
+          if-no-files-found: warn

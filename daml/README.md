@@ -25,6 +25,10 @@ daml build
 
 For local sandbox setup and ledger tests, inspect the scripts under `daml/scripts/` and the runbooks in [Canton](../docs/CANTON.md). The bundled sandbox is appropriate for local development and regression checks.
 
+## Visibility evidence (manual)
+
+The `Canton visibility evidence` workflow ([canton-visibility.yml](../.github/workflows/canton-visibility.yml)) is `workflow_dispatch` only — it never runs on push or on the live DevNet. It runs `scripts/measure-visibility.sh` inside a fresh Linux cgroup on an isolated runner: build the model and scripts DARs, execute `VisibilityProof:visibilityProof` on the in-memory IDE ledger and on a local `dpm sandbox`, then compare the two role-by-phase outputs. The uploaded artifact records toolchain versions, the checkout SHA, DAR hashes, per-phase cgroup memory samples, and both JSON outputs — enough to say who could read each synthetic price, not what any deployed service logs or returns. Memory figures cover the build, IDE, and sandbox process family combined; SDK provisioning is outside the measured cgroup.
+
 ## Safety boundary
 
 Do not create probe or test rounds against the live Canton DevNet. The live model has no cancel/archive-without-bids choice, so test rounds can persist in the demo list. Read [AGENTS.md](../AGENTS.md) and [Canton](../docs/CANTON.md) before changing templates, package references, or DevNet configuration.
