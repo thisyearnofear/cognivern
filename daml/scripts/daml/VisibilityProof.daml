@@ -1,0 +1,61 @@
+module VisibilityProof where
+
+import Main
+import Daml.Script
+import DA.List (sort)
+import DA.Time (addRelTime, hours)
+
+-- Output only synthetic prices and role labels, never party or contract IDs.
+data View = View with
+    role : Text
+    beforeClose : [Decimal]
+    afterClose : [Decimal]
+    winningAmount : Decimal
+  deriving (Eq, Show)
+
+visibilityProof : Script [View]
+visibilityProof = script do
+  manager <- allocatePartyByHint (PartyIdHint "Manager")
+  a <- allocatePartyByHint (PartyIdHint "VendorA")
+  b <- allocatePartyByHint (PartyIdHint "VendorB")
+  c <- allocatePartyByHint (PartyIdHint "VendorC")
+  now <- getTime
+  let rid = "visibility-fixture"
+  auction <- submit manager do
+    createCmd SealedBidAuction with
+      manager = manager
+      eligibleBidders = [a,b,c]
+      roundId = rid
+      description = "Synthetic procurement round"
+      serviceCategory = "fixture"
+      deadline = addRelTime now (hours 1)
+      maxBids = 3
+      settlementAsset = None
+      earlyCloseAllowed = True
+  let fixture = [(a,30.0),(b,20.0),(c,40.0)]
+  bids <- mapA (\(p,price) -> submit p do
+    exerciseCmd auction SubmitBid with
+      bidder = p
+      amountUsd = price
+      proposalHash = "fictional") fixture
+  let roles = [("Vendor A",a,[30.0]),("Vendor B",b,[20.0]),("Vendor C",c,[40.0]),("Manager",manager,[20.0,30.0,40.0])]
+  let readPrices p = do
+        rows <- query @Bid p
+        pure (sort [bid.amountUsd | (_,bid) <- rows, bid.roundId == rid])
+  before <- mapA (\(label,p,expected) -> do
+    prices <- readPrices p
+    assertMsg (label <> ": unexpected active bids before close") (prices == expected)
+    pure (label,p,prices)) roles
+  resultCid <- submit manager do
+    exerciseCmd auction CloseAndReveal with
+      bidCids = bids
+      selectionMethod = LowestBid
+  mapA (\(label,p,prices) -> do
+    remaining <- readPrices p
+    assertMsg (label <> ": active bids after close") (null remaining)
+    results <- query @AuctionResult p
+    case [r | (cid,r) <- results, r.roundId == rid, cid == resultCid] of
+      [r] -> do
+        assertMsg (label <> ": incorrect reveal") (r.winner == b && r.winningAmount == 20.0)
+        pure (View label prices remaining r.winningAmount)
+      _ -> abort (label <> ": missing or duplicate result")) before
