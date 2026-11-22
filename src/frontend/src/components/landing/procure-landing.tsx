@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowRight, Gavel, LockKeyhole, Shield, Zap } from "lucide-react";
@@ -10,34 +9,11 @@ import { EvidenceChain } from "@/components/brand/evidence-chain";
  * Public landing for the procurement wedge: funded mandates → sealed-bid
  * rounds → atomic settlement on Canton. Same fenced-route pattern as
  * /sponsor — separate buyer story, linked from one teaser on the main
- * landing. The secondary CTA is populated client-side from the public
- * rounds endpoint and hidden when there is nothing revealed to point at.
+ * landing. The primary CTA is the guided replay at /procure/demo — a static,
+ * no-wallet walkthrough of a verified sandbox run.
  */
 
 export function ProcureLanding() {
-  const [proofRoundId, setProofRoundId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/vendor/sealed-bid/rounds")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((body) => {
-        if (cancelled) return;
-        const rounds = body?.data;
-        if (!Array.isArray(rounds)) return;
-        const revealed = rounds.find(
-          (round: { status?: string }) => round.status === "revealed",
-        );
-        if (revealed?.roundId) setProofRoundId(revealed.roundId);
-      })
-      .catch(() => {
-        // No live rounds reachable — the proof CTA simply stays hidden.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   return (
     <div className="min-h-screen bg-background">
       {/* ── Header ── */}
@@ -60,18 +36,18 @@ export function ProcureLanding() {
           <a href="#how-procurement-works" className="transition-colors hover:text-foreground">
             How it works
           </a>
-          <Link href="/verify" className="transition-colors hover:text-foreground">
-            Public verification
+          <Link href="/procure/demo#evidence" className="transition-colors hover:text-foreground">
+            Replay evidence
           </Link>
           <Link href="/" className="transition-colors hover:text-foreground">
             Main site
           </Link>
         </nav>
         <Link
-          href="/sealed-bid"
+          href="/procure/demo"
           className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
-          Open live auctions
+          Try the sealed-bid demo
         </Link>
       </header>
 
@@ -121,19 +97,17 @@ export function ProcureLanding() {
               className="flex gap-4 justify-center flex-wrap mt-8"
             >
               <Link
-                href="/sealed-bid"
+                href="/procure/demo"
                 className="inline-flex h-11 items-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               >
-                Open live auctions <ArrowRight className="h-4 w-4 ml-1.5" />
+                Try the sealed-bid demo <ArrowRight className="h-4 w-4 ml-1.5" />
               </Link>
-              {proofRoundId && (
-                <Link
-                  href={`/verify?round=${encodeURIComponent(proofRoundId)}`}
-                  className="inline-flex h-11 items-center rounded-md bg-secondary px-8 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-                >
-                  See a public proof
-                </Link>
-              )}
+              <Link
+                href="/sealed-bid"
+                className="inline-flex h-11 items-center rounded-md bg-secondary px-8 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
+              >
+                Open the app
+              </Link>
             </motion.div>
           </div>
 
@@ -294,14 +268,14 @@ export function ProcureLanding() {
               Run a round under a mandate.
             </h2>
             <p className="text-muted-foreground max-w-md mx-auto mb-8 leading-relaxed">
-              Open a live sealed-bid round, watch bids stay sealed, and settle
-              the winner with a proof anyone can check.
+              Replay a verified Canton sandbox round and see who could read
+              each bid — no wallet needed. Then sign in to run your own.
             </p>
             <Link
-              href="/sealed-bid"
+              href="/procure/demo"
               className="inline-flex h-11 items-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
-              Run a round <ArrowRight className="h-4 w-4 ml-1.5" />
+              Try the sealed-bid demo <ArrowRight className="h-4 w-4 ml-1.5" />
             </Link>
           </motion.div>
         </div>
@@ -321,8 +295,8 @@ export function ProcureLanding() {
                 Governance for agentic work
               </Link>
               <span className="hidden sm:inline">·</span>
-              <Link href="/verify" className="hover:text-foreground transition-colors">
-                Public verification
+              <Link href="/procure/demo#evidence" className="hover:text-foreground transition-colors">
+                Replay evidence
               </Link>
               <span className="hidden sm:inline">·</span>
               <Link href="/sealed-bid" className="hover:text-foreground transition-colors">
