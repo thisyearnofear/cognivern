@@ -424,6 +424,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   }
 
   const deadlineMissed = new Date(round.deadline) < new Date();
+  const isCanton = round.backend === "canton";
 
   return (
     <motion.div
@@ -501,10 +502,18 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
             <span>Runs on:</span>
             <BackendBadge backend={round.backend} />
           </div>
-          <p>
-            Vendors can&apos;t see each other&apos;s prices. The winner and price are
-            published once — losing bids stay sealed and are never disclosed.
-          </p>
+          {isCanton ? (
+            <p>
+              Before close, vendors see only their own active bids. The auction
+              manager can read all bids. After close, eligible vendors can read
+              the winner and winning price; the result excludes losing prices.
+            </p>
+          ) : (
+            <p>
+              Vendors can&apos;t see each other&apos;s prices. The winner and price are
+              published once — losing bids stay sealed and are never disclosed.
+            </p>
+          )}
           {round.ledgerRefs && Object.values(round.ledgerRefs).some(Boolean) && (
             <dl className="space-y-1 pt-1 border-t border-border/60">
               <dt className="font-medium">Ledger proof</dt>
@@ -572,8 +581,9 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               )}
             </div>
             <div className="text-xs text-muted-foreground">
-              The winner was published and all losing bids were archived together.
-              No losing amount was disclosed to competitors or the auctioneer.
+              {isCanton
+                ? "The result and bid archival were recorded in the same transaction. Losing amounts are not included in the result; the auction manager could read them before close."
+                : "The winner was published and all losing bids were archived together. No losing amount was disclosed to competitors or the auctioneer."}
             </div>
             {round.settledAssetCid && round.settlementAmount != null && (
               <div className="text-xs text-muted-foreground">
@@ -675,7 +685,9 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
           </div>
           <div className="rounded-lg border border-muted bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground flex items-start gap-2">
             <Lock className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-            <span>Sealed bid: competitors see nothing. Only the auctioneer sees the amount, and only at reveal.</span>
+            <span>{isCanton
+              ? "Before close, you and the auction manager can read your bid amount in party-scoped Canton queries. Other vendors cannot read it as their own party."
+              : "Sealed bid: competitors see nothing. Only the auctioneer sees the amount, and only at reveal."}</span>
           </div>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -801,8 +813,10 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
                 )}
                 <p className="text-xs text-muted-foreground w-full">
                   <Clock className="h-3 w-3 inline mr-1" /> The selection records
-                  the winner and archives losing bids together. Losing amounts
-                  never surface.
+                  the winner and archives losing bids together.{" "}
+                  {isCanton
+                    ? "Losing amounts are not included in the result."
+                    : "Losing amounts never surface."}
                 </p>
               </>
             )}
