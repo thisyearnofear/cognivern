@@ -20,7 +20,7 @@ CantonSealedBidBackend — using other bidder names would trigger the
 import time
 import requests
 
-BASE = __import__("os").environ.get("ENDPOINT_URL", "https://api.cognivern.persidian.com").rstrip("/")
+BASE = __import__("os").environ["ENDPOINT_URL"].rstrip("/")
 TIMEOUT = 60
 MAX_RETRIES = 5
 RETRY_DELAY = 8
