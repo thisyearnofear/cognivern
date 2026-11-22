@@ -139,7 +139,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
       const v = e.payload?.verdict;
       if (
         typeof b === "string" &&
-        (v === "clear" || v === "hit" || v === "unknown")
+        (v === "clear" || v === "hit" || v === "review" || v === "unknown")
       ) {
         out[b] = v;
       }

@@ -7,8 +7,25 @@
 import { Request, Response } from "express";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 import { Logger } from "@backend/shared/logging/Logger.js";
-import { telegraphService, telegraphGovernanceHelper, recordTelegraphGovernedCall, recordTelegraphGateDecision, runComplianceScreen, buildTelegraphLedgerReport } from "@backend/services/telegraph/index.js";
+import {
+  telegraphService,
+  telegraphGovernanceHelper,
+  recordTelegraphGovernedCall,
+  recordTelegraphGateDecision,
+  runComplianceScreen,
+  buildTelegraphLedgerReport,
+  buildTelegraphEvidenceBundle,
+  evaluateParentSpendGuard,
+  evaluatePostScreenSpendGuard,
+  minerEstimatedCostUsd,
+  normalizeSpendGuard,
+  sha256CanonicalJson,
+  subjectTerms,
+  telegraphArtifactDataHash,
+  TelegraphSpendGuardError,
+} from "@backend/services/telegraph/index.js";
 import { anjomanService } from "@backend/services/anjoman/index.js";
 import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
 
@@ -110,7 +127,10 @@ export class TelegraphController {
             intents: m.supported_intents ?? [],
             protocol: m.protocol,
             minPriceUsdc: m.min_price_usdc,
-            minPriceUsd: m.min_price_usdc !== undefined ? (m.min_price_usdc / 1_000_000).toFixed(4) : undefined,
+            minPriceUsd:
+              m.min_price_usdc !== undefined
+                ? (m.min_price_usdc / 1_000_000).toFixed(4)
+                : undefined,
             totalRequestsServed: m.total_requests_served,
             scored: m.scored,
             topScore: m.scores?.[0]?.score,
@@ -208,7 +228,10 @@ export class TelegraphController {
           protocol: miner.protocol,
           signalMapping: miner.signal_mapping,
           minPriceUsdc: miner.min_price_usdc,
-          minPriceUsd: miner.min_price_usdc !== undefined ? (miner.min_price_usdc / 1_000_000).toFixed(4) : undefined,
+          minPriceUsd:
+            miner.min_price_usdc !== undefined
+              ? (miner.min_price_usdc / 1_000_000).toFixed(4)
+              : undefined,
           totalRequestsServed: miner.total_requests_served,
           scored: miner.scored,
           scores: miner.scores,
@@ -350,8 +373,7 @@ export class TelegraphController {
           confidenceThreshold:
             typeof body.confidenceThreshold === "number" ? body.confidenceThreshold : undefined,
         },
-        description:
-          typeof body.description === "string" ? body.description : undefined,
+        description: typeof body.description === "string" ? body.description : undefined,
       });
 
       const run = await recordTelegraphGovernedCall({
@@ -414,8 +436,7 @@ export class TelegraphController {
           confidenceThreshold:
             typeof body.confidenceThreshold === "number" ? body.confidenceThreshold : undefined,
         },
-        description:
-          typeof body.description === "string" ? body.description : undefined,
+        description: typeof body.description === "string" ? body.description : undefined,
       });
 
       const run = await recordTelegraphGovernedCall({
@@ -447,11 +468,14 @@ export class TelegraphController {
    * executes the requested paid miner call. The parent run's
    * telegraph.signal artifact carries a `compliance` block linking the
    * screening run, so each settlement arrives with its proof attached.
-   * A hit or inconclusive screen blocks the purchase; the blocked attempt
-   * is itself persisted as a failed gate-decision run.
+   * A hit, provider review, or uninterpretable screen blocks the purchase;
+   * the blocked attempt is itself persisted as a failed gate-decision run.
    *
    * Body: same as /api/telegraph/call plus:
    *   compliance: { minerId?, intent?, params: {...} }
+   *   spendGuard?: { maxScreeningCostUsd?, maxTotalCostUsd?, allowedMiners?,
+   *     allowedIntents?, allowedScreenMiners?, allowedScreenIntents?,
+   *     subjectAllowlist?, subjectDenylist?, consensusScreens?, budgetId? }
    */
   async compliantCall(req: Request, res: Response) {
     try {
@@ -479,9 +503,21 @@ export class TelegraphController {
       if (!compliance || !complianceParams || Object.keys(complianceParams).length === 0) {
         res.status(400).json({
           success: false,
-          error: "compliance.params is required — the subject to screen (e.g. name, address, tx hash)",
+          error:
+            "compliance.params is required — the subject to screen (e.g. name, address, tx hash)",
         });
         return;
+      }
+
+      let spendGuard;
+      try {
+        spendGuard = normalizeSpendGuard(body.spendGuard);
+      } catch (error) {
+        if (error instanceof TelegraphSpendGuardError) {
+          res.status(400).json({ success: false, error: error.message });
+          return;
+        }
+        throw error;
       }
 
       const agentId =
@@ -489,91 +525,392 @@ export class TelegraphController {
         req.userId ||
         `workspace-${req.workspaceId}`;
       const mandateId = typeof body.mandateId === "string" ? body.mandateId : undefined;
+      const policyId = typeof body.policyId === "string" ? body.policyId : undefined;
       const description = typeof body.description === "string" ? body.description : undefined;
+      const parentIntent = typeof body.intent === "string" ? body.intent : undefined;
+      const parentParams =
+        typeof body.params === "object" && body.params !== null
+          ? (body.params as Record<string, unknown>)
+          : {};
 
-      const screen = await runComplianceScreen({
-        agentId,
-        workspaceId: req.workspaceId,
-        mandateId,
-        policyId: typeof body.policyId === "string" ? body.policyId : undefined,
-        screen: {
-          minerId: typeof compliance.minerId === "string" ? compliance.minerId : undefined,
-          intent: typeof compliance.intent === "string" ? compliance.intent : undefined,
-          params: complianceParams,
-        },
-        description,
+      const needsParentMiner = Boolean(
+        spendGuard && (spendGuard.allowedMiners || spendGuard.maxTotalCostUsd !== null),
+      );
+      let parentMiner = null;
+      let parentLookupError: string | null = null;
+      if (needsParentMiner) {
+        try {
+          parentMiner = await telegraphService.getMiner(minerId);
+        } catch (error) {
+          parentLookupError = error instanceof Error ? error.message : String(error);
+        }
+      }
+      const parentEstimatedCostUsd = minerEstimatedCostUsd(parentMiner);
+      const parentPolicyViolations = evaluateParentSpendGuard({
+        policy: spendGuard,
+        requestedMinerId: minerId,
+        miner: parentMiner,
+        intent: parentIntent,
+        subjectParams: complianceParams,
+        minerLookupRequired: needsParentMiner,
+        minerLookupError: parentLookupError,
       });
 
-      const complianceBlock = {
-        gate: "compliance",
-        verdict: screen.verdict,
-        detail: screen.detail ?? null,
-        screeningRunId: screen.runId,
-        screeningMinerId: screen.minerId ?? null,
-        screeningMinerName: screen.minerName ?? null,
-        intent: screen.intent ?? null,
-        confidence: screen.confidence,
-        costUsd: screen.costUsd ?? null,
+      const attemptId = randomUUID();
+      const complianceSubject = subjectTerms(complianceParams);
+      const parentParamTerms = subjectTerms(parentParams);
+      const spendGuardEvidence = spendGuard
+        ? {
+            ...spendGuard,
+            subjectAllowlist:
+              spendGuard.subjectAllowlist?.map((value) => sha256CanonicalJson(value)) ?? null,
+            subjectDenylist:
+              spendGuard.subjectDenylist?.map((value) => sha256CanonicalJson(value)) ?? null,
+          }
+        : null;
+      const requestEvidence = {
+        bodyHash: sha256CanonicalJson(body),
+        intendedCall: {
+          minerId,
+          minerName: parentMiner?.name ?? null,
+          intent: parentIntent,
+          paramsHash: sha256CanonicalJson(parentParams),
+          paramFields: parentParamTerms.fields,
+          estimatedCostUsd: parentEstimatedCostUsd,
+        },
+        compliance: {
+          minerId: typeof compliance.minerId === "string" ? compliance.minerId : undefined,
+          intent: typeof compliance.intent === "string" ? compliance.intent : undefined,
+          paramsHash: sha256CanonicalJson(complianceParams),
+          subjectFields: complianceSubject.fields,
+        },
       };
-
-      if (screen.blocked) {
+      const replay = {
+        endpoint: "POST /api/telegraph/compliant-call",
+        cliCommand:
+          "pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts compliant-call '<json body>'",
+      };
+      const usdNumber = (value: unknown): number | null => {
+        const parsed = typeof value === "number" ? value : Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+      const formatUsd = (value: number | null): string | null =>
+        value === null ? null : value.toFixed(4);
+      const costsFor = (screenCostUsd: unknown, parentCostUsd?: unknown) => {
+        const screenUsd = typeof screenCostUsd === "string" ? screenCostUsd : null;
+        const parentUsd = typeof parentCostUsd === "string" ? parentCostUsd : null;
+        const screenNumber = usdNumber(screenCostUsd);
+        const parentNumber = usdNumber(parentCostUsd);
+        return {
+          currency: "USD" as const,
+          screeningUsd: screenUsd,
+          parentEstimatedUsd: parentEstimatedCostUsd,
+          parentUsd,
+          totalUsd: formatUsd(
+            screenNumber !== null || parentNumber !== null
+              ? (screenNumber ?? 0) + (parentNumber ?? 0)
+              : null,
+          ),
+        };
+      };
+      const complianceBlockFor = (
+        gate: string,
+        screen: Awaited<ReturnType<typeof runComplianceScreen>> | null,
+        violations: string[],
+        detailOverride?: string,
+      ) => ({
+        gate,
+        verdict: screen?.verdict ?? "unknown",
+        providerVerdict: screen?.providerVerdict ?? null,
+        verdictSource: screen?.verdictSource ?? "none",
+        detail: detailOverride ?? screen?.detail ?? null,
+        screeningRunId: screen?.runId ?? null,
+        screeningMinerId: screen?.minerId ?? null,
+        screeningMinerName: screen?.minerName ?? null,
+        intent: screen?.intent ?? null,
+        confidence: screen?.confidence ?? null,
+        costUsd: screen?.costUsd ?? null,
+        estimatedCostUsd: screen?.estimatedCostUsd ?? null,
+        latencyMs: screen?.latencyMs ?? null,
+        paymentNetwork: screen?.paymentNetwork ?? null,
+        rawResponseHash: screen?.rawResponseHash ?? null,
+        source: screen?.source ?? null,
+        listVersion: screen?.listVersion ?? null,
+        subjectHash: screen?.subjectHash ?? sha256CanonicalJson(complianceParams),
+        subjectFields: screen?.subjectFields ?? complianceSubject.fields,
+        policyViolations: violations,
+      });
+      const screeningEvidence = (
+        screen: Awaited<ReturnType<typeof runComplianceScreen>> | null,
+      ) => {
+        if (!screen) return null;
+        const artifact = screen.run?.artifacts.find((item) => item.type === "telegraph.signal");
+        return {
+          status: screen.screeningSkipped
+            ? ("skipped" as const)
+            : screen.status === "failed"
+              ? ("failed" as const)
+              : ("completed" as const),
+          runId: screen.runId,
+          artifactId: artifact?.id ?? null,
+          artifactHash: artifact ? telegraphArtifactDataHash(artifact.data) : null,
+          artifactEvidenceHash: artifact?.evidence?.hash ?? null,
+          minerId: screen.minerId ?? null,
+          minerName: screen.minerName ?? null,
+          intent: screen.intent ?? null,
+          verdict: screen.verdict,
+          providerVerdict: screen.providerVerdict ?? null,
+          verdictSource: screen.verdictSource,
+          detail: screen.detail ?? null,
+          confidence: screen.confidence,
+          costUsd: screen.costUsd ?? null,
+          latencyMs: screen.latencyMs ?? null,
+          paymentNetwork: screen.paymentNetwork ?? null,
+          rawResponseHash: screen.rawResponseHash ?? null,
+          source: screen.source ?? null,
+          listVersion: screen.listVersion ?? null,
+        };
+      };
+      const denyAttempt = async (params: {
+        gate: "compliance" | "spend_guard";
+        reason: string;
+        screen: Awaited<ReturnType<typeof runComplianceScreen>> | null;
+        violations: string[];
+      }) => {
+        const gateRunId = randomUUID();
+        const gateArtifactId = randomUUID();
+        const timestamp = new Date().toISOString();
+        const complianceBlock = complianceBlockFor(
+          params.gate,
+          params.screen,
+          params.violations,
+          params.reason,
+        );
+        const intendedCall = {
+          minerId,
+          intent: parentIntent ?? null,
+          params: parentParams,
+        };
+        const gateArtifactCore = {
+          agentId,
+          mandateId,
+          description,
+          gate: {
+            name: params.gate,
+            decision: "blocked",
+            reason: params.reason,
+          },
+          compliance: complianceBlock,
+          intendedCall,
+          cost: { usd: "0", paymentMethod: "x402", paid: false },
+          timestamp,
+        };
+        const evidenceBundle = buildTelegraphEvidenceBundle({
+          attemptId,
+          workspaceId: req.workspaceId!,
+          agentId,
+          mandateId,
+          policyId,
+          description,
+          request: requestEvidence,
+          screening: screeningEvidence(params.screen),
+          gate: {
+            decision: "deny",
+            name: params.gate,
+            reason: params.reason,
+            runId: gateRunId,
+            artifactId: gateArtifactId,
+            artifactHash: telegraphArtifactDataHash(gateArtifactCore),
+          },
+          settlement: { status: "not_attempted" },
+          spendGuard: spendGuardEvidence,
+          policyViolations: params.violations,
+          costs: costsFor(params.screen?.costUsd),
+          replay,
+        });
         const gateRun = await recordTelegraphGateDecision({
           projectId: req.workspaceId,
           agentId,
           mandateId,
+          runId: gateRunId,
+          artifactId: gateArtifactId,
+          timestamp,
           description,
-          gate: "compliance",
-          reason: screen.blockReason ?? `screening verdict ${screen.verdict}`,
+          gate: params.gate,
+          reason: params.reason,
           compliance: complianceBlock as unknown as Record<string, unknown>,
-          intendedCall: { minerId, intent: body.intent ?? null, params: body.params ?? null },
+          intendedCall,
+          evidenceBundle,
         });
         res.json({
           success: true,
           data: {
             blocked: true,
             status: "denied",
-            reason: screen.blockReason,
+            reason: params.reason,
             compliance: complianceBlock,
+            spendGuard,
+            policyViolations: params.violations,
+            evidenceBundle,
             runId: gateRun?.runId ?? null,
             runStatus: gateRun?.status ?? null,
             timestamp: new Date().toISOString(),
           },
           timestamp: new Date().toISOString(),
         });
+      };
+
+      if (parentPolicyViolations.length > 0) {
+        await denyAttempt({
+          gate: "spend_guard",
+          reason: parentPolicyViolations.join("; "),
+          screen: null,
+          violations: parentPolicyViolations,
+        });
         return;
       }
 
-      const params =
-        typeof body.params === "object" && body.params !== null
-          ? (body.params as Record<string, unknown>)
-          : {};
+      const screen = await runComplianceScreen({
+        agentId,
+        workspaceId: req.workspaceId,
+        mandateId,
+        policyId,
+        screen: {
+          minerId: typeof compliance.minerId === "string" ? compliance.minerId : undefined,
+          intent: typeof compliance.intent === "string" ? compliance.intent : undefined,
+          params: complianceParams,
+        },
+        description,
+        spendGuard,
+        parentEstimatedCostUsd,
+      });
+      const screenViolations = screen.policyViolations ?? [];
+
+      if (screen.blocked) {
+        await denyAttempt({
+          gate: screenViolations.length > 0 ? "spend_guard" : "compliance",
+          reason: screen.blockReason ?? `screening verdict ${screen.verdict}`,
+          screen,
+          violations: screenViolations,
+        });
+        return;
+      }
+
+      const postScreenViolations = evaluatePostScreenSpendGuard({
+        policy: spendGuard,
+        actualScreenCostUsd: screen.costUsd,
+        parentEstimatedCostUsd,
+      });
+      if (postScreenViolations.length > 0) {
+        await denyAttempt({
+          gate: "spend_guard",
+          reason: postScreenViolations.join("; "),
+          screen,
+          violations: postScreenViolations,
+        });
+        return;
+      }
 
       const result = await telegraphGovernanceHelper.governedMinerCall({
         agentId,
         workspaceId: req.workspaceId,
         mandateId,
-        policyId: typeof body.policyId === "string" ? body.policyId : undefined,
+        policyId,
         minerRequest: {
           minerId,
-          intent: typeof body.intent === "string" ? body.intent : undefined,
-          params,
+          intent: parentIntent,
+          params: parentParams,
           confidenceThreshold:
             typeof body.confidenceThreshold === "number" ? body.confidenceThreshold : undefined,
         },
         description,
       });
 
-      // Attach the compliance proof to the payment's artifact before persisting.
-      const artifactData = result.artifact?.data;
-      if (artifactData && typeof artifactData === "object") {
-        (artifactData as Record<string, unknown>).compliance = complianceBlock;
-      }
+      const parentRunId = randomUUID();
+      const parentArtifactId = result.artifact?.id ?? randomUUID();
+      const complianceBlock = complianceBlockFor("compliance", screen, []);
+      const meta = result.response?.metadata;
+      const artifactData =
+        result.artifact?.data &&
+        typeof result.artifact.data === "object" &&
+        result.artifact.data !== null
+          ? (result.artifact.data as Record<string, unknown>)
+          : ({
+              agentId,
+              workspaceId: req.workspaceId,
+              mandateId,
+              policyId,
+              description,
+              miner: {
+                id: meta?.minerId ?? minerId,
+                name: meta?.minerName ?? parentMiner?.name ?? null,
+                intent: meta?.intent ?? parentIntent,
+              },
+              signal: {
+                data: result.response?.data ?? null,
+                confidence: meta?.confidence ?? null,
+                confidenceThreshold: result.decision?.threshold ?? null,
+                confidenceMet: result.decision?.confidenceMet ?? false,
+              },
+              cost: {
+                usd: meta?.costUsd ?? "0",
+                paymentMethod: "x402",
+                paid: meta?.paid ?? false,
+                paymentNetwork: meta?.paymentNetwork,
+              },
+              latencyMs: meta?.latencyMs,
+              timestamp: meta?.timestamp ?? new Date().toISOString(),
+              error: result.error,
+            } as Record<string, unknown>);
+
+      artifactData.compliance = complianceBlock;
+      const parentArtifactHash = telegraphArtifactDataHash(artifactData);
+      const parentCostUsd = meta?.costUsd ?? null;
+      const evidenceBundle = buildTelegraphEvidenceBundle({
+        attemptId,
+        workspaceId: req.workspaceId,
+        agentId,
+        mandateId,
+        policyId,
+        description,
+        request: requestEvidence,
+        screening: screeningEvidence(screen),
+        gate: {
+          decision: "allow",
+          name: "compliance",
+          runId: parentRunId,
+          artifactId: parentArtifactId,
+          artifactHash: parentArtifactHash,
+        },
+        settlement: {
+          status:
+            result.status === "approved" ? "settled" : result.status === "held" ? "held" : "failed",
+          runId: parentRunId,
+          artifactId: parentArtifactId,
+          artifactHash: parentArtifactHash,
+          minerId: meta?.minerId ?? minerId,
+          minerName: meta?.minerName ?? parentMiner?.name ?? null,
+          intent: meta?.intent ?? parentIntent ?? null,
+          costUsd: parentCostUsd,
+          paid: meta?.paid ?? false,
+          paymentNetwork: meta?.paymentNetwork ?? null,
+          latencyMs: meta?.latencyMs ?? null,
+        },
+        spendGuard: spendGuardEvidence,
+        policyViolations: [],
+        costs: costsFor(screen.costUsd, parentCostUsd),
+        replay,
+      });
+      artifactData.evidenceBundle = evidenceBundle;
 
       const run = await recordTelegraphGovernedCall({
         result,
         projectId: req.workspaceId,
         agentId,
         description,
+        runId: parentRunId,
+        artifactId: parentArtifactId,
+        artifactExtras: artifactData,
       });
 
       res.json({
@@ -582,6 +919,9 @@ export class TelegraphController {
           ...result,
           blocked: false,
           compliance: complianceBlock,
+          spendGuard,
+          policyViolations: [],
+          evidenceBundle,
           runId: run?.runId ?? null,
           runStatus: run?.status ?? null,
         },
@@ -592,6 +932,67 @@ export class TelegraphController {
       res.status(500).json({
         success: false,
         error: error.message || "Failed to execute compliant Telegraph call",
+      });
+    }
+  }
+
+  /**
+   * GET /api/telegraph/evidence/:runId
+   *
+   * Returns the shareable evidence bundle attached to a compliant-call gate
+   * or settlement artifact. The bundle contains hashes, run linkage, policy
+   * checks, costs, and replay metadata — not the screened subject.
+   */
+  async getEvidence(req: Request, res: Response) {
+    try {
+      if (!telegraphService.getEnabled()) {
+        res.status(503).json({ success: false, error: "Telegraph integration is not enabled" });
+        return;
+      }
+      if (!req.workspaceId) {
+        res.status(401).json({ success: false, error: "Workspace authentication required" });
+        return;
+      }
+
+      const runId = req.params.runId;
+      await creRunStore.refresh();
+      const run = await creRunStore.get(runId);
+      if (!run || run.projectId !== req.workspaceId) {
+        res.status(404).json({ success: false, error: `Run ${runId} not found` });
+        return;
+      }
+      const artifact = [...run.artifacts]
+        .reverse()
+        .find((item) => item.type === "telegraph.signal");
+      const data =
+        artifact?.data && typeof artifact.data === "object" && artifact.data !== null
+          ? (artifact.data as Record<string, unknown>)
+          : null;
+      const evidenceBundle = data?.evidenceBundle;
+      if (!artifact || !data || !evidenceBundle || typeof evidenceBundle !== "object") {
+        res.status(404).json({
+          success: false,
+          error: `Run ${runId} does not carry a Telegraph evidence bundle`,
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: {
+          runId,
+          artifactId: artifact.id,
+          artifactHash: telegraphArtifactDataHash(data),
+          artifactEvidenceHash: artifact.evidence?.hash ?? null,
+          evidenceBundle,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error("Failed to get Telegraph evidence bundle", { error, runId: req.params.runId });
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to get Telegraph evidence bundle",
       });
     }
   }
@@ -664,12 +1065,9 @@ export class TelegraphController {
           message: message || undefined,
           intent,
           params,
-          conversationId:
-            typeof body.conversationId === "string" ? body.conversationId : undefined,
-          maxSpendUsd:
-            typeof body.maxSpendUsd === "number" ? body.maxSpendUsd : undefined,
-          timeoutMs:
-            typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
+          conversationId: typeof body.conversationId === "string" ? body.conversationId : undefined,
+          maxSpendUsd: typeof body.maxSpendUsd === "number" ? body.maxSpendUsd : undefined,
+          timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
         },
         description,
       });

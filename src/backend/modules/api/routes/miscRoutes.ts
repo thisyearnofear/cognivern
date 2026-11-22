@@ -76,6 +76,9 @@ export function createMiscRoutes(
   router.post("/telegraph/compliant-call", (req, res) =>
     telegraphController.compliantCall(req, res),
   );
+  router.get("/telegraph/evidence/:runId", (req, res) =>
+    telegraphController.getEvidence(req, res),
+  );
   router.post("/telegraph/anjoman-task", (req, res) =>
     telegraphController.anjomanTask(req, res),
   );

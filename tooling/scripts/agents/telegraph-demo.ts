@@ -9,6 +9,7 @@
  *
  * Commands:
  *   ledger                                   GET /api/telegraph/ledger
+ *   evidence <runId>                         GET /api/telegraph/evidence/:runId
  *   call '<json>'                            POST /api/telegraph/call
  *   compliant-call '<json>'                  POST /api/telegraph/compliant-call
  *   miners [intent]                          GET /api/telegraph/miners?intent=
@@ -78,6 +79,15 @@ switch (cmd) {
   case "ledger":
     out(await req("GET", "/api/telegraph/ledger"));
     break;
+  case "evidence": {
+    const [runId] = args;
+    if (!runId) {
+      console.error("usage: telegraph-demo.ts evidence <runId>");
+      process.exit(2);
+    }
+    out(await req("GET", `/api/telegraph/evidence/${encodeURIComponent(runId)}`));
+    break;
+  }
   case "status":
     out(await req("GET", "/api/telegraph/status"));
     break;
@@ -156,6 +166,6 @@ switch (cmd) {
     break;
   }
   default:
-    console.log("commands: ledger | status | miners [intent] | intents | call <json> | compliant-call <json> | anjoman-task <json> | verify-sample <programId> [limit] [eval] | report <programId> | screen-round <roundId> [json] | reveal <roundId> <json>");
+    console.log("commands: ledger | evidence <runId> | status | miners [intent] | intents | call <json> | compliant-call <json> | anjoman-task <json> | verify-sample <programId> [limit] [eval] | report <programId> | screen-round <roundId> [json] | reveal <roundId> <json>");
     process.exit(cmd ? 2 : 0);
 }

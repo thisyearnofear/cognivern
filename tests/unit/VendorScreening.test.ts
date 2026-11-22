@@ -29,6 +29,9 @@ describe('evaluateVendorVerdict', () => {
       evaluateVendorVerdict(taskResult({ answer: 'All clear.\nVERDICT: CLEAR' })).verdict,
     ).toBe('clear');
     expect(evaluateVendorVerdict(taskResult({ answer: 'verdict: hit' })).verdict).toBe('hit');
+    expect(evaluateVendorVerdict(taskResult({ answer: 'VERDICT: REVIEW' })).verdict).toBe(
+      'review',
+    );
     expect(evaluateVendorVerdict(taskResult({ answer: 'VERDICT :  UNKNOWN' })).verdict).toBe(
       'unknown',
     );
@@ -55,6 +58,11 @@ describe('evaluateVendorVerdict', () => {
     expect(
       evaluateVendorVerdict(taskResult({ answer: '', data: { riskScore: 0.9 } })).verdict,
     ).toBe('hit');
+    expect(
+      evaluateVendorVerdict(
+        taskResult({ answer: '', data: { result: { decision: 'needs_review' } } }),
+      ).verdict,
+    ).toBe('review');
   });
 
   it('scans answer text with negation guards when no marker exists', () => {
@@ -115,10 +123,18 @@ describe('latestScreenVerdicts', () => {
         eventType: 'vendor_screened',
         payload: { bidder: 'bob', verdict: 'hit' },
       },
+      {
+        eventType: 'vendor_screened',
+        payload: { bidder: 'carol', verdict: 'review' },
+      },
       // malformed entries are ignored
       { eventType: 'vendor_screened', payload: { bidder: 'eve', verdict: 'maybe' } },
     ];
-    expect(latestScreenVerdicts(events)).toEqual({ alice: 'clear', bob: 'hit' });
+    expect(latestScreenVerdicts(events)).toEqual({
+      alice: 'clear',
+      bob: 'hit',
+      carol: 'review',
+    });
   });
 });
 
@@ -187,6 +203,13 @@ describe('evaluateScreeningGate', () => {
         selectionMethod: 'lowest-bid',
         bidders,
         verdicts: { alice: 'clear', bob: 'unknown' },
+      }).allowed,
+    ).toBe(false);
+    expect(
+      evaluateScreeningGate({
+        selectionMethod: 'lowest-bid',
+        bidders,
+        verdicts: { alice: 'clear', bob: 'review' },
       }).allowed,
     ).toBe(false);
   });

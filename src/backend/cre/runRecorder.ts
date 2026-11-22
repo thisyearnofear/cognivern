@@ -34,13 +34,14 @@ export class CreRunRecorder {
     mode: CreRun["mode"];
     projectId: string;
     signer?: ethers.Signer;
+    runId?: string;
   }) {
     this.signer = params.signer ?? getDefaultEvidenceSigner();
     // The run shape + the run_started event are owned by the (pure) decider;
     // the recorder generates the runId (RNG) and injects the clock.
     const { run, events } = CreRunDecider.start(
       {
-        runId: crypto.randomUUID(),
+        runId: params.runId ?? crypto.randomUUID(),
         workflow: params.workflow,
         mode: params.mode,
         projectId: params.projectId,
@@ -116,9 +117,9 @@ export class CreRunRecorder {
   }
 
   async addArtifact(
-    artifact: Omit<CreArtifact, "id" | "createdAt" | "evidence">,
+    artifact: Omit<CreArtifact, "id" | "createdAt" | "evidence"> & { id?: string },
   ): Promise<CreArtifact> {
-    const id = crypto.randomUUID();
+    const id = artifact.id ?? crypto.randomUUID();
     const createdAt = nowIso();
 
     const evidence = await this.signEvidence({
@@ -129,9 +130,9 @@ export class CreRunRecorder {
     });
 
     const a: CreArtifact = {
+      ...artifact,
       id,
       createdAt,
-      ...artifact,
       evidence,
     };
 

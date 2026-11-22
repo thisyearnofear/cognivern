@@ -12,12 +12,10 @@ process.env.MONGODB_URI = "";
 delete process.env.EVIDENCE_SIGNING_KEY;
 delete process.env.FILECOIN_PRIVATE_KEY;
 
-const { recordTelegraphGovernedCall } = await import(
+const { recordTelegraphGovernedCall, recordTelegraphGateDecision } = await import(
   "../../src/backend/services/telegraph/TelegraphRunRecorder.js"
 );
-const { creRunStore } = await import(
-  "../../src/backend/cre/storage/CreRunStore.js"
-);
+const { creRunStore } = await import("../../src/backend/cre/storage/CreRunStore.js");
 
 const PROJECT = "ws-telegraph-test";
 
@@ -136,6 +134,81 @@ describe("recordTelegraphGovernedCall", () => {
     expect(run).not.toBeNull();
     expect(run!.status).toBe("failed");
     expect(run!.ok).toBe(false);
+  });
+
+  it("persists evidence extras under caller-supplied run and artifact ids", async () => {
+    const run = await recordTelegraphGovernedCall({
+      result: governedResult("approved"),
+      projectId: PROJECT,
+      agentId: "agent-1",
+      runId: "run-evidence-1",
+      artifactId: "artifact-evidence-1",
+      artifactExtras: {
+        compliance: { verdict: "clear" },
+        evidenceBundle: { evidenceHash: "abc123" },
+      },
+    });
+
+    const artifact = run?.artifacts.find((item) => item.type === "telegraph.signal");
+    expect(run?.runId).toBe("run-evidence-1");
+    expect(artifact?.id).toBe("artifact-evidence-1");
+    expect(artifact?.data).toMatchObject({
+      compliance: { verdict: "clear" },
+      evidenceBundle: { evidenceHash: "abc123" },
+    });
+    expect(artifact?.evidence?.hash).toBeTruthy();
+  });
+
+  it("uses the caller's complete artifact payload when the result has none", async () => {
+    const result = {
+      ...governedResult("approved"),
+      artifact: undefined,
+    } as Parameters<typeof recordTelegraphGovernedCall>[0]["result"];
+    const artifactData = {
+      agentId: "agent-1",
+      workspaceId: PROJECT,
+      miner: { id: "miner-1", name: "Test Miner", intent: "QUESTION_ANSWERING" },
+      compliance: { verdict: "clear" },
+      evidenceBundle: { evidenceHash: "bundle-hash" },
+      timestamp: "2026-11-22T00:00:00.000Z",
+    };
+
+    const run = await recordTelegraphGovernedCall({
+      result,
+      projectId: PROJECT,
+      agentId: "agent-1",
+      runId: "run-complete-payload",
+      artifactId: "artifact-complete-payload",
+      artifactExtras: artifactData,
+    });
+
+    const artifact = run?.artifacts.find((item) => item.type === "telegraph.signal");
+    expect(artifact?.data).toMatchObject(artifactData);
+  });
+
+  it("embeds an evidence bundle in the blocked gate artifact", async () => {
+    const run = await recordTelegraphGateDecision({
+      projectId: PROJECT,
+      agentId: "agent-1",
+      runId: "gate-evidence-1",
+      artifactId: "gate-artifact-1",
+      timestamp: "2026-11-22T00:00:00.000Z",
+      gate: "compliance",
+      reason: "screen requires review",
+      compliance: { verdict: "review" },
+      intendedCall: { minerId: "txlens" },
+      evidenceBundle: { evidenceHash: "gate-hash" },
+    });
+
+    const artifact = run?.artifacts.find((item) => item.type === "telegraph.signal");
+    expect(run?.runId).toBe("gate-evidence-1");
+    expect(run?.status).toBe("failed");
+    expect(artifact?.data).toMatchObject({
+      gate: { decision: "blocked" },
+      compliance: { verdict: "review" },
+      evidenceBundle: { evidenceHash: "gate-hash" },
+    });
+    expect(artifact?.evidence?.hash).toBeTruthy();
   });
 
   it("skips persistence entirely when no projectId is provided", async () => {

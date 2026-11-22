@@ -24,15 +24,15 @@ Additive-only: everything lives in `src/backend/services/telegraph/` +
 
 ## Components
 
-| Component | Purpose | Location |
-| --- | --- | --- |
-| `TelegraphService` | Miner discovery, x402 payments, node/engine/daemon health | `src/backend/services/telegraph/` |
-| `TelegraphGovernanceHelper` | Confidence routing + `telegraph.signal` artifacts | same |
-| `AnjomanService` | Delegated multi-specialist tasks via API key (`/agent/chat`, async jobs, escrow balance) | `src/backend/services/anjoman/` |
-| `VendorScreeningService` | Per-bidder Anjoman screening → `sealed_bid.vendor_screened` events + reveal gate | `src/backend/services/blockchain/sealed-bid/VendorScreening.ts` |
-| `TelegraphController` | `/api/telegraph/*` status + governed stats | `src/backend/modules/api/controllers/` |
-| Signal digest agent | Scheduled governed consumption loop | `tooling/scripts/agents/telegraph-signal-digest.ts` |
-| Demo script | End-to-end paid call | `tooling/scripts/demo/demo-telegraph.ts` (`pnpm demo:telegraph`) |
+| Component                   | Purpose                                                                                  | Location                                                         |
+| --------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `TelegraphService`          | Miner discovery, x402 payments, node/engine/daemon health                                | `src/backend/services/telegraph/`                                |
+| `TelegraphGovernanceHelper` | Confidence routing + `telegraph.signal` artifacts                                        | same                                                             |
+| `AnjomanService`            | Delegated multi-specialist tasks via API key (`/agent/chat`, async jobs, escrow balance) | `src/backend/services/anjoman/`                                  |
+| `VendorScreeningService`    | Per-bidder Anjoman screening → `sealed_bid.vendor_screened` events + reveal gate         | `src/backend/services/blockchain/sealed-bid/VendorScreening.ts`  |
+| `TelegraphController`       | `/api/telegraph/*` status + governed stats                                               | `src/backend/modules/api/controllers/`                           |
+| Signal digest agent         | Scheduled governed consumption loop                                                      | `tooling/scripts/agents/telegraph-signal-digest.ts`              |
+| Demo script                 | End-to-end paid call                                                                     | `tooling/scripts/demo/demo-telegraph.ts` (`pnpm demo:telegraph`) |
 
 ## Environment
 
@@ -68,7 +68,10 @@ consumption counters the digest writes to `data/telegraph-stats.json`) ·
 `ledger` (expense-ledger projection over persisted `telegraph.signal` CRE
 runs for the caller's workspace — settlement count, spend, burn by
 intent/miner/mandate, and per-call dispositions including held-signal
-resolution).
+resolution) · `compliant-call` (screen first, then buy the requested call
+only when the screen is `clear` and the declared spend guard passes) ·
+`evidence/:runId` (workspace-authenticated retrieval of the evidence bundle
+attached to a compliant-call gate or settlement artifact).
 
 The in-product dashboard is `/telegraph` — categories, questions, the
 governed-consumption stats panel, and the intelligence ledger (settlements,
@@ -117,13 +120,14 @@ due-diligence to Anjoman — one governed task per bidder (capped at
 `ANJOMAN_SCREEN_MAX_BIDDERS`, default 10, each with its own `maxSpendUsd`):
 
 ```json
-{ "bidders": ["alice"], "vendorDetails": {"alice": "acme.eth"}, "maxSpendUsd": 0.5 }
+{ "bidders": ["alice"], "vendorDetails": { "alice": "acme.eth" }, "maxSpendUsd": 0.5 }
 ```
 
-The brief asks Anjoman to end with a `VERDICT: CLEAR|HIT|UNKNOWN` line;
-`evaluateVendorVerdict` reads that marker first, then the structured answer
-through the same compliance scanner as miner calls, then a guarded text scan —
-anything ambiguous is `unknown`, never silently `clear`. Every screen appends
+The brief asks Anjoman to end with a `VERDICT: CLEAR|HIT|REVIEW|UNKNOWN`
+line; `evaluateVendorVerdict` reads that marker first, then the structured
+answer through the same compliance scanner as miner calls, then a guarded
+text scan — anything ambiguous is `unknown`, never silently `clear`. Every
+screen appends
 a `sealed_bid.vendor_screened` event (bidder, verdict, screening run id, cost)
 to the round's governance timeline, so the verdicts are part of the same
 hash-signed record a verifier fetches via `/verify`.
@@ -146,6 +150,7 @@ trigger verification sampling themselves:
 export COGNIVERN_TOKEN=<workspace JWT>   # COGNIVERN_API defaults to production
 pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts ledger
 pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts compliant-call '<json>'
+pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts evidence <gate-or-parent-runId>
 pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts verify-sample <programId> [limit] [evaluatorMinerId]
 pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts report <programId>
 ```
@@ -183,11 +188,11 @@ pnpm telegraph:digest                                          # one-off
 TELEGRAPH_LOOP_INTERVAL_MS=21600000 pnpm telegraph:digest      # 6h loop (VPS pm2: cognivern-telegraph-digest)
 ```
 
-| Env | Default | Meaning |
-| --- | --- | --- |
-| `TELEGRAPH_SIGNAL_MIN_INTEREST` | `6` | Only consume signals at or above this interest |
-| `TELEGRAPH_SIGNAL_LIMIT` | `5` | Max signals per run |
-| `TELEGRAPH_LOOP_INTERVAL_MS` | unset | Continuous-mode cadence |
+| Env                             | Default | Meaning                                        |
+| ------------------------------- | ------- | ---------------------------------------------- |
+| `TELEGRAPH_SIGNAL_MIN_INTEREST` | `6`     | Only consume signals at or above this interest |
+| `TELEGRAPH_SIGNAL_LIMIT`        | `5`     | Max signals per run                            |
+| `TELEGRAPH_LOOP_INTERVAL_MS`    | unset   | Continuous-mode cadence                        |
 
 Cadence is deliberately modest (6h on the VPS) — demand-driven consumption,
 not metric farming. Note: miners without a declared confidence field (e.g.
@@ -218,11 +223,70 @@ a screening verdict from a compliance miner (default intent
 `SANCTIONS_SCREENING_MATCH`; override via `compliance.intent`/`minerId`,
 subject via `compliance.params`), persists that screen as its own governed
 run, and only proceeds to the paid call on an explicit `clear` verdict. A
-`hit` or inconclusive screen blocks the purchase — the blocked attempt is
-recorded as a failed gate-decision run, and cleared payments carry a
-`compliance` block (verdict + screening run id) inside their
-`telegraph.signal` artifact. The ledger surfaces both as `blocked`
-dispositions and per-record screen verdicts.
+`hit`, provider `review`, malformed `unknown`, or non-approved screening call
+blocks the purchase — the blocked attempt is recorded as a failed
+gate-decision run. Cleared payments carry a `compliance` block and an
+`evidenceBundle` inside their `telegraph.signal` artifact; the ledger exposes
+the bundle hash, `/api/telegraph/evidence/:runId` path, verdict source, and
+policy violations on the matching record.
+
+#### Canonical screening verdicts
+
+`evaluateComplianceVerdict` normalizes provider output to `clear`, `hit`,
+`review`, or `unknown`. Known provider adapters run first: Counterproof's
+native `CLEAR`, `REVIEW`, and `BLOCK` map to `clear`, `review`, and `hit`
+respectively. For other miners, explicit fields such as `label`, `verdict`,
+`decision`, `recommendation`, `result`, `status`, or `outcome` are checked
+before the recursive boolean/risk-score fallback. `review` is therefore a
+real provider state, not a synonym for malformed output; `unknown` means the
+screen returned nothing recognizable. Only `clear` plus an approved governed
+screen permits the parent call.
+
+#### Evidence bundle and retrieval
+
+Every compliant-call attempt now creates a
+`cognivern.telegraph.compliant-call-evidence.v1` bundle before the CRE
+artifact is signed. It links the request/body and parameter hashes, the
+screening run and artifact, the gate decision, the parent run when present,
+artifact ids and hashes, miner identity, provider verdict/source/list version
+when available, costs, latency, payment network, declared spend guard, policy
+evaluation, and replay metadata. It deliberately stores field names and
+canonical SHA-256 parameter hashes, not the screened subject itself.
+`GET /api/telegraph/evidence/:runId` requires the same workspace auth, checks
+run ownership, and returns `runId`, `artifactId`, `artifactHash`,
+`artifactEvidenceHash`, and `evidenceBundle`. `artifactHash` is the stable
+SHA-256 hash of artifact data excluding the embedded bundle;
+`artifactEvidenceHash` is the CRE artifact's signed evidence hash.
+
+#### Spend guard
+
+`compliant-call` accepts an optional `spendGuard` object:
+
+```json
+{
+  "maxScreeningCostUsd": 0.02,
+  "maxTotalCostUsd": 0.05,
+  "allowedMiners": ["9002", "txlens"],
+  "allowedIntents": ["GAS_PRICE"],
+  "allowedScreenMiners": ["731002", "counterproof"],
+  "allowedScreenIntents": ["SANCTIONS_SCREENING_MATCH"],
+  "subjectAllowlist": ["acme corp"],
+  "subjectDenylist": ["isil khorasan"],
+  "consensusScreens": 1,
+  "budgetId": "treasury-q4"
+}
+```
+
+The guard is fail-closed and checked twice: before any payment and again
+between the paid screen and the parent call using the screen's actual cost.
+`allowedMiners`/`allowedIntents` constrain the parent call; the `allowedScreen*`
+fields constrain the screening call. Subject lists compare normalized exact
+terms against primitive `compliance.params` values — they are policy terms,
+not fuzzy entity resolution — and the shareable bundle stores their SHA-256
+hashes rather than the raw terms. `consensusScreens` values above `1` currently
+block because this endpoint performs one screen; `budgetId` is recorded for
+mandate/budget linkage but does not yet debit a budget ledger. If a required
+price or miner lookup cannot be proven, the call blocks instead of guessing.
 
 ### Registry intent matching
 
@@ -235,14 +299,22 @@ is picked by the intent token leading each endpoint description; GET
 endpoints receive params as a query string — a JSON body on GET is rejected
 before it reaches the miner.
 
-Live smoke (2026-11-14, real x402 payments on Base Sepolia): a sanctions
-screen against `SANCTIONS_SCREENING_MATCH` returned `clear` ($0.01,
-Sanctions Name Evidence), the gated parent call to TxLens `GAS_PRICE` settled
-($0.01, confidence 1.0, real Base block data), and the ledger showed both
-paid calls with the parent's `complianceVerdict: "clear"`. An earlier run
-with no matching miner correctly blocked with zero spend.
+Live Mission 02 sequence (2026-11-22, real x402 payments on Base Sepolia):
+a `clear` screen (`9961cba1-130a-43cd-8968-7088e4fa1a16`, Sanctions Name
+Evidence, $0.01) allowed a TxLens `GAS_PRICE` purchase
+(`3dd5beff-f9ad-4d89-9648-53d3804c36c2`, $0.01) to settle with the
+compliance proof attached to its `telegraph.signal` artifact. A Counterproof
+sanctions hit on `ISIL KHORASAN` (`e916cddf-2032-4e8f-bfce-e9be80f83a0c`,
+$0.01) blocked gate run `2f509267-f0c2-466d-9b70-5ca37f658221` before the
+parent payment. A paid screen with no recognizable verdict
+(`9e349959-82a8-4d89-9980-4794000c55d4`, $0.01) produced `unknown` and also
+blocked before settlement (`f4300716-fa82-4f1f-9073-fbb70a40a3bf`). The full
+validation sequence, including exploratory probes, cost exactly $0.10.
+Those November 22 run ids predate the evidence-bundle slice; newly recorded
+`compliant-call` attempts carry the bundle and are retrievable through
+`/api/telegraph/evidence/:runId`.
 
-Live loop verified end-to-end (same day, production workspace
+Live loop verified end-to-end (2026-11-14, production workspace
 `e7c4a84b-…`): held digest calls were approved and rejected through
 `POST /api/cre/runs/:runId/approval` — released/quarantined dispositions
 appear in the ledger — and a fresh `compliant-call` plus an engine-ask at a
@@ -263,6 +335,8 @@ but writes no runs.
     agentId, workspaceId?, mandateId?, policyId?, description?,
     miner: { id, name, intent?, autoRouted? },
     signal: { data|answer, confidence: number|null, confidenceThreshold, confidenceMet },
+    compliance?: { verdict, verdictSource, screeningRunId, rawResponseHash, subjectHash, … },
+    evidenceBundle?: { schema, evidenceHash, screening, gate, settlement, spendGuard, policyEvaluation, costs, replay },
     cost: { usd, paymentMethod: "x402", paid, paymentNetwork? },
     latencyMs, timestamp,
   },
@@ -280,7 +354,36 @@ through `SpendAttributionService` into the mandate statement.
 - Digest health check on the VPS: `pm2 logs cognivern-telegraph-digest` —
   each run prints `N calls, $X | approved/held/failed` + all-time totals.
 - Unit tests: `tests/unit/TelegraphService.test.ts` (threshold routing, URL
-  building, artifact creation).
+  building, artifact creation), plus focused compliance/evidence coverage in
+  `TelegraphCompliance`, `TelegraphSpendGuard`, `TelegraphEvidence`,
+  `TelegraphRunRecorder`, and `TelegraphLedger` tests.
+
+## Product roadmap after Mission 02 validation
+
+The Season II guidance asks for specialist intelligence that businesses and
+agents would pay for when a frontier model cannot establish an answer. The
+validated rail already proves one commercial primitive — an agent can buy a
+screen and make the payment decision auditable — but the product should now
+move from call governance to repeatable transaction assurance.
+
+| Priority         | Build                                                                  | Why it matters                                                                                                                                                                                                                                                                                               |
+| ---------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P0 — implemented | Provider verdict adapters + canonical `clear / hit / review / unknown` | Explicit provider labels now run before recursive field guessing. Counterproof `CLEAR / REVIEW / BLOCK` maps to `clear / review / hit`; the raw response, provider verdict, and verdict source are hashed/linked into compliance evidence.                                                                   |
+| P0 — implemented | Shareable evidence bundle per payment attempt                          | Each compliant-call artifact now carries a signed `evidenceBundle` linking screen, gate, settlement, artifact hashes, miner/source/list metadata, costs, policy evaluation, payment network, and replay metadata. `GET /api/telegraph/evidence/:runId` and `telegraph-demo.ts evidence <runId>` retrieve it. |
+| P0 — implemented | Spend-guard policy on `compliant-call`                                 | `spendGuard` now supports max screening/total cost, permitted parent and screening miners/intents, subject allow/deny terms, consensus count, and budget id. Checks run before any payment and again before the parent purchase; violations block and are recorded.                                          |
+| P1               | Stablecoin payment-guard workflow                                      | Extend the validated call into a payment intent: payee entity/wallet + amount + rail → sanctions/fraud/transaction-risk screen → `allow / deny / review` → downstream purchase or settlement. This is the clearest Mission 02 buyer workflow.                                                                |
+| P1               | Human review and second-opinion queue                                  | A provider `REVIEW` or disputed `hit` should create a review case with operator decision, notes, optional second screen, and a persisted reverse state. It must not silently clear; the default remains blocked.                                                                                             |
+| P1               | Verification harness and benchmarks                                    | Re-run fixed public cases against independent records (sanctions lists, chain RPC/explorer data, filings, shipping feeds), compare miners and frontier-model baselines, and publish precision/review/error rates, latency, and cost per verified answer.                                                     |
+| P2               | Quality/cost-aware miner router                                        | Selection today favors score then price. Add measured verifier agreement, historical error/review rates, latency, endpoint health, source freshness, and explicit source coverage; support fallback miners and dry-run quotes.                                                                               |
+| P2               | Agent SDK/MCP surface                                                  | Expose `screenBeforeSpend`, `buyIntel`, `getEvidence`, `budgetStatus`, and `approveReview` as a small tool set with a per-request budget cap. This turns the API into something other agents can adopt without learning CRE internals.                                                                       |
+| P3               | Workflow templates                                                     | Package verticals only after the primitives above: stablecoin treasury compliance; procurement/vendor due diligence (existing Canton + Anjoman rail); pre-trade settlement/liquidity checks; contract/filings/document authenticity; logistics and physical-world checks.                                    |
+
+The first build slice — verdict adapters, evidence bundle, and spend-guard
+policy — is now implemented and covered by focused unit tests. Human review
+and independent benchmarks follow because they need an explicit `REVIEW`
+state and a source of truth outside the miners being measured. Do not expand
+first into generic model routing or a broad miner marketplace; neither
+produces a governed paid action with independently checkable evidence.
 
 ## Season I retrospective
 

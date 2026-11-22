@@ -1859,7 +1859,7 @@ class ApiClient {
       status: string;
       totalBids: number;
       // The winner's latest screening verdict when the gate ran.
-      winnerScreen?: 'clear' | 'hit' | 'unknown' | null;
+      winnerScreen?: 'clear' | 'hit' | 'review' | 'unknown' | null;
     }>
   > {
     return this.fetch(
@@ -2208,6 +2208,18 @@ class ApiClient {
   async getTelegraphLedger(): Promise<ApiResponse<TelegraphLedgerReport>> {
     return this.fetch('/api/telegraph/ledger');
   }
+
+  async getTelegraphEvidence(runId: string): Promise<
+    ApiResponse<{
+      runId: string;
+      artifactId: string;
+      artifactHash: string;
+      artifactEvidenceHash: string | null;
+      evidenceBundle: Record<string, unknown>;
+    }>
+  > {
+    return this.fetch(`/api/telegraph/evidence/${encodeURIComponent(runId)}`);
+  }
 }
 
 // Telegraph expense-ledger projection (GET /api/telegraph/ledger).
@@ -2229,6 +2241,10 @@ export interface TelegraphLedgerRecord {
   approvalState?: string;
   complianceVerdict?: string;
   complianceRunId?: string;
+  complianceVerdictSource?: string;
+  evidenceHash?: string;
+  evidencePath?: string;
+  policyViolations?: string[];
   gateBlocked?: boolean;
 }
 
@@ -2378,7 +2394,7 @@ export interface GovernanceTimeline {
 // verdicts are appended to the round's governance timeline as
 // sealed_bid.vendor_screened events and gate /reveal via requireScreened.
 
-export type VendorVerdict = 'clear' | 'hit' | 'unknown';
+export type VendorVerdict = 'clear' | 'hit' | 'review' | 'unknown';
 
 export interface VendorScreenResult {
   bidder: string;

@@ -44,6 +44,37 @@ describe("evaluateComplianceVerdict", () => {
     expect(evaluateComplianceVerdict(resp({ risk: 0.1 })).verdict).toBe("clear");
   });
 
+  it("returns review for explicit review semantics", () => {
+    const generic = evaluateComplianceVerdict(resp({ status: "review" }));
+    expect(generic.verdict).toBe("review");
+    expect(generic.providerVerdict).toBe("review");
+
+    const nested = evaluateComplianceVerdict(resp({ result: { decision: "needs_review" } }));
+    expect(nested.verdict).toBe("review");
+  });
+
+  it("prefers Counterproof provider labels for CLEAR / REVIEW / BLOCK", () => {
+    const context = { minerId: "731002", minerName: "Counterproof Sanctions Screener" };
+
+    const review = evaluateComplianceVerdict(resp({ label: "REVIEW", matched: true }), context);
+    expect(review.verdict).toBe("review");
+    expect(review.providerVerdict).toBe("REVIEW");
+    expect(review.verdictSource).toBe("counterproof-adapter");
+
+    expect(evaluateComplianceVerdict(resp({ label: "CLEAR" }), context).verdict).toBe("clear");
+    expect(evaluateComplianceVerdict(resp({ label: "BLOCK" }), context).verdict).toBe("hit");
+  });
+
+  it("prefers an explicit provider verdict over generic match fields", () => {
+    const result = evaluateComplianceVerdict(resp({ matched: true, verdict: "review" }), {
+      minerId: "other-miner",
+      minerName: "Other Screener",
+    });
+    expect(result.verdict).toBe("review");
+    expect(result.providerVerdict).toBe("review");
+    expect(result.verdictSource).toBe("generic-scan");
+  });
+
   it("returns unknown for empty or unrecognizable responses", () => {
     expect(evaluateComplianceVerdict(resp(null)).verdict).toBe("unknown");
     expect(evaluateComplianceVerdict(resp({ foo: "bar" })).verdict).toBe("unknown");

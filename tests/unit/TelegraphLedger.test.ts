@@ -66,9 +66,7 @@ function signalRun(
 
 describe("buildTelegraphLedgerReport", () => {
   it("returns an empty report for runs without telegraph.signal artifacts", () => {
-    const report = buildTelegraphLedgerReport([
-      { ...signalRun("r1"), artifacts: [] },
-    ]);
+    const report = buildTelegraphLedgerReport([{ ...signalRun("r1"), artifacts: [] }]);
     expect(report.totals.calls).toBe(0);
     expect(report.records).toHaveLength(0);
   });
@@ -143,8 +141,16 @@ describe("buildTelegraphLedgerReport", () => {
       gate: { name: "compliance", decision: "blocked", reason: "positive match" },
       compliance: {
         verdict: "hit",
+        verdictSource: "counterproof-adapter",
         screeningRunId: "screen-1",
         screeningMinerId: "zk-sanctions",
+      },
+      evidenceBundle: {
+        evidenceHash: "abc123",
+        policyEvaluation: {
+          passed: true,
+          violations: [],
+        },
       },
       intendedCall: { minerId: "txlens" },
       cost: { usd: "0", paymentMethod: "x402", paid: false },
@@ -162,7 +168,11 @@ describe("buildTelegraphLedgerReport", () => {
     const gateRec = report.records.find((r) => r.runId === "gate-1");
     expect(gateRec?.disposition).toBe("blocked");
     expect(gateRec?.complianceVerdict).toBe("hit");
+    expect(gateRec?.complianceVerdictSource).toBe("counterproof-adapter");
     expect(gateRec?.complianceRunId).toBe("screen-1");
+    expect(gateRec?.evidenceHash).toBe("abc123");
+    expect(gateRec?.evidencePath).toBe("/api/telegraph/evidence/gate-1");
+    expect(gateRec?.policyViolations).toEqual([]);
     expect(report.totals.blocked).toBe(1);
 
     const paidRec = report.records.find((r) => r.runId === "paid-1");

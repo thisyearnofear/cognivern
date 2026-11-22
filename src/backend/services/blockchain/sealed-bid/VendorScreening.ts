@@ -87,7 +87,7 @@ export interface ScreeningGateCheck {
 // Verdict evaluation
 // ---------------------------------------------------------------------------
 
-const VERDICT_LINE = /VERDICT:\s*(CLEAR|HIT|UNKNOWN)\b/i;
+const VERDICT_LINE = /VERDICT:\s*(CLEAR|HIT|REVIEW|UNKNOWN)\b/i;
 
 // Clear-phrase matches are stripped before scanning for hit language so
 // "not sanctioned" / "no sanctions match" can't false-positive as a hit.
@@ -97,7 +97,7 @@ const HIT_RE =
   /\b(sanctioned|on the ofac|on the sdn|sdn list|sanctions? (hit|match|list)|listed on (the )?(ofac|sdn|sanction|blacklist|watchlist)|blacklisted?|flagged)\b/i;
 
 /**
- * Interpret an Anjoman screening answer as clear|hit|unknown.
+ * Interpret an Anjoman screening answer as clear|hit|review|unknown.
  *
  * Precedence: the instructed `VERDICT: X` contract line → structured-answer
  * scan via the shared compliance evaluator → guarded text scan → unknown.
@@ -154,7 +154,7 @@ export function latestScreenVerdicts(
     const { bidder, verdict } = event.payload;
     if (
       typeof bidder === 'string' &&
-      (verdict === 'clear' || verdict === 'hit' || verdict === 'unknown')
+      (verdict === 'clear' || verdict === 'hit' || verdict === 'review' || verdict === 'unknown')
     ) {
       verdicts[bidder] = verdict;
     }
@@ -254,7 +254,7 @@ export function buildScreeningBrief(
     `Vendor identifier: ${bidder}.`,
     vendorDetails ? `Provided details: ${vendorDetails}.` : null,
     `Investigate using ranked specialists: sanctions screening, company and fraud reputation, and wallet or on-chain risk if a crypto address is identifiable.`,
-    `End your answer with exactly one line: "VERDICT: CLEAR", "VERDICT: HIT", or "VERDICT: UNKNOWN".`,
+    `End your answer with exactly one line: "VERDICT: CLEAR", "VERDICT: HIT", "VERDICT: REVIEW", or "VERDICT: UNKNOWN".`,
   ]
     .filter((line): line is string => line !== null)
     .join(' ');

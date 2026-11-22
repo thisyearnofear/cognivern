@@ -44,6 +44,10 @@ export interface TelegraphLedgerRecord {
   /** Present when the payment carried a compliance screen (or was gate-blocked). */
   complianceVerdict?: string;
   complianceRunId?: string;
+  complianceVerdictSource?: string;
+  evidenceHash?: string;
+  evidencePath?: string;
+  policyViolations?: string[];
   gateBlocked?: boolean;
 }
 
@@ -129,6 +133,8 @@ export function buildTelegraphLedgerReport(runs: CreRun[]): TelegraphLedgerRepor
     const signal = asRecord(data.signal);
     const cost = asRecord(data.cost);
     const compliance = asRecord(data.compliance);
+    const evidenceBundle = asRecord(data.evidenceBundle);
+    const policyEvaluation = asRecord(evidenceBundle?.policyEvaluation);
     const gate = asRecord(data.gate);
     const gateBlocked = gate?.decision === "blocked";
 
@@ -155,6 +161,14 @@ export function buildTelegraphLedgerReport(runs: CreRun[]): TelegraphLedgerRepor
       approvalState: run.approvalState,
       complianceVerdict: str(compliance?.verdict),
       complianceRunId: str(compliance?.screeningRunId),
+      complianceVerdictSource: str(compliance?.verdictSource),
+      evidenceHash: str(evidenceBundle?.evidenceHash),
+      evidencePath: evidenceBundle?.evidenceHash
+        ? `/api/telegraph/evidence/${run.runId}`
+        : undefined,
+      policyViolations: Array.isArray(policyEvaluation?.violations)
+        ? policyEvaluation.violations.filter((item): item is string => typeof item === "string")
+        : undefined,
       gateBlocked: gateBlocked || undefined,
     });
   }
