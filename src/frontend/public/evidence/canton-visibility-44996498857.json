@@ -1,0 +1,21 @@
+[{
+  "role": "Vendor A",
+  "beforeClose": [30.0000000000],
+  "afterClose": [],
+  "winningAmount": 20.0000000000
+}, {
+  "role": "Vendor B",
+  "beforeClose": [20.0000000000],
+  "afterClose": [],
+  "winningAmount": 20.0000000000
+}, {
+  "role": "Vendor C",
+  "beforeClose": [40.0000000000],
+  "afterClose": [],
+  "winningAmount": 20.0000000000
+}, {
+  "role": "Manager",
+  "beforeClose": [20.0000000000, 30.0000000000, 40.0000000000],
+  "afterClose": [],
+  "winningAmount": 20.0000000000
+}]

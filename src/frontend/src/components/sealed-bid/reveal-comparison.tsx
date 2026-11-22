@@ -53,16 +53,14 @@ export function RevealComparison() {
             className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-xs space-y-1.5"
           >
             <div className="font-medium text-foreground flex items-center gap-1.5">
-              <Check className="h-4 w-4 text-emerald-600" /> Losing prices seen by
-              no one
+              <Check className="h-4 w-4 text-emerald-600" /> Losing prices are
+              not in the result
             </div>
             <p className="text-muted-foreground leading-relaxed">
-              <span className="font-mono">CloseAndReveal</span> archives every
-              losing bid in the same transaction that publishes the winner.
-              Nobody decrypts a losing amount — not competitors,{" "}
-              <span className="italic">not even the auctioneer</span>. Privacy is
-              structural: the ledger never discloses it. (Confirm it above — even
-              as Auctioneer, a revealed round returns 0 bid contracts.)
+              <span className="font-mono">CloseAndReveal</span> archives the
+              active bids and records the winner in one transaction. The manager
+              can read all bids before close. No active bids after reveal does
+              not mean the manager never saw those prices.
             </p>
           </motion.div>
         ) : (

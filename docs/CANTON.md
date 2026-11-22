@@ -4,15 +4,15 @@
 
 > **History (Aug 25 2026, superseded Oct 6):** the shared HackCanton S2 DevNet node was **unreachable** since Aug 21, so the **Hetzner sandbox served** as the live fallback ledger. Details preserved below as the revert path.
 
-Cognivern's sealed-bid vendor selection runs on a pluggable backend interface. The **Canton** backend uses a Daml sandbox to give sealed-bid auctions structural sub-transaction privacy and atomic multi-party reveal — capabilities the FHE backend can't provide.
+Cognivern's sealed-bid vendor selection runs on a pluggable backend interface. The **Canton** backend uses Daml contracts for party-scoped bid visibility and atomic reveal.
 
 ## Why Canton
 
-The FHE sealed-bid path now uses the CoFHE manager-decrypt-and-publish (Option B) flow, so the reveal works. However, that flow requires the round manager to decrypt every losing bid plaintext and then publish only the winner — the privacy guarantee from the auctioneer is lost at reveal time. The Canton backend sidesteps that entire workstream: losing bids are archived in flight inside the atomic `CloseAndReveal` transaction and are never decrypted by anyone. The reveal actually works, in a single atomic transaction, with no plaintext leakage to the manager:
+The FHE path uses CoFHE ciphertext bids and a manager-decrypt-and-publish reveal. Canton does not use bid encryption here. Instead, Daml controls which parties can read each contract:
 
-- **Sub-transaction privacy** — bidders never see each other's bids. Enforced by the Daml disclosure model (`Bid.signatory bidder + observer manager`), not by encryption.
-- **Atomic reveal** — auction + all bids archived + `AuctionResult` created in one transaction. Losing amounts are never disclosed to anyone but the auctioneer.
-- **Verifiable end-to-end** — see `tests/integration/canton-sealed-bid.test.ts` for the privacy invariants asserted against a live sandbox.
+- **Before close** — bidders can read only their own active bid as their ledger party. The auction manager can read all active bids because the manager observes every `Bid` contract. Bids are sealed from rival bidders, not from the manager.
+- **After close** — `CloseAndReveal` consumes the auction and active bids and creates an `AuctionResult` in one transaction. The manager and eligible bidders can read the winner and winning amount; losing prices are not in the result. Archival is not erasure.
+- **Evidence and scope** — the [visibility replay](../daml/README.md#visibility-evidence-manual) compares party-scoped reads on the Daml reference ledger and a fresh Canton sandbox. It does not establish what separate web users, logs, or participant operators can see.
 
 ## Architecture
 
@@ -75,7 +75,8 @@ The read-only `GET /api/vendor/sealed-bid/capabilities` endpoint reports the eff
 - **`/sealed-bid`** ("Private vendor selection") — create rounds (optionally under a funded mandate), submit and withdraw bids, close/reveal or cancel, and toggle the **Party view** (Auctioneer / Alice / Bob / Charlie) to see role-based disclosure. The list has search + status filter; round detail shows a lifecycle stepper (Bidding → Closed → Decided), relative deadlines, and inline bid-amount validation. In Sandbox anyone may act as auctioneer; in Production close/reveal requires a signed-in wallet. Party ids render without the `::namespace` suffix (`displayPartyName`). Signed-in views refresh live from the SSE stream and toast the outcome ("You won this round" / "not selected" / "cancelled"); decided or cancelled rounds get a **Share proof** link, and mandate-linked rounds show an "Under mandate" chip linking to `/spend?mandate=<id>`.
 - **Canton identity card** — shown on `/sealed-bid` and on the **Canton** tab of the sign-in modal; surfaces the wallet's assigned bidding party from `canton-identity` and links into the rounds list. Signed-out visitors get a "Get a bidding identity" prompt that opens the modal on that tab; email sessions without a wallet get "Link a wallet to bid", which goes to Settings → Identities.
 - **`/verify?round=<id>`** — login-free outcome proof (see Public verification above).
-- **`/procure`** — public landing for the Canton procurement story (mandate → policy-gated round → atomic settlement → public proof); the main landing links to it from one fenced teaser, following the `/sponsor` separate-buyer pattern.
+- **`/procure`** — public landing for the Canton procurement story. Choose **Try the sealed-bid demo** for the replay or **Open the app** for the procurement workspace.
+- **`/procure/demo`** — a read-only walkthrough of a recorded Canton sandbox run, not a live query. Switch from Vendor A to Manager to compare **30** with **30, 20, and 40**, then select **After close** to see no active bids and the result, **Vendor B at 20**. No account, wallet, ledger writes, or funds are required. The page links to the [recorded sandbox output](../src/frontend/public/evidence/canton-visibility-44996498857.json), the [local replay instructions](../daml/README.md#local-workflow), and the published field note.
 - **Settings → Identities** — email, wallet, and Canton bidding identity in one card; email accounts can link/unlink a wallet. Copy states that the identity is hosted by Cognivern, which submits bids on the user's behalf.
 - **Dashboard** — "Vendor spend governance" card links day-to-day agent spend policies to confidential vendor RFPs on the same control plane.
 - **Backend picker** — Canton (recommended) for structural privacy; FHE for ciphertext bids with manager-publish reveal. Helper text on the create form explains the trade-off.
@@ -104,7 +105,7 @@ namespace `122003aa…`; those do not exist on the S3 participant.
 | --------------------- | ------------------------------------ | -------------------------- | ----------------------------------------------------------------------- |
 | `demo-round-open`     | Q1 penetration testing engagement    | open, 2 of 3 bids in       | invites the visitor to submit the third bid + toggle the party view     |
 | `demo-round-closed`   | Q3 cloud-hosting RFP — 3-year commit | open on ledger, 3 bids in  | visitor drives Close → Reveal to watch the atomic reveal                |
-| `demo-round-revealed` | Legal counsel retainer 2026          | revealed (Bob won @ $185k) | shows the completed lifecycle; losing bids archived and never disclosed |
+| `demo-round-revealed` | Legal counsel retainer 2026          | revealed (Bob won @ $185k) | shows the completed lifecycle; losing prices are not in the result |
 
 Because the ledger is in-memory, restart guarantees a clean known state rather than accumulating cruft — a feature, not a bug, for hackathon-window demos.
 
