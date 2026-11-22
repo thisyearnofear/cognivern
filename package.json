@@ -181,5 +181,10 @@
   },
   "optionalDependencies": {
     "@reineira-os/sdk": "0.3.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "qr": "0.5.5"
+    }
   }
 }
