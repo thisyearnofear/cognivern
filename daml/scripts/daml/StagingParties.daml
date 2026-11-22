@@ -1,0 +1,7 @@
+module StagingParties where
+
+import Daml.Script
+
+stagingParties : Script [Party]
+stagingParties = script do
+  mapA (\name -> allocatePartyByHint (PartyIdHint name)) ["Auctioneer", "Alice", "Bob", "Charlie"]
