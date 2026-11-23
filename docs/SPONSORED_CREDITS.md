@@ -105,7 +105,11 @@ the OpenAI chat-completions shape — Groq, Cerebras, Venice, OpenAI itself,
 or a self-hosted endpoint. Configuration:
 
 - `OPENAI_COMPAT_BASE_URL` — provider base (e.g. `https://api.groq.com/openai/v1`).
-- `OPENAI_COMPAT_API_KEY` — optional **platform fallback** key. A per-program
+- `OPENAI_COMPAT_API_KEY` — optional **platform fallback** key. Additional
+  named providers can be registered via `OPENAI_COMPAT_PROVIDERS` (a
+  comma-separated id list; each id reads `OPENAI_COMPAT_<ID>_BASE_URL` /
+  `OPENAI_COMPAT_<ID>_API_KEY`) and selected as a program `backend`. A
+  per-program
   upstream credential (same encrypted store as Anthropic) takes precedence;
   when neither exists the backend reports `backend_not_configured` and calls
   deny loudly — there is deliberately **no silent fallback** to another

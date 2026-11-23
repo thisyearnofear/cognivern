@@ -25,8 +25,11 @@ const { InferenceRecordStore } = await import("@backend/services/credits/Inferen
 const { InferenceGatewayService, GatewayDeniedError } = await import(
   "@backend/services/inference/InferenceGatewayService.js"
 );
-const { registerBackend, resolveBackend, listBackends, resetBackendRegistry } = await import(
+const { registerBackend, resolveBackend, listBackends, resetBackendRegistry, registerNamedOpenAICompatBackends, isOpenAICompatBackend } = await import(
   "@backend/services/inference/backendRegistry.js"
+);
+const { UpstreamCredentialService } = await import(
+  "@backend/services/credits/UpstreamCredentialService.js"
 );
 const { AuditLogService } = await import("@backend/services/governance/AuditLogService.js");
 const { nanoToUsd } = await import("@backend/services/credits/money.js");
@@ -130,6 +133,7 @@ beforeEach(() => {
   db.exec("DELETE FROM credit_ledger");
   db.exec("DELETE FROM inference_records");
   db.exec("DELETE FROM credit_participants");
+  db.exec("DELETE FROM program_upstream_credentials");
   db.exec("DELETE FROM credit_programs");
 
   resetBackendRegistry();
@@ -268,6 +272,111 @@ describe("per-program backend routing", () => {
     expect(outcome.ok).toBe(true);
     expect(outcome.costUsd).toBeGreaterThan(0);
     expect(ledger.getBalance(context.participant.id)!.heldNano).toBe(0);
+  });
+});
+
+describe("named OpenAI-compatible providers", () => {
+  it("registers providers from OPENAI_COMPAT_PROVIDERS, skipping invalid/reserved/duplicate ids", () => {
+    const ids = registerNamedOpenAICompatBackends({
+      OPENAI_COMPAT_PROVIDERS: "qwen, my-prov,anthropic,BAD ID,qwen",
+      OPENAI_COMPAT_QWEN_BASE_URL: "https://example.test/v1",
+      OPENAI_COMPAT_QWEN_API_KEY: "k",
+    });
+
+    expect(ids).toEqual(["qwen", "my-prov"]);
+    // A named provider with a BASE_URL is configured; without one it is still
+    // registered and reported unconfigured by listBackends().
+    expect(resolveBackend("qwen")?.backend.isConfigured()).toBe(true);
+    expect(resolveBackend("my-prov")?.backend.isConfigured()).toBe(false);
+    expect(isOpenAICompatBackend("qwen")).toBe(true);
+    // The reserved id was skipped, not re-registered — `anthropic` still
+    // resolves to the Anthropic backend.
+    expect(resolveBackend("anthropic")?.backend.id).toBe("anthropic");
+    expect(isOpenAICompatBackend("anthropic")).toBe(false);
+  });
+
+  it("sends a stored per-program credential upstream for a named provider", async () => {
+    process.env.OWS_VAULT_SECRET = "registry-test-secret";
+    registerNamedOpenAICompatBackends({
+      OPENAI_COMPAT_PROVIDERS: "qwen",
+      OPENAI_COMPAT_QWEN_BASE_URL: "https://qwen.example/v1",
+      OPENAI_COMPAT_QWEN_API_KEY: "",
+    });
+    const context = makeContext("qwen");
+    new UpstreamCredentialService(getDb()).setCredential(
+      context.program.id,
+      WORKSPACE,
+      "qwen",
+      "sk-qwen-program-key",
+    );
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: "cmpl-qwen",
+          choices: [{ message: { role: "assistant", content: "hi from qwen" } }],
+          usage: { prompt_tokens: 10, completion_tokens: 5 },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const result = await gateway.chatCompletion(context, {
+        model: "qwen-model",
+        messages: MESSAGES,
+      });
+      expect(result.ok).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://qwen.example/v1/chat/completions");
+    expect((init.headers as Record<string, string>).Authorization).toBe(
+      "Bearer sk-qwen-program-key",
+    );
+  });
+
+  it("treats a credential stored for a different provider as absent", async () => {
+    process.env.OWS_VAULT_SECRET = "registry-test-secret";
+    registerNamedOpenAICompatBackends({
+      OPENAI_COMPAT_PROVIDERS: "qwen",
+      OPENAI_COMPAT_QWEN_BASE_URL: "https://qwen.example/v1",
+      OPENAI_COMPAT_QWEN_API_KEY: "env-key",
+    });
+    const context = makeContext("qwen");
+    // Anthropic key pasted into a qwen program — must not be sent upstream.
+    new UpstreamCredentialService(getDb()).setCredential(
+      context.program.id,
+      WORKSPACE,
+      "anthropic",
+      "sk-ant-wrong-provider",
+    );
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: "cmpl-qwen",
+          choices: [{ message: { role: "assistant", content: "hi from qwen" } }],
+          usage: { prompt_tokens: 10, completion_tokens: 5 },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const result = await gateway.chatCompletion(context, {
+        model: "qwen-model",
+        messages: MESSAGES,
+      });
+      expect(result.ok).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer env-key");
   });
 });
 

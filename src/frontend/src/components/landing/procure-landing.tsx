@@ -9,7 +9,7 @@ import { EvidenceChain } from "@/components/brand/evidence-chain";
  * Public landing for the procurement wedge: funded mandates → sealed-bid
  * rounds → atomic settlement on Canton. Same fenced-route pattern as
  * /sponsor — separate buyer story, linked from one teaser on the main
- * landing. The primary CTA is the guided replay at /procure/demo — a static,
+ * landing. The primary CTA is the guided replay at /verify?round=sandbox-replay — a static,
  * no-wallet walkthrough of a verified sandbox run.
  */
 
@@ -36,7 +36,7 @@ export function ProcureLanding() {
           <a href="#how-procurement-works" className="transition-colors hover:text-foreground">
             How it works
           </a>
-          <Link href="/procure/demo#evidence" className="transition-colors hover:text-foreground">
+          <Link href="/verify?round=sandbox-replay#evidence" className="transition-colors hover:text-foreground">
             Replay evidence
           </Link>
           <Link href="/" className="transition-colors hover:text-foreground">
@@ -44,7 +44,7 @@ export function ProcureLanding() {
           </Link>
         </nav>
         <Link
-          href="/procure/demo"
+          href="/verify?round=sandbox-replay"
           className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           Try the sealed-bid demo
@@ -97,7 +97,7 @@ export function ProcureLanding() {
               className="flex gap-4 justify-center flex-wrap mt-8"
             >
               <Link
-                href="/procure/demo"
+                href="/verify?round=sandbox-replay"
                 className="inline-flex h-11 items-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               >
                 Try the sealed-bid demo <ArrowRight className="h-4 w-4 ml-1.5" />
@@ -272,7 +272,7 @@ export function ProcureLanding() {
               each bid — no wallet needed. Then sign in to run your own.
             </p>
             <Link
-              href="/procure/demo"
+              href="/verify?round=sandbox-replay"
               className="inline-flex h-11 items-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               Try the sealed-bid demo <ArrowRight className="h-4 w-4 ml-1.5" />
@@ -295,7 +295,7 @@ export function ProcureLanding() {
                 Governance for agentic work
               </Link>
               <span className="hidden sm:inline">·</span>
-              <Link href="/procure/demo#evidence" className="hover:text-foreground transition-colors">
+              <Link href="/verify?round=sandbox-replay#evidence" className="hover:text-foreground transition-colors">
                 Replay evidence
               </Link>
               <span className="hidden sm:inline">·</span>

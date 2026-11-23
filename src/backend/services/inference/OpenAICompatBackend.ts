@@ -32,21 +32,30 @@ const PROVIDER = "openai-compat";
 const DEFAULT_TIMEOUT_MS = 120_000;
 
 export class OpenAICompatBackend implements InferenceBackend {
-  readonly id = PROVIDER;
+  readonly id: string;
 
   private readonly baseUrl: string;
   private readonly envApiKey: string;
+  private readonly apiKeyEnvName: string;
   private readonly defaultTimeoutMs: number;
 
   constructor(
-    options: { baseUrl?: string; apiKey?: string; timeoutMs?: number } = {},
+    options: {
+      baseUrl?: string;
+      apiKey?: string;
+      timeoutMs?: number;
+      id?: string;
+      apiKeyEnvName?: string;
+    } = {},
   ) {
+    this.id = options.id ?? PROVIDER;
     this.baseUrl = (
       options.baseUrl ||
       process.env.OPENAI_COMPAT_BASE_URL ||
       ""
     ).replace(/\/+$/, "");
-    this.envApiKey = options.apiKey || process.env.OPENAI_COMPAT_API_KEY || "";
+    this.apiKeyEnvName = options.apiKeyEnvName ?? "OPENAI_COMPAT_API_KEY";
+    this.envApiKey = options.apiKey || process.env[this.apiKeyEnvName] || "";
     this.defaultTimeoutMs =
       options.timeoutMs ??
       Number(process.env.GATEWAY_UPSTREAM_TIMEOUT_MS || DEFAULT_TIMEOUT_MS);
@@ -67,10 +76,10 @@ export class OpenAICompatBackend implements InferenceBackend {
       status: 503,
       body: {
         error:
-          "No upstream credential for this program — add an API key for this provider in the sponsor console, or set OPENAI_COMPAT_API_KEY.",
+          `No upstream credential for this program — add an API key for this provider in the sponsor console, or set ${this.apiKeyEnvName}.`,
       },
       usage: null,
-      provider: PROVIDER,
+      provider: this.id,
       trustTier: null,
       upstreamRequestId: null,
       responseText: "",
@@ -95,7 +104,7 @@ export class OpenAICompatBackend implements InferenceBackend {
           completionPriceNative: null,
           contextWindow: null,
           verifiability: null,
-          raw: { provider: PROVIDER },
+          raw: { provider: this.id },
         }));
     } catch {
       return [];
@@ -128,7 +137,7 @@ export class OpenAICompatBackend implements InferenceBackend {
         status: response.status,
         body,
         usage: null,
-        provider: PROVIDER,
+        provider: this.id,
         trustTier: null,
         upstreamRequestId: response.headers.get("x-request-id"),
         responseText: "",
@@ -140,7 +149,7 @@ export class OpenAICompatBackend implements InferenceBackend {
       status: response.status,
       body,
       usage: extractUsage(body),
-      provider: PROVIDER,
+      provider: this.id,
       trustTier: null,
       upstreamRequestId: extractRequestId(body, response),
       responseText: extractResponseText(body),
@@ -163,12 +172,12 @@ export class OpenAICompatBackend implements InferenceBackend {
         status: 503,
         errorBody: {
           error:
-            "No upstream credential for this program — add an API key for this provider in the sponsor console, or set OPENAI_COMPAT_API_KEY.",
+            `No upstream credential for this program — add an API key for this provider in the sponsor console, or set ${this.apiKeyEnvName}.`,
         },
         chunks: (async function* () {})(),
         collected: {
           usage: null,
-          provider: PROVIDER,
+          provider: this.id,
           trustTier: null,
           upstreamRequestId: null,
           responseText: "",
@@ -202,7 +211,7 @@ export class OpenAICompatBackend implements InferenceBackend {
 
     const collected: ChatCompletionStream["collected"] = {
       usage: null,
-      provider: PROVIDER,
+      provider: this.id,
       trustTier: null,
       upstreamRequestId: response.headers.get("x-request-id"),
       responseText: "",

@@ -22,6 +22,7 @@ commit it or copy its contents into public docs.
 - [ARCHITECTURE_RAILS.md](./ARCHITECTURE_RAILS.md) — how the rails fit together
 - [AGENT_GOVERNANCE_INTEGRATION_SPEC.md](./AGENT_GOVERNANCE_INTEGRATION_SPEC.md) — sealed-bid and governance integration details
 - [UX_IA_REVIEW.md](./UX_IA_REVIEW.md) — information architecture rules
+- [internals/proof-and-eval-contracts.md](./internals/proof-and-eval-contracts.md) — the shared proof envelope (`/verify` summary) and the eval cases/report contract
 - [ADAPTIVE_UX.md](./ADAPTIVE_UX.md) — workspace-adaptive UI behavior
 - [DATA_OWNERSHIP.md](./DATA_OWNERSHIP.md) — trust model and per-domain ownership map
 - [LANGFUSE_LESSONS.md](./LANGFUSE_LESSONS.md) — observability adjacency plan
@@ -59,7 +60,7 @@ never bake deadlines into `AGENTS.md` or rail docs.
 | KeeperHub — Agents Onchain | Hackathon | Concluded Aug 13 2026 | [history submission](./history/HACKATHON_SUBMISSION_KEEPERHUB.md) |
 | Flare Summer Signal | Hackathon | Concluded Aug 14 2026 | [history submission](./history/FLARE_SUMMER_SIGNAL.md) |
 | Lexsi AI Safety & Alignment | Hackathon | Concluded — submission window closed Nov 15 2026; v7 adapter/results documented; no outcome recorded | [experiment log](./LEXSI_HACKATHON.md) · [product translation](./LEXSI_PRODUCT.md) |
-| Telegraph Protocol S2 | Hackathon | Active — final submission prep; Track 03 Apps & Agents with Mission 02 primary and Mission 10 supporting evidence; Qwen enterprise-diligence extension under evaluation; submissions close Dec 1 2026 23:59 UTC via Anjoman | [submission](./history/HACKATHON_SUBMISSION_TELEGRAPH_S2.md) · [TELEGRAPH.md](./TELEGRAPH.md) · [SPONSORED_CREDITS.md](./SPONSORED_CREDITS.md) |
+| Telegraph Protocol S2 | Hackathon | Active — final submission prep; Track 03 Apps & Agents with Mission 02 primary and Mission 10 supporting evidence; model-agnostic supplier-diligence example (Qwen first) implemented, live run pending; submissions close Dec 1 2026 23:59 UTC via Anjoman | [submission](./history/HACKATHON_SUBMISSION_TELEGRAPH_S2.md) · [TELEGRAPH.md](./TELEGRAPH.md) · [SPONSORED_CREDITS.md](./SPONSORED_CREDITS.md) |
 | Telegraph Protocol S1 Track 3 | Hackathon | Concluded Sep 7 2026 — no placement; [retrospective](./TELEGRAPH.md#season-i-retrospective) | [history submission](./history/HACKATHON_SUBMISSION_TELEGRAPH.md) |
 
 ## History

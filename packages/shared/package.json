@@ -33,9 +33,15 @@
     "./receipts": {
       "types": "./dist/receipts.d.ts",
       "default": "./dist/receipts.js"
+    },
+    "./proof": {
+      "types": "./dist/proof.d.ts",
+      "default": "./dist/proof.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "prepare": "tsc"

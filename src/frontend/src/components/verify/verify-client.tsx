@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Check,
-  Copy,
   ExternalLink,
   FileSearch,
   ShieldCheck,
@@ -17,8 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { explorerTxUrl } from "@cognivern/shared";
+import type { PublicCommitment } from "@/lib/verify-records";
+import { proofFromCommitment } from "@/lib/proof";
+import { ProofSummary } from "./proof-replay";
 import { formatUsd } from "@/lib/budget-format";
 import { RoundVerify } from "./round-verify";
+import { Copyable } from "./proof-replay";
+import { DiligenceVerify } from "./diligence-verify";
 
 /**
  * Public, login-free verification of one anchored credit-ledger commitment.
@@ -30,27 +33,6 @@ import { RoundVerify } from "./round-verify";
  * trusting us — the page is a convenience, the anchors are the proof.
  */
 
-interface CommitmentAnchors {
-  zerogRootHash: string | null;
-  zerogTxHash: string | null;
-  filecoinCid: string | null;
-  filecoinTxHash: string | null;
-  filecoinActionId: string | null;
-}
-
-interface PublicCommitment {
-  id: string;
-  programId: string;
-  status: "anchored" | "pending";
-  commitmentRoot: string;
-  participantCount: number;
-  highWaterMark: string | null;
-  highWaterMarkUsd: number | null;
-  createdAt: string;
-  anchors: CommitmentAnchors;
-  program: { name: string; sponsorName: string; status: string } | null;
-}
-
 /** Accept a raw id, a full URL, or a pasted blob and return the bare id. */
 function extractCommitmentId(input: string): string {
   const trimmed = input.trim();
@@ -58,42 +40,19 @@ function extractCommitmentId(input: string): string {
   return match ? match[0] : trimmed;
 }
 
-function Copyable({ value, truncate = true }: { value: string; truncate?: boolean }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <span className="inline-flex items-center gap-1.5 font-mono text-xs">
-      <span title={value}>{truncate ? `${value.slice(0, 12)}…${value.slice(-8)}` : value}</span>
-      <button
-        type="button"
-        aria-label="Copy"
-        className="text-muted-foreground hover:text-foreground"
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(value);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          } catch {
-            /* clipboard unavailable */
-          }
-        }}
-      >
-        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-      </button>
-    </span>
-  );
-}
-
 export function VerifyClient({
   initialId,
   initialRoundId,
+  initialReportId,
   initialMode,
 }: {
   initialId: string;
   initialRoundId: string;
-  initialMode: "credit" | "auction";
+  initialReportId: string;
+  initialMode: "credit" | "auction" | "diligence";
 }) {
   const router = useRouter();
-  const [mode, setMode] = useState<"credit" | "auction">(initialMode);
+  const [mode, setMode] = useState<"credit" | "auction" | "diligence">(initialMode);
   const [idInput, setIdInput] = useState(initialId);
   const [commitment, setCommitment] = useState<PublicCommitment | null>(null);
   const [loading, setLoading] = useState(false);
@@ -215,6 +174,7 @@ export function VerifyClient({
             [
               { key: "credit", label: "Credit commitment" },
               { key: "auction", label: "Auction round" },
+              { key: "diligence", label: "Diligence report" },
             ] as const
           ).map((option) => (
             <button
@@ -233,7 +193,21 @@ export function VerifyClient({
           ))}
         </div>
 
-        {mode === "auction" ? (
+        {mode === "diligence" ? (
+          <>
+            <h1 className="mt-3 text-2xl font-bold text-foreground">
+              Supplier diligence: a model alone vs the same model governed
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+              One supplier, one model, two arms: what the model decided alone,
+              and what it decided once Cognivern governance bought independent
+              specialist evidence and enforced the declared policy. The report
+              is a redacted static file — decisions, costs, hashes, run ids —
+              published for anyone to inspect.
+            </p>
+            <DiligenceVerify initialReportId={initialReportId || "supplier-diligence"} />
+          </>
+        ) : mode === "auction" ? (
           <>
             <h1 className="mt-3 text-2xl font-bold text-foreground">
               Verify an auction round
@@ -286,6 +260,7 @@ export function VerifyClient({
 
         {commitment && (
           <div className="mt-8 space-y-6">
+            <ProofSummary proof={proofFromCommitment(commitment)} />
             {/* ── Commitment card ── */}
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">

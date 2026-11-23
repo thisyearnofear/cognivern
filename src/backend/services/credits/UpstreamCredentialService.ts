@@ -24,10 +24,16 @@
 import { randomBytes, scryptSync, createCipheriv, createDecipheriv } from "node:crypto";
 import type Database from "better-sqlite3";
 import { getDb } from "@backend/db/index.js";
+import { isOpenAICompatBackend } from "@backend/services/inference/backendRegistry.js";
 
-/** Providers accepted as a per-program upstream. Extend deliberately. */
+/**
+ * Providers accepted as a per-program upstream. Extend deliberately.
+ * Any registered OpenAI-compatible backend id (the built-in `openai-compat`
+ * or a provider named via OPENAI_COMPAT_PROVIDERS) is also accepted — the
+ * credential's `provider` is that backend's id.
+ */
 export const UPSTREAM_PROVIDERS = ["anthropic"] as const;
-export type UpstreamProvider = (typeof UPSTREAM_PROVIDERS)[number];
+export type UpstreamProvider = (typeof UPSTREAM_PROVIDERS)[number] | (string & {});
 
 export interface CredentialStatus {
   configured: boolean;
@@ -75,7 +81,9 @@ function decrypt(blob: string): string {
 
 export function isUpstreamProvider(value: unknown): value is UpstreamProvider {
   return (
-    typeof value === "string" && (UPSTREAM_PROVIDERS as readonly string[]).includes(value)
+    typeof value === "string" &&
+    ((UPSTREAM_PROVIDERS as readonly string[]).includes(value) ||
+      isOpenAICompatBackend(value))
   );
 }
 

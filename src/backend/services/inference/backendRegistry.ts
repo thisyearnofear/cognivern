@@ -24,7 +24,10 @@ import type { InferenceBackend } from "./types.js";
 import { ModelPricingService } from "./ModelPricingService.js";
 import { sharedZeroGRouterBackend } from "./ZeroGRouterBackend.js";
 import { sharedAnthropicBackend } from "./AnthropicBackend.js";
-import { sharedOpenAICompatBackend } from "./OpenAICompatBackend.js";
+import {
+  OpenAICompatBackend,
+  sharedOpenAICompatBackend,
+} from "./OpenAICompatBackend.js";
 
 export interface RegisteredBackend {
   backend: InferenceBackend;
@@ -54,6 +57,60 @@ export function registerBackend(
 export function resolveBackend(id: string): RegisteredBackend | null {
   ensureDefaults();
   return registry.get(id) ?? null;
+}
+
+/** True when `id` resolves to any OpenAI-compatible backend — the built-in
+ * `openai-compat` instance or one named via OPENAI_COMPAT_PROVIDERS. */
+export function isOpenAICompatBackend(id: string): boolean {
+  return resolveBackend(id)?.backend instanceof OpenAICompatBackend;
+}
+
+const NAMED_PROVIDER_ID = /^[a-z0-9][a-z0-9-]{0,31}$/;
+const RESERVED_PROVIDER_IDS = new Set(["zerog-router", "anthropic", "openai-compat"]);
+
+/** Env prefix for a named provider id: OPENAI_COMPAT_ + id uppercased with
+ * every non-alphanumeric character replaced by `_`. */
+function namedProviderEnvPrefix(id: string): string {
+  return `OPENAI_COMPAT_${id.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`;
+}
+
+/**
+ * Register the OpenAI-compatible providers named by OPENAI_COMPAT_PROVIDERS
+ * (a comma-separated id list, e.g. "qwen,cerebras"). For id X the env prefix
+ * is `OPENAI_COMPAT_<X uppercased, non-alnum → _>`: read `<PREFIX>_BASE_URL`
+ * and `<PREFIX>_API_KEY`. A named provider with no BASE_URL is still
+ * registered so `listBackends()` reports it as `configured: false`.
+ * Invalid, reserved, or duplicate ids are skipped with a warning — a typo in
+ * an env list must never take the service down at startup.
+ */
+export function registerNamedOpenAICompatBackends(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): string[] {
+  const raw = env.OPENAI_COMPAT_PROVIDERS ?? "";
+  const registered: string[] = [];
+  for (const entry of raw.split(",")) {
+    const id = entry.trim();
+    if (!id) continue;
+    if (!NAMED_PROVIDER_ID.test(id)) {
+      logger.warn(`Skipping invalid OPENAI_COMPAT_PROVIDERS id '${id}'`);
+      continue;
+    }
+    if (RESERVED_PROVIDER_IDS.has(id) || registry.has(id) || registered.includes(id)) {
+      logger.warn(`Skipping reserved or duplicate OPENAI_COMPAT_PROVIDERS id '${id}'`);
+      continue;
+    }
+    const prefix = namedProviderEnvPrefix(id);
+    registerBackend(
+      new OpenAICompatBackend({
+        id,
+        baseUrl: env[`${prefix}_BASE_URL`] ?? "",
+        apiKey: env[`${prefix}_API_KEY`] ?? "",
+        apiKeyEnvName: `${prefix}_API_KEY`,
+      }),
+    );
+    registered.push(id);
+  }
+  return registered;
 }
 
 export function listBackends(): Array<{ id: string; configured: boolean }> {
@@ -91,4 +148,5 @@ function ensureDefaults(): void {
   if (!registry.has("openai-compat")) {
     registerBackend(sharedOpenAICompatBackend());
   }
+  registerNamedOpenAICompatBackends();
 }

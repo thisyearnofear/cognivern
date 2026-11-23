@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Check,
-  Copy,
   FileSearch,
   ShieldCheck,
   ShieldX,
@@ -13,6 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { hashSealedBidEvent } from "@/lib/cre-hash";
+import { Copyable, ProofSummary } from "./proof-replay";
+import { proofFromRound } from "@/lib/proof";
+import { SANDBOX_REPLAY_ID } from "@/lib/visibility-replay";
+import { VisibilityReplay } from "./visibility-replay";
+import {
+  displayPartyName,
+  ROUND_PROOF_LIMITS,
+  ROUND_PROOF_PROVES,
+  type RoundVerification,
+} from "@/lib/verify-records";
 
 /**
  * Public, login-free verification of a sealed-bid auction round.
@@ -26,69 +34,12 @@ import { hashSealedBidEvent } from "@/lib/cre-hash";
  * anchored externally.
  */
 
-interface RoundVerification {
-  roundId: string;
-  status: string;
-  backend?: string;
-  description: string;
-  serviceCategory: string;
-  deadline: string;
-  bidCount: number;
-  winner: string | null;
-  winningBid: number | null;
-  winningProposalHash: string | null;
-  ledgerRefs: { auction?: string; result?: string; cancelled?: string } | null;
-  settledAssetCid: string | null;
-  governanceTimeline: {
-    runId: string;
-    agentId: string;
-    events: {
-      eventType: string;
-      timestamp: string;
-      eventHash: string;
-      payload: Record<string, unknown>;
-    }[];
-  } | null;
-}
-
-/** Party ids look like "Alice::1220abcd…" — show the friendly prefix. */
-function displayPartyName(party: string | null | undefined): string {
-  if (!party) return "";
-  const [name] = party.split("::");
-  return name || party;
-}
-
 /** Accept a raw roundId or a pasted link containing ?round=<id>. */
 function extractRoundId(input: string): string {
   const trimmed = input.trim();
   const urlMatch = trimmed.match(/[?&]round=([^&#\s]+)/);
   if (urlMatch) return decodeURIComponent(urlMatch[1]);
   return trimmed;
-}
-
-function Copyable({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <span className="inline-flex items-center gap-1.5 font-mono text-xs">
-      <span title={value}>{`${value.slice(0, 12)}…${value.slice(-8)}`}</span>
-      <button
-        type="button"
-        aria-label="Copy"
-        className="text-muted-foreground hover:text-foreground"
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(value);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          } catch {
-            /* clipboard unavailable */
-          }
-        }}
-      >
-        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-      </button>
-    </span>
-  );
 }
 
 export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {
@@ -112,6 +63,11 @@ export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {
   const load = useCallback(async (rawId: string) => {
     const id = extractRoundId(rawId);
     if (!id) return;
+    if (id === SANDBOX_REPLAY_ID) {
+      setRound(null);
+      setError(null);
+      return;
+    }
     setLoading(true);
     setError(null);
     setRound(null);
@@ -245,9 +201,28 @@ export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {
 
       {loading && <p className="mt-6 text-sm text-muted-foreground">Loading round…</p>}
       {error && <p className="mt-6 text-sm text-destructive">{error}</p>}
+      {!round && !loading && !error && extractRoundId(idInput) !== SANDBOX_REPLAY_ID && (
+        <p className="mt-4 text-xs text-muted-foreground">
+          No round id?{" "}
+          <a
+            href={`/verify?round=${SANDBOX_REPLAY_ID}`}
+            onClick={(e) => {
+              e.preventDefault();
+              router.push(`/verify?round=${SANDBOX_REPLAY_ID}`);
+              setIdInput(SANDBOX_REPLAY_ID);
+            }}
+            className="text-primary hover:underline"
+          >
+            Replay a verified sandbox round
+          </a>
+        </p>
+      )}
+
+      {extractRoundId(idInput) === SANDBOX_REPLAY_ID && <VisibilityReplay />}
 
       {round && (
         <div className="mt-8 space-y-6">
+          <ProofSummary proof={proofFromRound(round)} />
           {/* ── Outcome card ── */}
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -434,33 +409,20 @@ export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {
           <div className="rounded-xl border border-border bg-muted/30 p-5 text-sm">
             <div className="font-semibold text-foreground">What this proves</div>
             <ul className="mt-2 space-y-1.5 text-muted-foreground">
-              <li className="flex gap-2">
-                <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
-                The outcome and contract ids the operator published for this round.
-              </li>
-              <li className="flex gap-2">
-                <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
-                Each governance event&apos;s hash matches its contents — recomputed
-                in your browser, not on our server.
-              </li>
-              <li className="flex gap-2">
-                <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
-                A hash you saved earlier (e.g. at bid time) is still present and
-                unchanged.
-              </li>
+              {ROUND_PROOF_PROVES.map((line, i) => (
+                <li key={i} className="flex gap-2">
+                  <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
+                  {line}
+                </li>
+              ))}
             </ul>
             <ul className="mt-3 space-y-1.5 text-muted-foreground">
-              <li className="flex gap-2">
-                <ShieldX className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
-                Not proven here: Canton contracts are private to their parties, so
-                the contract ids can only be resolved on the ledger by the
-                round&apos;s participants.
-              </li>
-              <li className="flex gap-2">
-                <ShieldX className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
-                Event hashes are not yet chained or anchored externally — this
-                page cannot rule out the operator rewriting the whole trail.
-              </li>
+              {ROUND_PROOF_LIMITS.map((line, i) => (
+                <li key={i} className="flex gap-2">
+                  <ShieldX className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
+                  {line}
+                </li>
+              ))}
             </ul>
           </div>
         </div>
