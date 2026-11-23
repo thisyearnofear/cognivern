@@ -81,6 +81,7 @@
     "demo:dynamic": "tsx tooling/scripts/demo/demo-dynamic.ts",
     "dynamic:provision": "tsx tooling/scripts/dynamic/provision-server-wallet.ts",
     "telegraph:digest": "tsx tooling/scripts/agents/telegraph-signal-digest.ts",
+    "telegraph:benchmark": "tsx tooling/scripts/agents/telegraph-benchmark.ts",
     "pitch-deck": "/usr/local/bin/python3.13 tooling/scripts/create-pitch-deck.py",
     "demo:fhe": "tsx tooling/scripts/demo/demo-fhe-spend.ts",
     "signoz:seed": "tsx tooling/scripts/signoz/seed-telemetry.ts",

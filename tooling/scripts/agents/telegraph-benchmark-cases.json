@@ -1,0 +1,122 @@
+{
+  "schema": "cognivern.telegraph.benchmark-cases.v1",
+  "description": "Fixed public screening and policy cases for the Mission 02 compliant-call workflow. Ground truth is independent of the Telegraph miners being measured.",
+  "cases": [
+    {
+      "id": "counterproof-ofac-hit",
+      "category": "sanctions-screen",
+      "description": "A known OFAC-listed entity must produce a hit and block the parent GAS_PRICE purchase before settlement.",
+      "classification": "positive",
+      "positiveClass": "hit",
+      "telegraph": {
+        "endpoint": "compliant-call",
+        "body": {
+          "minerId": "9002",
+          "intent": "GAS_PRICE",
+          "params": { "chain": "base", "unit": "gwei" },
+          "compliance": {
+            "minerId": "731002",
+            "intent": "SANCTIONS_SCREENING_MATCH",
+            "params": { "name": "ISIL KHORASAN" }
+          },
+          "spendGuard": {
+            "maxScreeningCostUsd": 0.02,
+            "maxTotalCostUsd": 0.03,
+            "allowedMiners": ["9002"],
+            "allowedIntents": ["GAS_PRICE"],
+            "allowedScreenMiners": ["731002"],
+            "allowedScreenIntents": ["SANCTIONS_SCREENING_MATCH"]
+          },
+          "description": "Benchmark: sanctions hit blocks gas-price purchase"
+        }
+      },
+      "baselinePrompt": "Classify the entity \"ISIL KHORASAN\" for sanctions-list risk against authoritative public sanctions data. Reply with exactly one token: CLEAR, HIT, REVIEW, or UNKNOWN.",
+      "expect": { "path": "data.compliance.verdict", "equals": "hit" },
+      "baselineExpect": { "path": "data.answer", "equals": "hit" },
+      "also": [
+        { "path": "data.blocked", "equals": true },
+        { "path": "data.compliance.screeningMinerId", "equals": "731002" }
+      ],
+      "groundTruth": {
+        "source": "OFAC Sanctions List Search",
+        "assertion": "ISIL KHORASAN is a listed sanctions entity and must not be treated as clear.",
+        "checkedAt": "2026-11-22"
+      }
+    },
+    {
+      "id": "counterproof-unlisted-clear",
+      "category": "sanctions-screen",
+      "description": "A benign fictional company should clear screening and allow the governed parent call to proceed to the normal confidence gate.",
+      "classification": "negative",
+      "positiveClass": "hit",
+      "telegraph": {
+        "endpoint": "compliant-call",
+        "body": {
+          "minerId": "9002",
+          "intent": "GAS_PRICE",
+          "params": { "chain": "base", "unit": "gwei" },
+          "compliance": {
+            "minerId": "731002",
+            "intent": "SANCTIONS_SCREENING_MATCH",
+            "params": { "name": "Acme Robotics Ltd", "jurisdiction": "US" }
+          },
+          "spendGuard": {
+            "maxScreeningCostUsd": 0.02,
+            "maxTotalCostUsd": 0.03,
+            "allowedMiners": ["9002"],
+            "allowedIntents": ["GAS_PRICE"],
+            "allowedScreenMiners": ["731002"],
+            "allowedScreenIntents": ["SANCTIONS_SCREENING_MATCH"]
+          },
+          "description": "Benchmark: clear screen permits governed gas-price purchase"
+        }
+      },
+      "baselinePrompt": "Classify the fictional entity \"Acme Robotics Ltd\" (US) for sanctions-list risk. It is not a listed sanctions entity in this fixture. Reply with exactly one token: CLEAR, HIT, REVIEW, or UNKNOWN.",
+      "expect": { "path": "data.compliance.verdict", "equals": "clear" },
+      "baselineExpect": { "path": "data.answer", "equals": "clear" },
+      "also": [
+        { "path": "data.blocked", "equals": false },
+        { "path": "data.compliance.screeningMinerId", "equals": "731002" }
+      ],
+      "groundTruth": {
+        "source": "Fixture-defined negative control",
+        "assertion": "Acme Robotics Ltd is a benign fictional company for this benchmark and is not a listed sanctions entity.",
+        "checkedAt": "2026-11-23"
+      }
+    },
+    {
+      "id": "spend-guard-zero-cost-deny",
+      "category": "policy",
+      "description": "A subjectDenylist policy violation must stop the call before any screening or parent payment is purchased.",
+      "telegraph": {
+        "endpoint": "compliant-call",
+        "body": {
+          "minerId": "9002",
+          "intent": "GAS_PRICE",
+          "params": { "chain": "base", "unit": "gwei" },
+          "compliance": {
+            "minerId": "731002",
+            "intent": "SANCTIONS_SCREENING_MATCH",
+            "params": { "name": "COGNIVERN_BENCHMARK_DENY" }
+          },
+          "spendGuard": {
+            "subjectDenylist": ["COGNIVERN_BENCHMARK_DENY"],
+            "maxTotalCostUsd": 0.03
+          },
+          "description": "Benchmark: zero-cost spend-guard denial"
+        }
+      },
+      "expect": { "path": "data.compliance.gate", "equals": "spend_guard" },
+      "also": [
+        { "path": "data.blocked", "equals": true },
+        { "path": "data.status", "equals": "denied" },
+        { "path": "data.policyViolations", "nonEmpty": true }
+      ],
+      "groundTruth": {
+        "source": "Local spend-guard policy",
+        "assertion": "COGNIVERN_BENCHMARK_DENY is explicitly denylisted, so the attempt must be denied without a paid screen.",
+        "checkedAt": "2026-11-23"
+      }
+    }
+  ]
+}

@@ -86,14 +86,17 @@ whose response deliberately lacked a recognizable compliance verdict.
 - Provider-aware compliance verdicts (`clear / hit / review / unknown`), including Counterproof `CLEAR / REVIEW / BLOCK` labels and explicit-provider precedence over recursive guesses
 - Signed `evidenceBundle` on every compliant-call gate/settlement artifact + authenticated `GET /api/telegraph/evidence/:runId` + `telegraph-demo.ts evidence <runId>`
 - Fail-closed `spendGuard` on `compliant-call` (screening/total caps, miner and intent allowlists, hashed subject terms, consensus count, budget linkage) with violations recorded before and after screening
+- Human-review path for provider `review` and explicitly disputed `hit` compliance gates via the existing CRE approval inbox (`held_pending → released/quarantined`)
+- Independent fixed-case benchmark harness (`telegraph-benchmark.ts`) with declared ground truth, optional OpenAI-compatible baselines, JSON/Markdown reports, cost/latency, review/unknown/error rates, and false-positive/false-negative metrics
 - `test(inference): cover openai-compat backend contract` (7 tests)
 - Anjoman API-key rail — `AnjomanService` (`/agent/chat`, async-job poll/cancel, escrow balance) + `governedAnjomanTask` (`telegraph.signal`, `paymentMethod: "anjoman_api_key"`, fail-safe held)
 - Anjoman-delegated vendor screening for sealed-bid rounds — `sealed_bid.vendor_screened` governance events + `requireScreened` reveal gate + UI badges + judge CLI
 - Ledger/compliance/CRE rails from earlier commits (`18ccb457`, `47988448`, …)
 
-Latest local verification for the assurance slice: six focused unit files
-pass (47 tests), backend and frontend typechecks pass, the updated API client
-and sealed-bid UI lint pass, and `git diff --check` is clean.
+Latest local verification for the assurance slice: focused Telegraph
+compliance, evidence, recorder, ledger, and benchmark unit tests pass;
+backend and frontend typechecks pass; the updated API client and sealed-bid
+UI lint pass; and `git diff --check` is clean.
 
 ## Honesty bounds (say these out loud)
 
@@ -102,8 +105,13 @@ and sealed-bid UI lint pass, and `git diff --check` is clean.
   independent ground truth. Agreement mode raises the bar (two miners must
   concur) but remains correlated miner opinion with receipts.
 - `unknown` verdicts are stored and excluded from accuracy — never counted correct.
-- Provider `review` is now distinct from malformed `unknown`, but both still
-  block payment until a human-review/second-opinion workflow exists.
+- Provider `review` is distinct from malformed `unknown` and now creates an
+  approval-inbox case when the screening call itself was approved; `hit`
+  requires explicit `compliance.disputeHit`, while `unknown` and undisputed
+  hits still block payment.
+- The benchmark harness declares independent fixture ground truth and reports
+  response hashes/metrics. `--dry-run` validates the suite; it is not live
+  performance evidence. A paid fixture run still requires workspace auth.
 - Shareable bundles omit the screened subject and sit behind workspace auth;
   they carry hashes and run linkage, not a public unauthenticated receipt.
 - `spendGuard` proves the evaluated request stayed inside the declared caps
@@ -136,8 +144,11 @@ The current implementation also normalizes provider `REVIEW`, routes provider
 review and explicitly disputed hits into the operator approval inbox, attaches a
 signed evidence bundle to each new compliant-call attempt, enforces
 spend-guard policy before and after the paid screen, and exposes the bundle
-through an authenticated evidence endpoint and judge CLI. Separately, 20 metered
-inference calls through our OpenAI-compatible gateway produced 19
+through an authenticated evidence endpoint and judge CLI. A fixed-case
+benchmark harness now scores providers against independent ground truth and
+can compare an OpenAI-compatible frontier baseline; its paid fixture run is
+pending the same valid workspace credential as the evidence receipt. Separately,
+20 metered inference calls through our OpenAI-compatible gateway produced 19
 evaluator-sampled records and a verified-answer leaderboard (85.7% accuracy,
 $0.0065 per verified-correct). The new Anjoman rail is implemented and covered
 by tests: it can delegate one governed due-diligence task per bidder, and its
@@ -191,9 +202,12 @@ or judge can independently verify. Ordered by leverage:
    `compliance.disputeHit: true` does the same for a disputed `hit`. Approval
    releases and rejection quarantines the review case, without silently
    clearing the provider verdict or resuming the denied parent payment.
-6. **Independent benchmarks (P1).** Re-run fixed public cases against
-   authoritative records and compare miners with frontier-model baselines:
-   precision/review/error rates, latency, and cost per verified answer.
+6. **Independent benchmark harness (implemented).** `telegraph-benchmark.ts`
+   re-runs fixed public cases against declared ground truth and emits
+   JSON/Markdown reports with cost, latency, review/unknown/error rates, and
+   hit precision/recall including false positives/negatives. Optional
+   `--baseline` compares an OpenAI-compatible frontier model; live fixture
+   execution still requires workspace auth.
 7. **Router + agent SDK (P2).** Route miners by measured quality/cost and
    expose `screenBeforeSpend`, `buyIntel`, `getEvidence`, `budgetStatus`, and
    `approveReview` as tools agents can use without learning CRE internals.
