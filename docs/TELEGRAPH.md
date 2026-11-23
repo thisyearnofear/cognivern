@@ -569,3 +569,26 @@ Ordered by leverage-to-effort, to start when Season II rules publish:
 Budget note: scripted paid calls may be excluded from judging. Keep the
 digest demand-driven (daemon signals only) and add per-run spend ceilings
 before increasing any cadence.
+
+## Post-submission enterprise extension (proposed)
+
+Telegraph's team asked for a commercial Qwen/Alibaba Cloud example. The
+bounded deliverable should be a paired **cross-border supplier onboarding and
+payment risk** comparison, not a Qwen-specific rewrite:
+
+- **Qwen alone** evaluates the supplier and returns a proceed/hold/reject
+  recommendation.
+- **Qwen + Cognivern + Telegraph** runs the same task under a mandate and
+  spend cap, screens compliance before paid intelligence, buys specialist
+  evidence through Telegraph, lets Qwen synthesize the decision, verifies the
+  result with evaluator miners, and escalates disagreement through the
+  approval inbox.
+
+Publish the paired evidence report — model/provider, token and specialist
+costs, compliance verdict, evaluator outcome, final decision, run ids, and
+evidence hashes — so the difference between “an answer” and “a governed,
+verified action” is measurable. A dedicated `qwen` backend should reuse the
+existing OpenAI-compatible adapter and record `qwen`/`alibaba-cloud` as the
+provider; do not repoint the existing Groq `openai-compat` route. This is a
+commercial extension under evaluation, not a claim of Alibaba partnership or
+a prerequisite for the Season II submission.
