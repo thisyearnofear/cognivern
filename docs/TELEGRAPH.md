@@ -169,6 +169,23 @@ November 23. Deployment and route registration are verified; a successful
 authenticated retrieval receipt still requires a valid workspace JWT or API key
 and a post-deploy run, because the November 22 canonical runs predate bundles.
 
+`tooling/scripts/agents/telegraph-benchmark.ts` is the independent benchmark
+harness. It loads fixed public cases from `telegraph-benchmark-cases.json`,
+scores each provider response against declared ground truth (not an evaluator
+miner's opinion), records run ids/evidence hashes, cost, latency, review and
+unknown rates, and hit precision/recall with false positives and false
+negatives. `--dry-run` validates the suite and emits a planned report without
+paid calls; a live run requires the same workspace credential. `--baseline`
+also runs the marked cases through an OpenAI-compatible frontier model using
+`BENCHMARK_BASE_URL`, `BENCHMARK_API_KEY`, and `BENCHMARK_MODEL` for comparison:
+
+```bash
+pnpm exec tsx tooling/scripts/agents/telegraph-benchmark.ts --dry-run
+pnpm exec tsx tooling/scripts/agents/telegraph-benchmark.ts \
+  --out /tmp/telegraph-benchmark.json \
+  --markdown /tmp/telegraph-benchmark.md
+```
+
 The Anjoman vendor-screening loop is reproducible end to end:
 
 ```bash
@@ -401,17 +418,18 @@ move from call governance to repeatable transaction assurance.
 | P0 — implemented | Spend-guard policy on `compliant-call`                                 | `spendGuard` now supports max screening/total cost, permitted parent and screening miners/intents, subject allow/deny terms, consensus count, and budget id. Checks run before any payment and again before the parent purchase; violations block and are recorded.                                          |
 | P1               | Stablecoin payment-guard workflow                                      | Extend the validated call into a payment intent: payee entity/wallet + amount + rail → sanctions/fraud/transaction-risk screen → `allow / deny / review` → downstream purchase or settlement. This is the clearest Mission 02 buyer workflow.                                                                |
 | P1 — implemented | Human review path for compliance screens                              | A provider `review` verdict creates a paused gate-decision run in the existing approval inbox; `compliance.disputeHit: true` does the same for an explicitly disputed `hit`. Approval releases and rejection quarantines the review case, with `held_pending → released/quarantined` ledger states; it never silently clears the provider verdict or resumes the denied parent call. |
-| P1               | Verification harness and benchmarks                                    | Re-run fixed public cases against independent records (sanctions lists, chain RPC/explorer data, filings, shipping feeds), compare miners and frontier-model baselines, and publish precision/review/error rates, latency, and cost per verified answer.                                                     |
+| P1 — implemented | Verification harness and benchmarks                                    | `telegraph-benchmark.ts` re-runs fixed public cases from `telegraph-benchmark-cases.json` against independent ground truth, emits JSON/Markdown reports with run ids, response/evidence hashes, cost, latency, review/unknown/error rates, and hit precision/recall including false positives/negatives. Optional `--baseline` compares an OpenAI-compatible frontier model; live execution still requires workspace auth and paid calls are explicit. |
 | P2               | Quality/cost-aware miner router                                        | Selection today favors score then price. Add measured verifier agreement, historical error/review rates, latency, endpoint health, source freshness, and explicit source coverage; support fallback miners and dry-run quotes.                                                                               |
 | P2               | Agent SDK/MCP surface                                                  | Expose `screenBeforeSpend`, `buyIntel`, `getEvidence`, `budgetStatus`, and `approveReview` as a small tool set with a per-request budget cap. This turns the API into something other agents can adopt without learning CRE internals.                                                                       |
 | P3               | Workflow templates                                                     | Package verticals only after the primitives above: stablecoin treasury compliance; procurement/vendor due diligence (existing Canton + Anjoman rail); pre-trade settlement/liquidity checks; contract/filings/document authenticity; logistics and physical-world checks.                                    |
 
 The first build slice — verdict adapters, evidence bundle, and spend-guard
-policy — is now implemented and covered by focused unit tests. Human review
-and independent benchmarks follow because they need an explicit `REVIEW`
-state and a source of truth outside the miners being measured. Do not expand
-first into generic model routing or a broad miner marketplace; neither
-produces a governed paid action with independently checkable evidence.
+policy — is implemented and covered by focused unit tests, as are the
+compliance review path and fixed-case benchmark harness. The next product
+slice is the stablecoin payment-intent workflow, because it turns independent
+screening into a governed settlement decision. Do not expand first into
+generic model routing or a broad miner marketplace; neither produces a
+governed paid action with independently checkable evidence.
 
 ## Season I retrospective
 
