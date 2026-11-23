@@ -29,6 +29,22 @@ For local sandbox setup and ledger tests, inspect the scripts under `daml/script
 
 The `Canton visibility evidence` workflow ([canton-visibility.yml](../.github/workflows/canton-visibility.yml)) is `workflow_dispatch` only — it never runs on push or on the live DevNet. It runs `scripts/measure-visibility.sh` inside a fresh Linux cgroup on an isolated runner: build the model and scripts DARs, execute `VisibilityProof:visibilityProof` on the in-memory IDE ledger and on a local `dpm sandbox`, then compare the two role-by-phase outputs. The uploaded artifact records toolchain versions, the checkout SHA, DAR hashes, per-phase cgroup memory samples, and both JSON outputs — enough to say who could read each synthetic price, not what any deployed service logs or returns. Memory figures cover the build, IDE, and sandbox process family combined; SDK provisioning is outside the measured cgroup.
 
+## Staging replay (isolated VM only)
+
+`tooling/scripts/verify/canton-staging-replay.sh` replays the sealed-bid suite against a private sandbox and a private backend inside a PID+network namespace (loopback only, ephemeral working directory, no `.env`). It is a staging measurement tool: it does not touch production, hosted TestSprite, or any shared ledger.
+
+From a clean clone on a Linux host with `dpm` (SDK pinned in `daml.yaml`), `jq`, `node`, `openssl`, `python3`+`pytest`/`requests`, and the repo's Node toolchain (`.nvmrc`, pnpm frozen-lockfile install so `node_modules/.bin/tsx` exists):
+
+```bash
+cd daml && dpm build && (cd scripts && dpm build)
+EVIDENCE_DIR=/abs/new/evidence-dir \
+MODEL_DAR=$PWD/.daml/dist/daml-0.0.3.dar \
+SCRIPT_DAR=$PWD/scripts/.daml/dist/daml-scripts-0.0.3.dar \
+  bash ../tooling/scripts/verify/canton-staging-replay.sh
+```
+
+`EVIDENCE_DIR` must be a new absolute path; it receives `results.xml`, the boot check, source revision, DAR hashes, and launcher hash. Run on a disposable Linux VM with permission to create namespaces, `unshare`, `ip`, and `curl`. Namespace exit stops the services but does not erase files: the private temp directory holds run data and logs, and the backend can write relative to the checkout. Keep the checkout disposable and export only reviewed evidence.
+
 ## Safety boundary
 
 Do not create probe or test rounds against the live Canton DevNet. The live model has no cancel/archive-without-bids choice, so test rounds can persist in the demo list. Read [AGENTS.md](../AGENTS.md) and [Canton](../docs/CANTON.md) before changing templates, package references, or DevNet configuration.
