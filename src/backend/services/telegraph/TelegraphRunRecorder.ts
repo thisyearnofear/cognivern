@@ -24,6 +24,12 @@ export interface RecordTelegraphCallParams {
   projectId?: string | null;
   agentId?: string;
   description?: string;
+  /** Pre-generated id for callers that need to embed the run id in evidence. */
+  runId?: string;
+  /** Pre-generated artifact id for evidence bundles. */
+  artifactId?: string;
+  /** Extra fields merged into the telegraph.signal artifact before signing. */
+  artifactExtras?: Record<string, unknown>;
 }
 
 export async function recordTelegraphGovernedCall(
@@ -36,6 +42,7 @@ export async function recordTelegraphGovernedCall(
     workflow: "governance",
     mode: "cre",
     projectId,
+    runId: params.runId,
   });
 
   const miner = result.response?.metadata;
@@ -59,17 +66,24 @@ export async function recordTelegraphGovernedCall(
   });
 
   const artifactData =
-    result.artifact?.data ??
-    ({
-      agentId: params.agentId,
-      description: params.description,
-      miner: { id: miner?.minerId, name: miner?.minerName },
-      signal: { confidence: miner?.confidence ?? null },
-      cost: { usd: miner?.costUsd ?? "0", paymentMethod: "x402" },
-      error: result.error,
-    } as Record<string, unknown>);
+    result.artifact?.data &&
+    typeof result.artifact.data === "object" &&
+    !Array.isArray(result.artifact.data)
+      ? (result.artifact.data as Record<string, unknown>)
+      : ({
+          agentId: params.agentId,
+          description: params.description,
+          miner: { id: miner?.minerId, name: miner?.minerName },
+          signal: { confidence: miner?.confidence ?? null },
+          cost: { usd: miner?.costUsd ?? "0", paymentMethod: "x402" },
+          error: result.error,
+        } as Record<string, unknown>);
+  if (params.artifactExtras) {
+    Object.assign(artifactData, params.artifactExtras);
+  }
 
   await recorder.addArtifact({
+    id: params.artifactId ?? result.artifact?.id,
     type: "telegraph.signal",
     data: artifactData,
   });
@@ -99,12 +113,20 @@ export interface RecordTelegraphGateParams {
   agentId?: string;
   mandateId?: string;
   description?: string;
+  /** Pre-generated id for callers that need to embed the run id in evidence. */
+  runId?: string;
+  /** Pre-generated artifact id for evidence bundles. */
+  artifactId?: string;
+  /** Artifact timestamp used to make the precomputed artifact hash match. */
+  timestamp?: string;
   /** What stopped the purchase, e.g. "compliance". */
   gate: string;
   reason: string;
   /** Screening run/artifact this decision links back to. */
   compliance?: Record<string, unknown>;
   intendedCall?: Record<string, unknown>;
+  /** Shareable payment-attempt receipt attached before artifact signing. */
+  evidenceBundle?: Record<string, unknown>;
 }
 
 /**
@@ -122,6 +144,7 @@ export async function recordTelegraphGateDecision(
     workflow: "governance",
     mode: "cre",
     projectId,
+    runId: params.runId,
   });
 
   const step = recorder.startStep("http", "telegraph.gate_decision", {
@@ -131,6 +154,7 @@ export async function recordTelegraphGateDecision(
   step.end({ ok: false, summary: `Purchase blocked by ${params.gate}: ${params.reason}` });
 
   await recorder.addArtifact({
+    id: params.artifactId,
     type: "telegraph.signal",
     data: {
       agentId: params.agentId,
@@ -143,8 +167,9 @@ export async function recordTelegraphGateDecision(
       },
       compliance: params.compliance,
       intendedCall: params.intendedCall,
+      evidenceBundle: params.evidenceBundle,
       cost: { usd: "0", paymentMethod: "x402", paid: false },
-      timestamp: new Date().toISOString(),
+      timestamp: params.timestamp ?? new Date().toISOString(),
     },
   });
 
