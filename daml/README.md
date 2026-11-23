@@ -27,6 +27,8 @@ For local sandbox setup and ledger tests, inspect the scripts under `daml/script
 
 ## Visibility evidence (manual)
 
+The public field note [Sealed from whom?](../docs/history/CANTON_RESEARCH_NOV26.md) links to the canonical DEV article and records the hosted replay provenance.
+
 The `Canton visibility evidence` workflow ([canton-visibility.yml](../.github/workflows/canton-visibility.yml)) is `workflow_dispatch` only — it never runs on push or on the live DevNet. It runs `scripts/measure-visibility.sh` inside a fresh Linux cgroup on an isolated runner: build the model and scripts DARs, execute `VisibilityProof:visibilityProof` on the in-memory IDE ledger and on a local `dpm sandbox`, then compare the two role-by-phase outputs. The uploaded artifact records toolchain versions, the checkout SHA, DAR hashes, per-phase cgroup memory samples, and both JSON outputs — enough to say who could read each synthetic price, not what any deployed service logs or returns. Memory figures cover the build, IDE, and sandbox process family combined; SDK provisioning is outside the measured cgroup.
 
 ## Staging replay (isolated VM only)
