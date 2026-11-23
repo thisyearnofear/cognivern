@@ -16,9 +16,5 @@
     "../../src/server.ts",
     "../../src/index.ts"
   ],
-  "exclude": [
-    "../../src/frontend/**/*",
-    "../../src/shared/**/*",
-    "../../src/modules/cloudflare-agents/**/*"
-  ]
+  "exclude": ["../../src/frontend/**/*", "../../src/shared/**/*"]
 }
