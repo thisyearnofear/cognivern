@@ -370,7 +370,7 @@ export class CreditProgramController {
     if (!isUpstreamProvider(body.provider)) {
       return badRequest(
         res,
-        `provider must be one of: ${UPSTREAM_PROVIDERS.join(", ")}`,
+        `provider must be one of: ${UPSTREAM_PROVIDERS.join(", ")}, or a registered OpenAI-compatible backend id`,
       );
     }
     const apiKey = typeof body.apiKey === "string" ? body.apiKey.trim() : "";

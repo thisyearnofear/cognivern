@@ -169,3 +169,43 @@ describe("OpenAICompatBackend", () => {
     expect(await backend().listModels()).toEqual([]);
   });
 });
+
+describe("named provider instances", () => {
+  function named(apiKey = "sk-q"): OpenAICompatBackend {
+    return new OpenAICompatBackend({
+      baseUrl: BASE,
+      apiKey,
+      id: "qwen",
+      apiKeyEnvName: "OPENAI_COMPAT_QWEN_API_KEY",
+    });
+  }
+
+  it("reports its own id as provider on success and on upstream error", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(COMPLETION)));
+    const ok = await named().chatCompletion(request());
+    expect(ok.provider).toBe("qwen");
+    expect(ok.upstreamRequestId).toBe("chatcmpl-1");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({ error: { message: "boom" } }, 500),
+      ),
+    );
+    const err = await named().chatCompletion(request());
+    expect(err.ok).toBe(false);
+    expect(err.provider).toBe("qwen");
+  });
+
+  it("names the provider's own env var in the no-key result", async () => {
+    const result = await named("").chatCompletion(request());
+    expect(result.ok).toBe(false);
+    expect(result.provider).toBe("qwen");
+    expect((result.body as { error: string }).error).toContain(
+      "OPENAI_COMPAT_QWEN_API_KEY",
+    );
+    expect((result.body as { error: string }).error).not.toContain(
+      "OPENAI_COMPAT_API_KEY.",
+    );
+  });
+});

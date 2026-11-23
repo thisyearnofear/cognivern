@@ -66,7 +66,11 @@ import {
 } from "@backend/services/credits/UpstreamCredentialService.js";
 import { nanoToUsd } from "@backend/services/credits/money.js";
 import { ModelPricingService } from "./ModelPricingService.js";
-import { listBackends, resolveBackend } from "./backendRegistry.js";
+import {
+  isOpenAICompatBackend,
+  listBackends,
+  resolveBackend,
+} from "./backendRegistry.js";
 import { recordGatewayInference } from "@backend/observability/gateway.js";
 import { ZERO_USAGE, type InferenceBackend, type UpstreamUsage } from "./types.js";
 import { hashPolicyContent } from "../../../shared/governance-proof-v2.js";
@@ -130,12 +134,18 @@ export class InferenceGatewayService {
    * did not choose would bill the wrong pocket.
    */
   private upstreamKeyFor(context: GatewayContext, backendId: string): string | undefined {
-    if (backendId !== "anthropic" && backendId !== "openai-compat") return undefined;
-    const credential = this.credentials.getCredential(context.program.id);
+    const openaiCompat = isOpenAICompatBackend(backendId);
+    if (backendId !== "anthropic" && !openaiCompat) return undefined;
+    const stored = this.credentials.getCredential(context.program.id);
+    // A credential stored for a different provider is treated as absent:
+    // an Anthropic key must never be sent to an OpenAI-compatible endpoint
+    // (or vice versa), regardless of which program it was pasted into.
+    const credential = stored && stored.provider === backendId ? stored : null;
     if (!credential) {
-      // openai-compat may fall back to the platform env key; anthropic has
-      // no env key by design — a missing credential must deny loudly.
-      if (backendId === "openai-compat") return undefined;
+      // OpenAI-compatible backends may fall back to a platform env key;
+      // anthropic has no env key by design — a missing credential must deny
+      // loudly.
+      if (openaiCompat) return undefined;
       throw new GatewayDeniedError({
         code: "backend_not_configured",
         message:
