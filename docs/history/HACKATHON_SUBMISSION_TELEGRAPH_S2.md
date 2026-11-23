@@ -40,11 +40,13 @@ Workspace auth: a workspace JWT (`Authorization: Bearer`) or workspace API key
 `https://cognivern.persidian.com/telegraph`.
 
 **Post-deploy verification, November 23.** The production backend was redeployed
-from `main` commit `5b9cdc24`; `/health` is green and the active release
-registers `GET /api/telegraph/evidence/:runId` behind workspace auth. The
-November 22 run ids above still predate bundles, so they will not populate the
-new endpoint. To produce a fresh evidence bundle without buying another screen,
-run this zero-cost spend-guard denial with a valid workspace credential:
+from `main` commit `5b9cdc24`, then again from `32e7c831` to activate the
+provider-review / disputed-hit approval path. `/health` and `/health/ready` are
+green; the active release registers `GET /api/telegraph/evidence/:runId` behind
+workspace auth and contains the review pending actions. The November 22 run ids
+above still predate bundles, so they will not populate the new endpoint. To
+produce a fresh evidence bundle without buying another screen, run this
+zero-cost spend-guard denial with a valid workspace credential:
 
 ```bash
 pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts compliant-call '{
