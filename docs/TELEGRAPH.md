@@ -115,9 +115,11 @@ key works) regardless of whether the direct-miner rail is enabled.
 
 Production validation on November 23: the workspace key is configured and
 `anjoman.ready`/`reachable` are true; two governed smoke tasks reached Anjoman
-and persisted fail-safe `held_pending` runs at zero cost; a `$0.50`-capped paid
-task reached the provider but returned a Cloudflare 504. Do not describe paid
-specialist delegation as proven until a task returns funded specialist sources.
+and persisted fail-safe `held_pending` runs at zero cost; two `$0.50`-capped
+paid tasks reached the provider but returned Cloudflare 504s, while the
+provider balance endpoint reported `$0.03` cumulative unbilled spend. Do not
+describe paid specialist delegation as proven until a task returns funded
+specialist sources.
 
 ### Vendor screening → sealed-bid award gate
 
@@ -195,6 +197,12 @@ pnpm exec tsx tooling/scripts/agents/telegraph-benchmark.ts \
   --out /tmp/telegraph-benchmark.json \
   --markdown /tmp/telegraph-benchmark.md
 ```
+
+Paid production run, November 23: all three fixture cases passed with `$0.03`
+measured spend, two paid calls, 5,083ms average latency, no review/unknown
+responses, and 100% hit precision/recall on the fixture. Evidence retrieval
+returned `cognivern.telegraph.compliant-call-evidence.v1` for all three gate
+runs; hashes were `d2150c41…`, `21ea2b05…`, and `860fbf81…`.
 
 The Anjoman vendor-screening loop is reproducible end to end:
 
