@@ -155,6 +155,20 @@ pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts verify-sample <programId>
 pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts report <programId>
 ```
 
+The CLI sends `COGNIVERN_TOKEN` as `Authorization: Bearer`; raw API clients may
+instead send a workspace API key as `x-api-key`. Every Telegraph API route is
+workspace-authenticated, including `status`, `miners`, and `intents`. For a
+zero-cost evidence retrieval check, submit a `compliant-call` whose
+`spendGuard.subjectDenylist` exactly matches a `compliance.params` value: the
+pre-screen guard denies it before any x402 payment, persists a gate-decision
+artifact, embeds an `evidenceBundle`, and returns the `runId` needed by
+`telegraph-demo.ts evidence <runId>`.
+
+The endpoint was deployed to production with backend commit `5b9cdc24` on
+November 23. Deployment and route registration are verified; a successful
+authenticated retrieval receipt still requires a valid workspace JWT or API key
+and a post-deploy run, because the November 22 canonical runs predate bundles.
+
 The Anjoman vendor-screening loop is reproducible end to end:
 
 ```bash

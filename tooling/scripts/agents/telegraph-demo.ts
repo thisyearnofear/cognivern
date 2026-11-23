@@ -27,7 +27,7 @@
  *
  * Env:
  *   COGNIVERN_API    default https://api.cognivern.persidian.com
- *   COGNIVERN_TOKEN  workspace JWT (required for everything except miners/intents/status)
+ *   COGNIVERN_TOKEN  workspace JWT (required for all Telegraph API routes)
  *
  * Example compliant call (screen a name, then buy a gas price):
  *   telegraph-demo.ts compliant-call '{

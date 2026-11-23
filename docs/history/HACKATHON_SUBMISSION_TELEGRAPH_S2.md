@@ -35,8 +35,33 @@ paid evaluator miners into a cost-per-verified-answer leaderboard.
 | Judge re-runnability                     | `tooling/scripts/agents/telegraph-demo.ts` — dependency-free CLI over the live API (`ledger`, `evidence`, `compliant-call`, `anjoman-task`, `verify-sample`, `report`, `screen-round`, `reveal`)                                                                                                                                                                             |
 | Demo video                               | `~/Downloads/telegraph-s2-motion.mp4` (local artifact, ~108s, 1080p)                                                                                                                                                                                                                                                                                                         |
 
-Workspace auth: a workspace JWT (`Authorization: Bearer`). API base:
-`https://api.cognivern.persidian.com` · UI: `https://cognivern.persidian.com/telegraph`.
+Workspace auth: a workspace JWT (`Authorization: Bearer`) or workspace API key
+(`x-api-key`). API base: `https://api.cognivern.persidian.com` · UI:
+`https://cognivern.persidian.com/telegraph`.
+
+**Post-deploy verification, November 23.** The production backend was redeployed
+from `main` commit `5b9cdc24`; `/health` is green and the active release
+registers `GET /api/telegraph/evidence/:runId` behind workspace auth. The
+November 22 run ids above still predate bundles, so they will not populate the
+new endpoint. To produce a fresh evidence bundle without buying another screen,
+run this zero-cost spend-guard denial with a valid workspace credential:
+
+```bash
+pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts compliant-call '{
+  "minerId": "9002",
+  "intent": "GAS_PRICE",
+  "params": {"chain": "base", "unit": "gwei"},
+  "compliance": {"params": {"name": "COGNIVERN_EVIDENCE_PROBE"}},
+  "spendGuard": {"subjectDenylist": ["COGNIVERN_EVIDENCE_PROBE"]},
+  "description": "Zero-cost spend-guard evidence probe"
+}'
+```
+
+Expected: `blocked: true`, `status: "denied"`, a `runId`, and an embedded
+`evidenceBundle`; no screening or parent call is purchased. Then run
+`pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts evidence <runId>` and
+expect the same bundle under `data.evidenceBundle`. A successful authenticated
+retrieval receipt still needs to be captured with a valid workspace credential.
 
 **Live validation, November 22.** The capped Mission 02 sequence spent exactly
 $0.10 of Base Sepolia USDC across the canonical clear/hit/unknown cases and
