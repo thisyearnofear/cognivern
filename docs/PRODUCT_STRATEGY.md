@@ -179,15 +179,16 @@ at 20–25% CAGR with 62% of teams raising marketing budgets.
    `history/HACKATHON_SUBMISSION_HACKCANTON_S3.md`.
 6. **Weave conversation** — analytics-export-to-evidence integration
    (their savings + our worth). Story first, no build commitment.
-7. **Canton S4 (due Dec 6 2026) — procurement leads at Canton venues.** The
-   wedge is unchanged for the main product; at a Canton-judged venue the
-   submission is one product: *confidential procurement under a funded
-   mandate* — mandate → policy-gated sealed-bid round → atomic settlement →
-   spend on the mandate statement → public proof link. Credits stay out of
-   that pitch. Public surface: `/procure` (separate buyer, separate page —
-   the `/sponsor` pattern). In-season Canton work: Canton-native sign-in and
-   own-party bids (gated on NODERS rights), plus the `daml-0.0.3` cancel /
-   on-ledger deadline model. Run `SUBMISSION_CHECKLIST.md` before submitting.
+7. **Canton S4 (postponed to 2027, dates TBA) — procurement leads at Canton
+   venues.** The wedge is unchanged for the main product; at a Canton-judged
+   venue the submission is one product: *confidential procurement under a
+   funded mandate* — mandate → policy-gated sealed-bid round → atomic
+   settlement → spend on the mandate statement → public proof link. Credits
+   stay out of that pitch. Public surface: `/procure` (separate buyer,
+   separate page — the `/sponsor` pattern). Canton work to land before then:
+   Canton-native sign-in and own-party bids (gated on NODERS rights), plus
+   the `daml-0.0.3` cancel / on-ledger deadline model. Run
+   `SUBMISSION_CHECKLIST.md` before submitting.
 
 ## Passed-on markets (standing filter)
 
