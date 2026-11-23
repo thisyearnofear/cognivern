@@ -33,7 +33,7 @@ paid evaluator miners into a cost-per-verified-answer leaderboard.
 | Cross-miner agreement                    | `verify-sample {"agreement":true}` — two distinct evaluators (TxLens + AssistWire) per record; verdicts persist only on unanimous decided verdicts, else `unknown` with per-evaluator breakdown. Live result: 3 unanimous `correct`, 7 `no consensus` — mostly TxLens held/unparseable, plus one genuine evaluator disagreement (TxLens `incorrect` vs AssistWire `correct`) |
 | Anjoman delegated screening → award gate | `POST /api/vendor/sealed-bid/rounds/:id/screen-bidders` — one governed Anjoman task per bidder → `sealed_bid.vendor_screened` events on the round's hash-signed timeline → `/reveal` with `requireScreened` refuses to award an unscreened or hit vendor (403 + verdict map). Code + 27 tests landed; live run pending `ANJOMAN_API_KEY`                                     |
 | Judge re-runnability                     | `tooling/scripts/agents/telegraph-demo.ts` — dependency-free CLI over the live API (`ledger`, `evidence`, `compliant-call`, `anjoman-task`, `verify-sample`, `report`, `screen-round`, `reveal`)                                                                                                                                                                             |
-| Demo video                               | `~/Downloads/telegraph-s2-motion.mp4` (local artifact, ~108s, 1080p)                                                                                                                                                                                                                                                                                                         |
+| Demo video                               | `~/Downloads/telegraph-s2-demo.mp4` (local upload artifact, 72s, 720p)                                                                                                                                                                                                                                                                                                       |
 
 Workspace auth: a workspace JWT (`Authorization: Bearer`) or workspace API key
 (`x-api-key`). API base: `https://api.cognivern.persidian.com` · UI:
@@ -110,7 +110,7 @@ and sealed-bid UI lint pass, and `git diff --check` is clean.
   and allowlists. `budgetId` is linkage only; it does not yet debit a budget.
 - Only `open`-disclosure-tier records are sampled; private/detailed content is never sent to evaluators.
 
-## Apps & Agents — five commercial questions (draft answers)
+## Apps & Agents — five commercial questions (paste-ready answers)
 
 **01 Who is it for?**
 Teams and agents buying ranked intelligence through Telegraph who need to
@@ -138,10 +138,10 @@ spend-guard policy before and after the paid screen, and exposes the bundle
 through an authenticated evidence endpoint and judge CLI. Separately, 20 metered
 inference calls through our OpenAI-compatible gateway produced 19
 evaluator-sampled records and a verified-answer leaderboard (85.7% accuracy,
-$0.0065 per verified-correct). The new Anjoman rail delegates multi-step
-due-diligence — one governed task per bidder screens sanctions, reputation,
-and wallet risk across ranked specialists — and the verdicts gate the Canton
-sealed-bid award itself. Every claim re-runnable via
+$0.0065 per verified-correct). The new Anjoman rail is implemented and covered
+by tests: it can delegate one governed due-diligence task per bidder, and its
+verdicts gate the Canton sealed-bid award; the live Anjoman run is pending a
+production API key. Implemented claims are re-runnable via
 `tooling/scripts/agents/telegraph-demo.ts`.
 
 **04 Why would someone adopt it?**
