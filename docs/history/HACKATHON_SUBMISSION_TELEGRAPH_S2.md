@@ -196,6 +196,38 @@ on the API; the CLI in `tooling/scripts/agents/telegraph-demo.ts` re-runs the
 evidence. Maintained by the Cognivern team; docs in `docs/TELEGRAPH.md` and
 `docs/SPONSORED_CREDITS.md`.
 
+## Commercial extension under evaluation: Qwen enterprise diligence
+
+Telegraph's team asked whether Cognivern could demonstrate what the
+intelligence network enables for Alibaba Cloud and Qwen. The proposed
+post-submission artifact is **not** a Qwen-specific fork; it is a bounded
+enterprise example proving the difference between a model answering alone and
+an agent making a governed, independently verified decision.
+
+**Scenario:** cross-border supplier onboarding and payment risk.
+
+**Comparison:**
+
+1. **Qwen alone** evaluates the supplier and recommends `proceed`, `hold`, or
+   `reject`, with model usage/cost recorded.
+2. **Qwen + Cognivern + Telegraph** evaluates the same supplier under a
+   mandate and spend cap: compliance runs before paid intelligence, Telegraph
+   specialists provide sanctions/vendor/payment-risk evidence, Qwen
+   synthesizes the recommendation, evaluator miners verify it, and disputes or
+   uncertainty route to the approval inbox.
+
+The evidence to publish would be the paired report: Qwen model/provider,
+token usage and cost, Telegraph specialist spend, compliance verdict,
+evaluator outcome, final decision, run ids, evidence hashes, and the point
+where specialist intelligence changed or escalated the business decision.
+
+Likely implementation: add a dedicated `qwen` backend that reuses the
+existing OpenAI-compatible adapter and records `qwen`/`alibaba-cloud` as the
+provider. Do not repoint the existing `openai-compat` Groq route. Initial
+cases should be a benign supplier and a risky/ambiguous supplier. This work is
+a commercial extension proposal, not a claim of Alibaba adoption, partnership,
+or a new required submission rail; it should not delay the Telegraph form.
+
 ## Product developments worth implementing next
 
 The commercial wedge is not "another model call." It is paid specialist
@@ -227,22 +259,28 @@ or judge can independently verify. Ordered by leverage:
    `compliance.disputeHit: true` does the same for a disputed `hit`. Approval
    releases and rejection quarantines the review case, without silently
    clearing the provider verdict or resuming the denied parent payment.
-6. **Independent benchmark harness (implemented).** `telegraph-benchmark.ts`
-   re-runs fixed public cases against declared ground truth and emits
-   JSON/Markdown reports with cost, latency, review/unknown/error rates, and
-   hit precision/recall including false positives/negatives. Optional
-   `--baseline` compares an OpenAI-compatible frontier model; live fixture
-   execution still requires workspace auth.
-7. **Router + agent SDK (P2).** Route miners by measured quality/cost and
+6. **Independent benchmark harness (implemented and live-verified).**
+   `telegraph-benchmark.ts` re-runs fixed public cases against declared ground
+   truth and emits JSON/Markdown reports with cost, latency, review/unknown/error
+   rates, and hit precision/recall including false positives/negatives. The
+   November 23 paid production fixture run passed all three cases with `$0.03`
+   measured spend. Optional `--baseline` compares an OpenAI-compatible frontier
+   model.
+7. **Qwen enterprise diligence (proposed).** Add a dedicated `qwen` backend
+   reusing the OpenAI-compatible adapter, then run paired Qwen-only versus
+   Qwen+Cognivern+Telegraph supplier-risk cases with paired cost/evidence
+   reports. Keep it a bounded enterprise example, not a product rewrite.
+8. **Router + agent SDK (P2).** Route miners by measured quality/cost and
    expose `screenBeforeSpend`, `buyIntel`, `getEvidence`, `budgetStatus`, and
    `approveReview` as tools agents can use without learning CRE internals.
-8. **Workflow templates (P3).** Package stablecoin treasury compliance,
+9. **Workflow templates (P3).** Package stablecoin treasury compliance,
    procurement/vendor due diligence, pre-trade settlement checks, and
    company/document intelligence only after the primitives are solid.
 
 The compliance review path is now implemented alongside the first build
-slice; the next useful product step is the payment-intent workflow, not
-generic model routing. Durable detail lives in
+slice. The next core rail is the payment-intent workflow; the Qwen item is a
+bounded commercial extension rather than generic model routing. Durable
+detail lives in
 [`../TELEGRAPH.md#product-roadmap-after-mission-02-validation`](../TELEGRAPH.md#product-roadmap-after-mission-02-validation).
 
 ## Submission checklist status
