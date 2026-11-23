@@ -49,6 +49,7 @@ never bake deadlines into `AGENTS.md` or rail docs.
 
 | Program | Type | Status | Reference |
 | --- | --- | --- | --- |
+| Canton Community Research Grants (November 2026) | Research grant | Published Nov 22 — field note live; share/outcome pending | [DEV article](https://dev.to/papajams/sealed-from-whom-what-each-party-can-see-in-a-canton-procurement-auction-442b) · [publication record](./history/CANTON_RESEARCH_NOV26.md) |
 | TestSprite Season 4 | Hackathon | Concluded — submission window closed; repo doc records incomplete submission requirements | [submission](./history/TESTSPRITE_S4_SUBMISSION.md) · [verification doc](./TESTING.md) |
 | HackCanton S3 | Hackathon | Concluded Oct 21 2026 — not shortlisted; [retro](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md#retrospective) | [submission](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md) |
 | Prezenti AI Builder Sponsorship | Sponsorship (not a hackathon) | Applying — hard close Dec 29 2026; Celo mainnet milestone required | [PREZENTI_SPONSORSHIP.md](./PREZENTI_SPONSORSHIP.md) |

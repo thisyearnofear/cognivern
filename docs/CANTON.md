@@ -12,7 +12,7 @@ The FHE path uses CoFHE ciphertext bids and a manager-decrypt-and-publish reveal
 
 - **Before close** — bidders can read only their own active bid as their ledger party. The auction manager can read all active bids because the manager observes every `Bid` contract. Bids are sealed from rival bidders, not from the manager.
 - **After close** — `CloseAndReveal` consumes the auction and active bids and creates an `AuctionResult` in one transaction. The manager and eligible bidders can read the winner and winning amount; losing prices are not in the result. Archival is not erasure.
-- **Evidence and scope** — the [visibility replay](../daml/README.md#visibility-evidence-manual) compares party-scoped reads on the Daml reference ledger and a fresh Canton sandbox. It does not establish what separate web users, logs, or participant operators can see.
+- **Evidence and scope** — the [visibility replay](../daml/README.md#visibility-evidence-manual) compares party-scoped reads on the Daml reference ledger and a fresh Canton sandbox. The public field note [Sealed from whom?](https://dev.to/papajams/sealed-from-whom-what-each-party-can-see-in-a-canton-procurement-auction-442b) summarizes the finding. It does not establish what separate web users, logs, or participant operators can see.
 
 ## Architecture
 
