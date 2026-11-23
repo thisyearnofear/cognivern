@@ -196,37 +196,46 @@ on the API; the CLI in `tooling/scripts/agents/telegraph-demo.ts` re-runs the
 evidence. Maintained by the Cognivern team; docs in `docs/TELEGRAPH.md` and
 `docs/SPONSORED_CREDITS.md`.
 
-## Commercial extension under evaluation: Qwen enterprise diligence
+## Enterprise extension: supplier diligence (model-agnostic)
 
 Telegraph's team asked whether Cognivern could demonstrate what the
-intelligence network enables for Alibaba Cloud and Qwen. The proposed
-post-submission artifact is **not** a Qwen-specific fork; it is a bounded
-enterprise example proving the difference between a model answering alone and
-an agent making a governed, independently verified decision.
+intelligence network enables for Alibaba Cloud and Qwen. What was built —
+and included in this submission — is **not** a Qwen-specific fork; it is a
+model-agnostic enterprise example proving the difference between a model
+answering alone and an agent making a governed, independently evidenced
+decision. Any OpenAI-compatible model slots in; Qwen (via Alibaba Cloud
+Model Studio) is the first configuration, and two or more models can be
+compared side by side in one run.
 
 **Scenario:** cross-border supplier onboarding and payment risk.
 
-**Comparison:**
+**Comparison per case:**
 
-1. **Qwen alone** evaluates the supplier and recommends `proceed`, `hold`, or
-   `reject`, with model usage/cost recorded.
-2. **Qwen + Cognivern + Telegraph** evaluates the same supplier under a
-   mandate and spend cap: compliance runs before paid intelligence, Telegraph
-   specialists provide sanctions/vendor/payment-risk evidence, Qwen
-   synthesizes the recommendation, evaluator miners verify it, and disputes or
-   uncertainty route to the approval inbox.
+1. **Model alone** evaluates the supplier and recommends `proceed`, `hold`,
+   or `reject`, with model usage/cost recorded.
+2. **Model + Cognivern + Telegraph** evaluates the same supplier under a
+   mandate and spend cap: a two-step compliant-call buys sanctions screening
+   (miners `731002`, `710637`) gating corporate-registry (`7393`) and
+   vendor-verify (`7396`) specialist purchases, the declared gate policy
+   decides clear-cut cases itself, and only then does the same model
+   synthesize a recommendation from the purchased evidence. Disputed or
+   uncertain screens — including purchased evidence held by the confidence
+   gate — route to the approval inbox.
 
-The evidence to publish would be the paired report: Qwen model/provider,
-token usage and cost, Telegraph specialist spend, compliance verdict,
-evaluator outcome, final decision, run ids, evidence hashes, and the point
-where specialist intelligence changed or escalated the business decision.
+The evidence is the paired report: model/provider, token usage and cost,
+Telegraph specialist spend, compliance verdicts, final decision and who
+decided it, run ids, and evidence hashes — plus the point where specialist
+intelligence changed or escalated the business decision.
 
-Likely implementation: add a dedicated `qwen` backend that reuses the
-existing OpenAI-compatible adapter and records `qwen`/`alibaba-cloud` as the
-provider. Do not repoint the existing `openai-compat` Groq route. Initial
-cases should be a benign supplier and a risky/ambiguous supplier. This work is
-a commercial extension proposal, not a claim of Alibaba adoption, partnership,
-or a new required submission rail; it should not delay the Telegraph form.
+Implementation: named OpenAI-compatible providers via
+`OPENAI_COMPAT_PROVIDERS` (no dedicated `qwen` backend — the existing Groq
+`openai-compat` route is untouched, and a stored upstream credential that
+does not match the program's backend is ignored), and the
+`telegraph:diligence` runner (`tooling/scripts/agents/telegraph-diligence.ts`)
+with four fixed supplier cases (listed entity, registered-clear,
+unregistered entity, individual name-match). Results are pending a live
+run; this is an
+enterprise example, not a claim of Alibaba adoption or partnership.
 
 ## Product developments worth implementing next
 
@@ -266,10 +275,11 @@ or judge can independently verify. Ordered by leverage:
    November 23 paid production fixture run passed all three cases with `$0.03`
    measured spend. Optional `--baseline` compares an OpenAI-compatible frontier
    model.
-7. **Qwen enterprise diligence (proposed).** Add a dedicated `qwen` backend
-   reusing the OpenAI-compatible adapter, then run paired Qwen-only versus
-   Qwen+Cognivern+Telegraph supplier-risk cases with paired cost/evidence
-   reports. Keep it a bounded enterprise example, not a product rewrite.
+7. **Supplier diligence example (implemented, live run pending).** Named
+   OpenAI-compatible providers via `OPENAI_COMPAT_PROVIDERS` (Qwen first,
+   model-agnostic — no dedicated backend) plus the `telegraph:diligence`
+   runner comparing model-alone versus model+Cognivern+Telegraph on fixed
+   supplier cases with paired cost/evidence reports.
 8. **Router + agent SDK (P2).** Route miners by measured quality/cost and
    expose `screenBeforeSpend`, `buyIntel`, `getEvidence`, `budgetStatus`, and
    `approveReview` as tools agents can use without learning CRE internals.
@@ -278,8 +288,9 @@ or judge can independently verify. Ordered by leverage:
    company/document intelligence only after the primitives are solid.
 
 The compliance review path is now implemented alongside the first build
-slice. The next core rail is the payment-intent workflow; the Qwen item is a
-bounded commercial extension rather than generic model routing. Durable
+slice. The next core rail is the payment-intent workflow; the supplier
+diligence item is a bounded, model-agnostic enterprise example rather than
+generic model routing. Durable
 detail lives in
 [`../TELEGRAPH.md#product-roadmap-after-mission-02-validation`](../TELEGRAPH.md#product-roadmap-after-mission-02-validation).
 

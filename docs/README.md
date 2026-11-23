@@ -59,7 +59,7 @@ never bake deadlines into `AGENTS.md` or rail docs.
 | KeeperHub — Agents Onchain | Hackathon | Concluded Aug 13 2026 | [history submission](./history/HACKATHON_SUBMISSION_KEEPERHUB.md) |
 | Flare Summer Signal | Hackathon | Concluded Aug 14 2026 | [history submission](./history/FLARE_SUMMER_SIGNAL.md) |
 | Lexsi AI Safety & Alignment | Hackathon | Concluded — submission window closed Nov 15 2026; v7 adapter/results documented; no outcome recorded | [experiment log](./LEXSI_HACKATHON.md) · [product translation](./LEXSI_PRODUCT.md) |
-| Telegraph Protocol S2 | Hackathon | Active — final submission prep; Track 03 Apps & Agents with Mission 02 primary and Mission 10 supporting evidence; Qwen enterprise-diligence extension under evaluation; submissions close Dec 1 2026 23:59 UTC via Anjoman | [submission](./history/HACKATHON_SUBMISSION_TELEGRAPH_S2.md) · [TELEGRAPH.md](./TELEGRAPH.md) · [SPONSORED_CREDITS.md](./SPONSORED_CREDITS.md) |
+| Telegraph Protocol S2 | Hackathon | Active — final submission prep; Track 03 Apps & Agents with Mission 02 primary and Mission 10 supporting evidence; model-agnostic supplier-diligence example (Qwen first) implemented, live run pending; submissions close Dec 1 2026 23:59 UTC via Anjoman | [submission](./history/HACKATHON_SUBMISSION_TELEGRAPH_S2.md) · [TELEGRAPH.md](./TELEGRAPH.md) · [SPONSORED_CREDITS.md](./SPONSORED_CREDITS.md) |
 | Telegraph Protocol S1 Track 3 | Hackathon | Concluded Sep 7 2026 — no placement; [retrospective](./TELEGRAPH.md#season-i-retrospective) | [history submission](./history/HACKATHON_SUBMISSION_TELEGRAPH.md) |
 
 ## History

@@ -570,25 +570,74 @@ Budget note: scripted paid calls may be excluded from judging. Keep the
 digest demand-driven (daemon signals only) and add per-run spend ceilings
 before increasing any cadence.
 
-## Post-submission enterprise extension (proposed)
+## Enterprise extension: supplier diligence (model-agnostic)
 
-Telegraph's team asked for a commercial Qwen/Alibaba Cloud example. The
-bounded deliverable should be a paired **cross-border supplier onboarding and
-payment risk** comparison, not a Qwen-specific rewrite:
+Part of the Season II submission. Telegraph's team asked for a commercial
+Qwen/Alibaba Cloud example; what was built is a **model-agnostic supplier
+onboarding diligence** comparison — any OpenAI-compatible model works, Qwen
+is simply the first config entry, not a backend class.
 
-- **Qwen alone** evaluates the supplier and returns a proceed/hold/reject
-  recommendation.
-- **Qwen + Cognivern + Telegraph** runs the same task under a mandate and
-  spend cap, screens compliance before paid intelligence, buys specialist
-  evidence through Telegraph, lets Qwen synthesize the decision, verifies the
-  result with evaluator miners, and escalates disagreement through the
-  approval inbox.
+- **Model alone** evaluates the supplier and returns a
+  `proceed`/`hold`/`reject` recommendation, with usage and USD cost recorded.
+- **Model + Cognivern + Telegraph** runs the same task under a mandate and
+  spend cap: a fixed compliance gate buys paid specialist evidence through
+  Telegraph first, and only when the gate has not already decided does the
+  same model synthesize a recommendation from that evidence.
 
-Publish the paired evidence report — model/provider, token and specialist
-costs, compliance verdict, evaluator outcome, final decision, run ids, and
-evidence hashes — so the difference between “an answer” and “a governed,
-verified action” is measurable. A dedicated `qwen` backend should reuse the
-existing OpenAI-compatible adapter and record `qwen`/`alibaba-cloud` as the
-provider; do not repoint the existing Groq `openai-compat` route. This is a
-commercial extension under evaluation, not a claim of Alibaba partnership or
-a prerequisite for the Season II submission.
+**Named OpenAI-compatible providers.** `OPENAI_COMPAT_PROVIDERS` is a
+comma-separated list of backend ids (`qwen`, `cerebras`, …); each id reads
+`OPENAI_COMPAT_<ID>_BASE_URL` / `OPENAI_COMPAT_<ID>_API_KEY` and becomes a
+selectable `backend` on sponsored-credit programs with the same
+per-program-credential-with-env-fallback behaviour as the built-in provider.
+A stored credential whose provider does not match the program's backend is
+treated as absent, so a key is never sent to the wrong upstream. The
+existing Groq `openai-compat` route is untouched. USD pricing comes from
+the existing `GATEWAY_STATIC_PRICES` mechanism — no code change.
+
+**Two-step compliant-call flow.** Per case, specialist evidence is bought
+once and reused for every model: step 1 screens the supplier name with miner
+`731002` (`SANCTIONS_SCREENING_MATCH`) gating a `CORPORATE_REGISTRY_LOOKUP`
+purchase from miner `7393`; step 2 — only when step 1 is `clear` — screens
+with miner `710637` (same intent) with `disputeHit: true` so a disagreeing
+hit routes to the approval inbox, gating a `VENDOR_VERIFY` purchase from
+miner `7396`.
+
+**Gate-then-model policy.** An undisputed sanctions `hit` rejects; any
+review/unknown verdict, held step, error, spend-guard block, missing second
+screen, or unpaid parent purchase holds for human review; only a clean run
+lets the model decide with the specialist payloads attached. A hold can also
+come from the confidence gate holding a purchased specialist payload that
+arrived with low or unknown confidence — those land in the same approval
+inbox, and the gate's `reasons` record which path held each case. This is
+the declared fixture policy, not legal advice.
+
+**Runner.** `pnpm telegraph:diligence` (`tooling/scripts/agents/telegraph-diligence.ts`)
+reads `telegraph-diligence-cases.json` (four fixed suppliers: an OFAC-listed
+entity, a registered-and-clear entity, an unregistered entity, and an
+individual name-match that screens to review), enforces a
+`--max-spend-usd` cap on specialist calls (default $0.25), and emits a
+`cognivern.telegraph.diligence-report.v1` JSON + Markdown report with run
+ids, evidence hashes, per-model decisions, and costs. Models are configured
+via `DILIGENCE_MODELS` plus per-label `DILIGENCE_<LABEL>_BASE_URL`,
+`_API_KEY`, `_MODEL`, optional `_PROVIDER`, `_INPUT_USD_PER_MTOK`,
+`_OUTPUT_USD_PER_MTOK`, and `_GATEWAY_KEY` (routes the governed synthesis
+call through the Cognivern gateway at `/v1/chat/completions`). A model label
+missing config is skipped, never an error; with zero usable models the
+specialist evidence phase still runs and is reported.
+
+`--public-out <path>` additionally writes a redacted public report
+(`cognivern.telegraph.diligence-public-report.v1`) — a whitelist copy:
+decisions, rationales, costs, evidence hashes and run ids, but no API hosts,
+keys, error strings or raw specialist payloads. Published under
+`src/frontend/public/evidence/diligence/<id>.json` (`--report-id` sets the
+id), it is viewable by anyone at `/verify?report=<id>` — the diligence mode
+of the public verification page.
+
+**Honesty bounds.** Specialist payments are testnet x402 micropayments;
+screening verdicts are paid miner assertions, not independent ground truth;
+expected decisions follow the declared fixture policy; a hold can come from
+the compliance review path or the confidence gate — both land in the
+approval inbox; a handful of cases is
+evidence of the mechanism, not broad coverage. Results are pending a live
+run — this section documents the mechanism, not measured outcomes. This is
+an enterprise example, not a claim of Alibaba partnership.
