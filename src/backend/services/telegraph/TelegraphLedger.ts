@@ -49,6 +49,7 @@ export interface TelegraphLedgerRecord {
   evidencePath?: string;
   policyViolations?: string[];
   gateBlocked?: boolean;
+  reviewRequired?: boolean;
 }
 
 export interface TelegraphLedgerReport {
@@ -104,9 +105,11 @@ function dispositionFor(
   run: CreRun,
   confidenceMet: boolean | null,
   gateBlocked: boolean,
+  gateReviewable: boolean,
 ): TelegraphLedgerDisposition {
-  if (gateBlocked) return "blocked";
+  if (gateBlocked && !gateReviewable) return "blocked";
   const wasHeld =
+    (gateBlocked && gateReviewable) ||
     confidenceMet === false ||
     run.status === "paused_for_approval" ||
     run.requiresApproval === true;
@@ -137,6 +140,7 @@ export function buildTelegraphLedgerReport(runs: CreRun[]): TelegraphLedgerRepor
     const policyEvaluation = asRecord(evidenceBundle?.policyEvaluation);
     const gate = asRecord(data.gate);
     const gateBlocked = gate?.decision === "blocked";
+    const gateReviewable = gate?.reviewRequired === true;
 
     const confidence = num(signal?.confidence);
     const confidenceMet =
@@ -157,7 +161,7 @@ export function buildTelegraphLedgerReport(runs: CreRun[]): TelegraphLedgerRepor
       paid: cost?.paid === true,
       paymentNetwork: str(cost?.paymentNetwork),
       latencyMs: num(data.latencyMs) ?? undefined,
-      disposition: dispositionFor(run, confidenceMet, gateBlocked),
+      disposition: dispositionFor(run, confidenceMet, gateBlocked, gateReviewable),
       approvalState: run.approvalState,
       complianceVerdict: str(compliance?.verdict),
       complianceRunId: str(compliance?.screeningRunId),
@@ -170,6 +174,7 @@ export function buildTelegraphLedgerReport(runs: CreRun[]): TelegraphLedgerRepor
         ? policyEvaluation.violations.filter((item): item is string => typeof item === "string")
         : undefined,
       gateBlocked: gateBlocked || undefined,
+      reviewRequired: gateReviewable || undefined,
     });
   }
 

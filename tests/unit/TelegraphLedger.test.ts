@@ -180,6 +180,59 @@ describe("buildTelegraphLedgerReport", () => {
     expect(paidRec?.disposition).toBe("approved");
   });
 
+  it("keeps reviewable gate denials in the held/released/quarantined review states", () => {
+    const pending = signalRun("review-pending", {
+      status: "paused_for_approval",
+      ok: false,
+      requiresApproval: true,
+      approvalState: "pending",
+      paid: false,
+      costUsd: "0",
+    });
+    const released = signalRun("review-released", {
+      status: "completed",
+      ok: true,
+      approvalState: "approved",
+      paid: false,
+      costUsd: "0",
+    });
+    const quarantined = signalRun("review-quarantined", {
+      status: "failed",
+      ok: false,
+      approvalState: "rejected",
+      paid: false,
+      costUsd: "0",
+    });
+
+    for (const run of [pending, released, quarantined]) {
+      const data = run.artifacts[0].data as Record<string, unknown>;
+      data.gate = {
+        decision: "blocked",
+        reason: "provider requested manual review",
+        reviewRequired: true,
+      };
+      data.compliance = { verdict: "review", reviewRequired: true };
+    }
+
+    const report = buildTelegraphLedgerReport([pending, released, quarantined]);
+    expect(report.records.find((r) => r.runId === "review-pending")?.disposition).toBe(
+      "held_pending",
+    );
+    expect(report.records.find((r) => r.runId === "review-pending")?.reviewRequired).toBe(
+      true,
+    );
+    expect(report.records.find((r) => r.runId === "review-released")?.disposition).toBe(
+      "released",
+    );
+    expect(report.records.find((r) => r.runId === "review-quarantined")?.disposition).toBe(
+      "quarantined",
+    );
+    expect(report.totals.heldPending).toBe(1);
+    expect(report.totals.released).toBe(1);
+    expect(report.totals.quarantined).toBe(1);
+    expect(report.totals.blocked).toBe(0);
+  });
+
   it("marks rejected held signals as quarantined", () => {
     const report = buildTelegraphLedgerReport([
       signalRun("q-1", {

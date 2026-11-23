@@ -132,7 +132,8 @@ testnet spend), a clear-screened payment that settled with compliance proof,
 a real sanctions hit that blocked a downstream payment before settlement,
 and an uninterpretable screen that also blocked before settlement. The
 November 22 validation sequence spent exactly $0.10 of Base Sepolia USDC.
-The current implementation also normalizes provider `REVIEW`, attaches a
+The current implementation also normalizes provider `REVIEW`, routes provider
+review and explicitly disputed hits into the operator approval inbox, attaches a
 signed evidence bundle to each new compliant-call attempt, enforces
 spend-guard policy before and after the paid screen, and exposes the bundle
 through an authenticated evidence endpoint and judge CLI. Separately, 20 metered
@@ -185,9 +186,11 @@ or judge can independently verify. Ordered by leverage:
 4. **Stablecoin payment guard (P1).** Turn `compliant-call` into a payment
    intent: payee + amount + rail → sanctions/fraud/transaction-risk screen →
    `allow / deny / review` → purchase or settlement.
-5. **Human review queue (P1).** Route provider `REVIEW` and disputed `hit`
-   verdicts into the approval inbox with notes, optional second screen, and
-   a persisted reverse state. Do not silently clear.
+5. **Human review path (implemented).** Provider `REVIEW` verdicts enter the
+   existing approval inbox as paused gate runs; an explicit
+   `compliance.disputeHit: true` does the same for a disputed `hit`. Approval
+   releases and rejection quarantines the review case, without silently
+   clearing the provider verdict or resuming the denied parent payment.
 6. **Independent benchmarks (P1).** Re-run fixed public cases against
    authoritative records and compare miners with frontier-model baselines:
    precision/review/error rates, latency, and cost per verified answer.
@@ -198,9 +201,9 @@ or judge can independently verify. Ordered by leverage:
    procurement/vendor due diligence, pre-trade settlement checks, and
    company/document intelligence only after the primitives are solid.
 
-The first build slice is implemented; the next useful product step is the
-payment-intent workflow plus human review, not generic model routing. Durable
-detail lives in
+The compliance review path is now implemented alongside the first build
+slice; the next useful product step is the payment-intent workflow, not
+generic model routing. Durable detail lives in
 [`../TELEGRAPH.md#product-roadmap-after-mission-02-validation`](../TELEGRAPH.md#product-roadmap-after-mission-02-validation).
 
 ## Submission checklist status

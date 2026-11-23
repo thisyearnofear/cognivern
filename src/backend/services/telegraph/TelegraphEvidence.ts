@@ -58,6 +58,7 @@ export interface TelegraphEvidenceBundleInput {
     decision: 'allow' | 'deny';
     name: string;
     reason?: string | null;
+    reviewRequired?: boolean;
     runId: string;
     artifactId?: string | null;
     artifactHash?: string | null;

@@ -204,11 +204,41 @@ describe("recordTelegraphGovernedCall", () => {
     expect(run?.runId).toBe("gate-evidence-1");
     expect(run?.status).toBe("failed");
     expect(artifact?.data).toMatchObject({
-      gate: { decision: "blocked" },
+      gate: { decision: "blocked", reviewRequired: false },
       compliance: { verdict: "review" },
       evidenceBundle: { evidenceHash: "gate-hash" },
     });
     expect(artifact?.evidence?.hash).toBeTruthy();
+  });
+
+  it("pauses a reviewable gate decision for operator approval", async () => {
+    const run = await recordTelegraphGateDecision({
+      projectId: PROJECT,
+      agentId: "agent-1",
+      runId: "gate-review-1",
+      artifactId: "gate-review-artifact-1",
+      timestamp: "2026-11-22T00:00:00.000Z",
+      gate: "compliance",
+      reason: "provider requested manual review",
+      compliance: { verdict: "review", reviewRequired: true },
+      intendedCall: { minerId: "txlens" },
+      evidenceBundle: { evidenceHash: "review-hash" },
+      holdForReview: {
+        pendingAction: "review_compliance_verdict",
+        details: { verdict: "review", disputed: false },
+      },
+    });
+
+    const artifact = run?.artifacts.find((item) => item.type === "telegraph.signal");
+    expect(run?.status).toBe("paused_for_approval");
+    expect(run?.requiresApproval).toBe(true);
+    expect(run?.approvalState).toBe("pending");
+    expect(run?.controls?.canApprove).toBe(true);
+    expect(artifact?.data).toMatchObject({
+      gate: { decision: "blocked", reviewRequired: true },
+      compliance: { verdict: "review", reviewRequired: true },
+      evidenceBundle: { evidenceHash: "review-hash" },
+    });
   });
 
   it("skips persistence entirely when no projectId is provided", async () => {

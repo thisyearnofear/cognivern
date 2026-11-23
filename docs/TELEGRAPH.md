@@ -238,11 +238,16 @@ a screening verdict from a compliance miner (default intent
 subject via `compliance.params`), persists that screen as its own governed
 run, and only proceeds to the paid call on an explicit `clear` verdict. A
 `hit`, provider `review`, malformed `unknown`, or non-approved screening call
-blocks the purchase — the blocked attempt is recorded as a failed
-gate-decision run. Cleared payments carry a `compliance` block and an
-`evidenceBundle` inside their `telegraph.signal` artifact; the ledger exposes
-the bundle hash, `/api/telegraph/evidence/:runId` path, verdict source, and
-policy violations on the matching record.
+blocks the purchase before settlement. `hit`, `unknown`, and failed screens
+record a failed gate-decision run by default; a provider `review` verdict — or
+an explicit `compliance.disputeHit: true` on a `hit` — records the blocked
+attempt as a paused gate-decision run in the existing operator approval inbox.
+Approving that run releases the review case and rejecting it quarantines it;
+the endpoint does not silently clear the provider verdict or resume the denied
+parent payment, so the caller must retry after review. Cleared payments carry
+a `compliance` block and an `evidenceBundle` inside their `telegraph.signal`
+artifact; the ledger exposes the bundle hash, `/api/telegraph/evidence/:runId`
+path, verdict source, and policy violations on the matching record.
 
 #### Canonical screening verdicts
 
@@ -255,6 +260,15 @@ before the recursive boolean/risk-score fallback. `review` is therefore a
 real provider state, not a synonym for malformed output; `unknown` means the
 screen returned nothing recognizable. Only `clear` plus an approved governed
 screen permits the parent call.
+
+A provider `review` verdict automatically enters the human-review path when
+the screening call itself was approved. A provider `hit` remains blocked unless
+the request explicitly sets `compliance.disputeHit: true`; callers can attach a
+500-character operator note with `compliance.reviewNote` (hashed in the
+shareable compliance evidence). Reviewable blocked attempts return
+`status: "held"`, `reviewRequired: true`, a `pendingAction`, and a CRE
+`runId`; resolving them uses `POST /api/cre/runs/:runId/approval` with
+`{"approve": true|false, "reason": "operator note"}`.
 
 #### Evidence bundle and retrieval
 
@@ -386,7 +400,7 @@ move from call governance to repeatable transaction assurance.
 | P0 — implemented | Shareable evidence bundle per payment attempt                          | Each compliant-call artifact now carries a signed `evidenceBundle` linking screen, gate, settlement, artifact hashes, miner/source/list metadata, costs, policy evaluation, payment network, and replay metadata. `GET /api/telegraph/evidence/:runId` and `telegraph-demo.ts evidence <runId>` retrieve it. |
 | P0 — implemented | Spend-guard policy on `compliant-call`                                 | `spendGuard` now supports max screening/total cost, permitted parent and screening miners/intents, subject allow/deny terms, consensus count, and budget id. Checks run before any payment and again before the parent purchase; violations block and are recorded.                                          |
 | P1               | Stablecoin payment-guard workflow                                      | Extend the validated call into a payment intent: payee entity/wallet + amount + rail → sanctions/fraud/transaction-risk screen → `allow / deny / review` → downstream purchase or settlement. This is the clearest Mission 02 buyer workflow.                                                                |
-| P1               | Human review and second-opinion queue                                  | A provider `REVIEW` or disputed `hit` should create a review case with operator decision, notes, optional second screen, and a persisted reverse state. It must not silently clear; the default remains blocked.                                                                                             |
+| P1 — implemented | Human review path for compliance screens                              | A provider `review` verdict creates a paused gate-decision run in the existing approval inbox; `compliance.disputeHit: true` does the same for an explicitly disputed `hit`. Approval releases and rejection quarantines the review case, with `held_pending → released/quarantined` ledger states; it never silently clears the provider verdict or resumes the denied parent call. |
 | P1               | Verification harness and benchmarks                                    | Re-run fixed public cases against independent records (sanctions lists, chain RPC/explorer data, filings, shipping feeds), compare miners and frontier-model baselines, and publish precision/review/error rates, latency, and cost per verified answer.                                                     |
 | P2               | Quality/cost-aware miner router                                        | Selection today favors score then price. Add measured verifier agreement, historical error/review rates, latency, endpoint health, source freshness, and explicit source coverage; support fallback miners and dry-run quotes.                                                                               |
 | P2               | Agent SDK/MCP surface                                                  | Expose `screenBeforeSpend`, `buyIntel`, `getEvidence`, `budgetStatus`, and `approveReview` as a small tool set with a per-request budget cap. This turns the API into something other agents can adopt without learning CRE internals.                                                                       |
