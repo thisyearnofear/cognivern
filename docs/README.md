@@ -44,20 +44,20 @@ commit it or copy its contents into public docs.
 
 ## Program status
 
-Status as of **2026-11-14**. Update this table when a program changes state;
+Status as of **2026-11-23**. Update this table when a program changes state;
 never bake deadlines into `AGENTS.md` or rail docs.
 
 | Program | Type | Status | Reference |
 | --- | --- | --- | --- |
-| TestSprite Season 4 | Hackathon | Preparing — submissions close Oct 22 2026 23:59 PT; $3,000 project pool + separate $1,000 CLI pool (Oct 29) | [submission](./history/TESTSPRITE_S4_SUBMISSION.md) · [verification doc](./TESTING.md) |
+| TestSprite Season 4 | Hackathon | Concluded — submission window closed; repo doc records incomplete submission requirements | [submission](./history/TESTSPRITE_S4_SUBMISSION.md) · [verification doc](./TESTING.md) |
 | HackCanton S3 | Hackathon | Concluded Oct 21 2026 — not shortlisted; [retro](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md#retrospective) | [submission](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md) |
 | Prezenti AI Builder Sponsorship | Sponsorship (not a hackathon) | Applying — hard close Dec 29 2026; Celo mainnet milestone required | [PREZENTI_SPONSORSHIP.md](./PREZENTI_SPONSORSHIP.md) |
 | HackCanton S2 | Hackathon | Concluded | [CANTON.md](./CANTON.md) (rail stays live) |
 | Cleanverse Build: Trusted Assets | Hackathon | Concluded Aug 9 2026 | [history submission](./history/HACKATHON_SUBMISSION_CLEANVERSE.md) |
 | KeeperHub — Agents Onchain | Hackathon | Concluded Aug 13 2026 | [history submission](./history/HACKATHON_SUBMISSION_KEEPERHUB.md) |
 | Flare Summer Signal | Hackathon | Concluded Aug 14 2026 | [history submission](./history/FLARE_SUMMER_SIGNAL.md) |
-| Lexsi AI Safety & Alignment | Hackathon | Active — submissions close Nov 15 2026 23:59 AoE; Track 3 Agentic Fine-tuning (AgentTune + AuditKIT), governed-spend decision task; v7 adapter published | [experiment log](./LEXSI_HACKATHON.md) · [product translation](./LEXSI_PRODUCT.md) |
-| Telegraph Protocol S2 | Hackathon | Active — submissions close Dec 1 2026 23:59 UTC via Anjoman; form opens later; $10K, 3 tracks. Entered Track 03 Apps & Agents, missions 02 + 10 | [submission](./history/HACKATHON_SUBMISSION_TELEGRAPH_S2.md) · [TELEGRAPH.md](./TELEGRAPH.md) · [SPONSORED_CREDITS.md](./SPONSORED_CREDITS.md) |
+| Lexsi AI Safety & Alignment | Hackathon | Concluded — submission window closed Nov 15 2026; v7 adapter/results documented; no outcome recorded | [experiment log](./LEXSI_HACKATHON.md) · [product translation](./LEXSI_PRODUCT.md) |
+| Telegraph Protocol S2 | Hackathon | Active — final submission prep; Track 03 Apps & Agents with Mission 02 primary and Mission 10 supporting evidence; submissions close Dec 1 2026 23:59 UTC via Anjoman | [submission](./history/HACKATHON_SUBMISSION_TELEGRAPH_S2.md) · [TELEGRAPH.md](./TELEGRAPH.md) · [SPONSORED_CREDITS.md](./SPONSORED_CREDITS.md) |
 | Telegraph Protocol S1 Track 3 | Hackathon | Concluded Sep 7 2026 — no placement; [retrospective](./TELEGRAPH.md#season-i-retrospective) | [history submission](./history/HACKATHON_SUBMISSION_TELEGRAPH.md) |
 
 ## History

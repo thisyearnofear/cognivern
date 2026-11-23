@@ -1,9 +1,11 @@
 # TestSprite Season 4 — Cognivern Submission
 
-> **Status: preparing.** Submissions close **2026-10-22 23:59 PT**; judging
-> Oct 23–27; winners announced Nov 6. Prizes: $3,000 project awards
+> **Status: concluded.** The submission window closed **2026-10-22 23:59 PT**;
+> judging ran Oct 23–27 and winners were announced Nov 6. This repo record
+> still shows incomplete submission mechanics below, so it should not be read
+> as proof of a valid entry. Prizes were $3,000 project awards
 > (1st $1,500 · 2nd $750 · 3rd $450 · 4th/5th $150) plus a separate $1,000 CLI
-> improvement pool closing Oct 29.
+> improvement pool that closed Oct 29.
 >
 > The durable description of how verification works in this repo is
 > [`../TESTING.md`](../TESTING.md). The iteration history is

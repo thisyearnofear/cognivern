@@ -1,9 +1,9 @@
 # Lexsi AI Safety and Alignment Hackathon integration plan — Cognivern
 
-> Event: Lexsi AI Safety and Alignment Hackathon (Nov 1–21, 2026; submit by **Nov 14 EOD AoE**; Demo Day Nov 22)
+> Event: Lexsi AI Safety and Alignment Hackathon (Nov 1–21, 2026; submit by **Nov 15, 11:59 PM AoE**; Demo Day Nov 22)
 > Track: **Agentic Fine-tuning** (primary and only submission — only the final submission counts)
 > Stack: Lexsi open-source (**AgentTune**, **AuditKIT** — the track repos; AlignTune/SafeTune/CuratorKIT/CircuitKIT are other tracks' repos and cannot satisfy the chaining requirement) + Cohere Labs open-weights models + Hugging Face
-> Status: planning — build window is Nov 1–14
+> Status: concluded — submission window closed; v7 adapter/results are documented below; no submission outcome is recorded here
 
 This document is the build frame of reference for adapting Cognivern to the Lexsi hackathon. Durable Cognivern architecture lives in `docs/CANTON.md`, `docs/internals/`, and the rail docs; this file covers only the hackathon delta.
 
