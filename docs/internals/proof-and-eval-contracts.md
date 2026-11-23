@@ -39,6 +39,7 @@ Rules:
 | --- | --- | --- |
 | `credit-commitment` | `GET /verify/credit-commitment/:id` | Program id and name |
 | `sealed-bid-round` | `GET /api/vendor/sealed-bid/rounds/:roundId/verify` | No |
+| `sealed-bid-replay` | frozen sandbox evidence file `public/evidence/canton-visibility-*.json` | No |
 | `diligence-report` | `cognivern.telegraph.diligence-public-report.v1` static file | Mandate id |
 
 Not yet adapted, in order of value:
@@ -91,9 +92,8 @@ kind, then exporters for the other three.
 
 - `/sponsor` and `/procure` remain thin audience entry pages: different
   buyers, different pitches.
-- `/procure/demo` keeps its own route for now. It is the interactive
-  companion to a published field note that links to it, and its look is part
-  of that piece.
+- `/procure/demo` redirects to `/verify?round=sandbox-replay`; the replay
+  is a `/verify` view.
 - `/sponsor/sample` shows labelled fixture data. It should be replaced by a
   real cohort's commitment on `/verify`, not ported. That needs a published
   cohort to point at.

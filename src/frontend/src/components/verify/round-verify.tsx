@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { hashSealedBidEvent } from "@/lib/cre-hash";
 import { Copyable, ProofSummary } from "./proof-replay";
 import { proofFromRound } from "@/lib/proof";
+import { SANDBOX_REPLAY_ID } from "@/lib/visibility-replay";
+import { VisibilityReplay } from "./visibility-replay";
 import {
   displayPartyName,
   ROUND_PROOF_LIMITS,
@@ -61,6 +63,11 @@ export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {
   const load = useCallback(async (rawId: string) => {
     const id = extractRoundId(rawId);
     if (!id) return;
+    if (id === SANDBOX_REPLAY_ID) {
+      setRound(null);
+      setError(null);
+      return;
+    }
     setLoading(true);
     setError(null);
     setRound(null);
@@ -194,6 +201,24 @@ export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {
 
       {loading && <p className="mt-6 text-sm text-muted-foreground">Loading round…</p>}
       {error && <p className="mt-6 text-sm text-destructive">{error}</p>}
+      {!round && !loading && !error && extractRoundId(idInput) !== SANDBOX_REPLAY_ID && (
+        <p className="mt-4 text-xs text-muted-foreground">
+          No round id?{" "}
+          <a
+            href={`/verify?round=${SANDBOX_REPLAY_ID}`}
+            onClick={(e) => {
+              e.preventDefault();
+              router.push(`/verify?round=${SANDBOX_REPLAY_ID}`);
+              setIdInput(SANDBOX_REPLAY_ID);
+            }}
+            className="text-primary hover:underline"
+          >
+            Replay a verified sandbox round
+          </a>
+        </p>
+      )}
+
+      {extractRoundId(idInput) === SANDBOX_REPLAY_ID && <VisibilityReplay />}
 
       {round && (
         <div className="mt-8 space-y-6">

@@ -134,6 +134,7 @@ const PROOF_KIND_LABELS: Record<PublicProof["kind"], string> = {
   "credit-commitment": "Credit commitment",
   "sealed-bid-round": "Sealed-bid round",
   "diligence-report": "Diligence report",
+  "sealed-bid-replay": "Sandbox replay",
 };
 
 const RECEIPTS_PREVIEW = 4;

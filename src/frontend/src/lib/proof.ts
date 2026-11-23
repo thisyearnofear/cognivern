@@ -9,6 +9,11 @@ import { explorerTxUrl } from "@cognivern/shared";
 import type { ProofReceipt, PublicProof } from "@cognivern/shared";
 import type { PublicDiligenceReport } from "@/lib/diligence-report";
 import {
+  REPLAY_WINNER,
+  SANDBOX_REPLAY_ID,
+  type VisibilityEvidenceRow,
+} from "@/lib/visibility-replay";
+import {
   displayPartyName,
   ROUND_PROOF_LIMITS,
   type PublicCommitment,
@@ -195,5 +200,38 @@ export function proofFromDiligenceReport(
     receipts,
     limits: [...report.honestyBounds],
     generatedAt: report.generatedAt,
+  };
+}
+
+export function proofFromVisibilityReplay(
+  evidence: VisibilityEvidenceRow[],
+): PublicProof {
+  const winningAmount = evidence[0]?.winningAmount;
+  return {
+    schema: "cognivern.proof.v1",
+    kind: "sealed-bid-replay",
+    id: SANDBOX_REPLAY_ID,
+    title: "Sealed from whom?",
+    asked:
+      "Which party can see which quote before and after a sealed-bid round closes?",
+    mandate: { id: null, label: null },
+    spent: { usd: null, note: "synthetic amounts; no funds moved" },
+    decided: {
+      outcome: `${REPLAY_WINNER} won`,
+      detail:
+        winningAmount !== undefined ? `Result: ${winningAmount}` : null,
+    },
+    receipts: [
+      {
+        label: "Sandbox output",
+        value: "canton-visibility-44996498857.json",
+        href: "/evidence/canton-visibility-44996498857.json",
+      },
+    ],
+    limits: [
+      "Verified Canton sandbox run, not a production round.",
+      "Synthetic amounts; no wallet, no funds, no live writes.",
+    ],
+    generatedAt: null,
   };
 }

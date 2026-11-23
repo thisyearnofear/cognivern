@@ -11,7 +11,8 @@ export const PROOF_SCHEMA = "cognivern.proof.v1" as const;
 export type ProofKind =
   | "credit-commitment"
   | "sealed-bid-round"
-  | "diligence-report";
+  | "diligence-report"
+  | "sealed-bid-replay";
 
 export interface ProofReceipt {
   label: string;

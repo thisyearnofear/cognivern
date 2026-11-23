@@ -161,6 +161,7 @@ so each mode stays thin. The contract itself lives in
 `ProofSummary` envelope (asked / mandate / spent / decided / receipts /
 limits) above its own detail view.
 
-Follow-up (not done): fold `/procure/demo` and `/sponsor/sample` into the
-same surface as modes. `/sponsor` and `/procure` remain thin audience entry
-pages.
+Follow-up (not done): `/procure/demo` is folded in — it redirects to
+`/verify?round=sandbox-replay` and the replay is a `/verify` view.
+`/sponsor/sample` remains, pending a real cohort to point at instead.
+`/sponsor` and `/procure` remain thin audience entry pages.
