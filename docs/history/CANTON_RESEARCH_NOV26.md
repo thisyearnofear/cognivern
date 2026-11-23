@@ -1,7 +1,8 @@
 # Canton Community Research Grants: November 2026
 
-Status (November 23): field note published; social share and grant outcome not
-yet verified. Do not describe this as submitted or awarded.
+Status (November 23): field note published and shared on X with the
+required tags; discretionary grant outcome pending. Do not describe this as
+awarded.
 
 Canonical article: [Sealed from whom? What each party can see in a Canton
 procurement auction](https://dev.to/papajams/sealed-from-whom-what-each-party-can-see-in-a-canton-procurement-auction-442b) (DEV, posted November 22 2026).
@@ -34,6 +35,6 @@ the auctioneer or proof about web users, logs, or participant operators.
 
 The Foundation announcement invited original public articles or videos
 published November 1-30 and asked participants to share the canonical link by
-December 4 with `@CantonFdn` and `#CantonResearchNov26`. The article is now
-public; any later share, selection, or discretionary grant outcome should be
-recorded separately when verified.
+December 4 with `@CantonFdn` and `#CantonResearchNov26`. The article is public
+and the social share is complete; any selection or discretionary grant outcome
+should be recorded separately when verified.
