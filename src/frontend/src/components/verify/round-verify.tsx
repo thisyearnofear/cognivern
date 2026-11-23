@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Check,
-  Copy,
   FileSearch,
   ShieldCheck,
   ShieldX,
@@ -13,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { hashSealedBidEvent } from "@/lib/cre-hash";
+import { Copyable } from "./proof-replay";
 
 /**
  * Public, login-free verification of a sealed-bid auction round.
@@ -64,31 +63,6 @@ function extractRoundId(input: string): string {
   const urlMatch = trimmed.match(/[?&]round=([^&#\s]+)/);
   if (urlMatch) return decodeURIComponent(urlMatch[1]);
   return trimmed;
-}
-
-function Copyable({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <span className="inline-flex items-center gap-1.5 font-mono text-xs">
-      <span title={value}>{`${value.slice(0, 12)}…${value.slice(-8)}`}</span>
-      <button
-        type="button"
-        aria-label="Copy"
-        className="text-muted-foreground hover:text-foreground"
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(value);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          } catch {
-            /* clipboard unavailable */
-          }
-        }}
-      >
-        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-      </button>
-    </span>
-  );
 }
 
 export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {

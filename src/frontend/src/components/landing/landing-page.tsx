@@ -829,6 +829,8 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
               desc: "Set per-payment and daily limits, restrict recipients, and hold unusual requests for review.",
               example: "Pay a new vendor $500 — held for approval",
               icon: Globe,
+              href: "/verify?report=supplier-diligence",
+              linkLabel: "See a supplier payment decided alone vs governed",
             },
             {
               title: "Procurement agents",
@@ -870,6 +872,14 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
                   {uc.title}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{uc.desc}</p>
+                {"href" in uc && uc.href && (
+                  <Link
+                    href={uc.href}
+                    className="mt-1.5 inline-block text-xs text-primary hover:underline"
+                  >
+                    {"linkLabel" in uc && uc.linkLabel ? uc.linkLabel : "Learn more"}
+                  </Link>
+                )}
               </div>
               <div className="flex-shrink-0 sm:w-64">
                 <div className="text-[11px] font-mono text-primary/70 bg-primary/5 border border-primary/10 rounded-lg px-3 py-2 leading-relaxed">

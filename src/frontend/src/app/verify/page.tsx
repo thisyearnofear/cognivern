@@ -5,21 +5,22 @@ import { VerifyClient } from "@/components/verify/verify-client";
 export const metadata: Metadata = {
   title: "Public verification — Cognivern",
   description:
-    "Public, login-free verification of anchored credit commitments and sealed-bid auction rounds.",
+    "Public, login-free verification of anchored credit commitments, sealed-bid auction rounds, and supplier-diligence reports.",
 };
 
 export default async function VerifyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; round?: string }>;
+  searchParams: Promise<{ id?: string; round?: string; report?: string }>;
 }) {
-  const { id, round } = await searchParams;
+  const { id, round, report } = await searchParams;
   return (
     <Suspense>
       <VerifyClient
         initialId={id ?? ""}
         initialRoundId={round ?? ""}
-        initialMode={round ? "auction" : "credit"}
+        initialReportId={report ?? ""}
+        initialMode={report ? "diligence" : round ? "auction" : "credit"}
       />
     </Suspense>
   );

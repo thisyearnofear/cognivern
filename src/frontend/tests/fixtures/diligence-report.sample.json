@@ -1,0 +1,278 @@
+{
+  "schema": "cognivern.telegraph.diligence-public-report.v1",
+  "id": "test-fixture",
+  "generatedAt": "2026-11-23T12:00:00.000Z",
+  "network": "testnet x402 (Base Sepolia)",
+  "mandateId": "telegraph-supplier-diligence",
+  "spendCapUsd": 0.25,
+  "policy": "Synthetic fixture policy for unit tests only — not a real run.",
+  "specialists": {
+    "screenA": { "minerId": "731002", "intent": "SANCTIONS_SCREENING_MATCH" },
+    "screenB": { "minerId": "710637", "intent": "SANCTIONS_SCREENING_MATCH" },
+    "registry": { "minerId": "7393", "intent": "CORPORATE_REGISTRY_LOOKUP" },
+    "vendorVerify": { "minerId": "7396", "intent": "VENDOR_VERIFY" }
+  },
+  "models": [
+    { "label": "model-a", "provider": "synthetic-a", "model": "demo-1", "route": "direct" },
+    { "label": "model-b", "provider": "synthetic-b", "model": "demo-2", "route": "gateway" }
+  ],
+  "cases": [
+    {
+      "id": "listed-entity",
+      "description": "Synthetic: a listed entity must be rejected.",
+      "supplier": {
+        "name": "Example Listed Corp",
+        "type": "entity",
+        "country": "IR",
+        "paymentUsd": 48000,
+        "paymentRail": "SWIFT wire"
+      },
+      "expectedDecision": "reject",
+      "groundTruth": {
+        "source": "synthetic fixture",
+        "assertion": "Invented assertion for tests.",
+        "checkedAt": "2026-11-23"
+      },
+      "evidence": {
+        "steps": [
+          {
+            "step": 1,
+            "screenMinerId": "731002",
+            "verdict": "hit",
+            "providerVerdict": "BLOCK",
+            "status": "denied",
+            "reviewRequired": false,
+            "pendingAction": null,
+            "parentPurchased": false,
+            "settlementStatus": "failed",
+            "costUsd": 0.01,
+            "latencyMs": 2000,
+            "screeningRunId": "run-fixture-1",
+            "gateRunId": "gate-fixture-1",
+            "parentRunId": null,
+            "evidenceHash": "0000000000000000000000000000000000000000000000000000000000000000",
+            "parentResponseHash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "errored": false
+          }
+        ],
+        "specialistSpendUsd": 0.01,
+        "escalations": []
+      },
+      "gate": { "decision": "reject", "decidedBy": "compliance_gate", "reasons": ["sanctions_hit"] },
+      "perModel": [
+        {
+          "label": "model-a",
+          "alone": { "decision": "proceed", "correct": false, "rationale": "Name looks harmless.", "inputTokens": 10, "outputTokens": 5, "costUsd": null, "latencyMs": 900, "responseHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "errored": false },
+          "governed": { "modelDecision": null, "finalDecision": "reject", "decidedBy": "compliance_gate", "correct": true, "rationale": null, "inputTokens": null, "outputTokens": null, "costUsd": null, "latencyMs": null, "responseHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "errored": false },
+          "decisionChanged": true
+        },
+        {
+          "label": "model-b",
+          "alone": { "decision": "reject", "correct": true, "rationale": "Obvious hit.", "inputTokens": 10, "outputTokens": 5, "costUsd": 0.001, "latencyMs": 800, "responseHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "errored": false },
+          "governed": { "modelDecision": null, "finalDecision": "reject", "decidedBy": "compliance_gate", "correct": true, "rationale": null, "inputTokens": null, "outputTokens": null, "costUsd": null, "latencyMs": null, "responseHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "errored": false },
+          "decisionChanged": false
+        }
+      ]
+    },
+    {
+      "id": "registered-clear",
+      "description": "Synthetic: registered and clear proceeds.",
+      "supplier": {
+        "name": "Example Clear GmbH",
+        "type": "entity",
+        "country": "DE",
+        "paymentUsd": 48000,
+        "paymentRail": "SEPA credit transfer"
+      },
+      "expectedDecision": "proceed",
+      "groundTruth": {
+        "source": "synthetic fixture",
+        "assertion": "Invented assertion for tests.",
+        "checkedAt": "2026-11-23"
+      },
+      "evidence": {
+        "steps": [
+          {
+            "step": 1,
+            "screenMinerId": "731002",
+            "verdict": "clear",
+            "providerVerdict": "CLEAR",
+            "status": "approved",
+            "reviewRequired": false,
+            "pendingAction": null,
+            "parentPurchased": true,
+            "settlementStatus": "settled",
+            "costUsd": 0.01,
+            "latencyMs": 1800,
+            "screeningRunId": "run-fixture-2",
+            "gateRunId": "gate-fixture-2",
+            "parentRunId": "parent-fixture-2",
+            "evidenceHash": "2222222222222222222222222222222222222222222222222222222222222222",
+            "parentResponseHash": "3333333333333333333333333333333333333333333333333333333333333333",
+            "errored": false
+          },
+          {
+            "step": 2,
+            "screenMinerId": "710637",
+            "verdict": "clear",
+            "providerVerdict": "CLEAR",
+            "status": "approved",
+            "reviewRequired": false,
+            "pendingAction": null,
+            "parentPurchased": true,
+            "settlementStatus": "settled",
+            "costUsd": 0.01,
+            "latencyMs": 1700,
+            "screeningRunId": "run-fixture-3",
+            "gateRunId": "gate-fixture-3",
+            "parentRunId": "parent-fixture-3",
+            "evidenceHash": "4444444444444444444444444444444444444444444444444444444444444444",
+            "parentResponseHash": "5555555555555555555555555555555555555555555555555555555555555555",
+            "errored": false
+          }
+        ],
+        "specialistSpendUsd": 0.02,
+        "escalations": []
+      },
+      "gate": null,
+      "perModel": [
+        {
+          "label": "model-a",
+          "alone": { "decision": "proceed", "correct": true, "rationale": "Registered and clear.", "inputTokens": 10, "outputTokens": 5, "costUsd": null, "latencyMs": 900, "responseHash": "6666666666666666666666666666666666666666666666666666666666666666", "errored": false },
+          "governed": { "modelDecision": "proceed", "finalDecision": "proceed", "decidedBy": "model", "correct": true, "rationale": "Evidence supports it.", "inputTokens": 12, "outputTokens": 6, "costUsd": null, "latencyMs": 950, "responseHash": "7777777777777777777777777777777777777777777777777777777777777777", "errored": false },
+          "decisionChanged": false
+        },
+        {
+          "label": "model-b",
+          "alone": { "decision": "hold", "correct": false, "rationale": "Being cautious.", "inputTokens": 10, "outputTokens": 5, "costUsd": 0.001, "latencyMs": 800, "responseHash": "8888888888888888888888888888888888888888888888888888888888888888", "errored": false },
+          "governed": { "modelDecision": "proceed", "finalDecision": "proceed", "decidedBy": "model", "correct": true, "rationale": "Clear evidence.", "inputTokens": 12, "outputTokens": 6, "costUsd": 0.0012, "latencyMs": 850, "responseHash": "9999999999999999999999999999999999999999999999999999999999999999", "errored": false },
+          "decisionChanged": true
+        }
+      ]
+    },
+    {
+      "id": "unregistered-supplier",
+      "description": "Synthetic: unregistered supplier holds.",
+      "supplier": {
+        "name": "Example Unregistered Ltd",
+        "type": "entity",
+        "country": "HK",
+        "paymentUsd": 48000,
+        "paymentRail": "SWIFT wire"
+      },
+      "expectedDecision": "hold",
+      "groundTruth": {
+        "source": "synthetic fixture",
+        "assertion": "Invented assertion for tests.",
+        "checkedAt": "2026-11-23"
+      },
+      "evidence": {
+        "steps": [
+          {
+            "step": 1,
+            "screenMinerId": "731002",
+            "verdict": "clear",
+            "providerVerdict": "CLEAR",
+            "status": "held",
+            "reviewRequired": false,
+            "pendingAction": null,
+            "parentPurchased": false,
+            "settlementStatus": "held",
+            "costUsd": 0.01,
+            "latencyMs": 2100,
+            "screeningRunId": "run-fixture-4",
+            "gateRunId": "gate-fixture-4",
+            "parentRunId": "parent-fixture-4",
+            "evidenceHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "parentResponseHash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "errored": false
+          }
+        ],
+        "specialistSpendUsd": 0.01,
+        "escalations": ["parent-fixture-4"]
+      },
+      "gate": { "decision": "hold", "decidedBy": "review_hold", "reasons": ["low_confidence_evidence"] },
+      "perModel": [
+        {
+          "label": "model-a",
+          "alone": { "decision": "proceed", "correct": false, "rationale": "No obvious issue.", "inputTokens": 10, "outputTokens": 5, "costUsd": null, "latencyMs": 900, "responseHash": "abababababababababababababababababababababababababababababababab", "errored": false },
+          "governed": { "modelDecision": null, "finalDecision": "hold", "decidedBy": "review_hold", "correct": true, "rationale": null, "inputTokens": null, "outputTokens": null, "costUsd": null, "latencyMs": null, "responseHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd", "errored": false },
+          "decisionChanged": true
+        },
+        {
+          "label": "model-b",
+          "alone": { "decision": "unparseable", "correct": null, "rationale": null, "inputTokens": 0, "outputTokens": 0, "costUsd": null, "latencyMs": 0, "responseHash": null, "errored": false },
+          "governed": { "modelDecision": null, "finalDecision": "hold", "decidedBy": "review_hold", "correct": true, "rationale": null, "inputTokens": null, "outputTokens": null, "costUsd": null, "latencyMs": null, "responseHash": null, "errored": false },
+          "decisionChanged": false
+        }
+      ]
+    },
+    {
+      "id": "individual-name-match",
+      "description": "Synthetic: name-only match goes to review.",
+      "supplier": {
+        "name": "Example Matched Person",
+        "type": "individual",
+        "country": "AE",
+        "paymentUsd": 48000,
+        "paymentRail": "SWIFT wire"
+      },
+      "expectedDecision": "hold",
+      "groundTruth": {
+        "source": "synthetic fixture",
+        "assertion": "Invented assertion for tests.",
+        "checkedAt": "2026-11-23"
+      },
+      "evidence": {
+        "steps": [
+          {
+            "step": 1,
+            "screenMinerId": "731002",
+            "verdict": "review",
+            "providerVerdict": "REVIEW",
+            "status": "held",
+            "reviewRequired": true,
+            "pendingAction": "review_compliance_verdict",
+            "parentPurchased": false,
+            "settlementStatus": "held",
+            "costUsd": 0.01,
+            "latencyMs": 25000,
+            "screeningRunId": "run-fixture-5",
+            "gateRunId": "gate-fixture-5",
+            "parentRunId": null,
+            "evidenceHash": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+            "parentResponseHash": null,
+            "errored": false
+          }
+        ],
+        "specialistSpendUsd": 0.01,
+        "escalations": ["gate-fixture-5"]
+      },
+      "gate": { "decision": "hold", "decidedBy": "review_hold", "reasons": ["compliance_review"] },
+      "perModel": [
+        {
+          "label": "model-a",
+          "alone": { "decision": "proceed", "correct": false, "rationale": "Common name.", "inputTokens": 10, "outputTokens": 5, "costUsd": null, "latencyMs": 900, "responseHash": "1212121212121212121212121212121212121212121212121212121212121212", "errored": false },
+          "governed": { "modelDecision": null, "finalDecision": "hold", "decidedBy": "review_hold", "correct": true, "rationale": null, "inputTokens": null, "outputTokens": null, "costUsd": null, "latencyMs": null, "responseHash": "3434343434343434343434343434343434343434343434343434343434343434", "errored": false },
+          "decisionChanged": true
+        },
+        {
+          "label": "model-b",
+          "alone": { "decision": "hold", "correct": true, "rationale": "Needs review.", "inputTokens": 10, "outputTokens": 5, "costUsd": 0.001, "latencyMs": 800, "responseHash": "5656565656565656565656565656565656565656565656565656565656565656", "errored": false },
+          "governed": { "modelDecision": null, "finalDecision": "hold", "decidedBy": "review_hold", "correct": true, "rationale": null, "inputTokens": null, "outputTokens": null, "costUsd": null, "latencyMs": null, "responseHash": "7878787878787878787878787878787878787878787878787878787878787878", "errored": false },
+          "decisionChanged": false
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "perModel": [
+      { "label": "model-a", "casesRun": 4, "aloneCorrect": 1, "governedCorrect": 4, "decisionsChanged": 3, "modelCostUsd": { "alone": 0, "governed": 0 } },
+      { "label": "model-b", "casesRun": 4, "aloneCorrect": 2, "governedCorrect": 4, "decisionsChanged": 1, "modelCostUsd": { "alone": 0.003, "governed": 0.0012 } }
+    ],
+    "run": { "specialistSpendUsd": 0.05, "escalations": 2, "casesHeld": 2, "casesRejected": 1 }
+  },
+  "honestyBounds": [
+    "Synthetic honesty bound for tests."
+  ]
+}

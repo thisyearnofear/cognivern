@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { PageState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -51,7 +52,10 @@ export function TelegraphPage() {
           description="Confirm external intelligence before it drives a spend or policy decision. Categories, interest scores, and questions collected for this workspace."
         />
         <p className="text-[11px] text-muted-foreground -mt-4">
-          Miner calls pay ~$0.01 x402 USDC; confidence ≥ threshold approves, below holds — each call receipts a <span className="font-mono">telegraph.signal</span> artifact.
+          Miner calls pay ~$0.01 x402 USDC; confidence ≥ threshold approves, below holds — each call receipts a <span className="font-mono">telegraph.signal</span> artifact.{" "}
+          <Link href="/verify?report=supplier-diligence" className="text-primary hover:underline">
+            Public supplier-diligence report
+          </Link>
         </p>
 
         {isLoading ? (

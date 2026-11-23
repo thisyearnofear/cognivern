@@ -147,3 +147,17 @@ Second pass (2026-08-24) — closing the execution gap:
   renders in `operating`, resolving the earlier overlap where it competed
   with `SetupChecklist` and `AttentionSummary`. Each state now has exactly
   one primary object and at most one action.
+
+## Public proof surface (consolidation target)
+
+`/verify` is the single public "show me" surface: one mode per proof type —
+credit commitment, sealed-bid round, and now the supplier-diligence report
+(`/verify?report=<id>`, a redacted static JSON under
+`public/evidence/diligence/`). New proof types become modes, not pages, and
+no dashboard nav entries. Shared replay controls (chip groups, live-region
+status, copyable receipt rows) live in `components/verify/proof-replay.tsx`
+so each mode stays thin.
+
+Follow-up (not done): fold `/procure/demo` and `/sponsor/sample` into the
+same surface as modes. `/sponsor` and `/procure` remain thin audience entry
+pages.
