@@ -26,12 +26,12 @@ paid evaluator miners into a cost-per-verified-answer leaderboard.
 | Compliance proof attached to payment     | `POST /api/telegraph/compliant-call` — sanctions screen `clear` (screening run `9961cba1-130a-43cd-8968-7088e4fa1a16`, Sanctions Name Evidence `710637`) → parent `GAS_PRICE` settled (run `3dd5beff-f9ad-4d89-9648-53d3804c36c2`, TxLens `9002`, `telegraph.signal` artifact `5ea178aa-185e-4e39-a611-a8f22396cbb8` carrying `compliance.verdict: "clear"`)                 |
 | Compliance gate blocks downstream paid spend | `compliant-call` screening `ISIL KHORASAN` via **Counterproof Sanctions Screener** (miner `731002`) → verdict `hit` (`matched=true`) → parent `GAS_PRICE` purchase **denied before settlement**. Screening run `e916cddf-2032-4e8f-bfce-e9be80f83a0c`; gate-decision run `2f509267-f0c2-466d-9b70-5ca37f658221`; only the $0.01 screen was paid                              |
 | Inconclusive screen blocks downstream paid spend | `compliant-call` with a paid but uninterpretable screen response → verdict `unknown` (`no recognizable verdict field in screening response`) → parent purchase **denied before settlement**. Screening run `9e349959-82a8-4d89-9980-4794000c55d4`; gate-decision run `f4300716-fa82-4f1f-9073-fbb70a40a3bf`; only the $0.01 screen was paid                                  |
-| Shareable payment evidence               | New `compliant-call` attempts attach a signed `evidenceBundle` before artifact persistence and expose it through `GET /api/telegraph/evidence/:runId`; the November 22 run ids above predate the bundle, so they remain receipt evidence but do not have this retrieval endpoint populated                                                                                   |
-| Expense ledger with reverse states       | `GET /api/telegraph/ledger` — 117 calls, 88 paid calls, $0.88 cumulative testnet spend; dispositions include `approved / held_pending / released / quarantined / blocked / failed`; records now surface evidence hash/path, verdict source, and policy violations when present                                                                                               |
+| Shareable payment evidence               | New `compliant-call` attempts attach a signed `evidenceBundle` before artifact persistence and expose it through `GET /api/telegraph/evidence/:runId`; authenticated retrieval verified on blocked gate run `f7d012d6-ae46-4f9e-8c14-6cbc60fdf908`, evidence hash `7058b798e116579a9ddf1790f777228102f2c1bd113be4787204d83f511bf41e`                     |
+| Expense ledger with reverse states       | `GET /api/telegraph/ledger` — 131 calls, 99 paid calls, $0.97 cumulative recorded spend; dispositions include `approved / held_pending / released / quarantined / blocked / failed`; records now surface evidence hash/path, verdict source, and policy violations when present                                                                                                |
 | Human-in-the-loop                        | `/inbox` — held telegraph runs approve (release) or reject (quarantine); UI-verified approve on run `55c4484a`                                                                                                                                                                                                                                                               |
 | Verified-answer economics                | `POST /api/credit-programs/:id/verify-sample` — Groq `openai/gpt-oss-120b` program `prog_3c75599c-3913-4fcc-8edd-2aedc5674f08`; leaderboard: 20 ok calls, 19 sampled, 6 correct / 1 incorrect / 12 unknown, `verifiedAccuracy 0.857`, `costPerVerifiedCorrectUsd ≈ $0.0065`                                                                                                  |
 | Cross-miner agreement                    | `verify-sample {"agreement":true}` — two distinct evaluators (TxLens + AssistWire) per record; verdicts persist only on unanimous decided verdicts, else `unknown` with per-evaluator breakdown. Live result: 3 unanimous `correct`, 7 `no consensus` — mostly TxLens held/unparseable, plus one genuine evaluator disagreement (TxLens `incorrect` vs AssistWire `correct`) |
-| Anjoman delegated screening → award gate | `POST /api/vendor/sealed-bid/rounds/:id/screen-bidders` — one governed Anjoman task per bidder → `sealed_bid.vendor_screened` events on the round's hash-signed timeline → `/reveal` with `requireScreened` refuses to award an unscreened or hit vendor (403 + verdict map). Code + 27 tests landed; live run pending `ANJOMAN_API_KEY`                                     |
+| Anjoman delegated screening → award gate | `POST /api/vendor/sealed-bid/rounds/:id/screen-bidders` — one governed Anjoman task per bidder → `sealed_bid.vendor_screened` events on the round's hash-signed timeline → `/reveal` with `requireScreened` refuses to award an unscreened or hit vendor (403 + verdict map). Code + 27 tests landed; production API key configured/reachable; governed smoke tasks reached Anjoman and held fail-safe, while a $0.50-capped paid task hit provider 504 — paid specialist delegation still unproven |
 | Judge re-runnability                     | `tooling/scripts/agents/telegraph-demo.ts` — dependency-free CLI over the live API (`ledger`, `evidence`, `compliant-call`, `anjoman-task`, `verify-sample`, `report`, `screen-round`, `reveal`)                                                                                                                                                                             |
 | Demo video                               | `~/Downloads/telegraph-s2-demo.mp4` (local upload artifact, 72s, 720p)                                                                                                                                                                                                                                                                                                       |
 
@@ -62,8 +62,10 @@ pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts compliant-call '{
 Expected: `blocked: true`, `status: "denied"`, a `runId`, and an embedded
 `evidenceBundle`; no screening or parent call is purchased. Then run
 `pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts evidence <runId>` and
-expect the same bundle under `data.evidenceBundle`. A successful authenticated
-retrieval receipt still needs to be captured with a valid workspace credential.
+expect the same bundle under `data.evidenceBundle`. Captured on November 23:
+blocked gate run `f7d012d6-ae46-4f9e-8c14-6cbc60fdf908`, authenticated
+retrieval returned schema `cognivern.telegraph.compliant-call-evidence.v1` and
+evidence hash `7058b798e116579a9ddf1790f777228102f2c1bd113be4787204d83f511bf41e`.
 
 **Live validation, November 22.** The capped Mission 02 sequence spent exactly
 $0.10 of Base Sepolia USDC across the canonical clear/hit/unknown cases and
@@ -95,10 +97,11 @@ whose response deliberately lacked a recognizable compliance verdict.
 - Anjoman-delegated vendor screening for sealed-bid rounds — `sealed_bid.vendor_screened` governance events + `requireScreened` reveal gate + UI badges + judge CLI
 - Ledger/compliance/CRE rails from earlier commits (`18ccb457`, `47988448`, …)
 
-Latest local verification for the assurance slice: focused Telegraph
-compliance, evidence, recorder, ledger, and benchmark unit tests pass;
-backend and frontend typechecks pass; the updated API client and sealed-bid
-UI lint pass; and `git diff --check` is clean.
+Latest verification for the assurance slice: focused Telegraph compliance,
+evidence, recorder, ledger, and benchmark unit tests pass; backend and frontend
+typechecks pass; API client/sealed-bid UI lint passes; `git diff --check` is
+clean; and authenticated production evidence retrieval succeeded on run
+`f7d012d6-ae46-4f9e-8c14-6cbc60fdf908`.
 
 ## Honesty bounds (say these out loud)
 
@@ -113,11 +116,15 @@ UI lint pass; and `git diff --check` is clean.
   hits still block payment.
 - The benchmark harness declares independent fixture ground truth and reports
   response hashes/metrics. `--dry-run` validates the suite; it is not live
-  performance evidence. A paid fixture run still requires workspace auth.
+  performance evidence. Workspace auth is available now, but a paid fixture
+  run has not been executed.
 - Shareable bundles omit the screened subject and sit behind workspace auth;
   they carry hashes and run linkage, not a public unauthenticated receipt.
 - `spendGuard` proves the evaluated request stayed inside the declared caps
   and allowlists. `budgetId` is linkage only; it does not yet debit a budget.
+- Anjoman is configured and reachable on production. Governed smoke tasks
+  created fail-safe held runs; a paid task hit a provider-side 504, so do not
+  claim completed paid specialist delegation yet.
 - Only `open`-disclosure-tier records are sampled; private/detailed content is never sent to evaluators.
 
 ## Apps & Agents — five commercial questions (paste-ready answers)
@@ -137,8 +144,8 @@ cases, and a cost-per-verified-answer metric — at ~$0.01–0.02 of governance
 overhead per call.
 
 **03 What does it do today?**
-Live on production: 117 governed Telegraph calls ($0.88 cumulative x402
-testnet spend), a clear-screened payment that settled with compliance proof,
+Live on production: 131 governed Telegraph calls ($0.97 cumulative recorded
+spend), a clear-screened payment that settled with compliance proof,
 a real sanctions hit that blocked a downstream payment before settlement,
 and an uninterpretable screen that also blocked before settlement. The
 November 22 validation sequence spent exactly $0.10 of Base Sepolia USDC.
@@ -146,17 +153,18 @@ The current implementation also normalizes provider `REVIEW`, routes provider
 review and explicitly disputed hits into the operator approval inbox, attaches a
 signed evidence bundle to each new compliant-call attempt, enforces
 spend-guard policy before and after the paid screen, and exposes the bundle
-through an authenticated evidence endpoint and judge CLI. A fixed-case
-benchmark harness now scores providers against independent ground truth and
-can compare an OpenAI-compatible frontier baseline; its paid fixture run is
-pending the same valid workspace credential as the evidence receipt. Separately,
-20 metered inference calls through our OpenAI-compatible gateway produced 19
-evaluator-sampled records and a verified-answer leaderboard (85.7% accuracy,
-$0.0065 per verified-correct). The new Anjoman rail is implemented and covered
-by tests: it can delegate one governed due-diligence task per bidder, and its
-verdicts gate the Canton sealed-bid award; the live Anjoman run is pending a
-production API key. Implemented claims are re-runnable via
-`tooling/scripts/agents/telegraph-demo.ts`.
+through an authenticated evidence endpoint and judge CLI. Authenticated bundle
+retrieval is verified on run `f7d012d6-ae46-4f9e-8c14-6cbc60fdf908`. A
+fixed-case benchmark harness now scores providers against independent ground
+truth and can compare an OpenAI-compatible frontier baseline; a paid fixture
+run can now use the captured workspace credential but has not yet been run.
+Separately, 20 metered inference calls through our OpenAI-compatible gateway
+produced 19 evaluator-sampled records and a verified-answer leaderboard
+(85.7% accuracy, $0.0065 per verified-correct). The new Anjoman rail is
+configured on production and reachable; governed smoke tasks reached Anjoman
+and held fail-safe, while a $0.50-capped paid task hit a provider-side 504, so
+paid specialist delegation is not yet claimed. Implemented claims are
+re-runnable via `tooling/scripts/agents/telegraph-demo.ts`.
 
 **04 Why would someone adopt it?**
 Because "the agent paid a stranger and nobody can prove it was allowed" stops
