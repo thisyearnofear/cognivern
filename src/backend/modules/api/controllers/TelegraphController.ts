@@ -558,6 +558,10 @@ export class TelegraphController {
 
       const attemptId = randomUUID();
       const complianceSubject = subjectTerms(complianceParams);
+      const reviewNote =
+        typeof compliance.reviewNote === "string"
+          ? compliance.reviewNote.trim().slice(0, 500) || undefined
+          : undefined;
       const parentParamTerms = subjectTerms(parentParams);
       const spendGuardEvidence = spendGuard
         ? {
@@ -581,6 +585,8 @@ export class TelegraphController {
         compliance: {
           minerId: typeof compliance.minerId === "string" ? compliance.minerId : undefined,
           intent: typeof compliance.intent === "string" ? compliance.intent : undefined,
+          disputeHit: compliance.disputeHit === true,
+          reviewNoteHash: reviewNote ? sha256CanonicalJson(reviewNote) : null,
           paramsHash: sha256CanonicalJson(complianceParams),
           subjectFields: complianceSubject.fields,
         },
@@ -676,16 +682,29 @@ export class TelegraphController {
         reason: string;
         screen: Awaited<ReturnType<typeof runComplianceScreen>> | null;
         violations: string[];
+        holdForReview?: {
+          pendingAction?: string;
+          details?: Record<string, unknown>;
+        };
       }) => {
         const gateRunId = randomUUID();
         const gateArtifactId = randomUUID();
         const timestamp = new Date().toISOString();
-        const complianceBlock = complianceBlockFor(
-          params.gate,
-          params.screen,
-          params.violations,
-          params.reason,
-        );
+        const reviewNote =
+          typeof params.holdForReview?.details?.reviewNote === "string"
+            ? params.holdForReview.details.reviewNote
+            : null;
+        const complianceBlock = {
+          ...complianceBlockFor(
+            params.gate,
+            params.screen,
+            params.violations,
+            params.reason,
+          ),
+          reviewRequired: Boolean(params.holdForReview),
+          disputed: params.holdForReview?.details?.disputed === true,
+          reviewNoteHash: reviewNote ? sha256CanonicalJson(reviewNote) : null,
+        };
         const intendedCall = {
           minerId,
           intent: parentIntent ?? null,
@@ -699,6 +718,7 @@ export class TelegraphController {
             name: params.gate,
             decision: "blocked",
             reason: params.reason,
+            reviewRequired: Boolean(params.holdForReview),
           },
           compliance: complianceBlock,
           intendedCall,
@@ -718,6 +738,7 @@ export class TelegraphController {
             decision: "deny",
             name: params.gate,
             reason: params.reason,
+            reviewRequired: Boolean(params.holdForReview),
             runId: gateRunId,
             artifactId: gateArtifactId,
             artifactHash: telegraphArtifactDataHash(gateArtifactCore),
@@ -741,12 +762,15 @@ export class TelegraphController {
           compliance: complianceBlock as unknown as Record<string, unknown>,
           intendedCall,
           evidenceBundle,
+          holdForReview: params.holdForReview,
         });
         res.json({
           success: true,
           data: {
             blocked: true,
-            status: "denied",
+            status: params.holdForReview ? "held" : "denied",
+            reviewRequired: Boolean(params.holdForReview),
+            pendingAction: params.holdForReview?.pendingAction ?? null,
             reason: params.reason,
             compliance: complianceBlock,
             spendGuard,
@@ -754,6 +778,7 @@ export class TelegraphController {
             evidenceBundle,
             runId: gateRun?.runId ?? null,
             runStatus: gateRun?.status ?? null,
+            requiresApproval: gateRun?.requiresApproval === true,
             timestamp: new Date().toISOString(),
           },
           timestamp: new Date().toISOString(),
@@ -787,11 +812,34 @@ export class TelegraphController {
       const screenViolations = screen.policyViolations ?? [];
 
       if (screen.blocked) {
+        const holdForReview =
+          screen.status === "approved" && screen.verdict === "review"
+            ? {
+                pendingAction: "review_compliance_verdict",
+                details: {
+                  verdict: screen.verdict,
+                  disputed: false,
+                  reviewNote,
+                },
+              }
+            : screen.status === "approved" &&
+                screen.verdict === "hit" &&
+                compliance.disputeHit === true
+              ? {
+                  pendingAction: "review_disputed_compliance_hit",
+                  details: {
+                    verdict: screen.verdict,
+                    disputed: true,
+                    reviewNote,
+                  },
+                }
+              : undefined;
         await denyAttempt({
           gate: screenViolations.length > 0 ? "spend_guard" : "compliance",
           reason: screen.blockReason ?? `screening verdict ${screen.verdict}`,
           screen,
           violations: screenViolations,
+          holdForReview,
         });
         return;
       }

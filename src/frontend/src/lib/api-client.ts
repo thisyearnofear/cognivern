@@ -2246,6 +2246,7 @@ export interface TelegraphLedgerRecord {
   evidencePath?: string;
   policyViolations?: string[];
   gateBlocked?: boolean;
+  reviewRequired?: boolean;
 }
 
 export interface TelegraphLedgerReport {

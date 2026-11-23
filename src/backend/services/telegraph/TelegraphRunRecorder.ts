@@ -127,6 +127,11 @@ export interface RecordTelegraphGateParams {
   intendedCall?: Record<string, unknown>;
   /** Shareable payment-attempt receipt attached before artifact signing. */
   evidenceBundle?: Record<string, unknown>;
+  /** Pause the gate decision in the operator inbox instead of closing it failed. */
+  holdForReview?: {
+    pendingAction?: string;
+    details?: Record<string, unknown>;
+  };
 }
 
 /**
@@ -164,6 +169,7 @@ export async function recordTelegraphGateDecision(
         name: params.gate,
         decision: "blocked",
         reason: params.reason,
+        reviewRequired: Boolean(params.holdForReview),
       },
       compliance: params.compliance,
       intendedCall: params.intendedCall,
@@ -173,7 +179,15 @@ export async function recordTelegraphGateDecision(
     },
   });
 
-  await recorder.finish(false);
+  if (params.holdForReview) {
+    await recorder.pauseForApproval(
+      params.reason,
+      params.holdForReview.pendingAction ?? "review_telegraph_gate",
+      params.holdForReview.details,
+    );
+  } else {
+    await recorder.finish(false);
+  }
 
   const run = recorder.getRun();
   await creRunStore.add(run);

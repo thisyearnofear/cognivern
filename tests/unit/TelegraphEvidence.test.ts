@@ -54,6 +54,7 @@ function input() {
       decision: 'deny' as const,
       name: 'compliance',
       reason: 'screen requires review',
+      reviewRequired: true,
       runId: 'gate-1',
       artifactId: 'gate-artifact-1',
       artifactHash: 'gate-artifact-hash',
@@ -94,6 +95,7 @@ describe('buildTelegraphEvidenceBundle', () => {
     });
     expect(bundle.gate).toMatchObject({
       decision: 'deny',
+      reviewRequired: true,
       runId: 'gate-1',
       artifactHash: 'gate-artifact-hash',
     });
