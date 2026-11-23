@@ -164,10 +164,12 @@ pre-screen guard denies it before any x402 payment, persists a gate-decision
 artifact, embeds an `evidenceBundle`, and returns the `runId` needed by
 `telegraph-demo.ts evidence <runId>`.
 
-The endpoint was deployed to production with backend commit `5b9cdc24` on
-November 23. Deployment and route registration are verified; a successful
-authenticated retrieval receipt still requires a valid workspace JWT or API key
-and a post-deploy run, because the November 22 canonical runs predate bundles.
+The endpoint was first deployed to production with backend commit `5b9cdc24` on
+November 23; a follow-on deploy at `32e7c831` activated the provider-review /
+disputed-hit approval path. Deployment, health checks, and route/artifact
+registration are verified; a successful authenticated retrieval receipt still
+requires a valid workspace JWT or API key and a post-deploy run, because the
+November 22 canonical runs predate bundles.
 
 `tooling/scripts/agents/telegraph-benchmark.ts` is the independent benchmark
 harness. It loads fixed public cases from `telegraph-benchmark-cases.json`,
