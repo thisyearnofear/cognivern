@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, ExternalLink } from "lucide-react";
+import type { PublicProof } from "@cognivern/shared";
+import { formatUsd } from "@/lib/budget-format";
 
 /**
  * Shared primitives for the /verify "replay" surfaces — the controls and
@@ -99,11 +101,153 @@ export function ReplayStatus({ children }: { children: React.ReactNode }) {
 }
 
 /** One labelled receipt line with a copyable hash/id. */
-export function ReceiptRow({ label, value }: { label: string; value: string }) {
+export function ReceiptRow({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string;
+  href?: string;
+}) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
       <span className="text-muted-foreground">{label}</span>
-      <Copyable value={value} />
+      <span className="flex items-center gap-3">
+        <Copyable value={value} />
+        {href && (
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-primary hover:underline"
+          >
+            View <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </span>
+    </div>
+  );
+}
+
+const PROOF_KIND_LABELS: Record<PublicProof["kind"], string> = {
+  "credit-commitment": "Credit commitment",
+  "sealed-bid-round": "Sealed-bid round",
+  "diligence-report": "Diligence report",
+};
+
+const RECEIPTS_PREVIEW = 4;
+
+/**
+ * The shared proof-envelope header every /verify mode opens with: what was
+ * asked, under which mandate, what it cost, what was decided, the receipts,
+ * and what the proof does not show. The mode's own detail view below stays
+ * the full record.
+ */
+export function ProofSummary({ proof }: { proof: PublicProof }) {
+  const hiddenReceipts = proof.receipts.length - RECEIPTS_PREVIEW;
+  return (
+    <div className="rounded-xl border border-border bg-card p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="font-semibold text-foreground">{proof.title}</div>
+        <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+          {PROOF_KIND_LABELS[proof.kind]}
+        </span>
+      </div>
+
+      <dl className="mt-4 grid gap-x-8 gap-y-3 sm:grid-cols-2">
+        <div>
+          <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Asked
+          </dt>
+          <dd className="mt-0.5 text-sm text-foreground">{proof.asked}</dd>
+        </div>
+        <div>
+          <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Mandate
+          </dt>
+          <dd className="mt-0.5 text-sm text-foreground">
+            {proof.mandate.id || proof.mandate.label ? (
+              <>
+                {proof.mandate.label}
+                {proof.mandate.id && (
+                  <span className={proof.mandate.label ? "ml-2" : undefined}>
+                    <Copyable value={proof.mandate.id} />
+                  </span>
+                )}
+              </>
+            ) : (
+              "Not recorded for this proof type"
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Spent
+          </dt>
+          <dd className="mt-0.5 text-sm text-foreground">
+            {proof.spent.usd !== null ? (
+              <>
+                {formatUsd(proof.spent.usd)}
+                {proof.spent.note && (
+                  <span className="text-muted-foreground"> · {proof.spent.note}</span>
+                )}
+              </>
+            ) : (
+              "No USD figure in this record"
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Decided
+          </dt>
+          <dd className="mt-0.5 text-sm text-foreground">
+            <span className="font-medium">{proof.decided.outcome}</span>
+            {proof.decided.detail && (
+              <span className="text-muted-foreground"> · {proof.decided.detail}</span>
+            )}
+          </dd>
+        </div>
+      </dl>
+
+      {proof.receipts.length > 0 && (
+        <div className="mt-4 border-t border-border pt-3">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Receipts
+          </div>
+          <div className="mt-2 space-y-1.5">
+            {proof.receipts.slice(0, RECEIPTS_PREVIEW).map((r, i) => (
+              <ReceiptRow key={i} label={r.label} value={r.value} href={r.href} />
+            ))}
+          </div>
+          {hiddenReceipts > 0 && (
+            <details className="mt-2 text-xs">
+              <summary className="cursor-pointer text-primary">
+                Show all {proof.receipts.length}
+              </summary>
+              <div className="mt-2 space-y-1.5">
+                {proof.receipts.slice(RECEIPTS_PREVIEW).map((r, i) => (
+                  <ReceiptRow key={i} label={r.label} value={r.value} href={r.href} />
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
+      )}
+
+      {proof.limits.length > 0 && (
+        <details className="mt-4 border-t border-border pt-3 text-xs">
+          <summary className="cursor-pointer text-muted-foreground">
+            What this does not show
+          </summary>
+          <ul className="mt-2 space-y-1.5 text-muted-foreground">
+            {proof.limits.map((limit, i) => (
+              <li key={i}>{limit}</li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }

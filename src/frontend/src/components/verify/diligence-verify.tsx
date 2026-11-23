@@ -22,7 +22,8 @@ import {
   type DiligenceDecision,
   type PublicDiligenceReport,
 } from "@/lib/diligence-report";
-import { ChipGroup, ReceiptRow, ReplayStatus } from "./proof-replay";
+import { ChipGroup, ProofSummary, ReceiptRow, ReplayStatus } from "./proof-replay";
+import { proofFromDiligenceReport } from "@/lib/proof";
 
 /**
  * Public, login-free replay of a published supplier-diligence report.
@@ -234,16 +235,24 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
       )}
 
       {report && caseResult && (
-        <div className="mt-8 space-y-6">
+        <div className="mt-8 flex flex-col gap-6">
+          <ProofSummary proof={proofFromDiligenceReport(report)} />
           {/* ── Provenance ── */}
-          <p className="text-xs text-muted-foreground">
+          <p className="order-1 text-xs text-muted-foreground">
             Generated {new Date(report.generatedAt).toUTCString()} · {report.network} ·{" "}
             {report.cases.length} fixed cases · specialist spend cap{" "}
             {money(report.spendCapUsd)}
           </p>
 
+          {/* ── Replay status ── */}
+          <div className="order-2 sm:order-3">
+            <ReplayStatus>
+              {caseHeadline(caseResult, activeModel?.label ?? null)}
+            </ReplayStatus>
+          </div>
+
           {/* ── Controls ── */}
-          <div className="space-y-4 rounded-xl border border-border bg-card p-5">
+          <div className="order-4 space-y-4 rounded-xl border border-border bg-card p-5 sm:order-2">
             <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-6">
               <ChipGroup
                 label="Supplier"
@@ -288,15 +297,12 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                 </Button>
               )}
             </div>
-            <ReplayStatus>
-              {caseHeadline(caseResult, activeModel?.label ?? null)}
-            </ReplayStatus>
           </div>
 
           {/* ── Decision card ── */}
           <div
             key={view}
-            className="rounded-xl border border-border bg-card p-5 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-150"
+            className="order-3 rounded-xl border border-border bg-card p-5 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-150"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-sm font-medium text-foreground">
@@ -364,7 +370,7 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
 
           {/* ── Purchased evidence (governed arm only) ── */}
           {view === "governed" && (
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className="order-5 rounded-xl border border-border bg-card p-5">
               <div className="font-semibold text-foreground">Purchased evidence</div>
               <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
                 Each step screens the supplier first; the parent specialist is
@@ -422,7 +428,7 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
           )}
 
           {/* ── Ground truth ── */}
-          <div className="rounded-xl border border-border bg-muted/30 p-5 text-sm">
+          <div className="order-6 rounded-xl border border-border bg-muted/30 p-5 text-sm">
             <div className="font-semibold text-foreground">Ground truth</div>
             <p className="mt-2 text-muted-foreground leading-relaxed">
               {caseResult.groundTruth.assertion}
@@ -434,7 +440,7 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
           </div>
 
           {/* ── Summary across models ── */}
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div className="order-7 rounded-xl border border-border bg-card p-5">
             <div className="font-semibold text-foreground">Summary</div>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full text-xs">
@@ -470,7 +476,7 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
           </div>
 
           {/* ── Honesty bounds + links ── */}
-          <div className="rounded-xl border border-border bg-muted/30 p-5 text-sm">
+          <div className="order-8 rounded-xl border border-border bg-muted/30 p-5 text-sm">
             <div className="font-semibold text-foreground">Honesty bounds</div>
             <ul className="mt-2 space-y-1.5 text-muted-foreground">
               {report.honestyBounds.map((bound, i) => (

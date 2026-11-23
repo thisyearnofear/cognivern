@@ -11,7 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { hashSealedBidEvent } from "@/lib/cre-hash";
-import { Copyable } from "./proof-replay";
+import { Copyable, ProofSummary } from "./proof-replay";
+import { proofFromRound } from "@/lib/proof";
+import {
+  displayPartyName,
+  ROUND_PROOF_LIMITS,
+  ROUND_PROOF_PROVES,
+  type RoundVerification,
+} from "@/lib/verify-records";
 
 /**
  * Public, login-free verification of a sealed-bid auction round.
@@ -24,38 +31,6 @@ import { Copyable } from "./proof-replay";
  * contracts are private to their parties, and the event chain is not yet
  * anchored externally.
  */
-
-interface RoundVerification {
-  roundId: string;
-  status: string;
-  backend?: string;
-  description: string;
-  serviceCategory: string;
-  deadline: string;
-  bidCount: number;
-  winner: string | null;
-  winningBid: number | null;
-  winningProposalHash: string | null;
-  ledgerRefs: { auction?: string; result?: string; cancelled?: string } | null;
-  settledAssetCid: string | null;
-  governanceTimeline: {
-    runId: string;
-    agentId: string;
-    events: {
-      eventType: string;
-      timestamp: string;
-      eventHash: string;
-      payload: Record<string, unknown>;
-    }[];
-  } | null;
-}
-
-/** Party ids look like "Alice::1220abcd…" — show the friendly prefix. */
-function displayPartyName(party: string | null | undefined): string {
-  if (!party) return "";
-  const [name] = party.split("::");
-  return name || party;
-}
 
 /** Accept a raw roundId or a pasted link containing ?round=<id>. */
 function extractRoundId(input: string): string {
@@ -222,6 +197,7 @@ export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {
 
       {round && (
         <div className="mt-8 space-y-6">
+          <ProofSummary proof={proofFromRound(round)} />
           {/* ── Outcome card ── */}
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -408,33 +384,20 @@ export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {
           <div className="rounded-xl border border-border bg-muted/30 p-5 text-sm">
             <div className="font-semibold text-foreground">What this proves</div>
             <ul className="mt-2 space-y-1.5 text-muted-foreground">
-              <li className="flex gap-2">
-                <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
-                The outcome and contract ids the operator published for this round.
-              </li>
-              <li className="flex gap-2">
-                <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
-                Each governance event&apos;s hash matches its contents — recomputed
-                in your browser, not on our server.
-              </li>
-              <li className="flex gap-2">
-                <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
-                A hash you saved earlier (e.g. at bid time) is still present and
-                unchanged.
-              </li>
+              {ROUND_PROOF_PROVES.map((line, i) => (
+                <li key={i} className="flex gap-2">
+                  <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
+                  {line}
+                </li>
+              ))}
             </ul>
             <ul className="mt-3 space-y-1.5 text-muted-foreground">
-              <li className="flex gap-2">
-                <ShieldX className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
-                Not proven here: Canton contracts are private to their parties, so
-                the contract ids can only be resolved on the ledger by the
-                round&apos;s participants.
-              </li>
-              <li className="flex gap-2">
-                <ShieldX className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
-                Event hashes are not yet chained or anchored externally — this
-                page cannot rule out the operator rewriting the whole trail.
-              </li>
+              {ROUND_PROOF_LIMITS.map((line, i) => (
+                <li key={i} className="flex gap-2">
+                  <ShieldX className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
+                  {line}
+                </li>
+              ))}
             </ul>
           </div>
         </div>
