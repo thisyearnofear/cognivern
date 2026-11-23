@@ -113,6 +113,12 @@ operator review — the same fail-safe contract as miners without a declared
 `reachable`, `escrowBalanceUsd` — a best-effort live balance read proving the
 key works) regardless of whether the direct-miner rail is enabled.
 
+Production validation on November 23: the workspace key is configured and
+`anjoman.ready`/`reachable` are true; two governed smoke tasks reached Anjoman
+and persisted fail-safe `held_pending` runs at zero cost; a `$0.50`-capped paid
+task reached the provider but returned a Cloudflare 504. Do not describe paid
+specialist delegation as proven until a task returns funded specialist sources.
+
 ### Vendor screening → sealed-bid award gate
 
 `POST /api/vendor/sealed-bid/rounds/:roundId/screen-bidders` delegates vendor
@@ -166,10 +172,12 @@ artifact, embeds an `evidenceBundle`, and returns the `runId` needed by
 
 The endpoint was first deployed to production with backend commit `5b9cdc24` on
 November 23; a follow-on deploy at `32e7c831` activated the provider-review /
-disputed-hit approval path. Deployment, health checks, and route/artifact
-registration are verified; a successful authenticated retrieval receipt still
-requires a valid workspace JWT or API key and a post-deploy run, because the
-November 22 canonical runs predate bundles.
+disputed-hit approval path. Deployment, health checks, route/artifact
+registration, and authenticated retrieval are verified. A zero-cost
+spend-guard denial produced blocked gate run
+`f7d012d6-ae46-4f9e-8c14-6cbc60fdf908`; authenticated retrieval returned schema
+`cognivern.telegraph.compliant-call-evidence.v1` and evidence hash
+`7058b798e116579a9ddf1790f777228102f2c1bd113be4787204d83f511bf41e`.
 
 `tooling/scripts/agents/telegraph-benchmark.ts` is the independent benchmark
 harness. It loads fixed public cases from `telegraph-benchmark-cases.json`,
