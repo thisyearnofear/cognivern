@@ -31,11 +31,5 @@
     "noEmit": false
   },
   "include": ["src/**/*", "packages/shared/src/**/*"],
-  "exclude": [
-    "src/frontend/**/*",
-    "src/backend/modules/cloudflare-agents/**/*",
-    "node_modules",
-    "dist",
-    "**/*.test.ts"
-  ]
+  "exclude": ["src/frontend/**/*", "node_modules", "dist", "**/*.test.ts"]
 }
