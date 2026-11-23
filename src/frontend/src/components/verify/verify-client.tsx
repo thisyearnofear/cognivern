@@ -15,6 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { explorerTxUrl } from "@cognivern/shared";
+import type { PublicCommitment } from "@/lib/verify-records";
+import { proofFromCommitment } from "@/lib/proof";
+import { ProofSummary } from "./proof-replay";
 import { formatUsd } from "@/lib/budget-format";
 import { RoundVerify } from "./round-verify";
 import { Copyable } from "./proof-replay";
@@ -29,27 +32,6 @@ import { DiligenceVerify } from "./diligence-verify";
  * receipt for inclusion in the Merkle root. Every step is checkable without
  * trusting us — the page is a convenience, the anchors are the proof.
  */
-
-interface CommitmentAnchors {
-  zerogRootHash: string | null;
-  zerogTxHash: string | null;
-  filecoinCid: string | null;
-  filecoinTxHash: string | null;
-  filecoinActionId: string | null;
-}
-
-interface PublicCommitment {
-  id: string;
-  programId: string;
-  status: "anchored" | "pending";
-  commitmentRoot: string;
-  participantCount: number;
-  highWaterMark: string | null;
-  highWaterMarkUsd: number | null;
-  createdAt: string;
-  anchors: CommitmentAnchors;
-  program: { name: string; sponsorName: string; status: string } | null;
-}
 
 /** Accept a raw id, a full URL, or a pasted blob and return the bare id. */
 function extractCommitmentId(input: string): string {
@@ -278,6 +260,7 @@ export function VerifyClient({
 
         {commitment && (
           <div className="mt-8 space-y-6">
+            <ProofSummary proof={proofFromCommitment(commitment)} />
             {/* ── Commitment card ── */}
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">

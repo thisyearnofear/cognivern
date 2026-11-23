@@ -225,7 +225,7 @@ export function PartyView({ round }: PartyViewProps) {
       ) : demoMode && !demoView ? (
         <p className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
           This sample round has no party-view recording.{" "}
-          <Link href="/procure/demo" className="text-primary hover:underline">
+          <Link href="/verify?round=sandbox-replay" className="text-primary hover:underline">
             Try the guided replay instead →
           </Link>
         </p>

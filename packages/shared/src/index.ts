@@ -6,4 +6,5 @@ export * from "./demo-policy.js";
 export * from "./rails.js";
 export * from "./receipts.js";
 export * from "./custody.js";
+export * from "./proof.js";
 
