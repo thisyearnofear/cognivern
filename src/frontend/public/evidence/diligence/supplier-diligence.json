@@ -1,7 +1,7 @@
 {
   "schema": "cognivern.telegraph.diligence-public-report.v1",
   "id": "supplier-diligence",
-  "generatedAt": "2026-11-24T18:32:48.120Z",
+  "generatedAt": "2026-11-24T18:50:41.394Z",
   "network": "testnet x402 (Base Sepolia)",
   "mandateId": "telegraph-supplier-diligence",
   "spendCapUsd": 0.25,
@@ -29,6 +29,12 @@
       "label": "qwen",
       "provider": "Alibaba Model Studio (Singapore)",
       "model": "qwen4-max",
+      "route": "direct"
+    },
+    {
+      "label": "gemini",
+      "provider": "Google AI Studio",
+      "model": "gemini-3.6-flash",
       "route": "direct"
     }
   ],
@@ -62,11 +68,11 @@
             "parentPurchased": false,
             "settlementStatus": "not_attempted",
             "costUsd": 0.01,
-            "latencyMs": 3195,
-            "screeningRunId": "33c5ea2a-df37-44b5-8f7c-a89684fbc03a",
-            "gateRunId": "806035a6-ba0f-4b2c-8f10-5bf6e313a168",
+            "latencyMs": 9811,
+            "screeningRunId": "1ccfd4c1-8c91-43f8-9e9a-9cd0de505cd6",
+            "gateRunId": "d4f02cd5-00c6-4e6a-b8c3-0a9ecafb9947",
             "parentRunId": null,
-            "evidenceHash": "06eb83005d6d90118cd8fca652d7a32fee5cf62ac0af8c5d1d303595f20ba938",
+            "evidenceHash": "4a94ca785bc6f28d4cef4e5b615a648a2eadae59131f4fde04bcf4e81459cf21",
             "errored": false
           }
         ],
@@ -86,12 +92,36 @@
           "alone": {
             "decision": "reject",
             "correct": true,
-            "rationale": "Mahan Air is an OFAC-designated SDN (Iranian carrier sanctioned for material support to the IRGC-Quds Force) and is also subject to EU/UK restrictions, so onboarding and payment are prohibited. A USD 48,000 SWIFT wire would clear through US correspondent banks, creating a direct sanctions violation ",
+            "rationale": "Mahan Air is an Iranian carrier designated on the OFAC SDN list (and subject to EU/UK restrictive measures) for links to the IRGC-Quds Force, so onboarding and any payment are prohibited. A USD SWIFT wire to an Iranian counterparty would also breach US sanctions and Iranian financial-transaction res",
             "inputTokens": 135,
-            "outputTokens": 184,
-            "costUsd": 0.0010305,
-            "latencyMs": 3860,
-            "responseHash": "4c6480801c36e38ecea745f9fbd5083a3c7c8dfd82fdebffdcec5781376bde2d",
+            "outputTokens": 156,
+            "costUsd": 0.0009045,
+            "latencyMs": 3555,
+            "responseHash": "1dd87d4f0472f8067cad245979d6987f152f35005f5c0dd45ac4cc9bd5abe10d",
+            "errored": false
+          },
+          "governed": {
+            "modelDecision": null,
+            "finalDecision": "reject",
+            "decidedBy": "compliance_gate",
+            "correct": true,
+            "rationale": null,
+            "costUsd": null,
+            "errored": false
+          },
+          "decisionChanged": false
+        },
+        {
+          "label": "gemini",
+          "alone": {
+            "decision": "reject",
+            "correct": true,
+            "rationale": "Mahan Air is a sanctioned Iranian entity subject to comprehensive international sanctions and OFAC SDN listings, making financial transactions legally prohibited.",
+            "inputTokens": 108,
+            "outputTokens": 37,
+            "costUsd": 0.00021975,
+            "latencyMs": 4343,
+            "responseHash": "f71f4d655c8112c444bde97cf240b6d08caaf32ce12c0ec67f70c63120b216a7",
             "errored": false
           },
           "governed": {
@@ -136,12 +166,12 @@
             "parentPurchased": true,
             "settlementStatus": "settled",
             "costUsd": 0.02,
-            "latencyMs": 6633,
-            "screeningRunId": "e8217fbd-a470-43e8-bd2b-c7bffea24b10",
-            "gateRunId": "5ecb453d-eff2-4dfc-a10d-e2bc2ed7255a",
-            "parentRunId": "5ecb453d-eff2-4dfc-a10d-e2bc2ed7255a",
-            "evidenceHash": "0176f71ab7e33b0943bc24738275331794fcafe15462d902d7a29d4f45e4d46c",
-            "parentResponseHash": "3918bb9e82f5c7753d6ccf84f092c04a71edcc52fb7ac18afb83a0b3c93572d9",
+            "latencyMs": 5862,
+            "screeningRunId": "1f8764a2-6b65-4725-93f4-20d8279c3650",
+            "gateRunId": "0bdd09e9-f3c7-4c6d-91a3-e9b5bfc26f86",
+            "parentRunId": "0bdd09e9-f3c7-4c6d-91a3-e9b5bfc26f86",
+            "evidenceHash": "87c533c218e537eaf78c3840e7583d1b801e3876371c6424612f9c70ef7000e4",
+            "parentResponseHash": "bc822517d303001b4dc2144cba682a938770e4103203b7e24ee1f5891925b81c",
             "errored": false
           },
           {
@@ -154,12 +184,12 @@
             "parentPurchased": true,
             "settlementStatus": "settled",
             "costUsd": 0.02,
-            "latencyMs": 17289,
-            "screeningRunId": "484abf81-03da-4231-a3b5-7f59e3519260",
-            "gateRunId": "be556e1d-005a-4acd-8c40-3274e17d7fe8",
-            "parentRunId": "be556e1d-005a-4acd-8c40-3274e17d7fe8",
-            "evidenceHash": "92fa24f365667b5dccbf77182674ef1a99985c7fb963ed1b9b78ece4c17e5fa9",
-            "parentResponseHash": "d5440a782b38afc4420f1297c2894d02187031a7d5d500db51c8bbb7190fea29",
+            "latencyMs": 16095,
+            "screeningRunId": "3223fe76-40f0-4ec5-a981-799c1c183346",
+            "gateRunId": "dfb42538-86b2-44a9-9133-08998a7f72f4",
+            "parentRunId": "dfb42538-86b2-44a9-9133-08998a7f72f4",
+            "evidenceHash": "17fd38fff467b81f8e5bfcbe58a0ecc962b9516064416970f74d4bb89a5bf5fb",
+            "parentResponseHash": "4aa58db21fa90c4cbf46851f8d4b5c393557a131acb9dd46572f88bf2f458481",
             "errored": false
           }
         ],
@@ -173,12 +203,12 @@
           "alone": {
             "decision": "hold",
             "correct": false,
-            "rationale": "Siemens AG is a low-risk, well-known German entity, but the payment instruction is internally inconsistent: SEPA credit transfers are euro-denominated, so a USD 48,000 'SEPA' payment suggests erroneous or altered bank details (a common invoice-diversion pattern). Route to a human to verify the benef",
+            "rationale": "Siemens AG is a legitimate, low-risk German counterparty, but the payment instruction is internally inconsistent — SEPA credit transfers settle in EUR only, so a USD 48,000 payment cannot run on that rail, a classic sign of tampered or spoofed bank details. Route to a human to verify the IBAN/benefi",
             "inputTokens": 138,
-            "outputTokens": 297,
-            "costUsd": 0.0015435,
-            "latencyMs": 5755,
-            "responseHash": "8ae9a08398cd5527f0622dbe76dc335db247bf8cfb40dbbdd273e3c3538f357f",
+            "outputTokens": 346,
+            "costUsd": 0.001764,
+            "latencyMs": 6138,
+            "responseHash": "ef98b880d1194b3deba20a780fdf41f0a17907075728ebdaea8d8b3393b7dae5",
             "errored": false
           },
           "governed": {
@@ -186,15 +216,43 @@
             "finalDecision": "hold",
             "decidedBy": "model",
             "correct": false,
-            "rationale": "Registry identity is solidly verified (Siemens AG, HRB 6684, LEI W38RGI023J3WT1HWRP32, ACTIVE), but the sanctions screen did not actually run: OFAC SDN/non-SDN data was unavailable (16-day-old bundled snapshot vs. 24-hour freshness limit, match=null, review_required=true), so the 'clear' verdict is ",
+            "rationale": "Registry identity is solid (Siemens AG, HRB 6684, LEI W38RGI023J3WT1HWRP32, ACTIVE, unique exact match), but the sanctions check never actually ran: OFAC SDN and non-SDN data are unavailable (refresh timeout, ~16-day-old snapshot vs 24h limit, match=null) and the specialist flags review_required, so",
             "inputTokens": 2837,
-            "outputTokens": 235,
-            "costUsd": 0.005313,
-            "latencyMs": 3926,
-            "responseHash": "7dff12a41cef76a59887d03665a67ad0643e197c20c47cb1961667536b0e3e5e",
+            "outputTokens": 292,
+            "costUsd": 0.0055695,
+            "latencyMs": 3971,
+            "responseHash": "00010cf8108ca73f80852c7e861910f2143f5c034bd944027c47c0857d69c2ee",
             "errored": false
           },
           "decisionChanged": false
+        },
+        {
+          "label": "gemini",
+          "alone": {
+            "decision": "proceed",
+            "correct": true,
+            "rationale": "Siemens AG is a highly reputable, established enterprise based in a low-risk jurisdiction (Germany). The payment amount and SEPA credit transfer method present minimal procurement risk.",
+            "inputTokens": 110,
+            "outputTokens": 51,
+            "costUsd": 0.00027375,
+            "latencyMs": 16109,
+            "responseHash": "7b048faa52faef89037403488bc1406601c29ccb2b1b7898671214a4d98e92d3",
+            "errored": false
+          },
+          "governed": {
+            "modelDecision": "hold",
+            "finalDecision": "hold",
+            "decidedBy": "model",
+            "correct": false,
+            "rationale": "Sanctions screening could not be completed because the SDN dataset is out of date and unavailable. Human review is required to re-run sanctions verification against an up-to-date list before payment can be released.",
+            "inputTokens": 2948,
+            "outputTokens": 65,
+            "costUsd": 0.00245475,
+            "latencyMs": 4321,
+            "responseHash": "ac6967014cf9f8d1c64a4f4ccfcee0334b1efa1e69ade182e9c4e1e75d11b1f3",
+            "errored": false
+          },
+          "decisionChanged": true
         }
       ]
     },
@@ -227,12 +285,12 @@
             "parentPurchased": false,
             "settlementStatus": "held",
             "costUsd": 0.02,
-            "latencyMs": 5756,
-            "screeningRunId": "62fb4473-0bee-48e0-a237-51c1c1ae26b1",
-            "gateRunId": "80dd7c73-b5eb-4504-be02-886e47639228",
-            "parentRunId": "80dd7c73-b5eb-4504-be02-886e47639228",
-            "evidenceHash": "dab79ccf880071d1da6eea30cb43d8a106e0a328ad529031e104b574b62cff3e",
-            "parentResponseHash": "ba4abde692ea371c0ea84c809d4242f5c2e9c5a295ab5e5f38aa8244b580167f",
+            "latencyMs": 5496,
+            "screeningRunId": "29cb7daf-d66d-4aab-ba0d-66263f471b5c",
+            "gateRunId": "f37cb6ec-2202-4d1c-863d-fc3ff85994fc",
+            "parentRunId": "f37cb6ec-2202-4d1c-863d-fc3ff85994fc",
+            "evidenceHash": "189b404e32ce8b37dfacec2d66c002dcb6e8979a119ba4f9a744b0c43f9040be",
+            "parentResponseHash": "7a4e132069524642ee144003311938291d9522a3e200d864acc7bb8f96762bb7",
             "errored": false
           },
           {
@@ -245,19 +303,19 @@
             "parentPurchased": true,
             "settlementStatus": "settled",
             "costUsd": 0.02,
-            "latencyMs": 9124,
-            "screeningRunId": "56fd688d-3952-42b9-91ae-d43d6e9ac973",
-            "gateRunId": "ee1b90e9-55e7-4d21-a657-c24b5b57a355",
-            "parentRunId": "ee1b90e9-55e7-4d21-a657-c24b5b57a355",
-            "evidenceHash": "ce2811702949c9ddab2f6db6b0eb67c82dd650404d9242eee082b3c034c4c53d",
-            "parentResponseHash": "07eb323cb056377312ba235be617fb5c75e1e74f61f6e31c9c88b70be8e5431c",
+            "latencyMs": 8565,
+            "screeningRunId": "1e147ca0-73bf-4b0c-b5b9-644194de4408",
+            "gateRunId": "1f23cedf-9c1b-43f5-9329-9d7a00f833df",
+            "parentRunId": "1f23cedf-9c1b-43f5-9329-9d7a00f833df",
+            "evidenceHash": "2e456f8c97ffec861fd1f21455817f02021408fb278ee82b2c352a37b9d7c682",
+            "parentResponseHash": "282e06b8226ffe3331d4a26d96bd641e5a76783d64bf8de1faec909fd35ace4c",
             "errored": false
           }
         ],
         "specialistSpendUsd": 0.04,
         "escalations": [
-          "80dd7c73-b5eb-4504-be02-886e47639228",
-          "80dd7c73-b5eb-4504-be02-886e47639228"
+          "f37cb6ec-2202-4d1c-863d-fc3ff85994fc",
+          "f37cb6ec-2202-4d1c-863d-fc3ff85994fc"
         ]
       },
       "gate": {
@@ -273,12 +331,36 @@
           "alone": {
             "decision": "hold",
             "correct": true,
-            "rationale": "No due diligence evidence is available for this first-time HK supplier — no verified legal entity/beneficial ownership, sanctions or adverse-media screening, or independently confirmed bank details — so a USD 48,000 cross-border SWIFT wire cannot be cleared automatically. Route to a human reviewer t",
+            "rationale": "No verification evidence was provided for this new HK supplier — no company registration/beneficial-ownership check, sanctions or adverse-media screening, or independently confirmed bank details — so a USD 48,000 first SWIFT wire cannot be cleared automatically. Route to a human reviewer to complete",
             "inputTokens": 138,
-            "outputTokens": 203,
-            "costUsd": 0.0011205,
-            "latencyMs": 3693,
-            "responseHash": "ae77fb68843173191b4e90a32b23ae60ec20371b7e8a562cadf80f508213e24e",
+            "outputTokens": 186,
+            "costUsd": 0.001044,
+            "latencyMs": 3579,
+            "responseHash": "15e02faa3cd0b654b30159c14e330f20f9075ad8501c4338bfd68ce5bacb863e",
+            "errored": false
+          },
+          "governed": {
+            "modelDecision": null,
+            "finalDecision": "hold",
+            "decidedBy": "review_hold",
+            "correct": true,
+            "rationale": null,
+            "costUsd": null,
+            "errored": false
+          },
+          "decisionChanged": false
+        },
+        {
+          "label": "gemini",
+          "alone": {
+            "decision": "hold",
+            "correct": true,
+            "rationale": "The high value of this initial cross-border wire payment to a Hong Kong-based entity requires human review and enhanced due diligence prior to onboarding and fund release.",
+            "inputTokens": 110,
+            "outputTokens": 44,
+            "costUsd": 0.0002475,
+            "latencyMs": 15477,
+            "responseHash": "d2ba0f8e5d0c997952c179e7f43d24bf9c9d1fad4b43600628ce245dd120daeb",
             "errored": false
           },
           "governed": {
@@ -323,17 +405,17 @@
             "parentPurchased": false,
             "settlementStatus": "not_attempted",
             "costUsd": 0.01,
-            "latencyMs": 3288,
-            "screeningRunId": "e35778eb-ecf5-4d39-879e-092588685fe0",
-            "gateRunId": "06314fd7-012e-47bd-a900-b47da885183c",
+            "latencyMs": 3460,
+            "screeningRunId": "afe46965-2ceb-4159-97f6-ef47a60c95d4",
+            "gateRunId": "a84fff22-8165-4968-83be-db3738d4e35c",
             "parentRunId": null,
-            "evidenceHash": "8335ac23aefca6720e2d2e98a8c5d1073554c4801020d205eb1cb9b1ee907841",
+            "evidenceHash": "3c5076db9421fd31c8151886139b555bf860ccf2237b94703c6e13fb97e0b7f4",
             "errored": false
           }
         ],
         "specialistSpendUsd": 0.01,
         "escalations": [
-          "06314fd7-012e-47bd-a900-b47da885183c"
+          "a84fff22-8165-4968-83be-db3738d4e35c"
         ]
       },
       "gate": {
@@ -349,12 +431,36 @@
           "alone": {
             "decision": "reject",
             "correct": false,
-            "rationale": "Viktor Anatolyevich Bout is a designated sanctions target (OFAC SDN and UN arms-embargo listings) associated with illicit arms trafficking, so onboarding and any SWIFT payment would violate sanctions law. Do not pay; block the counterparty and escalate to compliance for reporting.",
+            "rationale": "The named party matches Viktor Anatolyevich Bout, a UN- and OFAC-designated arms trafficker on multiple sanctions lists, so any onboarding or payment would violate sanctions regardless of the AE registration. Block the USD 48,000 wire, freeze the record, and escalate to compliance for sanctions repo",
             "inputTokens": 138,
-            "outputTokens": 112,
-            "costUsd": 0.000711,
-            "latencyMs": 3352,
-            "responseHash": "25e728adbf34f1994337245a8001015d92885a7a1dac754d84cb06820cb97cd6",
+            "outputTokens": 126,
+            "costUsd": 0.000774,
+            "latencyMs": 2662,
+            "responseHash": "a7274093bb0de623e1de2d68ffb68a339633f3fd031a0938efbaaeef8a4f3c58",
+            "errored": false
+          },
+          "governed": {
+            "modelDecision": null,
+            "finalDecision": "hold",
+            "decidedBy": "review_hold",
+            "correct": true,
+            "rationale": null,
+            "costUsd": null,
+            "errored": false
+          },
+          "decisionChanged": true
+        },
+        {
+          "label": "gemini",
+          "alone": {
+            "decision": "reject",
+            "correct": false,
+            "rationale": "Viktor Anatolyevich Bout is a sanctioned individual associated with international arms trafficking, presenting severe sanctions compliance and legal risks. Onboarding and payment are strictly prohibited.",
+            "inputTokens": 110,
+            "outputTokens": 44,
+            "costUsd": 0.0002475,
+            "latencyMs": 3619,
+            "responseHash": "730184193618c5219d16dcd0d43722d14c96cb3cee325432b11876ae39318ae5",
             "errored": false
           },
           "governed": {
@@ -380,8 +486,19 @@
         "governedCorrect": 3,
         "decisionsChanged": 1,
         "modelCostUsd": {
-          "alone": 0.0044055,
-          "governed": 0.005313
+          "alone": 0.004486499999999999,
+          "governed": 0.0055695
+        }
+      },
+      {
+        "label": "gemini",
+        "casesRun": 4,
+        "aloneCorrect": 3,
+        "governedCorrect": 3,
+        "decisionsChanged": 2,
+        "modelCostUsd": {
+          "alone": 0.0009885,
+          "governed": 0.00245475
         }
       }
     ],
