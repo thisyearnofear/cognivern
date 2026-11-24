@@ -18,6 +18,7 @@ import { explorerTxUrl } from "@cognivern/shared";
 import type { PublicCommitment } from "@/lib/verify-records";
 import { proofFromCommitment } from "@/lib/proof";
 import { ProofSummary, Reveal } from "./proof-replay";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { formatUsd } from "@/lib/budget-format";
 import { RoundVerify } from "./round-verify";
 import { Copyable } from "./proof-replay";
@@ -148,18 +149,21 @@ export function VerifyClient({
     : undefined;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background app-surface">
       <header className="border-b border-border">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-6">
           <Link href="/" className="text-sm font-semibold text-foreground">
             Cognivern
           </Link>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to site
-          </Link>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to site
+            </Link>
+          </div>
         </div>
       </header>
 
