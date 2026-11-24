@@ -642,17 +642,21 @@ evidence of the mechanism, not broad coverage. This is
 an enterprise example, not a claim of Alibaba partnership.
 
 **Observed results (2026-11-24, qwen4-max via Alibaba Model Studio
-Singapore + gemini-3.6-flash via Google AI Studio, both direct calls).**
+Singapore + gemini-3.6-flash via Google AI Studio + openai/gpt-oss-20b
+via Groq, all direct calls).**
 All four cases ran live against production compliant-call; specialist
-evidence was bought once per case and reused for both models. Governed
-changed three decisions vs model-alone across the pair: both models alone
-**rejected** the OFAC individual name-match where policy requires human
-review, and Gemini alone **proceeded** on the registered-clear supplier
-where the governed model (with specialist payloads attached) still held.
-Governed 3/4 expected decisions for each model; alone 2/4 (qwen) and 3/4
-(gemini) — on disjoint cases. Specialist spend $0.10 of a $0.25 cap across
-eight paid calls; model spend ≈$0.008 total; three escalations and one
-rejection, all with run ids and evidence hashes in the report. The public
-redacted report is
+evidence was bought once per case and reused for all three models.
+Governed changed five decisions vs model-alone across the three: Qwen
+and Gemini alone **rejected** the OFAC individual name-match where
+policy requires human review, Gemini and gpt-oss-20b alone
+**proceeded** on the registered-clear supplier where the governed
+model (with specialist payloads attached) still held, and gpt-oss-20b
+alone **proceeded** on the unregistered supplier where governance
+held on low-confidence evidence.
+Governed 3/4 expected decisions for every model; alone 2/4 (qwen) and
+3/4 (gemini, groq) — on disjoint cases. Specialist spend $0.10 of a
+$0.25 cap across eight paid calls; model spend ≈$0.015 total; three
+escalations and one rejection, all with run ids and evidence hashes in
+the report. The public redacted report is
 `src/frontend/public/evidence/diligence/supplier-diligence.json`, viewable
 at `/verify?report=supplier-diligence`.
