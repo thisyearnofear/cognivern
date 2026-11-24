@@ -638,6 +638,19 @@ screening verdicts are paid miner assertions, not independent ground truth;
 expected decisions follow the declared fixture policy; a hold can come from
 the compliance review path or the confidence gate — both land in the
 approval inbox; a handful of cases is
-evidence of the mechanism, not broad coverage. Results are pending a live
-run — this section documents the mechanism, not measured outcomes. This is
+evidence of the mechanism, not broad coverage. This is
 an enterprise example, not a claim of Alibaba partnership.
+
+**Observed results (2026-11-24, qwen4-max via Alibaba Model Studio
+Singapore, direct call).** All four cases ran live against production
+compliant-call. Qwen alone: 2/4 expected decisions (rejected the sanctioned
+entity and held the unregistered supplier; held the registered-clear
+supplier instead of proceeding; rejected the individual name-match instead
+of holding for review). Governed: 3/4 (the compliance gate held the
+name-match for human review — the one decision changed — and held
+unregistered; the model itself held registered-clear even with specialist
+evidence attached). Specialist spend $0.10 of a $0.25 cap across eight paid
+calls; model spend ≈$0.005; three escalations and one rejection, all with
+run ids and evidence hashes in the report. The public redacted report is
+`src/frontend/public/evidence/diligence/supplier-diligence.json`, viewable
+at `/verify?report=supplier-diligence`.
