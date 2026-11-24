@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { explorerTxUrl } from "@cognivern/shared";
 import type { PublicCommitment } from "@/lib/verify-records";
 import { proofFromCommitment } from "@/lib/proof";
-import { ProofSummary } from "./proof-replay";
+import { ProofSummary, Reveal } from "./proof-replay";
 import { formatUsd } from "@/lib/budget-format";
 import { RoundVerify } from "./round-verify";
 import { Copyable } from "./proof-replay";
@@ -260,8 +260,11 @@ export function VerifyClient({
 
         {commitment && (
           <div className="mt-8 space-y-6">
-            <ProofSummary proof={proofFromCommitment(commitment)} />
+            <Reveal>
+              <ProofSummary proof={proofFromCommitment(commitment)} />
+            </Reveal>
             {/* ── Commitment card ── */}
+            <Reveal delay={0.05}>
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
@@ -360,8 +363,10 @@ export function VerifyClient({
                 )}
               </div>
             </div>
+            </Reveal>
 
             {/* ── Receipt inclusion check ── */}
+            <Reveal delay={0.05}>
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="font-semibold text-foreground">Check a participant receipt</div>
               <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
@@ -406,6 +411,7 @@ export function VerifyClient({
                 {receiptError && <span className="text-sm text-destructive">{receiptError}</span>}
               </div>
             </div>
+            </Reveal>
           </div>
         )}
           </>

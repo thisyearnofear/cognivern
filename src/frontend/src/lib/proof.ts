@@ -189,6 +189,7 @@ export function proofFromDiligenceReport(
     spent: {
       usd: unpricedModelCost ? specialistSpend : specialistSpend + modelCostTotal,
       note: spentNote,
+      capUsd: report.spendCapUsd,
     },
     decided: {
       outcome: parts.join(", ") || "no decisions recorded",

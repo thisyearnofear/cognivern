@@ -169,6 +169,7 @@ describe("proofFromDiligenceReport", () => {
     expect(proof.spent).toEqual({
       usd: 0.05,
       note: "specialist calls only",
+      capUsd: 0.25,
     });
     // Gates: reject, null(registered-clear), hold, hold
     expect(proof.decided.outcome).toBe(

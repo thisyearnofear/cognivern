@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { hashSealedBidEvent } from "@/lib/cre-hash";
-import { Copyable, ProofSummary } from "./proof-replay";
+import { Copyable, ProofSummary, Reveal } from "./proof-replay";
 import { proofFromRound } from "@/lib/proof";
 import { SANDBOX_REPLAY_ID } from "@/lib/visibility-replay";
 import { VisibilityReplay } from "./visibility-replay";
@@ -222,8 +222,11 @@ export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {
 
       {round && (
         <div className="mt-8 space-y-6">
-          <ProofSummary proof={proofFromRound(round)} />
+          <Reveal>
+            <ProofSummary proof={proofFromRound(round)} />
+          </Reveal>
           {/* ── Outcome card ── */}
+          <Reveal delay={0.05}>
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
@@ -274,8 +277,10 @@ export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {
               </div>
             </dl>
           </div>
+          </Reveal>
 
           {/* ── Ledger anchors ── */}
+          <Reveal delay={0.05}>
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="font-semibold text-foreground">Ledger anchors</div>
             <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
@@ -306,8 +311,10 @@ export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {
                 )}
             </div>
           </div>
+          </Reveal>
 
           {/* ── Governance timeline ── */}
+          <Reveal delay={0.05}>
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="font-semibold text-foreground">Governance timeline</div>
             {round.governanceTimeline ? (
@@ -404,8 +411,10 @@ export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {
               </p>
             )}
           </div>
+          </Reveal>
 
           {/* ── Honesty box ── */}
+          <Reveal delay={0.05}>
           <div className="rounded-xl border border-border bg-muted/30 p-5 text-sm">
             <div className="font-semibold text-foreground">What this proves</div>
             <ul className="mt-2 space-y-1.5 text-muted-foreground">
@@ -425,6 +434,7 @@ export function RoundVerify({ initialRoundId }: { initialRoundId: string }) {
               ))}
             </ul>
           </div>
+          </Reveal>
         </div>
       )}
     </div>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion, useReducedMotion } from "motion/react";
 import {
   ArrowRight,
   Check,
@@ -24,7 +25,7 @@ import {
   type DiligenceDecision,
   type PublicDiligenceReport,
 } from "@/lib/diligence-report";
-import { ChipGroup, ProofSummary, ReceiptRow, ReplayStatus } from "./proof-replay";
+import { ChipGroup, ProofSummary, ReceiptRow, Reveal } from "./proof-replay";
 import { proofFromDiligenceReport } from "@/lib/proof";
 
 /**
@@ -50,18 +51,42 @@ type LoadState =
 
 const DECISION_STYLE: Record<
   DiligenceDecision,
-  { className: string; label: string }
+  { className: string; cellClassName: string; label: string }
 > = {
   proceed: {
     className: "border-emerald-500/40 text-emerald-700 dark:text-emerald-400",
+    cellClassName:
+      "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
     label: "proceed",
   },
   hold: {
     className: "border-amber-500/40 text-amber-700 dark:text-amber-400",
+    cellClassName:
+      "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30",
     label: "hold",
   },
-  reject: { className: "border-destructive/40 text-destructive", label: "reject" },
+  reject: {
+    className: "border-destructive/40 text-destructive",
+    cellClassName:
+      "bg-destructive/10 text-destructive border-destructive/30",
+    label: "reject",
+  },
 };
+
+/** Fill chip used inside the decision matrix — color carries the verdict. */
+function DecisionCellChip({ decision }: { decision: string }) {
+  const style = DECISION_STYLE[decision as DiligenceDecision];
+  const label = style?.label ?? decision;
+  return (
+    <span
+      className={`inline-block rounded border px-1.5 py-px text-[10px] font-semibold leading-4 ${
+        style?.cellClassName ?? "border-border bg-muted/40 text-muted-foreground"
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
 
 function decidedByLabel(decidedBy: string): string {
   switch (decidedBy) {
@@ -107,6 +132,76 @@ function TokenCost({
   );
 }
 
+/**
+ * First (model, case) pair where governance changed the decision — scanned
+ * model-major so the lead model's flip wins when several exist. Used to land
+ * the reader on an interesting cell instead of the first row.
+ */
+function firstChangedCell(report: PublicDiligenceReport): {
+  caseIndex: number;
+  modelLabel: string;
+} | null {
+  for (const m of report.models) {
+    if (m.skipped) continue;
+    for (let i = 0; i < report.cases.length; i++) {
+      if (report.cases[i].perModel.find((r) => r.label === m.label)?.decisionChanged) {
+        return { caseIndex: i, modelLabel: m.label };
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * One arm of the alone|governed compare — title, decision badge, fixture
+ * check, rationale quote, then arm-specific footnotes (tokens, gate path).
+ */
+function ArmCard({
+  title,
+  decision,
+  expectedDecision,
+  correct,
+  rationale,
+  footer,
+}: {
+  title: string;
+  decision: string | null;
+  expectedDecision: string;
+  correct?: boolean | null;
+  rationale?: string | null;
+  footer?: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-sm font-medium text-foreground">{title}</div>
+        <DecisionBadge decision={decision} />
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-muted-foreground">
+          Fixture policy: {expectedDecision}
+        </span>
+        {correct === true ? (
+          <Check className="h-4 w-4 text-emerald-500" aria-label="matches fixture policy" />
+        ) : correct === false ? (
+          <X className="h-4 w-4 text-destructive" aria-label="differs from fixture policy" />
+        ) : null}
+        {correct === false && decision === "hold" && expectedDecision === "proceed" && (
+          <span className="text-xs text-muted-foreground">
+            · more conservative than the fixture policy
+          </span>
+        )}
+      </div>
+      {rationale && (
+        <blockquote className="mt-3 border-l-2 border-border pl-3 text-sm italic text-muted-foreground">
+          “{rationale}”
+        </blockquote>
+      )}
+      {footer}
+    </div>
+  );
+}
+
 /** Decision pill used by the diff banner and the decision card. */
 function DecisionBadge({ decision }: { decision?: string | null }) {
   const style = decision && DECISION_STYLE[decision as DiligenceDecision];
@@ -140,6 +235,12 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
     searchParams.get("view") === "governed" ? "governed" : "alone",
   );
   const [replaying, setReplaying] = useState(false);
+  // Captured once: whether the URL carried a cell selection. Not a dep of
+  // `load` — a live searchParams dep makes load() refire on every
+  // router.replace, and each refire unmounts the report tree mid-animation.
+  const hadCellParams = useRef(
+    Boolean(searchParams.get("case") || searchParams.get("model")),
+  );
 
   const load = useCallback(async (rawId: string) => {
     const id = rawId.trim();
@@ -163,6 +264,15 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
       // Clamp the case index when a different report loads; unknown model
       // labels already fall back to the first runnable model via `activeModel`.
       setCaseIndex((i) => (parsed && i >= parsed.cases.length ? 0 : i));
+      // With no deep-link params, land on a cell where governance changed the
+      // decision rather than the first row.
+      if (parsed && !hadCellParams.current) {
+        const cell = firstChangedCell(parsed);
+        if (cell) {
+          setCaseIndex(cell.caseIndex);
+          setModelLabel(cell.modelLabel);
+        }
+      }
     } catch {
       setState({ kind: "network-error" });
     }
@@ -187,6 +297,29 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
     if (!caseResult || !activeModel) return null;
     return caseResult.perModel.find((r) => r.label === activeModel.label) ?? null;
   }, [caseResult, activeModel]);
+
+  const aloneDecision = perModel?.alone.errored
+    ? null
+    : (perModel?.alone.decision ?? null);
+  const governedDecision = perModel?.governed.finalDecision ?? null;
+
+  // Stat hero: the whole report in one line.
+  const heroStats = useMemo(() => {
+    if (!report) return null;
+    const totalChanged = report.summary.perModel.reduce(
+      (n, m) => n + m.decisionsChanged,
+      0,
+    );
+    return {
+      totalChanged,
+      models: runnableModels.length,
+      suppliers: report.cases.length,
+      escalations: report.summary.run.escalations,
+    };
+  }, [report, runnableModels.length]);
+
+  const reduceMotion = useReducedMotion();
+  const compareRef = useRef<HTMLDivElement | null>(null);
 
   // Shareable deep link: /verify?report=<id>&case=<n>&model=<label>&view=<arm>
   useEffect(() => {
@@ -294,53 +427,156 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
 
       {report && caseResult && (
         <div className="mt-8 flex flex-col gap-6">
-          <ProofSummary proof={proofFromDiligenceReport(report)} />
-          {/* ── Provenance ── */}
-          <p className="order-1 text-xs text-muted-foreground">
+          {/* ── Proof envelope (shared contract: asked/mandate/spent/decided) ── */}
+          <Reveal>
+            <ProofSummary proof={proofFromDiligenceReport(report)} />
+          </Reveal>
+
+          {/* ── Stat hero: the whole report in one line ── */}
+          {heroStats && (
+            <Reveal delay={0.05}>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-center">
+                  <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
+                    {heroStats.totalChanged}
+                  </div>
+                  <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    decision{heroStats.totalChanged === 1 ? "" : "s"} changed by governance
+                  </div>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-4 text-center">
+                  <div className="text-2xl font-bold text-foreground">
+                    {heroStats.models}
+                  </div>
+                  <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    model vendors, same evidence
+                  </div>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-4 text-center">
+                  <div className="text-2xl font-bold text-foreground">
+                    {heroStats.escalations}
+                  </div>
+                  <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    item{heroStats.escalations === 1 ? "" : "s"} sent to a human
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          )}
+
+          <p className="text-xs text-muted-foreground">
             Generated {new Date(report.generatedAt).toUTCString()} · {report.network} ·{" "}
             {report.cases.length} fixed cases · specialist spend cap{" "}
             {money(report.spendCapUsd)}
           </p>
 
-          {/* ── Replay status: the alone → governed diff, as badges ── */}
-          <div className="order-2 sm:order-3">
-            <ReplayStatus>
-              {(() => {
-                const aloneDecision = perModel?.alone.errored
-                  ? null
-                  : (perModel?.alone.decision ?? null);
-                const governedDecision = perModel?.governed.finalDecision ?? null;
-                const same = aloneDecision === governedDecision;
-                return (
-                  <span className="inline-flex flex-wrap items-center gap-2">
-                    {same ? (
-                      <>
-                        <span className="text-muted-foreground">Both decided</span>
-                        <DecisionBadge decision={governedDecision} />
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-muted-foreground">Alone</span>
-                        <DecisionBadge decision={aloneDecision} />
-                        <ArrowRight
-                          className="h-3.5 w-3.5 text-muted-foreground"
-                          aria-hidden
-                        />
-                        <span className="text-muted-foreground">Governed</span>
-                        <DecisionBadge decision={governedDecision} />
-                      </>
-                    )}
-                    <span className="text-muted-foreground">
-                      · Specialist cost: {money(caseResult.evidence.specialistSpendUsd)}
-                    </span>
-                  </span>
-                );
-              })()}
-            </ReplayStatus>
+          {/* ── Decision matrix: the story at a glance; cells select the comparator ── */}
+          <Reveal delay={0.05}>
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <div className="font-semibold text-foreground">
+                  Decisions: alone → governed
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  pick a cell to inspect it below
+                </div>
+              </div>
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-muted-foreground">
+                      <th className="pb-2 pr-4 font-medium">Supplier</th>
+                      {runnableModels.map((m) => (
+                        <th key={m.label} className="pb-2 pr-4 font-medium">
+                          {m.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.cases.map((c, i) => (
+                      <tr
+                        key={c.id}
+                        className={`border-t border-border ${i === caseIndex ? "bg-muted/40" : ""}`}
+                      >
+                        <td className="py-2 pr-4 font-medium">{c.supplier.name}</td>
+                        {runnableModels.map((m) => {
+                          const pm = c.perModel.find((r) => r.label === m.label);
+                          if (!pm) {
+                            return (
+                              <td key={m.label} className="py-2 pr-4 text-muted-foreground">
+                                —
+                              </td>
+                            );
+                          }
+                          const alone = pm.alone.errored
+                            ? "error"
+                            : pm.alone.decision === "unparseable"
+                              ? "no answer"
+                              : pm.alone.decision;
+                          const selected =
+                            i === caseIndex && m.label === activeModel?.label;
+                          return (
+                            <td key={m.label} className="py-2 pr-4">
+                              <button
+                                type="button"
+                                title={
+                                  pm.decisionChanged
+                                    ? "Governance changed this decision"
+                                    : `Inspect ${c.supplier.name} · ${m.label}`
+                                }
+                                aria-pressed={selected}
+                                onClick={() => {
+                                  setReplaying(false);
+                                  setCaseIndex(i);
+                                  setModelLabel(m.label);
+                                  compareRef.current?.scrollIntoView({
+                                    behavior: "smooth",
+                                    block: "start",
+                                  });
+                                }}
+                                className={`inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                                  pm.decisionChanged
+                                    ? "ring-1 ring-amber-500/60 bg-amber-500/5"
+                                    : ""
+                                } ${selected ? "bg-primary/10" : "hover:bg-muted/60"}`}
+                              >
+                                <DecisionCellChip decision={alone} />
+                                <ArrowRight className="h-3 w-3 text-muted-foreground" aria-hidden />
+                                <DecisionCellChip
+                                  decision={pm.governed.finalDecision ?? "—"}
+                                />
+                              </button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </Reveal>
+
+          {/* ── Sticky context: what you're looking at right now ── */}
+          <div className="sticky top-0 z-20 -mx-6 border-b border-border bg-background/85 px-6 py-2 backdrop-blur">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+              <span className="font-medium text-foreground">
+                {caseResult.supplier.name}
+              </span>
+              <span className="text-muted-foreground">
+                {activeModel ? `${activeModel.provider} · ${activeModel.model ?? "?"}` : "no model"}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <DecisionBadge decision={aloneDecision} />
+                <ArrowRight className="h-3 w-3 text-muted-foreground" aria-hidden />
+                <DecisionBadge decision={governedDecision} />
+              </span>
+            </div>
           </div>
 
           {/* ── Controls ── */}
-          <div className="order-4 space-y-4 rounded-xl border border-border bg-card p-5 sm:order-2">
+          <div className="space-y-4 rounded-xl border border-border bg-card p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-6">
               <ChipGroup
                 label="Supplier"
@@ -383,18 +619,22 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                   gate results below stand on their own.
                 </p>
               )}
-              <ChipGroup
-                label="View"
-                options={[
-                  { value: "alone", label: "Model alone" },
-                  { value: "governed", label: "Governed" },
-                ]}
-                value={view}
-                onChange={(v) => {
-                  setReplaying(false);
-                  setView(v);
-                }}
-              />
+              {/* The alone/governed toggle only matters on narrow screens,
+                  where the two arms stack; on sm+ both render side by side. */}
+              <div className="sm:hidden">
+                <ChipGroup
+                  label="View"
+                  options={[
+                    { value: "alone", label: "Model alone" },
+                    { value: "governed", label: "Governed" },
+                  ]}
+                  value={view}
+                  onChange={(v) => {
+                    setReplaying(false);
+                    setView(v);
+                  }}
+                />
+              </div>
               <div className="flex gap-2 sm:ml-auto">
                 <Button
                   variant="outline"
@@ -432,127 +672,143 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
             </div>
           </div>
 
-          {/* ── Decision card ── */}
-          <div
-            key={view}
-            className="order-3 rounded-xl border border-border bg-card p-5 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-150"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-sm font-medium text-foreground">
-                {view === "alone"
-                  ? `What ${activeModel?.label ?? "the model"} decided alone`
-                  : "What the governed arm decided"}
+          {/* ── Side-by-side compare: the model alone vs the same model governed ── */}
+          <div ref={compareRef} className="relative scroll-mt-16">
+            {perModel?.decisionChanged && (
+              <motion.div
+                key={`stamp-${caseIndex}-${activeModel?.label}`}
+                initial={reduceMotion ? false : { opacity: 0, scale: 2.2, rotate: -16 }}
+                animate={{ opacity: 1, scale: 1, rotate: -7 }}
+                transition={
+                  reduceMotion
+                    ? { duration: 0 }
+                    : { type: "spring", stiffness: 400, damping: 22, mass: 0.8 }
+                }
+                aria-hidden
+                className="pointer-events-none absolute -top-2 right-2 z-10 inline-flex items-center rounded-md border-2 border-amber-500/50 bg-amber-500/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-300 shadow-sm"
+              >
+                Changed by governance
+              </motion.div>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Alone arm — hidden on mobile unless the serial view selects it */}
+              <div
+                className={`rounded-xl border border-border bg-card p-5 ${
+                  view === "alone" ? "" : "hidden sm:block"
+                }`}
+              >
+                <ArmCard
+                  title={`What ${activeModel?.label ?? "the model"} decided alone`}
+                  decision={aloneDecision}
+                  expectedDecision={caseResult.expectedDecision}
+                  correct={perModel?.alone.correct}
+                  rationale={perModel?.alone.rationale}
+                  footer={
+                    perModel && (
+                      <TokenCost
+                        inputTokens={perModel.alone.inputTokens}
+                        outputTokens={perModel.alone.outputTokens}
+                        costUsd={perModel.alone.costUsd}
+                      />
+                    )
+                  }
+                />
               </div>
-              <DecisionBadge
-                decision={
-                  view === "alone"
-                    ? perModel?.alone.decision
-                    : perModel?.governed.finalDecision
-                }
-              />
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-muted-foreground">
-                Fixture policy: {caseResult.expectedDecision}
-              </span>
-              {(() => {
-                const correct =
-                  view === "alone" ? perModel?.alone.correct : perModel?.governed.correct;
-                const decision =
-                  view === "alone" ? perModel?.alone.decision : perModel?.governed.finalDecision;
-                return (
-                  <>
-                    {correct === true ? (
-                      <Check className="h-4 w-4 text-emerald-500" aria-label="matches fixture policy" />
-                    ) : correct === false ? (
-                      <X className="h-4 w-4 text-destructive" aria-label="differs from fixture policy" />
-                    ) : null}
-                    {correct === false &&
-                      decision === "hold" &&
-                      caseResult.expectedDecision === "proceed" && (
-                        <span className="text-xs text-muted-foreground">
-                          · more conservative than the fixture policy
-                        </span>
+              {/* Governed arm — amber-tinted when governance changed the call */}
+              <div
+                className={`relative rounded-xl border p-5 ${
+                  perModel?.decisionChanged
+                    ? "border-amber-500/40 bg-amber-500/[0.04]"
+                    : "border-border bg-card"
+                } ${view === "governed" ? "" : "hidden sm:block"}`}
+              >
+                <ArmCard
+                  title="What the governed arm decided"
+                  decision={governedDecision}
+                  expectedDecision={caseResult.expectedDecision}
+                  correct={perModel?.governed.correct}
+                  rationale={perModel?.governed.rationale}
+                  footer={
+                    <>
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Decided by{" "}
+                        {perModel ? decidedByLabel(perModel.governed.decidedBy) : "—"} ·{" "}
+                        {whyLabel(caseResult.gate)}
+                      </p>
+                      {perModel && (
+                        <TokenCost
+                          inputTokens={perModel.governed.inputTokens}
+                          outputTokens={perModel.governed.outputTokens}
+                          costUsd={perModel.governed.costUsd}
+                        />
                       )}
-                  </>
-                );
-              })()}
+                    </>
+                  }
+                />
+              </div>
             </div>
-
-            {(() => {
-              const rationale =
-                view === "alone" ? perModel?.alone.rationale : perModel?.governed.rationale;
-              return rationale ? (
-                <blockquote className="mt-3 border-l-2 border-border pl-3 text-sm italic text-muted-foreground">
-                  “{rationale}”
-                </blockquote>
-              ) : null;
-            })()}
-
-            {view === "governed" && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                Decided by {perModel ? decidedByLabel(perModel.governed.decidedBy) : "—"} ·{" "}
-                {whyLabel(caseResult.gate)}
-              </p>
-            )}
-            {perModel && (
-              <TokenCost
-                inputTokens={
-                  view === "alone" ? perModel.alone.inputTokens : perModel.governed.inputTokens
-                }
-                outputTokens={
-                  view === "alone" ? perModel.alone.outputTokens : perModel.governed.outputTokens
-                }
-                costUsd={view === "alone" ? perModel.alone.costUsd : perModel.governed.costUsd}
-              />
-            )}
           </div>
 
-          {/* ── Purchased evidence (governed arm only) ── */}
-          {view === "governed" && (
-            <div className="order-5 rounded-xl border border-border bg-card p-5">
+          {/* ── Purchased evidence: each call a link in the chain ── */}
+          <div
+            className={`rounded-xl border border-border bg-card p-5 ${
+              view === "governed" ? "" : "hidden sm:block"
+            }`}
+          >
               <div className="font-semibold text-foreground">Purchased evidence</div>
               <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
                 Each step screens the supplier first; the parent specialist is
                 only bought when the screen allows it.
               </p>
-              <ol className="mt-3 space-y-4">
-                {caseResult.evidence.steps.map((step) => {
+              <ol className="mt-4 space-y-0">
+                {caseResult.evidence.steps.map((step, stepIdx) => {
                   const parent =
                     step.step === 1
                       ? report.specialists.registry
                       : report.specialists.vendorVerify;
+                  const last = stepIdx === caseResult.evidence.steps.length - 1;
+                  const outcome = step.parentPurchased
+                    ? "purchased"
+                    : step.settlementStatus === "held" || step.status === "held"
+                      ? "held for review"
+                      : "not purchased";
                   return (
-                    <li key={step.step} className="text-sm">
-                      <div>
-                        Screen (miner {step.screenMinerId ?? "?"}):{" "}
-                        <span className="font-medium">{step.verdict ?? "no verdict"}</span>
-                        {" → "}Bought: {parentLabel(parent?.intent)}:{" "}
-                        <span className="font-medium">
-                          {step.parentPurchased
-                            ? "purchased"
-                            : step.settlementStatus === "held" || step.status === "held"
-                              ? "held for review"
-                              : "not purchased"}
-                        </span>
-                        {typeof step.costUsd === "number" && (
-                          <span className="text-muted-foreground"> · {money(step.costUsd)}</span>
-                        )}
-                      </div>
-                      <div className="mt-1.5 space-y-1 pl-4">
-                        {step.screeningRunId && (
-                          <ReceiptRow label="Screen run" value={step.screeningRunId} />
-                        )}
-                        {step.gateRunId && (
-                          <ReceiptRow label="Gate run" value={step.gateRunId} />
-                        )}
-                        {step.parentRunId && (
-                          <ReceiptRow label="Parent run" value={step.parentRunId} />
-                        )}
-                        {step.evidenceHash && (
-                          <ReceiptRow label="Evidence hash" value={step.evidenceHash} />
-                        )}
+                    <li key={step.step} className="relative flex gap-3 pb-5 text-sm last:pb-0">
+                      {/* Chain link: node + connector to the next call */}
+                      <span className="flex flex-col items-center" aria-hidden>
+                        <span
+                          className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full border-2 ${
+                            step.parentPurchased
+                              ? "border-primary bg-primary/20"
+                              : "border-amber-500 bg-amber-500/20"
+                          }`}
+                        />
+                        {!last && <span className="mt-1 w-px flex-1 bg-border" />}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div>
+                          Screen (miner {step.screenMinerId ?? "?"}):{" "}
+                          <span className="font-medium">{step.verdict ?? "no verdict"}</span>
+                          {" → "}Bought: {parentLabel(parent?.intent)}:{" "}
+                          <span className="font-medium">{outcome}</span>
+                          {typeof step.costUsd === "number" && (
+                            <span className="text-muted-foreground"> · {money(step.costUsd)}</span>
+                          )}
+                        </div>
+                        <div className="mt-1.5 space-y-1">
+                          {step.screeningRunId && (
+                            <ReceiptRow label="Screen run" value={step.screeningRunId} />
+                          )}
+                          {step.gateRunId && (
+                            <ReceiptRow label="Gate run" value={step.gateRunId} />
+                          )}
+                          {step.parentRunId && (
+                            <ReceiptRow label="Parent run" value={step.parentRunId} />
+                          )}
+                          {step.evidenceHash && (
+                            <ReceiptRow label="Evidence hash" value={step.evidenceHash} />
+                          )}
+                        </div>
                       </div>
                     </li>
                   );
@@ -566,10 +822,9 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                 </div>
               )}
             </div>
-          )}
 
           {/* ── Ground truth ── */}
-          <div className="order-6 rounded-xl border border-border bg-muted/30 p-5 text-sm">
+          <div className="rounded-xl border border-border bg-muted/30 p-5 text-sm">
             <div className="font-semibold text-foreground">Ground truth</div>
             <p className="mt-2 text-muted-foreground leading-relaxed">
               {caseResult.groundTruth.assertion}
@@ -580,68 +835,10 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
             </p>
           </div>
 
-          {/* ── Summary across models ── */}
-          <div className="order-7 rounded-xl border border-border bg-card p-5">
-            <div className="font-semibold text-foreground">Summary</div>
-            {/* Decision matrix: alone → governed per supplier per model; amber = changed */}
+          {/* ── Per-model results ── */}
+          <div className="rounded-xl border border-border bg-card p-5">
+            <div className="font-semibold text-foreground">Per-model results</div>
             <div className="mt-3 overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-left text-muted-foreground">
-                    <th className="pb-2 pr-4 font-medium">Supplier</th>
-                    {runnableModels.map((m) => (
-                      <th key={m.label} className="pb-2 pr-4 font-medium">
-                        {m.label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.cases.map((c, i) => (
-                    <tr
-                      key={c.id}
-                      className={`border-t border-border ${i === caseIndex ? "bg-muted/40" : ""}`}
-                    >
-                      <td className="py-2 pr-4 font-medium">{c.supplier.name}</td>
-                      {runnableModels.map((m) => {
-                        const pm = c.perModel.find((r) => r.label === m.label);
-                        if (!pm) {
-                          return (
-                            <td key={m.label} className="py-2 pr-4 text-muted-foreground">
-                              —
-                            </td>
-                          );
-                        }
-                        const alone = pm.alone.errored
-                          ? "error"
-                          : pm.alone.decision === "unparseable"
-                            ? "no answer"
-                            : pm.alone.decision;
-                        return (
-                          <td key={m.label} className="py-2 pr-4">
-                            <span
-                              title={
-                                pm.decisionChanged
-                                  ? "Governance changed this decision"
-                                  : undefined
-                              }
-                              className={
-                                pm.decisionChanged
-                                  ? "rounded bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-700 dark:text-amber-300"
-                                  : "text-muted-foreground"
-                              }
-                            >
-                              {alone} → {pm.governed.finalDecision}
-                            </span>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-4 overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-muted-foreground">
@@ -675,7 +872,7 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
           </div>
 
           {/* ── Honesty bounds + links ── */}
-          <div className="order-8 rounded-xl border border-border bg-muted/30 p-5 text-sm">
+          <div className="rounded-xl border border-border bg-muted/30 p-5 text-sm">
             <div className="font-semibold text-foreground">Honesty bounds</div>
             <ul className="mt-2 space-y-1.5 text-muted-foreground">
               {report.honestyBounds.map((bound, i) => (
