@@ -58,11 +58,17 @@ export async function generateMetadata({
     const alone = pm?.alone?.errored ? "no answer" : (pm?.alone?.decision ?? "—");
     const governed = pm?.governed?.finalDecision ?? "—";
     const flip = alone !== governed;
+    const title = `${supplier} · ${model ?? pm?.label ?? "model"}: ${alone} → ${governed} — Cognivern`;
+    const description = flip
+      ? `The model alone decided ${alone}; Cognivern governance, with purchased specialist evidence, decided ${governed}. Inspect the receipts — no login required.`
+      : `Both arms decided ${alone} — inspect the evidence and receipts, no login required.`;
+    // openGraph/twitter merge field-wise with the layout's — images, siteName
+    // and card type stay static; only the text carries the cell's outcome.
     return {
-      title: `${supplier} · ${model ?? pm?.label ?? "model"}: ${alone} → ${governed} — Cognivern`,
-      description: flip
-        ? `The model alone decided ${alone}; Cognivern governance, with purchased specialist evidence, decided ${governed}. Inspect the receipts — no login required.`
-        : `Both arms decided ${alone} — inspect the evidence and receipts, no login required.`,
+      title,
+      description,
+      openGraph: { title, description },
+      twitter: { title, description },
     };
   } catch {
     return fallback;
