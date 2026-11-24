@@ -27,6 +27,7 @@ import { useDemoStore } from "@/stores/demo-store";
 import { useAuthStore, useAuthHydrated } from "@/stores/auth-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { DecisionPreview } from "@/components/governance/decision-preview";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAccount } from "wagmi";
 import {
   DEMO_APPROVE_THRESHOLD,
@@ -418,6 +419,7 @@ export function LandingPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             Live governance controls
           </span>
+          <ThemeToggle />
           {hasHydrated && (isAppAuthenticated || walletConnected) ? (
             <Button
               variant="default"
