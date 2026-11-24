@@ -44,6 +44,106 @@ import {
  */
 const PUBLIC_API_ORIGIN = "https://api.cognivern.persidian.com";
 
+/* ─── Live proof stats ─────────────────────────────────────────
+   The diligence report is the strongest checkable artifact on the
+   site — real purchased evidence, public receipts, three model
+   vendors. The band under the hero pulls its numbers from the same
+   static JSON /verify renders, so they stay live when the report
+   regenerates; the fallback constants match the published run. */
+
+type DiligenceReportPeek = {
+  summary?: {
+    perModel?: { label?: string; decisionsChanged?: number }[];
+    run?: { escalations?: number };
+  };
+  cases?: {
+    supplier?: { name?: string };
+    perModel?: {
+      label?: string;
+      alone?: { decision?: string | null };
+      governed?: { finalDecision?: string | null };
+    }[];
+  }[];
+};
+
+const PROOF_FALLBACK = {
+  changed: 5,
+  vendors: 3,
+  escalated: 3,
+  cell: {
+    caseIndex: 3,
+    supplier: "Viktor Anatolyevich Bout",
+    model: "qwen",
+    alone: "reject",
+    governed: "hold",
+  },
+};
+
+function useDiligenceProof() {
+  const [stats, setStats] = useState(PROOF_FALLBACK);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/evidence/diligence/supplier-diligence.json")
+      .then((r) => (r.ok ? (r.json() as Promise<DiligenceReportPeek>) : Promise.reject(r.status)))
+      .then((report) => {
+        if (cancelled) return;
+        const cases = report.cases ?? [];
+        let cell = PROOF_FALLBACK.cell;
+        for (let ci = 0; ci < cases.length; ci++) {
+          const pm = (cases[ci].perModel ?? []).find(
+            (m) =>
+              m.alone?.decision &&
+              m.governed?.finalDecision &&
+              m.alone.decision !== m.governed.finalDecision,
+          );
+          if (pm) {
+            cell = {
+              caseIndex: ci,
+              supplier: cases[ci].supplier?.name ?? "supplier",
+              model: pm.label ?? "model",
+              alone: pm.alone!.decision!,
+              governed: pm.governed!.finalDecision!,
+            };
+            break;
+          }
+        }
+        const perModel = report.summary?.perModel ?? [];
+        setStats({
+          changed:
+            perModel.reduce((s, m) => s + (m.decisionsChanged ?? 0), 0) ||
+            PROOF_FALLBACK.changed,
+          vendors: perModel.length || PROOF_FALLBACK.vendors,
+          escalated: report.summary?.run?.escalations ?? PROOF_FALLBACK.escalated,
+          cell,
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return stats;
+}
+
+const PROOF_CHIP: Record<string, string> = {
+  proceed:
+    "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+  hold: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30",
+  reject: "bg-destructive/10 text-destructive border-destructive/30",
+};
+
+function ProofDecisionChip({ decision }: { decision: string }) {
+  return (
+    <span
+      className={`inline-block rounded border px-1.5 py-px text-[10px] font-semibold leading-4 ${
+        PROOF_CHIP[decision] ?? "border-border bg-muted/40 text-muted-foreground"
+      }`}
+    >
+      {decision}
+    </span>
+  );
+}
+
 /* ─── Flow node component ───────────────────────────────────── */
 
 function FlowNode({
@@ -110,31 +210,37 @@ const LOOP_STAGES: Array<{
   icon: React.ElementType;
   title: string;
   subtitle: string;
+  state: "live" | "building";
 }> = [
   {
     icon: CircleDollarSign,
     title: "Fund",
     subtitle: "A mandate sets the budget, boundary, and success metric for a piece of agentic work.",
+    state: "live",
   },
   {
     icon: ShieldCheck,
     title: "Act",
     subtitle: "Agents work under governed policy — every action approved, held, or stopped with a reason.",
+    state: "live",
   },
   {
     icon: Receipt,
     title: "Spend",
     subtitle: "Every dollar attributed to a mandate, with receipt-backed evidence your team can verify.",
+    state: "live",
   },
   {
     icon: TrendingUp,
     title: "Outcome",
     subtitle: "Business results recorded and independently verified where the source allows.",
+    state: "building",
   },
   {
     icon: Target,
     title: "Allocate",
     subtitle: "Evidence gating the next tranche — advisory guidance, never automatic execution.",
+    state: "building",
   },
 ];
 
@@ -142,11 +248,13 @@ function LoopCard({
   icon: Icon,
   title,
   subtitle,
+  state,
   index,
 }: {
   icon: React.ElementType;
   title: string;
   subtitle: string;
+  state: "live" | "building";
   index: number;
 }) {
   return (
@@ -157,8 +265,24 @@ function LoopCard({
       transition={{ delay: index * 0.08, duration: 0.4 }}
       className="relative rounded-xl border border-border bg-card p-5"
     >
-      <span className="absolute top-4 right-4 text-xs font-mono text-muted-foreground/50">
-        0{index + 1}
+      <span className="absolute top-4 right-4 flex items-center gap-2">
+        <span
+          className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider ${
+            state === "live"
+              ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+              : "border-border text-muted-foreground"
+          }`}
+        >
+          <span
+            className={`h-1 w-1 rounded-full ${
+              state === "live" ? "bg-emerald-500" : "bg-muted-foreground/50"
+            }`}
+          />
+          {state}
+        </span>
+        <span className="text-xs font-mono text-muted-foreground/50">
+          0{index + 1}
+        </span>
       </span>
       <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
         <Icon size={18} />
@@ -188,6 +312,7 @@ export function LandingPage() {
   const [demoAmount, setDemoAmount] = useState(50);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const proof = useDiligenceProof();
 
   const { scrollYProgress } = useScroll();
   const heroOpacity = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
@@ -284,6 +409,9 @@ export function LandingPage() {
           <a href="#api" className="transition-colors hover:text-foreground">
             API
           </a>
+          <Link href="/verify" className="transition-colors hover:text-foreground">
+            Verify
+          </Link>
         </nav>
         <div className="flex items-center gap-3">
           <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs">
@@ -351,7 +479,9 @@ export function LandingPage() {
               className="text-lg text-muted-foreground max-w-xl mx-auto mt-6 leading-relaxed"
             >
               Set the boundaries, let agents handle routine work, and step in when a
-              decision needs judgment. Every action leaves a clear record.
+              decision needs judgment. Every action leaves a clear record — and
+              every governed run is publicly inspectable. No account needed to
+              check our work.
             </motion.p>
 
             <motion.div
@@ -459,6 +589,89 @@ export function LandingPage() {
         </div>
       </motion.section>
 
+      {/* ── Proof, not promise ──
+          The strongest checkable artifact on the site sits directly under
+          the hero: a live governed run with purchased evidence, receipts,
+          and three model vendors — inspectable without an account. */}
+      <section className="border-t border-border bg-muted/30">
+        <div className="max-w-4xl mx-auto px-6 py-16">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mb-10"
+          >
+            <span
+              className="text-xs font-semibold text-primary uppercase tracking-widest"
+              style={{ fontFamily: "var(--font-space-grotesk)" }}
+            >
+              Proof, not promise
+            </span>
+            <h2
+              className="text-3xl font-bold text-foreground mt-3"
+              style={{ fontFamily: "var(--font-space-grotesk)" }}
+            >
+              Watch governance change a real decision
+            </h2>
+            <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
+              One supplier, one model, two arms — the model alone vs the same
+              model with purchased specialist evidence and enforced policy.
+              Receipts included. No account needed to inspect.
+            </p>
+          </motion.div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              { v: proof.changed, l: "decisions changed by governance" },
+              { v: proof.vendors, l: "model vendors, same evidence" },
+              { v: proof.escalated, l: "items sent to a human" },
+            ].map((s, i) => (
+              <motion.div
+                key={s.l}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.08, duration: 0.4 }}
+                className="rounded-xl border border-border bg-card p-5 text-center"
+              >
+                <div
+                  className="text-4xl font-bold text-primary"
+                  style={{ fontFamily: "var(--font-space-grotesk)" }}
+                >
+                  {s.v}
+                </div>
+                <div className="mt-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  {s.l}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4"
+          >
+            <div className="flex items-center gap-2.5 text-sm min-w-0">
+              <span className="text-muted-foreground shrink-0">Featured flip:</span>
+              <span className="font-medium truncate">{proof.cell.supplier}</span>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-muted-foreground">{proof.cell.model}</span>
+              <ProofDecisionChip decision={proof.cell.alone} />
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <ProofDecisionChip decision={proof.cell.governed} />
+            </div>
+            <Link
+              href={`/verify?report=supplier-diligence&case=${proof.cell.caseIndex}&model=${proof.cell.model}`}
+              className="inline-flex shrink-0 items-center text-sm font-medium text-primary hover:underline"
+            >
+              Inspect the run <ArrowRight className="h-4 w-4 ml-1" />
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ── The loop ──
           The vision in one line: funded → governed action → attributed spend
           → measured outcome → next allocation. This is the growth story
@@ -498,10 +711,15 @@ export function LandingPage() {
                 icon={stage.icon}
                 title={stage.title}
                 subtitle={stage.subtitle}
+                state={stage.state}
                 index={index}
               />
             ))}
           </div>
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            Live today: mandate, governed action, spend receipts. Building:
+            outcome attribution, evidence-gated allocation.
+          </p>
 
           <div className="mt-12 text-center">
             <Button
@@ -681,14 +899,19 @@ export function LandingPage() {
                 className="text-4xl font-bold text-primary"
                 style={{ fontFamily: "var(--font-space-grotesk)" }}
               >
-                100%
+                0
               </div>
-              <div className="text-sm text-muted-foreground mt-1">Decisions recorded</div>
+              <div className="text-sm text-muted-foreground mt-1">Accounts needed to inspect the evidence</div>
               <div className="text-[11px] text-muted-foreground/60 mt-0.5">
-                Each carries the rule that applied and the evidence
+                Every governed run is public — check our work at /verify
               </div>
             </motion.div>
           </div>
+          <p className="mt-10 text-center text-xs text-muted-foreground">
+            Live today: policy checks on every action · x402 evidence purchases on
+            testnet · sealed-bid vendor selection on Canton · public verification
+            of every run.
+          </p>
         </div>
       </section>
 
@@ -760,7 +983,7 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
             </div>
 
             <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-              <div className="text-xs text-emerald-500 font-semibold mb-2">Example response (amount under $100 → approved):</div>
+              <div className="text-xs text-emerald-500 font-semibold mb-2">Illustrative response (amount under $100 → approved):</div>
               <pre
                 className="text-xs text-foreground/70 leading-relaxed"
                 style={{ fontFamily: "var(--font-jetbrains-mono, var(--font-geist-mono))" }}
@@ -792,6 +1015,16 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
               >
                 See the architecture &amp; deployed networks →
               </a>
+            </p>
+            <p className="mt-3 text-center text-sm text-muted-foreground">
+              See the same check run live — purchased specialist evidence, public
+              receipts:{" "}
+              <Link
+                href="/verify?report=supplier-diligence"
+                className="text-primary hover:underline"
+              >
+                inspect a governed run — no login →
+              </Link>
             </p>
           </motion.div>
         </div>
@@ -827,7 +1060,7 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
             {
               title: "Payment agents",
               desc: "Set per-payment and daily limits, restrict recipients, and hold unusual requests for review.",
-              example: "Pay a new vendor $500 — held for approval",
+              example: "Pay a new supplier 500 USDC — held for review",
               icon: Globe,
               href: "/verify?report=supplier-diligence",
               linkLabel: "See a supplier payment decided alone vs governed",
@@ -899,7 +1132,7 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
           </span>
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             {[
-              { label: "AI product teams", desc: "Ship agents that customers can trust with consequential work" },
+              { label: "Agent builders & AI product teams", desc: "Ship agents that customers can trust with consequential work" },
               { label: "Operations teams", desc: "Delegate routine work without surrendering oversight" },
               { label: "Financial teams", desc: "Keep spending agents inside explicit limits" },
             ].map((persona) => (
@@ -1020,6 +1253,13 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
             <div className="flex gap-4 justify-center flex-wrap">
               <Button variant="default" size="lg" onClick={handleTryDemo}>
                 Run a governed request <ExternalLink className="h-4 w-4 ml-1" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="lg"
+                onClick={() => router.push("/verify")}
+              >
+                Inspect a run <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
               <Button
                 variant="secondary"
