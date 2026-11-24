@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
+  ArrowRight,
   Check,
   Download,
   ExternalLink,
   FileSearch,
+  Pause,
+  Play,
   ShieldAlert,
   ShieldCheck,
   X,
@@ -15,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  caseHeadline,
   isValidReportId,
   parsePublicDiligenceReport,
   whyLabel,
@@ -105,13 +107,39 @@ function TokenCost({
   );
 }
 
+/** Decision pill used by the diff banner and the decision card. */
+function DecisionBadge({ decision }: { decision?: string | null }) {
+  const style = decision && DECISION_STYLE[decision as DiligenceDecision];
+  if (style) {
+    return (
+      <Badge variant="outline" className={`text-xs px-2 py-0.5 ${style.className}`}>
+        {style.label}
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="secondary" className="text-xs px-2 py-0.5">
+      {decision === "unparseable" ? "no usable answer" : "no result"}
+    </Badge>
+  );
+}
+
 export function DiligenceVerify({ initialReportId }: { initialReportId: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [idInput, setIdInput] = useState(initialReportId || "supplier-diligence");
   const [state, setState] = useState<LoadState>({ kind: "loading" });
-  const [caseIndex, setCaseIndex] = useState(0);
-  const [modelLabel, setModelLabel] = useState<string | null>(null);
-  const [view, setView] = useState<"alone" | "governed">("alone");
+  const [caseIndex, setCaseIndex] = useState(() => {
+    const raw = Number(searchParams.get("case"));
+    return Number.isInteger(raw) && raw >= 0 ? raw : 0;
+  });
+  const [modelLabel, setModelLabel] = useState<string | null>(
+    () => searchParams.get("model"),
+  );
+  const [view, setView] = useState<"alone" | "governed">(() =>
+    searchParams.get("view") === "governed" ? "governed" : "alone",
+  );
+  const [replaying, setReplaying] = useState(false);
 
   const load = useCallback(async (rawId: string) => {
     const id = rawId.trim();
@@ -132,6 +160,9 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
       }
       const parsed = parsePublicDiligenceReport(await res.json().catch(() => null));
       setState(parsed ? { kind: "loaded", report: parsed } : { kind: "parse-failure" });
+      // Clamp the case index when a different report loads; unknown model
+      // labels already fall back to the first runnable model via `activeModel`.
+      setCaseIndex((i) => (parsed && i >= parsed.cases.length ? 0 : i));
     } catch {
       setState({ kind: "network-error" });
     }
@@ -156,6 +187,33 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
     if (!caseResult || !activeModel) return null;
     return caseResult.perModel.find((r) => r.label === activeModel.label) ?? null;
   }, [caseResult, activeModel]);
+
+  // Shareable deep link: /verify?report=<id>&case=<n>&model=<label>&view=<arm>
+  useEffect(() => {
+    if (!report) return;
+    const params = new URLSearchParams();
+    params.set("report", report.id);
+    params.set("case", String(caseIndex));
+    params.set("view", view);
+    if (modelLabel) params.set("model", modelLabel);
+    router.replace(`/verify?${params.toString()}`, { scroll: false });
+  }, [report, caseIndex, view, modelLabel, router]);
+
+  // "Watch the story" — step alone → governed → next supplier until the end.
+  useEffect(() => {
+    if (!replaying || !report) return;
+    const t = setTimeout(() => {
+      if (view === "alone") {
+        setView("governed");
+      } else if (caseIndex < report.cases.length - 1) {
+        setCaseIndex((i) => i + 1);
+        setView("alone");
+      } else {
+        setReplaying(false);
+      }
+    }, 2800);
+    return () => clearTimeout(t);
+  }, [replaying, view, caseIndex, report]);
 
   const cta = (() => {
     if (!report || !caseResult) return null;
@@ -244,10 +302,40 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
             {money(report.spendCapUsd)}
           </p>
 
-          {/* ── Replay status ── */}
+          {/* ── Replay status: the alone → governed diff, as badges ── */}
           <div className="order-2 sm:order-3">
             <ReplayStatus>
-              {caseHeadline(caseResult, activeModel?.label ?? null)}
+              {(() => {
+                const aloneDecision = perModel?.alone.errored
+                  ? null
+                  : (perModel?.alone.decision ?? null);
+                const governedDecision = perModel?.governed.finalDecision ?? null;
+                const same = aloneDecision === governedDecision;
+                return (
+                  <span className="inline-flex flex-wrap items-center gap-2">
+                    {same ? (
+                      <>
+                        <span className="text-muted-foreground">Both decided</span>
+                        <DecisionBadge decision={governedDecision} />
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-muted-foreground">Alone</span>
+                        <DecisionBadge decision={aloneDecision} />
+                        <ArrowRight
+                          className="h-3.5 w-3.5 text-muted-foreground"
+                          aria-hidden
+                        />
+                        <span className="text-muted-foreground">Governed</span>
+                        <DecisionBadge decision={governedDecision} />
+                      </>
+                    )}
+                    <span className="text-muted-foreground">
+                      · Specialist cost: {money(caseResult.evidence.specialistSpendUsd)}
+                    </span>
+                  </span>
+                );
+              })()}
             </ReplayStatus>
           </div>
 
@@ -259,9 +347,15 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                 options={report.cases.map((c, i) => ({
                   value: String(i),
                   label: c.supplier.name,
+                  changed: Boolean(
+                    activeModel &&
+                      c.perModel.find((r) => r.label === activeModel.label)
+                        ?.decisionChanged,
+                  ),
                 }))}
                 value={String(caseIndex)}
                 onChange={(v) => {
+                  setReplaying(false);
                   setCaseIndex(Number(v));
                   setView("alone");
                 }}
@@ -272,9 +366,16 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                   options={runnableModels.map((m) => ({
                     value: m.label,
                     label: `${m.provider} · ${m.model ?? "?"}`,
+                    changed: Boolean(
+                      caseResult.perModel.find((r) => r.label === m.label)
+                        ?.decisionChanged,
+                    ),
                   }))}
                   value={activeModel?.label ?? runnableModels[0].label}
-                  onChange={setModelLabel}
+                  onChange={(v) => {
+                    setReplaying(false);
+                    setModelLabel(v);
+                  }}
                 />
               ) : (
                 <p className="text-xs text-muted-foreground">
@@ -289,13 +390,45 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                   { value: "governed", label: "Governed" },
                 ]}
                 value={view}
-                onChange={setView}
+                onChange={(v) => {
+                  setReplaying(false);
+                  setView(v);
+                }}
               />
-              {cta && (
-                <Button onClick={cta.onClick} className="sm:ml-auto">
-                  {cta.label}
+              <div className="flex gap-2 sm:ml-auto">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (replaying) {
+                      setReplaying(false);
+                    } else {
+                      setCaseIndex(0);
+                      setView("alone");
+                      setReplaying(true);
+                    }
+                  }}
+                >
+                  {replaying ? (
+                    <>
+                      <Pause className="mr-1.5 h-4 w-4" /> Stop
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-1.5 h-4 w-4" /> Watch the story
+                    </>
+                  )}
                 </Button>
-              )}
+                {cta && (
+                  <Button
+                    onClick={() => {
+                      setReplaying(false);
+                      cta.onClick();
+                    }}
+                  >
+                    {cta.label}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -310,32 +443,40 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                   ? `What ${activeModel?.label ?? "the model"} decided alone`
                   : "What the governed arm decided"}
               </div>
-              {(() => {
-                const decision =
-                  view === "alone" ? perModel?.alone.decision : perModel?.governed.finalDecision;
-                const style = decision && DECISION_STYLE[decision as DiligenceDecision];
-                return decision && style ? (
-                  <Badge variant="outline" className={`text-sm px-3 py-1 ${style.className}`}>
-                    {style.label}
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary">no result</Badge>
-                );
-              })()}
+              <DecisionBadge
+                decision={
+                  view === "alone"
+                    ? perModel?.alone.decision
+                    : perModel?.governed.finalDecision
+                }
+              />
             </div>
 
-            <div className="mt-3 flex items-center gap-2 text-sm">
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
               <span className="text-muted-foreground">
-                Expected: {caseResult.expectedDecision}
+                Fixture policy: {caseResult.expectedDecision}
               </span>
               {(() => {
                 const correct =
                   view === "alone" ? perModel?.alone.correct : perModel?.governed.correct;
-                return correct === true ? (
-                  <Check className="h-4 w-4 text-emerald-500" aria-label="correct" />
-                ) : correct === false ? (
-                  <X className="h-4 w-4 text-destructive" aria-label="incorrect" />
-                ) : null;
+                const decision =
+                  view === "alone" ? perModel?.alone.decision : perModel?.governed.finalDecision;
+                return (
+                  <>
+                    {correct === true ? (
+                      <Check className="h-4 w-4 text-emerald-500" aria-label="matches fixture policy" />
+                    ) : correct === false ? (
+                      <X className="h-4 w-4 text-destructive" aria-label="differs from fixture policy" />
+                    ) : null}
+                    {correct === false &&
+                      decision === "hold" &&
+                      caseResult.expectedDecision === "proceed" && (
+                        <span className="text-xs text-muted-foreground">
+                          · more conservative than the fixture policy
+                        </span>
+                      )}
+                  </>
+                );
               })()}
             </div>
 
@@ -442,7 +583,65 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
           {/* ── Summary across models ── */}
           <div className="order-7 rounded-xl border border-border bg-card p-5">
             <div className="font-semibold text-foreground">Summary</div>
+            {/* Decision matrix: alone → governed per supplier per model; amber = changed */}
             <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left text-muted-foreground">
+                    <th className="pb-2 pr-4 font-medium">Supplier</th>
+                    {runnableModels.map((m) => (
+                      <th key={m.label} className="pb-2 pr-4 font-medium">
+                        {m.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.cases.map((c, i) => (
+                    <tr
+                      key={c.id}
+                      className={`border-t border-border ${i === caseIndex ? "bg-muted/40" : ""}`}
+                    >
+                      <td className="py-2 pr-4 font-medium">{c.supplier.name}</td>
+                      {runnableModels.map((m) => {
+                        const pm = c.perModel.find((r) => r.label === m.label);
+                        if (!pm) {
+                          return (
+                            <td key={m.label} className="py-2 pr-4 text-muted-foreground">
+                              —
+                            </td>
+                          );
+                        }
+                        const alone = pm.alone.errored
+                          ? "error"
+                          : pm.alone.decision === "unparseable"
+                            ? "no answer"
+                            : pm.alone.decision;
+                        return (
+                          <td key={m.label} className="py-2 pr-4">
+                            <span
+                              title={
+                                pm.decisionChanged
+                                  ? "Governance changed this decision"
+                                  : undefined
+                              }
+                              className={
+                                pm.decisionChanged
+                                  ? "rounded bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-700 dark:text-amber-300"
+                                  : "text-muted-foreground"
+                              }
+                            >
+                              {alone} → {pm.governed.finalDecision}
+                            </span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-4 overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-muted-foreground">

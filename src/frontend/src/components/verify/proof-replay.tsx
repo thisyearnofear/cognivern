@@ -57,7 +57,7 @@ export function ChipGroup<T extends string>({
   onChange,
 }: {
   label: string;
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; changed?: boolean }[];
   value: T;
   onChange: (value: T) => void;
 }) {
@@ -72,6 +72,7 @@ export function ChipGroup<T extends string>({
             key={option.value}
             type="button"
             aria-pressed={value === option.value}
+            title={option.changed ? "Governance changed this decision" : undefined}
             onClick={() => onChange(option.value)}
             className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               value === option.value
@@ -79,6 +80,12 @@ export function ChipGroup<T extends string>({
                 : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
             }`}
           >
+            {option.changed && (
+              <span
+                aria-hidden
+                className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-500 align-middle"
+              />
+            )}
             {option.label}
           </button>
         ))}
