@@ -28,8 +28,9 @@ export interface PublicProof {
   /** What was asked, in one sentence. */
   asked: string;
   mandate: { id: string | null; label: string | null };
-  /** USD only when the source record carries a USD figure; never estimated. */
-  spent: { usd: number | null; note: string | null };
+  /** USD only when the source record carries a USD figure; never estimated.
+   *  capUsd is the spend cap only when the record declares one. */
+  spent: { usd: number | null; note: string | null; capUsd?: number | null };
   decided: { outcome: string; detail: string | null };
   receipts: ProofReceipt[];
   /** What this proof does not show. */

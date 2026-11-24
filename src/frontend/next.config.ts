@@ -23,6 +23,12 @@ const nextConfig: NextConfig = {
   // Enable only when building the deploy/self-host image.
   ...(process.env.COGNIVERN_SELFHOST === "1" ? { output: "standalone" as const } : {}),
   distDir: "dist",
+  // /verify's generateMetadata reads the diligence report JSON off disk for
+  // deep-link titles; public/ files aren't traced into the serverless bundle
+  // without this, and Vercel would silently serve the fallback title.
+  outputFileTracingIncludes: {
+    "/verify": ["./public/evidence/diligence/**/*"],
+  },
   async headers() {
     return [
       {

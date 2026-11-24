@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy, ExternalLink } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import type { PublicProof } from "@cognivern/shared";
 import { formatUsd } from "@/lib/budget-format";
 
@@ -46,6 +47,33 @@ export function Copyable({
         )}
       </button>
     </span>
+  );
+}
+
+/**
+ * Fade-and-rise reveal on first scroll into view — the shared motion
+ * primitive for /verify sections. Reduced-motion users get instant render.
+ */
+export function Reveal({
+  children,
+  delay = 0,
+  className,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const reduceMotion = useReducedMotion();
+  return (
+    <motion.div
+      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.35, delay }}
+      className={className}
+    >
+      {children}
+    </motion.div>
   );
 }
 
@@ -204,6 +232,24 @@ export function ProofSummary({ proof }: { proof: PublicProof }) {
             ) : (
               "No USD figure in this record"
             )}
+            {proof.spent.capUsd != null &&
+              proof.spent.capUsd > 0 &&
+              proof.spent.usd !== null && (
+                <span className="mt-1.5 block" title={`Spend cap ${formatUsd(proof.spent.capUsd)}`}>
+                  <span className="block h-1.5 w-40 overflow-hidden rounded-full bg-muted">
+                    <span
+                      className="block h-full rounded-full bg-primary/70"
+                      style={{
+                        width: `${Math.min(100, (proof.spent.usd / proof.spent.capUsd) * 100)}%`,
+                      }}
+                    />
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {Math.round((proof.spent.usd / proof.spent.capUsd) * 100)}% of{" "}
+                    {formatUsd(proof.spent.capUsd)} cap
+                  </span>
+                </span>
+              )}
           </dd>
         </div>
         <div>
