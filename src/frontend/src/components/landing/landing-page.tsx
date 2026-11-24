@@ -1320,15 +1320,7 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
           </div>
 
           <div className="text-center text-xs text-muted-foreground/60 pt-4">
-            Built for autonomous agent governance · Powered by{" "}
-            <a
-              href="https://chaingpt.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              ChainGPT AI
-            </a>
+            Built for autonomous agent governance
           </div>
         </div>
       </footer>
