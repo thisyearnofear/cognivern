@@ -36,7 +36,7 @@ jobs:
             --setenv="HOME=$HOME" --setenv="PATH=$HOME/.dpm/bin:$PATH" --setenv="JAVA_HOME=$JAVA_HOME" \
             --setenv="GITHUB_SHA=$GITHUB_SHA" --setenv="EVIDENCE_DIR=$RUNNER_TEMP/evidence" \
             /bin/bash scripts/measure-visibility.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: canton-visibility-${{ github.run_id }}-${{ github.run_attempt }}
