@@ -159,7 +159,11 @@ status, copyable receipt rows) live in `components/verify/proof-replay.tsx`
 so each mode stays thin. The contract itself lives in
 `docs/internals/proof-and-eval-contracts.md`: every mode opens with the same
 `ProofSummary` envelope (asked / mandate / spent / decided / receipts /
-limits) above its own detail view.
+limits) above its own detail view. The diligence mode deep-links its
+`case`/`model`/`view` selection into query params, marks options where
+governance changed the decision, and can auto-step the alone→governed
+story ("Watch the story") — any mode that gains per-case state should
+follow the same pattern.
 
 Follow-up (not done): `/procure/demo` is folded in — it redirects to
 `/verify?round=sandbox-replay` and the replay is a `/verify` view.
