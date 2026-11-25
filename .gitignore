@@ -158,6 +158,7 @@ remix-smart-bin-monitoring-das/
 .qoder/
 
 # ── Root-level tool artifacts (pnpm/tsc workspace side-effects) ────
+/.perch/
 /tsc
 /cognivern@*
 /cognivern-frontend@*

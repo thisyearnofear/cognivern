@@ -10,6 +10,7 @@ import { RunsPage } from "@/components/runs/runs-page";
 import { CapitalPage } from "@/components/capital/capital-page";
 import { VerifiedCapitalPage } from "@/components/capital/verified-capital-page";
 import { trackUxEvent } from "@/lib/ux-events";
+import { useAuthStore } from "@/stores/auth-store";
 
 type SpendView = "runs" | "attribution" | "verified";
 
@@ -34,6 +35,13 @@ export function CapitalOverview() {
   const searchParams = useSearchParams();
   const viewParam = searchParams.get("view");
   const view: SpendView = isSpendView(viewParam) ? viewParam : "attribution";
+  // Remount the attribution view when the credentials identity changes so
+  // mandate review state (and any tools registered against it) can never
+  // leak across accounts, workspaces, or modes. Keyed on non-secret fields.
+  const attributionScopeKey = useAuthStore(
+    (s) =>
+      `${s.authUser?.id ?? "signed-out"}:${s.workspace?.id ?? "no-workspace"}:${s.workspaceMode}`,
+  );
 
   const onViewChange = (value: string) => {
     if (value === "attribution") {
@@ -107,7 +115,7 @@ export function CapitalOverview() {
         </TabsContent>
 
         <TabsContent value="attribution" className="space-y-6">
-          <CapitalPage hideHeader />
+          <CapitalPage hideHeader key={attributionScopeKey} />
         </TabsContent>
 
         <TabsContent value="verified" className="space-y-6">

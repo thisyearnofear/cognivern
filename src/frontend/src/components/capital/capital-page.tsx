@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageState } from '@/components/ui/error-state';
 import { MandateContextPanel } from '@/components/capital/mandate-context-panel';
+import { MandateReviewTool, getReviewProgress } from '@/components/capital/mandate-review-tool';
 import { apiClient, type AllocationRecommendation, type FundedMandate, type FundedMandateStatement, type MandateContext, type MandateContextSyncHealth, type MandateStatementExport, type OutcomeObservation, type PublishedMandateStatementSummary, type SpendAttributionReport } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -23,76 +24,6 @@ function formatDuration(value?: number): string {
   if (value == null || !Number.isFinite(value)) return '—';
   if (value < 1000) return `${Math.round(value)}ms`;
   return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)}s`;
-}
-
-type ReviewAction = 'select' | 'context' | 'recommendation' | 'statement' | 'publish' | 'done';
-
-interface ReviewProgress {
-  activeStep: number;
-  title: string;
-  description: string;
-  action: ReviewAction;
-  actionLabel?: string;
-}
-
-function getReviewProgress(
-  selectedMandateId: string,
-  context: MandateContext | null,
-  recommendation: AllocationRecommendation | null,
-  statement: FundedMandateStatement | null,
-  published: PublishedMandateStatementSummary[] | null,
-): ReviewProgress {
-  if (!selectedMandateId) {
-    return {
-      activeStep: 0,
-      title: 'Choose a mandate to begin',
-      description: 'Choose a funded mandate to see what happened, what is missing, and what to do next.',
-      action: 'select',
-      actionLabel: 'Choose a mandate',
-    };
-  }
-  if (!context) {
-    return {
-      activeStep: 1,
-      title: 'Build the cited decision history',
-      description: 'Collect the spend, receipt, outcome, and policy evidence for this mandate.',
-      action: 'context',
-      actionLabel: 'Build cited history',
-    };
-  }
-  if (!recommendation) {
-    return {
-      activeStep: 2,
-      title: 'Review the next allocation',
-      description: 'Use the evidence to generate a bounded next-allocation recommendation for operator review.',
-      action: 'recommendation',
-      actionLabel: 'Review recommendation',
-    };
-  }
-  if (!statement) {
-    return {
-      activeStep: 3,
-      title: 'Preview the review report',
-      description: 'Inspect the read-only review report before publishing a versioned snapshot.',
-      action: 'statement',
-      actionLabel: 'Preview review report',
-    };
-  }
-  if (!published || published.length === 0) {
-    return {
-      activeStep: 3,
-      title: 'Freeze the review snapshot',
-      description: 'Publish an immutable, hashed version of this report for your team.',
-      action: 'publish',
-      actionLabel: 'Publish review snapshot',
-    };
-  }
-  return {
-    activeStep: 4,
-    title: 'Review complete',
-    description: 'A versioned snapshot is published. Revisit this flow when new governed spend or measured outcomes change the evidence.',
-    action: 'done',
-  };
 }
 
 interface MandateActivity {
@@ -189,6 +120,15 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const [exportingStatementId, setExportingStatementId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Fetch provenance per selection, used only by the mandate-review tool so
+  // it can tell unfetched / failed / loaded-empty apart. The UI keeps its
+  // existing fail-open behavior and ignores this state.
+  const [loadedScope, setLoadedScope] = useState<{
+    mandateId: string;
+    report: 'ready' | 'unavailable';
+    observations: 'ready' | 'unavailable' | 'not_requested';
+    published: 'ready' | 'unavailable' | 'not_requested';
+  } | null>(null);
 
   useEffect(() => {
     if (!isConnected) return;
@@ -238,6 +178,20 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
           selectedMandateId ? apiClient.listPublishedStatements(selectedMandateId) : Promise.resolve(null),
         ]);
         if (!active) return;
+        setLoadedScope({
+          mandateId: selectedMandateId,
+          report: reportResponse.success && reportResponse.data ? 'ready' : 'unavailable',
+          observations: !selectedMandateId
+            ? 'not_requested'
+            : observationResponse?.success && observationResponse.data
+              ? 'ready'
+              : 'unavailable',
+          published: !selectedMandateId
+            ? 'not_requested'
+            : publishedResponse?.success && publishedResponse.data
+              ? 'ready'
+              : 'unavailable',
+        });
         if (!reportResponse.success || !reportResponse.data) throw new Error(reportResponse.error || 'Could not load attribution');
         setError(null);
         setReport(reportResponse.data);
@@ -252,6 +206,14 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
         }
       } catch (reason) {
         if (active) {
+          // Fail closed on provenance: if the batch rejects we can't tell
+          // which scoped fetches completed, so everything is unavailable.
+          setLoadedScope({
+            mandateId: selectedMandateId,
+            report: 'unavailable',
+            observations: 'unavailable',
+            published: 'unavailable',
+          });
           setLoading(false);
           setError(reason instanceof Error ? reason.message : 'Could not load attribution');
         }
@@ -418,6 +380,35 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
 
   return (
     <div className="space-y-6">
+      <MandateReviewTool
+        snapshot={{
+          selectedMandateId,
+          mandates,
+          context,
+          recommendation,
+          statement,
+          observations:
+            !loadedScope || loadedScope.mandateId !== selectedMandateId
+              ? { status: 'not_loaded' }
+              : loadedScope.observations === 'ready'
+                ? { status: 'ready', items: observations }
+                : loadedScope.observations === 'not_requested'
+                  ? { status: 'not_loaded' }
+                  : { status: 'unavailable' },
+          spendRecordCount:
+            selectedMandate && loadedScope?.mandateId === selectedMandateId && loadedScope.report === 'ready'
+              ? report.records.filter((record) => record.mandateId === selectedMandate.id).length
+              : null,
+          published:
+            !loadedScope || loadedScope.mandateId !== selectedMandateId
+              ? { status: 'not_loaded' }
+              : loadedScope.published === 'ready'
+                ? { status: 'ready', items: published ?? [] }
+                : loadedScope.published === 'not_requested'
+                  ? { status: 'not_loaded' }
+                  : { status: 'unavailable' },
+        }}
+      />
       {!hideHeader && (
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')}><ArrowLeft className="h-4 w-4" /></Button>
@@ -473,10 +464,20 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
               <span className="font-medium">Mandate name</span>
               <input className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="e.g. Acquire qualified customers" value={newMandateName} onChange={(event) => setNewMandateName(event.target.value)} />
             </label>
-            <label className="space-y-1.5 text-sm sm:col-span-2">
-              <span className="font-medium">Objective</span>
-              <textarea className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="What should governed agent spend accomplish?" value={newMandateObjective} onChange={(event) => setNewMandateObjective(event.target.value)} />
-            </label>
+            <div className="space-y-1.5 text-sm sm:col-span-2">
+              <div className="flex items-center justify-between gap-3">
+                <label htmlFor="new-mandate-objective" className="font-medium">Objective</label>
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline disabled:pointer-events-none disabled:opacity-50"
+                  disabled={newMandateObjective.length !== 0 || creatingMandate}
+                  onClick={() => setNewMandateObjective(current => current || 'Screen prospective suppliers and retain the evidence for each onboarding decision.')}
+                >
+                  Use an example objective
+                </button>
+              </div>
+              <textarea id="new-mandate-objective" className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="What should governed agent spend accomplish?" value={newMandateObjective} onChange={(event) => setNewMandateObjective(event.target.value)} />
+            </div>
           </div>
           {createMandateError && <p className="mt-3 text-sm text-destructive">{createMandateError}</p>}
           <div className="mt-3 flex flex-wrap items-center gap-3">

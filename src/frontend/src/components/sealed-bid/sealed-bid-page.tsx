@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Gavel,
@@ -254,14 +255,21 @@ export function SealedBidPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <AnimatePresence mode="popLayout">
             {rounds.length === 0 ? (
-              <PageState
-                variant="empty"
-                title="No vendor selections yet"
-                message="Start a confidential RFP — vendors bid blind, you reveal one winner."
-                action={{ label: "New agent round", onClick: () => { setShowCreate(false); setShowAgentCreate(true); } }}
-                secondaryAction={{ label: "Manual instead", onClick: () => { setShowAgentCreate(false); setShowCreate(true); } }}
-                className="col-span-full"
-              />
+              <div className="col-span-full space-y-2">
+                <PageState
+                  variant="empty"
+                  title="No vendor selections yet"
+                  message="Start a confidential RFP — vendors bid blind, you reveal one winner."
+                  action={{ label: "New agent round", onClick: () => { setShowCreate(false); setShowAgentCreate(true); } }}
+                  secondaryAction={{ label: "Manual instead", onClick: () => { setShowAgentCreate(false); setShowCreate(true); } }}
+                />
+                <p className="text-center text-xs text-muted-foreground">
+                  <Link href="/verify?round=sandbox-replay" className="text-primary underline underline-offset-2 hover:text-primary/80">
+                    See a completed round
+                  </Link>{" "}
+                  · Recorded sandbox replay
+                </p>
+              </div>
             ) : filtered.length === 0 ? (
               <PageState
                 variant="no-results"

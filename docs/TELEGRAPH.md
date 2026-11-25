@@ -100,6 +100,8 @@ The in-product dashboard is `/telegraph` — categories, questions, the
 governed-consumption stats panel, and the intelligence ledger (settlements,
 burn by intent, recent calls with dispositions).
 
+**Inspect the decision** opens the recorded testnet case at `/verify?report=supplier-diligence&case=2&model=groq&view=governed`. For Northwind, a fictional supplier, the model recommended proceeding; low-confidence evidence triggered a human-review hold. Inspecting this example makes no paid call. It is not a current supplier assessment.
+
 ### Glossary: the two kinds of "settlement"
 
 The word appears twice in this rail with different meanings. Keeping them

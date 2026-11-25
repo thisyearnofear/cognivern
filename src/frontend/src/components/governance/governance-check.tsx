@@ -1135,8 +1135,9 @@ export function GovernanceCheck() {
                 <ShieldCheck className="h-10 w-10 mx-auto mb-2 opacity-30" />
                 <p className="font-medium">See it work</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Click an example to evaluate it, or describe your own
-                  spend in the input on the left.
+                  Evaluate an example now, or describe your own spend. The
+                  suggested outcomes use demo policies; your policy may
+                  differ.
                 </p>
               </div>
               <div className="space-y-2 flex-1">
@@ -1169,7 +1170,7 @@ export function GovernanceCheck() {
                       <Icon className={`h-5 w-5 shrink-0 ${iconCls}`} />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium flex items-center gap-2">
-                          {label}
+                          Evaluate example: {label}
                           <span className="text-xs font-normal text-muted-foreground">
                             ${ex.amount.toLocaleString()}
                           </span>
@@ -1183,10 +1184,6 @@ export function GovernanceCheck() {
                   );
                 })}
               </div>
-              <p className="text-[10px] text-muted-foreground/70 text-center">
-                Outcomes shown for demo policies. Your live policies may
-                evaluate differently.
-              </p>
             </div>
           )}
         </div>
