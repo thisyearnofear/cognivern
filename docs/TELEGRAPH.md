@@ -91,12 +91,47 @@ runs for the caller's workspace — settlement count, spend, burn by
 intent/miner/mandate, and per-call dispositions including held-signal
 resolution) · `compliant-call` (screen first, then buy the requested call
 only when the screen is `clear` and the declared spend guard passes) ·
-`evidence/:runId` (workspace-authenticated retrieval of the evidence bundle
+`settlement/reconcile` (verify an uncertain settlement intent against the
+chain; see the settlement section) · `evidence/:runId`
+(workspace-authenticated retrieval of the evidence bundle
 attached to a compliant-call gate or settlement artifact).
 
 The in-product dashboard is `/telegraph` — categories, questions, the
 governed-consumption stats panel, and the intelligence ledger (settlements,
 burn by intent, recent calls with dispositions).
+
+### Glossary: the two kinds of "settlement"
+
+The word appears twice in this rail with different meanings. Keeping them
+straight is the single biggest readability win when reading evidence:
+
+| Term | Meaning | Money |
+| --- | --- | --- |
+| `settlement` | The *paid intelligence call* the compliant-call endpoint executes (the parent x402 purchase). | screening + call cost |
+| `settlementTransfer` | The *downstream USDC transfer* on Solana that an approved intelligence call authorizes. | the transfer amount |
+
+In an evidence bundle, `settlement` is always about the intelligence
+purchase; `settlementTransfer` is always about the Solana leg. A request with
+no `settlement` field performs no transfer at all.
+
+### Replay rules for `settlementTransfer` (what happens on retry)
+
+Retrying a compliant-call with the same `intentId` is always safe, but the
+outcome depends on the journalled state of that intent:
+
+| Journalled state | What a retry does |
+| --- | --- |
+| `confirmed` | Returns the recorded signature. No broadcast, no second debit. |
+| `sent` / `pending` / `uncertain` | Refuses to broadcast (`uncertain` outcome with the recorded signature). Reconcile first. |
+| `failed` (retryable) | A new attempt is made under the same intentId; prior attempts stay in the record's `attempts[]`. |
+| `failed` (non-retryable) | Refuses (`already_failed`). |
+| no record | A fresh attempt: journalled `pending` before broadcast. |
+
+If the request omits `intentId`, one is derived from the request payload
+(`auto-<hash>`), so an identical retry replays rather than double-paying —
+but *changing any part of the request* (payee, amount, body) derives a
+different id and is a new intent. To retry after a failure with different
+parameters, supply a fresh `intentId` explicitly.
 
 ## Anjoman delegated tasks (API-key rail)
 

@@ -30,15 +30,17 @@ import {
 import { anjomanService } from '@backend/services/anjoman/index.js';
 import { creRunStore } from '@backend/cre/storage/CreRunStore.js';
 import {
-  isValidSolanaAddress,
   SolanaSettlementError,
   solanaSettlementService,
   type SettlementLimits,
 } from '@backend/services/blockchain/solana/SolanaSettlementService.js';
 import {
-  recordSettlementConsumption,
-  resolveSettlementPolicy,
-} from '@backend/services/blockchain/solana/SettlementPolicy.js';
+  enrichUncertainEvidence,
+  parseSettlementIntent,
+  settlementExecuteIfApproved,
+  settlementPreScreenGuard,
+  type SettlementRequestIntent,
+} from '@backend/services/blockchain/solana/SettlementFlow.js';
 
 const logger = new Logger('TelegraphController');
 const STATS_FILE = join(process.cwd(), 'data', 'telegraph-stats.json');
@@ -589,64 +591,19 @@ export class TelegraphController {
       }
 
       // Optional downstream settlement intent — the transfer the screened
-      // intelligence authorizes. Only rail: "solana" today.
+      // intelligence authorizes. Only rail: "solana" today. Parsing,
+      // validation, and intentId derivation live in SettlementFlow so the
+      // semantics cannot drift between callers.
       const bodyHash = sha256CanonicalJson(body);
-      let settlement: {
-        rail: 'solana';
-        payee: string;
-        amountUsd: number;
-        intentId: string;
-        intentIdGenerated: boolean;
-      } | null = null;
-      if (body.settlement !== undefined && body.settlement !== null) {
-        const s = body.settlement as Record<string, unknown>;
-        if (
-          typeof s !== 'object' ||
-          s === null ||
-          s.rail !== 'solana' ||
-          typeof s.payee !== 'string' ||
-          s.payee.trim() === '' ||
-          typeof s.amountUsd !== 'number' ||
-          !Number.isFinite(s.amountUsd) ||
-          s.amountUsd <= 0
-        ) {
-          res.status(400).json({
-            success: false,
-            error:
-              'settlement requires { rail: "solana", payee: <base58>, amountUsd: <positive number> }',
-          });
-          return;
-        }
-        const payee = s.payee.trim();
-        if (!isValidSolanaAddress(payee)) {
-          res.status(400).json({
-            success: false,
-            error: 'settlement.payee is not a valid base58 Solana address',
-          });
-          return;
-        }
-        const requestedIntentId =
-          typeof s.intentId === 'string' && s.intentId.trim()
-            ? s.intentId.trim().slice(0, 128)
-            : null;
-        // A missing intentId must not become a fresh random id per retry —
-        // that is a double-pay. Derive it from the request instead, so an
-        // identical retry replays the recorded outcome.
-        const intentId =
-          requestedIntentId ??
-          `auto-${sha256CanonicalJson({
-            workspaceId: workspaceId,
-            payee,
-            amountUsd: s.amountUsd,
-            bodyHash,
-          }).slice(0, 32)}`;
-        settlement = {
-          rail: 'solana',
-          payee,
-          amountUsd: s.amountUsd,
-          intentId,
-          intentIdGenerated: requestedIntentId === null,
-        };
+      let settlement: SettlementRequestIntent | null = null;
+      try {
+        settlement = parseSettlementIntent(body, workspaceId, bodyHash);
+      } catch (error) {
+        res.status(400).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'invalid settlement request',
+        });
+        return;
       }
 
       let spendGuard;
@@ -943,53 +900,28 @@ export class TelegraphController {
         return;
       }
 
-      // Settlement guards run before the paid screen. This covers *all* the
-      // reasons a settlement could fail later: mandate policy (budget, allowed
-      // assets, chain), env caps, payee allowlist, and rail readiness (enabled
-      // flag, key, payer SOL/USDC balance). A blocked intent never buys
-      // intelligence it could not settle.
+      // Settlement guards run before the paid screen (see SettlementFlow for
+      // the phase contract). A blocked intent never buys intelligence it
+      // could not settle.
       let settlementLimits: SettlementLimits | null = null;
       let settlementPolicySource: 'env' | 'funded_mandate' | null = null;
       if (settlement) {
-        const policy = resolveSettlementPolicy({
-          workspaceId: workspaceId,
-          mandateId,
-          amountUsd: settlement.amountUsd,
-          envLimits: solanaSettlementService.defaultLimits(),
+        const guard = await settlementPreScreenGuard(settlement, {
+          workspaceId,
+          mandateId: mandateId ?? undefined,
         });
-        settlementPolicySource = policy.policySource;
-        const violations = [...policy.violations];
-        if (violations.length === 0) {
-          const preflight = await solanaSettlementService.preflight(
-            settlement,
-            policy.limits,
-            workspaceId,
-          );
-          violations.push(...preflight.violations);
-        }
-        const uniqueViolations = [...new Set(violations)];
-        if (uniqueViolations.length > 0) {
+        settlementPolicySource = guard.policySource;
+        if (guard.denial) {
           await denyAttempt({
-            gate: 'settlement_guard',
-            reason: `settlement blocked before screening: ${uniqueViolations.join('; ')}`,
+            gate: guard.denial.gate,
+            reason: guard.denial.reason,
             screen: null,
-            violations: uniqueViolations,
-            settlementTransfer: {
-              rail: 'solana',
-              status: 'blocked',
-              payee: settlement.payee,
-              amountUsd: settlement.amountUsd,
-              intentId: settlement.intentId,
-              intentIdGenerated: settlement.intentIdGenerated,
-              policySource: policy.policySource,
-              mandateId: mandateId ?? null,
-              reason: 'settlement intent cannot be executed as requested',
-              violations: uniqueViolations,
-            },
+            violations: guard.denial.violations,
+            settlementTransfer: guard.denial.settlementTransfer,
           });
           return;
         }
-        settlementLimits = policy.limits;
+        settlementLimits = guard.limits;
       }
 
       const screen = await runComplianceScreen({
@@ -1098,187 +1030,26 @@ export class TelegraphController {
       // release the transfer. A held parent means the evidence is not yet
       // trustworthy; a released hold never resumes settlement — the contract
       // is synchronous-approve-only, recorded here as a blocked intent.
-      //
       // Replay safety lives in the service's durable intent journal, not in
       // process memory: a restart or concurrent retry cannot double-pay.
       let settlementTransfer: TelegraphEvidenceBundleInput['settlementTransfer'] | undefined;
       if (settlement) {
-        if (result.status !== 'approved') {
-          settlementTransfer = {
-            rail: 'solana',
-            status: 'blocked',
-            payee: settlement.payee,
-            amountUsd: settlement.amountUsd,
-            intentId: settlement.intentId,
-            intentIdGenerated: settlement.intentIdGenerated,
-            reason: `parent call ${result.status} — settlement not authorized`,
-          };
-        } else if (!solanaSettlementService.getEnabled()) {
-          settlementTransfer = {
-            rail: 'solana',
-            status: 'unavailable',
-            payee: settlement.payee,
-            amountUsd: settlement.amountUsd,
-            intentId: settlement.intentId,
-            intentIdGenerated: settlement.intentIdGenerated,
-            reason: 'SOLANA_SETTLEMENT_ENABLED is false — rail not armed',
-          };
-        } else {
-          try {
-            const settled = await solanaSettlementService.executeTransfer(
-              {
-                intentId: settlement.intentId,
-                workspaceId: workspaceId,
-                payee: settlement.payee,
-                amountUsd: settlement.amountUsd,
-                mandateId,
-              },
-              { limits: settlementLimits ?? undefined },
-            );
-            // The transfer confirmed; debit the mandate budget. A debit
-            // failure cannot un-send USDC, so it is reported in the evidence
-            // rather than silently swallowed. Replays must not debit twice —
-            // the intent journal records that the debit already happened.
-            let mandateDebit: { ok: boolean; reason?: string | null } | null = null;
-            if (mandateId) {
-              try {
-                // Single-flight per intent: two concurrent replays must not
-                // both pass the debited-flag check and debit twice.
-                await solanaSettlementService.runMandateDebitExclusive(
-                  workspaceId,
-                  settlement.intentId,
-                  async () => {
-                    const recorded = await solanaSettlementService.getIntentStatus(
-                      workspaceId,
-                      settlement.intentId,
-                    );
-                    if (recorded?.mandateDebited) {
-                      mandateDebit = { ok: true, reason: 'already debited' };
-                      return;
-                    }
-                    const debit = recordSettlementConsumption({
-                      workspaceId: workspaceId,
-                      mandateId,
-                      amountUsd: settlement.amountUsd,
-                    });
-                    mandateDebit = debit;
-                    if (debit.ok) {
-                      await solanaSettlementService.markMandateDebited(
-                        workspaceId,
-                        settlement.intentId,
-                      );
-                    } else {
-                      logger.error('Settlement confirmed but mandate debit failed', {
-                        workspaceId: workspaceId,
-                        mandateId,
-                        intentId: settlement.intentId,
-                        reason: debit.reason,
-                      });
-                    }
-                  },
-                );
-              } catch (debitError) {
-                // Never let ledger bookkeeping mask a confirmed transfer.
-                mandateDebit = {
-                  ok: false,
-                  reason: debitError instanceof Error ? debitError.message : String(debitError),
-                };
-                logger.error('Settlement debit bookkeeping failed', {
-                  workspaceId: workspaceId,
-                  mandateId,
-                  intentId: settlement.intentId,
-                  error: debitError,
-                });
-              }
-            }
-            settlementTransfer = {
-              ...settled,
-              intentId: settlement.intentId,
-              intentIdGenerated: settlement.intentIdGenerated,
-              policySource: settlementPolicySource,
-              mandateId: mandateId ?? null,
-              mandateDebit,
-            };
-          } catch (error) {
-            const reason = error instanceof Error ? error.message : String(error);
-            if (error instanceof SolanaSettlementError) {
-              if (
-                error.code === 'policy' ||
-                error.code === 'intent_conflict' ||
-                error.code === 'invalid_input'
-              ) {
-                settlementTransfer = {
-                  rail: 'solana',
-                  status: 'blocked',
-                  payee: settlement.payee,
-                  amountUsd: settlement.amountUsd,
-                  intentId: settlement.intentId,
-                  intentIdGenerated: settlement.intentIdGenerated,
-                  policySource: settlementPolicySource,
-                  mandateId: mandateId ?? null,
-                  reason,
-                  violations: error.violations,
-                };
-              } else if (error.code === 'uncertain') {
-                // Surface the signature so the operator can reconcile on the
-                // explorer instead of blind-retrying a send we lost track of.
-                const recorded = await solanaSettlementService
-                  .getIntentStatus(workspaceId, settlement.intentId)
-                  .catch(() => null);
-                settlementTransfer = {
-                  rail: 'solana',
-                  status: 'uncertain',
-                  cluster: recorded?.cluster ?? null,
-                  mint: recorded?.mint ?? null,
-                  payee: settlement.payee,
-                  payer: recorded?.payer ?? null,
-                  amountUsd: settlement.amountUsd,
-                  signature: recorded?.signature ?? null,
-                  explorerUrl: recorded?.explorerUrl ?? null,
-                  confirmationStatus: recorded?.confirmationStatus ?? null,
-                  intentId: settlement.intentId,
-                  intentIdGenerated: settlement.intentIdGenerated,
-                  policySource: settlementPolicySource,
-                  mandateId: mandateId ?? null,
-                  reason,
-                };
-              } else if (error.code === 'disabled' || error.code === 'not_ready') {
-                settlementTransfer = {
-                  rail: 'solana',
-                  status: 'unavailable',
-                  payee: settlement.payee,
-                  amountUsd: settlement.amountUsd,
-                  intentId: settlement.intentId,
-                  intentIdGenerated: settlement.intentIdGenerated,
-                  mandateId: mandateId ?? null,
-                  reason,
-                };
-              } else {
-                settlementTransfer = {
-                  rail: 'solana',
-                  status: 'failed',
-                  payee: settlement.payee,
-                  amountUsd: settlement.amountUsd,
-                  intentId: settlement.intentId,
-                  intentIdGenerated: settlement.intentIdGenerated,
-                  mandateId: mandateId ?? null,
-                  reason,
-                };
-              }
-            } else {
-              settlementTransfer = {
-                rail: 'solana',
-                status: 'failed',
-                payee: settlement.payee,
-                amountUsd: settlement.amountUsd,
-                intentId: settlement.intentId,
-                intentIdGenerated: settlement.intentIdGenerated,
-                mandateId: mandateId ?? null,
-                reason,
-              };
-            }
-          }
-        }
+        const outcome = await settlementExecuteIfApproved({
+          intent: settlement,
+          parentStatus: result.status,
+          limits: settlementLimits,
+          policySource: settlementPolicySource,
+          deps: { workspaceId, mandateId: mandateId ?? undefined },
+        });
+        // An uncertain outcome carries the journalled signature and explorer
+        // link so the operator can reconcile without a second call.
+        settlementTransfer = outcome.settlementTransfer
+          ? await enrichUncertainEvidence(
+              settlement,
+              outcome.settlementTransfer,
+              { workspaceId, mandateId: mandateId ?? undefined },
+            )
+          : undefined;
       }
 
       const complianceBlock = complianceBlockFor('compliance', screen, []);
