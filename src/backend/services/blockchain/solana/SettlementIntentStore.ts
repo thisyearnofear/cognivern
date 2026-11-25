@@ -21,6 +21,13 @@ import type { SolanaCluster } from './SolanaSettlementService.js';
 
 export type SettlementIntentStatus = 'pending' | 'sent' | 'confirmed' | 'failed' | 'uncertain';
 
+export interface SettlementIntentAttempt {
+  atMs: number;
+  status: 'failed' | 'uncertain';
+  reason?: string | null;
+  signature?: string | null;
+}
+
 export interface SettlementIntentRecord {
   intentId: string;
   workspaceId: string;
@@ -32,6 +39,8 @@ export interface SettlementIntentRecord {
   payee: string;
   amountUsd: number;
   amountBaseUnits: string;
+  /** Funded mandate the transfer is debited against, when one was named. */
+  mandateId?: string | null;
   payer?: string | null;
   signature?: string | null;
   explorerUrl?: string | null;
@@ -47,6 +56,12 @@ export interface SettlementIntentRecord {
   mandateDebited?: boolean;
   /** Only meaningful for `failed`: a new attempt may reuse the intentId. */
   retryable?: boolean;
+  /**
+   * History of non-terminal attempts (broadcast failures, on-chain errors).
+   * The live fields hold the latest attempt; this preserves the audit trail
+   * that a retry would otherwise overwrite.
+   */
+  attempts?: SettlementIntentAttempt[];
   reason?: string | null;
   createdAtMs: number;
   updatedAtMs: number;

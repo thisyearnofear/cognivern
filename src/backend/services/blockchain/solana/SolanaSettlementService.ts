@@ -60,6 +60,7 @@ import {
 import {
   SettlementIntentStore,
   settlementIntentStore,
+  type SettlementIntentAttempt,
   type SettlementIntentRecord,
 } from './SettlementIntentStore.js';
 
@@ -381,6 +382,10 @@ export class SolanaSettlementService {
   private signerPromise: Promise<TransactionSigner> | null = null;
   private readonly spendByScope = new Map<string, ScopeSpend>();
   private readonly inFlight = new Map<string, Promise<SettlementResult>>();
+  /** Guards the controller's debit path against concurrent replays. */
+  private readonly debitLocks = new Map<string, Promise<void>>();
+  /** Set once runway totals have been rehydrated from the durable journal. */
+  private runwayRehydrated = false;
 
   constructor(config?: SolanaSettlementConfig, deps: SolanaSettlementDeps = {}) {
     this.store = deps.store ?? settlementIntentStore;
@@ -630,6 +635,92 @@ export class SolanaSettlementService {
   }
 
   /**
+   * Reconcile an uncertain (or stuck sent/pending) intent against the chain.
+   * The recorded signature is verified on-chain before any state change: an
+   * operator's word is never the source of truth.
+   *
+   *   - confirmed on-chain  → record flips to confirmed (replayable, debitable)
+   *   - failed on-chain     → record flips to failed/retryable (intent reusable)
+   *   - not yet visible     → left untouched; the caller may retry later
+   *   - no signature        → cannot verify; left untouched
+   *
+   * Returns the (possibly unchanged) record so callers can report the outcome.
+   */
+  async reconcileIntent(
+    workspaceId: string,
+    intentId: string,
+  ): Promise<SettlementIntentRecord | null> {
+    const key = `${workspaceId}:${intentId}`;
+    const record = await this.store.getIntent(key);
+    if (!record) return null;
+    if (record.status === 'confirmed' || record.status === 'failed') return record;
+    if (!record.signature) return record;
+
+    try {
+      const rpc = this.getRpc();
+      const { value: statuses } = await rpc
+        .getSignatureStatuses([record.signature as Signature])
+        .send();
+      const status = statuses[0];
+      if (!status) return record; // not yet seen by the cluster — leave it
+      if (status.err) {
+        const reason = `reconciled: transaction ${record.signature} failed on-chain: ${JSON.stringify(status.err)}`;
+        await this.store.setIntent(key, {
+          ...record,
+          status: 'failed',
+          retryable: true,
+          reason,
+          attempts: [
+            ...(record.attempts ?? []),
+            { atMs: this.now(), status: 'failed', reason, signature: record.signature },
+          ],
+        });
+      } else if (
+        status.confirmationStatus === 'confirmed' ||
+        status.confirmationStatus === 'finalized'
+      ) {
+        const confirmationStatus = status.confirmationStatus;
+        await this.store.setIntent(key, {
+          ...record,
+          status: 'confirmed',
+          confirmationStatus,
+          explorerUrl: record.explorerUrl ?? explorerUrl(record.signature, this.config.cluster),
+        });
+      }
+      // processed-but-unconfirmed: leave as-is and let a later pass decide.
+      return this.store.getIntent(key);
+    } catch (error) {
+      // An RPC problem during reconciliation must not corrupt the record.
+      throw new SolanaSettlementError(
+        'rpc',
+        `reconciliation failed: ${errorMessage(error)}`,
+      );
+    }
+  }
+
+  /**
+   * Serialize the mandate-debit bookkeeping per intent. The controller's
+   * read-flag → debit → mark-flag sequence is not atomic across concurrent
+   * replays; this lock makes the whole sequence single-flight per intent.
+   */
+  async runMandateDebitExclusive(
+    workspaceId: string,
+    intentId: string,
+    fn: () => Promise<void>,
+  ): Promise<void> {
+    const key = `${workspaceId}:${intentId}`;
+    const prior = this.debitLocks.get(key) ?? Promise.resolve();
+    const next = prior.then(fn, fn);
+    this.debitLocks.set(
+      key,
+      next.catch(() => undefined),
+    );
+    await next.finally(() => {
+      if (this.debitLocks.get(key) === next) this.debitLocks.delete(key);
+    });
+  }
+
+  /**
    * Record that a confirmed transfer was debited against a funded mandate.
    * Replay paths read this flag so a replayed intentId never debits twice.
    */
@@ -642,6 +733,39 @@ export class SolanaSettlementService {
 
   private scopeKey(workspaceId: string, limits: SettlementLimits): string {
     return `${workspaceId}:${limits.mandateId ?? 'env'}`;
+  }
+
+  /**
+   * Rebuild the in-memory runway counters from the durable journal. The
+   * journal is the source of truth across process restarts; without this a
+   * restarted process would start with a fresh runway and could exceed the
+   * cumulative cap across restarts. Runs once, lazily, before any guard
+   * evaluation that reads spend totals.
+   */
+  private async ensureRunwayRehydrated(): Promise<void> {
+    if (this.runwayRehydrated) return;
+    this.runwayRehydrated = true;
+    try {
+      const entries = await this.store.entries();
+      for (const [key, stored] of entries) {
+        const record = stored.data;
+        // Scope by the mandate recorded on the intent itself — the key's
+        // tail is the intentId, not the mandateId.
+        const scope = `${record.workspaceId}:${record.mandateId ?? 'env'}`;
+        const spend = this.spendFor(scope);
+        if (record.status === 'confirmed') {
+          this.spendByScope.set(scope, { spent: spend.spent + record.amountUsd, pending: spend.pending });
+        } else if (record.status === 'pending' || record.status === 'sent' || record.status === 'uncertain') {
+          // An unfinished intent from a previous process still holds its
+          // reservation: it may have landed, so the runway must stay held.
+          this.spendByScope.set(scope, { spent: spend.spent, pending: spend.pending + record.amountUsd });
+        }
+      }
+    } catch {
+      // Journal unreadable: leave counters at zero but re-arm so a later
+      // call retries rather than silently trusting an empty runway forever.
+      this.runwayRehydrated = false;
+    }
   }
 
   private spendFor(scope: string): ScopeSpend {
@@ -694,7 +818,17 @@ export class SolanaSettlementService {
     return { ok: true, reservation: { scope, amountUsd: intent.amountUsd } };
   }
 
-  private releaseReservation(reservation: Reservation): void {
+  /**
+   * Rehydrate the runway from the journal before a transfer reserves spend,
+   * so a restarted process inherits the cumulative spend of its predecessors.
+   * Must run before `reserveSpend` (which is synchronous and cannot await).
+   */
+  private async rehydrateBeforeReserve(): Promise<void> {
+    await this.ensureRunwayRehydrated();
+  }
+
+  private async releaseReservation(reservation: Reservation): Promise<void> {
+    await this.ensureRunwayRehydrated();
     const spend = this.spendFor(reservation.scope);
     this.spendByScope.set(reservation.scope, {
       spent: spend.spent,
@@ -702,7 +836,8 @@ export class SolanaSettlementService {
     });
   }
 
-  private commitReservation(reservation: Reservation): void {
+  private async commitReservation(reservation: Reservation): Promise<void> {
+    await this.ensureRunwayRehydrated();
     const spend = this.spendFor(reservation.scope);
     this.spendByScope.set(reservation.scope, {
       spent: spend.spent + reservation.amountUsd,
@@ -859,6 +994,9 @@ export class SolanaSettlementService {
       ...(opts.limits ?? this.defaultLimits()),
       ...(request.mandateId && !opts.limits?.mandateId ? { mandateId: request.mandateId } : {}),
     };
+    // Runway counters must reflect prior processes before the synchronous
+    // reservation runs: reserveSpend cannot await, so this happens first.
+    await this.rehydrateBeforeReserve();
     const amountBaseUnits = usdToBaseUnits(request.amountUsd);
     const hash = requestHashOf({
       workspaceId: request.workspaceId,
@@ -923,6 +1061,10 @@ export class SolanaSettlementService {
     }
     const reservation = reservationResult.reservation;
     const now = this.now();
+    // Preserve the audit trail of prior failed attempts on this intentId:
+    // the new pending record replaces the old one, so the history must ride
+    // along or the retry erases what went wrong before.
+    const priorAttempts: SettlementIntentAttempt[] = existing?.attempts ?? [];
     const baseRecord: SettlementIntentRecord = {
       intentId: request.intentId,
       workspaceId: request.workspaceId,
@@ -933,8 +1075,48 @@ export class SolanaSettlementService {
       payee: request.payee,
       amountUsd: request.amountUsd,
       amountBaseUnits: amountBaseUnits.toString(),
+      mandateId: request.mandateId ?? null,
+      attempts: priorAttempts,
       createdAtMs: now,
       updatedAtMs: now,
+    };
+
+    /**
+     * Append this attempt's outcome to the record's history and write it.
+     * Never throws into the caller: history loss must not mask the real
+     * settlement error.
+     */
+    const recordAttempt = async (
+      status: 'failed' | 'uncertain',
+      detail: {
+        reason: string;
+        signature?: string | null;
+        payer?: string | null;
+      },
+    ): Promise<void> => {
+      const attempt: SettlementIntentAttempt = {
+        atMs: this.now(),
+        status,
+        reason: detail.reason,
+        signature: detail.signature ?? null,
+      };
+      await this.store
+        .setIntent(key, {
+          ...baseRecord,
+          status,
+          // failed = provably not moved (retryable); uncertain = may have
+          // landed, so replay must not broadcast again.
+          retryable: status === 'failed',
+          payer: detail.payer ?? baseRecord.payer ?? null,
+          signature: detail.signature ?? null,
+          explorerUrl:
+            detail.signature != null
+              ? explorerUrl(detail.signature, this.config.cluster)
+              : null,
+          reason: detail.reason,
+          attempts: [...(baseRecord.attempts ?? []), attempt],
+        })
+        .catch(() => undefined);
     };
 
     let committed = false;
@@ -1000,13 +1182,7 @@ export class SolanaSettlementService {
           ) {
             // Preflight simulation failed: the transaction was never sent.
             const reason = errorMessage(error);
-            await this.store.setIntent(key, {
-              ...baseRecord,
-              status: 'failed',
-              retryable: true,
-              payer: signer.address,
-              reason,
-            });
+            await recordAttempt('failed', { reason, payer: signer.address });
             if (looksLikeInsufficientFunds(error)) {
               throw new SolanaSettlementError(
                 'insufficient_funds',
@@ -1017,15 +1193,7 @@ export class SolanaSettlementService {
           }
           // We have a signed transaction and cannot prove it was not received.
           const reason = errorMessage(error);
-          await this.store.setIntent(key, {
-            ...baseRecord,
-            status: 'uncertain',
-            retryable: false,
-            payer: signer.address,
-            signature,
-            explorerUrl: explorerUrl(signature, this.config.cluster),
-            reason,
-          });
+          await recordAttempt('uncertain', { reason, signature });
           throw new SolanaSettlementError(
             'uncertain',
             `transaction ${signature} may have been sent (${reason}); check explorer before retrying`,
@@ -1044,15 +1212,7 @@ export class SolanaSettlementService {
             const reason = `transaction ${signature} failed on-chain: ${JSON.stringify(status.err)}`;
             // The tx landed and failed: no USDC moved, so a new attempt with
             // the same intentId is safe.
-            await this.store.setIntent(key, {
-              ...baseRecord,
-              status: 'failed',
-              retryable: true,
-              payer: signer.address,
-              signature,
-              explorerUrl: explorerUrl(signature, this.config.cluster),
-              reason,
-            });
+            await recordAttempt('failed', { reason, signature });
             throw new SolanaSettlementError('rpc', reason);
           }
           if (
@@ -1068,15 +1228,7 @@ export class SolanaSettlementService {
           // Ambiguous: the signature may still land. Surface it rather than
           // retry — a blind retry double-pays.
           const reason = `transaction ${signature} sent but unconfirmed within 45s — check explorer before retrying`;
-          await this.store.setIntent(key, {
-            ...baseRecord,
-            status: 'uncertain',
-            retryable: false,
-            payer: signer.address,
-            signature,
-            explorerUrl: explorerUrl(signature, this.config.cluster),
-            reason,
-          });
+          await recordAttempt('uncertain', { reason, signature });
           throw new SolanaSettlementError('uncertain', reason);
         }
 
@@ -1093,7 +1245,7 @@ export class SolanaSettlementService {
           explorerUrl: explorerUrl(signature, this.config.cluster),
           confirmationStatus,
         };
-        this.commitReservation(reservation);
+        await this.commitReservation(reservation);
         committed = true;
         // The USDC moved and the confirmation is on-chain. A journal write
         // failure here must not turn a settled transfer into a reported
@@ -1121,17 +1273,10 @@ export class SolanaSettlementService {
       if (error instanceof SolanaSettlementError) throw error;
       // Anything unexpected before a signature means nothing was broadcast.
       const reason = `settlement failed: ${errorMessage(error)}`;
-      await this.store
-        .setIntent(key, {
-          ...baseRecord,
-          status: 'failed',
-          retryable: true,
-          reason,
-        })
-        .catch(() => undefined);
+      await recordAttempt('failed', { reason });
       throw new SolanaSettlementError('rpc', reason);
     } finally {
-      if (!committed) this.releaseReservation(reservation);
+      if (!committed) await this.releaseReservation(reservation);
     }
   }
 }

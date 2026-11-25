@@ -422,16 +422,26 @@ payee, amount); reusing it for a different transfer is rejected as
 synchronously before any await, so concurrent requests cannot both pass the
 runway check.
 
-**Runway is not the durable bound.** The cumulative counter lives in process
-memory per `workspace + mandate` and resets on restart. The hard cumulative
-backstop is the USDC balance of the settlement wallet: fund it with exactly
-the runway you are willing to spend, and a restart cannot increase exposure.
+**Runway survives restarts.** The cumulative counter is rehydrated from the
+intent journal at first use after a process restart: confirmed records count
+as spent, and unfinished (`pending`/`sent`/`uncertain`) records keep their
+reservation held. The hard cumulative backstop remains the USDC balance of
+the settlement wallet: fund it with exactly the runway you are willing to
+spend, and no counter failure can increase exposure.
 
 **Statuses.** Broadcast errors map to honest outcomes — `uncertain` when the
 signature may have landed (the caller must reconcile on Solscan, never blind
 retry), `failed` when preflight/on-chain execution provably moved nothing,
 `unavailable` when the rail is not armed or misconfigured. Settlement never
 runs unless `SOLANA_SETTLEMENT_ENABLED=true`.
+
+**Reconciling an uncertain intent.** `POST /api/telegraph/settlement/reconcile`
+with `{ "intentId": "..." }` (requires the `spend:execute` scope) verifies the
+recorded signature on-chain via `getSignatureStatuses` and flips the journal
+state only on chain truth: confirmed → replayable and debitable, failed →
+retryable, not-yet-visible → left untouched. The endpoint never broadcasts and
+never trusts an operator's claim — if the cluster has not resolved the
+signature, the intent stays `uncertain`.
 
 **Payee risk.** The rail does not screen the payee address itself (no
 address-risk provider is wired). The compliance screen covers the *subject*

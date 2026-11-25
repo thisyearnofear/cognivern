@@ -643,3 +643,177 @@ describe('env-driven defaults', () => {
     expect(svc.getConfig().usdcMint).toBe('CustomMint111');
   });
 });
+
+describe('reconciliation', () => {
+  it('flips an uncertain intent to confirmed when the chain says it landed', async () => {
+    const store = tempStore();
+    // Drive the real flow so the journal record carries the true payload
+    // hash: a send whose response is lost records `uncertain`.
+    const { service, state } = await makeService(
+      {},
+      { store, rpcState: { failSend: new Error('connection reset') } },
+    );
+    await expect(
+      service.executeTransfer({
+        intentId: 'i-1',
+        workspaceId: 'w-1',
+        payee: ALLOWED_PAYEE,
+        amountUsd: 0.01,
+      }),
+    ).rejects.toBeInstanceOf(SolanaSettlementError);
+    expect((await service.getIntentStatus('w-1', 'i-1'))?.status).toBe('uncertain');
+
+    // The cluster later reports the transaction confirmed.
+    state.failSend = undefined;
+    state.statuses = [{ confirmationStatus: 'finalized', err: null }];
+    const record = await service.reconcileIntent('w-1', 'i-1');
+    expect(record).toMatchObject({ status: 'confirmed', confirmationStatus: 'finalized' });
+
+    // A confirmed record is replayable: executeTransfer returns the
+    // signature without broadcasting again.
+    const sentBefore = state.sent;
+    const replay = await service.executeTransfer({
+      intentId: 'i-1',
+      workspaceId: 'w-1',
+      payee: ALLOWED_PAYEE,
+      amountUsd: 0.01,
+    });
+    expect(replay).toMatchObject({ idempotentReplay: true, status: 'settled' });
+    expect(state.sent).toBe(sentBefore);
+  });
+
+  it('flips an uncertain intent to failed/retryable when the chain says it failed', async () => {
+    const store = tempStore();
+    const { service } = await makeService(
+      { enabled: false },
+      { store, rpcState: { statuses: [{ confirmationStatus: 'confirmed', err: { InsufficientFunds: {} } }] } },
+    );
+    await store.setIntent('w-1:i-1', {
+      intentId: 'i-1',
+      workspaceId: 'w-1',
+      status: 'uncertain',
+      requestHash: 'h',
+      cluster: 'devnet',
+      mint: DEVNET_USDC_MINT,
+      payee: ALLOWED_PAYEE,
+      amountUsd: 0.01,
+      amountBaseUnits: '10000',
+      signature: 'sig-1',
+      createdAtMs: Date.now(),
+      updatedAtMs: Date.now(),
+    });
+    const record = await service.reconcileIntent('w-1', 'i-1');
+    expect(record).toMatchObject({ status: 'failed', retryable: true });
+    expect(record?.attempts).toHaveLength(1);
+  });
+
+  it('leaves the record untouched when the cluster has not seen the signature', async () => {
+    const store = tempStore();
+    const { service } = await makeService(
+      { enabled: false },
+      { store, rpcState: { statuses: [null] } },
+    );
+    await store.setIntent('w-1:i-1', {
+      intentId: 'i-1',
+      workspaceId: 'w-1',
+      status: 'uncertain',
+      requestHash: 'h',
+      cluster: 'devnet',
+      mint: DEVNET_USDC_MINT,
+      payee: ALLOWED_PAYEE,
+      amountUsd: 0.01,
+      amountBaseUnits: '10000',
+      signature: 'sig-1',
+      createdAtMs: Date.now(),
+      updatedAtMs: Date.now(),
+    });
+    const before = await service.getIntentStatus('w-1', 'i-1');
+    const record = await service.reconcileIntent('w-1', 'i-1');
+    expect(record).toEqual(before);
+    expect(record?.status).toBe('uncertain');
+  });
+
+  it('returns terminal records unchanged and null for unknown intents', async () => {
+    const store = tempStore();
+    const { service } = await makeService({ enabled: false }, { store });
+    expect(await service.reconcileIntent('w-1', 'missing')).toBeNull();
+    await store.setIntent('w-1:i-1', {
+      intentId: 'i-1',
+      workspaceId: 'w-1',
+      status: 'confirmed',
+      requestHash: 'h',
+      cluster: 'devnet',
+      mint: DEVNET_USDC_MINT,
+      payee: ALLOWED_PAYEE,
+      amountUsd: 0.01,
+      amountBaseUnits: '10000',
+      signature: 'sig-1',
+      createdAtMs: Date.now(),
+      updatedAtMs: Date.now(),
+    });
+    const record = await service.reconcileIntent('w-1', 'i-1');
+    expect(record?.status).toBe('confirmed');
+  });
+
+  it('serializes concurrent mandate debits through the exclusive lock', async () => {
+    const { service } = await makeService({ enabled: false });
+    const order: string[] = [];
+    let releaseFirst!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const first = service.runMandateDebitExclusive('w-1', 'i-1', async () => {
+      order.push('first-start');
+      await gate;
+      order.push('first-end');
+    });
+    const second = service.runMandateDebitExclusive('w-1', 'i-1', async () => {
+      order.push('second');
+    });
+    await new Promise((r) => setTimeout(r, 10));
+    expect(order).toEqual(['first-start']);
+    releaseFirst();
+    await Promise.all([first, second]);
+    expect(order).toEqual(['first-start', 'first-end', 'second']);
+  });
+});
+
+describe('runway rehydration', () => {
+  it('counts confirmed journal records toward the runway after a restart', async () => {
+    const store = tempStore();
+    await store.setIntent('w-1:i-old', {
+      intentId: 'i-old',
+      workspaceId: 'w-1',
+      status: 'confirmed',
+      requestHash: 'h',
+      cluster: 'devnet',
+      mint: DEVNET_USDC_MINT,
+      payee: ALLOWED_PAYEE,
+      amountUsd: 0.22,
+      amountBaseUnits: '220000',
+      mandateId: null,
+      signature: 'sig-old',
+      createdAtMs: Date.now(),
+      updatedAtMs: Date.now(),
+    });
+    const { service } = await makeService({}, { store });
+    // 0.22 already spent + 0.05 requested would exceed the 0.25 runway.
+    await expect(
+      service.executeTransfer({
+        intentId: 'i-new',
+        workspaceId: 'w-1',
+        payee: ALLOWED_PAYEE,
+        amountUsd: 0.05,
+      }),
+    ).rejects.toBeInstanceOf(SolanaSettlementError);
+    // A smaller transfer still fits (0.22 + 0.02 <= 0.25).
+    const result = await service.executeTransfer({
+      intentId: 'i-new',
+      workspaceId: 'w-1',
+      payee: ALLOWED_PAYEE,
+      amountUsd: 0.02,
+    });
+    expect(result.status).toBe('settled');
+  });
+});
+

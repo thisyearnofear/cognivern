@@ -76,6 +76,9 @@ export function createMiscRoutes(
   router.post("/telegraph/compliant-call", idempotencyMiddleware, (req, res) =>
     telegraphController.compliantCall(req, res),
   );
+  router.post("/telegraph/settlement/reconcile", (req, res) =>
+    telegraphController.reconcileSettlement(req, res),
+  );
   router.get("/telegraph/evidence/:runId", (req, res) =>
     telegraphController.getEvidence(req, res),
   );

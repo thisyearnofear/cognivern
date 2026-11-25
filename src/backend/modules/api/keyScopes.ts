@@ -28,6 +28,9 @@ export function requiredScopeForRoute(method: string, path: string): string | nu
   // The compliant-call path buys paid intelligence and can release a Solana
   // USDC settlement — that is spend execution, not a read.
   if (p === '/api/telegraph/compliant-call' && !isRead) return 'spend:execute';
+  // Reconciliation flips a journalled intent's state based on chain truth —
+  // a settlement-affecting write, so it needs the same authority as spend.
+  if (p === '/api/telegraph/settlement/reconcile' && !isRead) return 'spend:execute';
   if (p.startsWith('/api/spend') && !isRead) return 'spend:execute';
 
   // Sponsored credit programs. Reads are reporting (a judge or dashboard needs

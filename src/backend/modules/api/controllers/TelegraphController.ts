@@ -50,6 +50,53 @@ export class TelegraphController {
    * Returns Telegraph integration status, node/engine/daemon health,
    * payment readiness, and available miners count.
    */
+  /**
+   * POST /api/telegraph/settlement/reconcile — verify an uncertain intent
+   * against the chain and flip its journal state if the signature has
+   * resolved. Operator tooling for the `uncertain` state: verify, never trust.
+   */
+  async reconcileSettlement(req: Request, res: Response) {
+    try {
+      const intentId = typeof req.body?.intentId === 'string' ? req.body.intentId.trim() : '';
+      if (!intentId) {
+        res.status(400).json({ success: false, error: 'intentId is required' });
+        return;
+      }
+      if (!req.workspaceId) {
+        res.status(400).json({ success: false, error: 'workspaceId is required' });
+        return;
+      }
+      const record = await solanaSettlementService.reconcileIntent(
+        req.workspaceId,
+        intentId,
+      );
+      if (!record) {
+        res.status(404).json({ success: false, error: `intent ${intentId} not found` });
+        return;
+      }
+      res.json({
+        success: true,
+        data: {
+          intentId: record.intentId,
+          status: record.status,
+          signature: record.signature ?? null,
+          confirmationStatus: record.confirmationStatus ?? null,
+          explorerUrl: record.explorerUrl ?? null,
+          reason: record.reason ?? null,
+          mandateDebited: record.mandateDebited === true,
+          attempts: record.attempts ?? [],
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error('Settlement reconciliation failed', { error });
+      res.status(502).json({
+        success: false,
+        error: error.message || 'Settlement reconciliation failed',
+      });
+    }
+  }
+
   async getStatus(_req: Request, res: Response) {
     try {
       const enabled = telegraphService.getEnabled();
@@ -518,6 +565,7 @@ export class TelegraphController {
         res.status(401).json({ success: false, error: 'Workspace authentication required' });
         return;
       }
+      const workspaceId: string = req.workspaceId;
 
       const body = (req.body ?? {}) as Record<string, unknown>;
       const minerId = typeof body.minerId === 'string' ? body.minerId.trim() : '';
@@ -587,7 +635,7 @@ export class TelegraphController {
         const intentId =
           requestedIntentId ??
           `auto-${sha256CanonicalJson({
-            workspaceId: req.workspaceId,
+            workspaceId: workspaceId,
             payee,
             amountUsd: s.amountUsd,
             bodyHash,
@@ -615,7 +663,7 @@ export class TelegraphController {
       const agentId =
         (typeof body.agentId === 'string' && body.agentId.trim()) ||
         req.userId ||
-        `workspace-${req.workspaceId}`;
+        `workspace-${workspaceId}`;
       const mandateId = typeof body.mandateId === 'string' ? body.mandateId : undefined;
       const policyId = typeof body.policyId === 'string' ? body.policyId : undefined;
       const description = typeof body.description === 'string' ? body.description : undefined;
@@ -815,7 +863,7 @@ export class TelegraphController {
         };
         const evidenceBundle = buildTelegraphEvidenceBundle({
           attemptId,
-          workspaceId: req.workspaceId!,
+          workspaceId: workspaceId,
           agentId,
           mandateId,
           policyId,
@@ -839,7 +887,7 @@ export class TelegraphController {
           replay,
         });
         const gateRun = await recordTelegraphGateDecision({
-          projectId: req.workspaceId,
+          projectId: workspaceId,
           agentId,
           mandateId,
           runId: gateRunId,
@@ -904,7 +952,7 @@ export class TelegraphController {
       let settlementPolicySource: 'env' | 'funded_mandate' | null = null;
       if (settlement) {
         const policy = resolveSettlementPolicy({
-          workspaceId: req.workspaceId,
+          workspaceId: workspaceId,
           mandateId,
           amountUsd: settlement.amountUsd,
           envLimits: solanaSettlementService.defaultLimits(),
@@ -915,7 +963,7 @@ export class TelegraphController {
           const preflight = await solanaSettlementService.preflight(
             settlement,
             policy.limits,
-            req.workspaceId,
+            workspaceId,
           );
           violations.push(...preflight.violations);
         }
@@ -946,7 +994,7 @@ export class TelegraphController {
 
       const screen = await runComplianceScreen({
         agentId,
-        workspaceId: req.workspaceId,
+        workspaceId: workspaceId,
         mandateId,
         policyId,
         screen: {
@@ -1030,7 +1078,7 @@ export class TelegraphController {
 
       const result = await telegraphGovernanceHelper.governedMinerCall({
         agentId,
-        workspaceId: req.workspaceId,
+        workspaceId: workspaceId,
         mandateId,
         policyId,
         minerRequest: {
@@ -1080,7 +1128,7 @@ export class TelegraphController {
             const settled = await solanaSettlementService.executeTransfer(
               {
                 intentId: settlement.intentId,
-                workspaceId: req.workspaceId,
+                workspaceId: workspaceId,
                 payee: settlement.payee,
                 amountUsd: settlement.amountUsd,
                 mandateId,
@@ -1094,33 +1142,41 @@ export class TelegraphController {
             let mandateDebit: { ok: boolean; reason?: string | null } | null = null;
             if (mandateId) {
               try {
-                const recorded = await solanaSettlementService.getIntentStatus(
-                  req.workspaceId,
+                // Single-flight per intent: two concurrent replays must not
+                // both pass the debited-flag check and debit twice.
+                await solanaSettlementService.runMandateDebitExclusive(
+                  workspaceId,
                   settlement.intentId,
-                );
-                if (recorded?.mandateDebited) {
-                  mandateDebit = { ok: true, reason: 'already debited' };
-                } else {
-                  const debit = recordSettlementConsumption({
-                    workspaceId: req.workspaceId,
-                    mandateId,
-                    amountUsd: settlement.amountUsd,
-                  });
-                  mandateDebit = debit;
-                  if (debit.ok) {
-                    await solanaSettlementService.markMandateDebited(
-                      req.workspaceId,
+                  async () => {
+                    const recorded = await solanaSettlementService.getIntentStatus(
+                      workspaceId,
                       settlement.intentId,
                     );
-                  } else {
-                    logger.error('Settlement confirmed but mandate debit failed', {
-                      workspaceId: req.workspaceId,
+                    if (recorded?.mandateDebited) {
+                      mandateDebit = { ok: true, reason: 'already debited' };
+                      return;
+                    }
+                    const debit = recordSettlementConsumption({
+                      workspaceId: workspaceId,
                       mandateId,
-                      intentId: settlement.intentId,
-                      reason: debit.reason,
+                      amountUsd: settlement.amountUsd,
                     });
-                  }
-                }
+                    mandateDebit = debit;
+                    if (debit.ok) {
+                      await solanaSettlementService.markMandateDebited(
+                        workspaceId,
+                        settlement.intentId,
+                      );
+                    } else {
+                      logger.error('Settlement confirmed but mandate debit failed', {
+                        workspaceId: workspaceId,
+                        mandateId,
+                        intentId: settlement.intentId,
+                        reason: debit.reason,
+                      });
+                    }
+                  },
+                );
               } catch (debitError) {
                 // Never let ledger bookkeeping mask a confirmed transfer.
                 mandateDebit = {
@@ -1128,7 +1184,7 @@ export class TelegraphController {
                   reason: debitError instanceof Error ? debitError.message : String(debitError),
                 };
                 logger.error('Settlement debit bookkeeping failed', {
-                  workspaceId: req.workspaceId,
+                  workspaceId: workspaceId,
                   mandateId,
                   intentId: settlement.intentId,
                   error: debitError,
@@ -1167,7 +1223,7 @@ export class TelegraphController {
                 // Surface the signature so the operator can reconcile on the
                 // explorer instead of blind-retrying a send we lost track of.
                 const recorded = await solanaSettlementService
-                  .getIntentStatus(req.workspaceId, settlement.intentId)
+                  .getIntentStatus(workspaceId, settlement.intentId)
                   .catch(() => null);
                 settlementTransfer = {
                   rail: 'solana',
@@ -1234,7 +1290,7 @@ export class TelegraphController {
           ? (result.artifact.data as Record<string, unknown>)
           : ({
               agentId,
-              workspaceId: req.workspaceId,
+              workspaceId: workspaceId,
               mandateId,
               policyId,
               description,
@@ -1265,7 +1321,7 @@ export class TelegraphController {
       const parentCostUsd = meta?.costUsd ?? null;
       const evidenceBundle = buildTelegraphEvidenceBundle({
         attemptId,
-        workspaceId: req.workspaceId,
+        workspaceId: workspaceId,
         agentId,
         mandateId,
         policyId,
