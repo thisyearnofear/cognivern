@@ -73,7 +73,7 @@ export function createMiscRoutes(
   router.post("/telegraph/engine-ask", (req, res) =>
     telegraphController.engineAsk(req, res),
   );
-  router.post("/telegraph/compliant-call", (req, res) =>
+  router.post("/telegraph/compliant-call", idempotencyMiddleware, (req, res) =>
     telegraphController.compliantCall(req, res),
   );
   router.get("/telegraph/evidence/:runId", (req, res) =>

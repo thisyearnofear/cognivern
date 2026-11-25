@@ -116,17 +116,24 @@ export interface DiligenceCasesFile {
 export interface StepEvidence {
   step: number;
   settlementStatus?: string;
-  authorizedSettlement?: {
+  settlementTransfer?: {
     rail: string;
     status: string;
+    cluster?: string | null;
     mint?: string | null;
     payee?: string | null;
     payer?: string | null;
     amountUsd?: number | null;
+    amountBaseUnits?: string | null;
     signature?: string | null;
     explorerUrl?: string | null;
+    confirmationStatus?: string | null;
     reason?: string | null;
     intentId?: string | null;
+    intentIdGenerated?: boolean;
+    policySource?: 'env' | 'funded_mandate' | null;
+    mandateDebit?: { ok: boolean; reason?: string | null } | null;
+    violations?: string[];
     idempotentReplay?: boolean;
   };
   screenMinerId?: string;
@@ -144,6 +151,7 @@ export interface StepEvidence {
   latencyMs?: number;
   parentPurchased: boolean;
   spendGuardBlocked?: boolean;
+  settlementGuardBlocked?: boolean;
   parentResponse?: unknown;
   error?: string;
 }
@@ -151,7 +159,7 @@ export interface StepEvidence {
 export interface DiligenceEvidence {
   steps: StepEvidence[];
   /** Case-level rollup of the Solana settlement leg, if one was requested. */
-  settlement?: StepEvidence['authorizedSettlement'] & {
+  settlement?: StepEvidence['settlementTransfer'] & {
     attemptedStep?: number;
   };
   /** True once step 1 cleared, meaning a step 2 must exist to pass the gate. */
@@ -305,6 +313,16 @@ export function gateOutcome(evidence: DiligenceEvidence): GateOutcome | null {
     const held = step.reviewRequired === true || step.status === 'held';
     if (step.error) reasons.push('request_error');
     if (step.spendGuardBlocked) reasons.push('spend_guard');
+    if (step.settlementGuardBlocked) reasons.push('settlement_guard');
+    if (
+      step.parentPurchased &&
+      step.settlementTransfer &&
+      ['failed', 'uncertain', 'unavailable'].includes(step.settlementTransfer.status)
+    ) {
+      // The intelligence purchase cleared but the transfer the caller asked
+      // it to authorize did not settle — the outcome is not complete.
+      reasons.push('settlement_incomplete');
+    }
     if (step.verdict === 'hit' && held) reasons.push('disputed_hit');
     if (
       step.verdict === 'review' ||
@@ -373,9 +391,7 @@ function numberEnv(value: string | undefined): number | undefined {
 }
 
 /** Model labels → config. Missing base URL/key/model is a skip, not an error. */
-export function modelConfigsFromEnv(
-  env: Record<string, string | undefined>,
-): ModelConfig[] {
+export function modelConfigsFromEnv(env: Record<string, string | undefined>): ModelConfig[] {
   const labels = (env.DILIGENCE_MODELS ?? '')
     .split(',')
     .map((label) => label.trim())
@@ -408,8 +424,7 @@ function modelCostUsd(
     return null;
   }
   const input = ((usage.prompt_tokens ?? 0) * (config.inputUsdPerMtok ?? 0)) / 1_000_000;
-  const output =
-    ((usage.completion_tokens ?? 0) * (config.outputUsdPerMtok ?? 0)) / 1_000_000;
+  const output = ((usage.completion_tokens ?? 0) * (config.outputUsdPerMtok ?? 0)) / 1_000_000;
   return input + output;
 }
 
@@ -436,7 +451,9 @@ async function apiRequest(endpoint: string, body: JsonObject): Promise<unknown> 
     // Preserve non-JSON error bodies in the thrown error.
   }
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status}: ${typeof json === 'string' ? json : JSON.stringify(json)}`);
+    throw new Error(
+      `HTTP ${res.status}: ${typeof json === 'string' ? json : JSON.stringify(json)}`,
+    );
   }
   return json;
 }
@@ -509,6 +526,13 @@ function stepEvidenceFrom(response: unknown, step: number, latencyMs: number): S
   const data = getPath(response, 'data') as JsonObject | undefined;
   const bundle = data?.evidenceBundle as JsonObject | undefined;
   const settlement = bundle?.settlement as JsonObject | undefined;
+  // Blocked intents carry the transfer both top-level and in the sealed
+  // bundle; read the bundle first so old and new responses both surface.
+  const settlementTransfer = (bundle?.settlementTransfer ??
+    data?.settlementTransfer ??
+    bundle?.authorizedSettlement ??
+    data?.authorizedSettlement) as StepEvidence['settlementTransfer'] | undefined;
+  const gateName = getPath(bundle, 'gate.name');
   const responseData = getPath(data, 'response.data');
   return {
     step,
@@ -526,10 +550,10 @@ function stepEvidenceFrom(response: unknown, step: number, latencyMs: number): S
     costUsd: usd(getPath(bundle, 'costs.totalUsd')),
     latencyMs,
     settlementStatus: firstString(settlement?.status),
-    authorizedSettlement: (data?.authorizedSettlement as StepEvidence['authorizedSettlement']) ?? undefined,
+    settlementTransfer,
     parentPurchased: settlement?.status === 'settled' && responseData !== undefined,
-    spendGuardBlocked:
-      data?.blocked === true && getPath(bundle, 'gate.name') === 'spend_guard',
+    spendGuardBlocked: data?.blocked === true && gateName === 'spend_guard',
+    settlementGuardBlocked: data?.blocked === true && gateName === 'settlement_guard',
     parentResponse: responseData,
   };
 }
@@ -543,7 +567,10 @@ async function runEvidencePhase(params: {
   settlement?: { payee: string; amountUsd: number };
 }): Promise<{ evidence: DiligenceEvidence; skipped?: string; plannedBodies: JsonObject[] }> {
   const { casesFile, diligenceCase, mandateId, spend } = params;
-  const { specialists, supplier } = { specialists: casesFile.specialists, supplier: diligenceCase.supplier };
+  const { specialists, supplier } = {
+    specialists: casesFile.specialists,
+    supplier: diligenceCase.supplier,
+  };
   const evidence: DiligenceEvidence = {
     steps: [],
     step2Expected: false,
@@ -637,11 +664,11 @@ async function runEvidencePhase(params: {
     }
   }
 
-  // Case-level settlement rollup — the last step that returned an
-  // authorizedSettlement record (settled on Solana, blocked, or failed).
+  // Case-level settlement rollup — the last step that returned a
+  // settlementTransfer record (settled on Solana, blocked, or failed).
   for (const step of evidence.steps) {
-    if (step.authorizedSettlement) {
-      evidence.settlement = { ...step.authorizedSettlement, attemptedStep: step.step };
+    if (step.settlementTransfer) {
+      evidence.settlement = { ...step.settlementTransfer, attemptedStep: step.step };
     }
   }
 
@@ -697,9 +724,7 @@ async function callModel(
     const choices = Array.isArray(json.choices) ? json.choices : [];
     const message = (choices[0] as JsonObject | undefined)?.message as JsonObject | undefined;
     const content = typeof message?.content === 'string' ? message.content : '';
-    const usage = json.usage as
-      | { prompt_tokens?: number; completion_tokens?: number }
-      | undefined;
+    const usage = json.usage as { prompt_tokens?: number; completion_tokens?: number } | undefined;
     return {
       decision: parseDecision(content),
       rationale: parseRationale(content),
@@ -797,8 +822,7 @@ function parseArgs(argv: string[]): CliOptions {
     else if (arg === '--report-id') options.reportId = argv[++i];
     else if (arg === '--public-out') options.publicOut = argv[++i];
     else if (arg === '--settlement-payee') options.settlementPayee = argv[++i];
-    else if (arg === '--settlement-amount-usd')
-      options.settlementAmountUsd = Number(argv[++i]);
+    else if (arg === '--settlement-amount-usd') options.settlementAmountUsd = Number(argv[++i]);
     else if (arg === '--dry-run') options.dryRun = true;
     else if (arg === '--help' || arg === '-h') options.help = true;
     else throw new Error(`unknown argument ${arg}`);
@@ -871,6 +895,8 @@ export interface CaseResult {
   skipped?: string;
   evidence: {
     steps: Array<Omit<StepEvidence, 'parentResponse'> & { parentResponseHash?: string }>;
+    /** Case-level rollup of the settlement leg, when one was requested. */
+    settlement?: DiligenceEvidence['settlement'];
     specialistSpendUsd: number;
     escalations: string[];
   };
@@ -914,6 +940,21 @@ function money(value: number | null | undefined): string {
   return typeof value === 'number' ? `$${value.toFixed(4)}` : '—';
 }
 
+/**
+ * Publish-safe reason text. Internal error messages can embed RPC endpoints
+ * (often with provider API keys) or oversized payloads; the public report may
+ * never carry either.
+ */
+function publicReason(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const redacted = value
+    .replace(/\b[a-z][a-z0-9+.-]*:\/\/\S+/gi, '[redacted-url]')
+    .replace(/\b[A-Za-z0-9_-]{32,}\b/g, '[redacted]')
+    .slice(0, 280)
+    .trim();
+  return redacted === '' ? null : redacted;
+}
+
 export function honestyBounds(caseCount: number): string[] {
   return [
     'Specialist payments are testnet x402 micropayments, not production procurement spend.',
@@ -944,7 +985,13 @@ export function toPublicReport(
     mandateId: string;
     spendCapUsd: number;
     casesFile: { policy: string; specialists: DiligenceCasesFile['specialists'] };
-    models: Array<{ label: string; provider: string; model: string | null; route: string; skipped?: string }>;
+    models: Array<{
+      label: string;
+      provider: string;
+      model: string | null;
+      route: string;
+      skipped?: string;
+    }>;
   };
   const specialists = Object.fromEntries(
     Object.entries(exec.casesFile.specialists).map(([key, spec]) => [
@@ -985,17 +1032,20 @@ export function toPublicReport(
           pendingAction: step.pendingAction,
           parentPurchased: step.parentPurchased,
           settlementStatus: step.settlementStatus,
-          authorizedSettlement: step.authorizedSettlement
+          settlementTransfer: step.settlementTransfer
             ? {
-                rail: step.authorizedSettlement.rail,
-                status: step.authorizedSettlement.status,
-                cluster: step.authorizedSettlement.cluster ?? null,
-                payee: step.authorizedSettlement.payee,
-                amountUsd: step.authorizedSettlement.amountUsd,
-                signature: step.authorizedSettlement.signature,
-                reason: step.authorizedSettlement.reason,
-                intentId: step.authorizedSettlement.intentId,
-                idempotentReplay: step.authorizedSettlement.idempotentReplay === true,
+                rail: step.settlementTransfer.rail,
+                status: step.settlementTransfer.status,
+                cluster: step.settlementTransfer.cluster ?? null,
+                payee: step.settlementTransfer.payee,
+                amountUsd: step.settlementTransfer.amountUsd,
+                signature: step.settlementTransfer.signature,
+                confirmationStatus: step.settlementTransfer.confirmationStatus ?? null,
+                reason: publicReason(step.settlementTransfer.reason),
+                intentId: step.settlementTransfer.intentId,
+                intentIdGenerated: step.settlementTransfer.intentIdGenerated === true,
+                policySource: step.settlementTransfer.policySource ?? null,
+                idempotentReplay: step.settlementTransfer.idempotentReplay === true,
               }
             : null,
           costUsd: step.costUsd,
@@ -1015,8 +1065,10 @@ export function toPublicReport(
               payee: c.evidence.settlement.payee,
               amountUsd: c.evidence.settlement.amountUsd,
               signature: c.evidence.settlement.signature,
-              reason: c.evidence.settlement.reason,
+              confirmationStatus: c.evidence.settlement.confirmationStatus ?? null,
+              reason: publicReason(c.evidence.settlement.reason),
               intentId: c.evidence.settlement.intentId,
+              intentIdGenerated: c.evidence.settlement.intentIdGenerated === true,
               attemptedStep: c.evidence.settlement.attemptedStep,
               idempotentReplay: c.evidence.settlement.idempotentReplay === true,
             }

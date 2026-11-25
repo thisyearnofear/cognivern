@@ -4,11 +4,11 @@
  * API endpoints for Telegraph Protocol integration status and miner discovery.
  */
 
-import { Request, Response } from "express";
-import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
-import { randomUUID } from "node:crypto";
-import { Logger } from "@backend/shared/logging/Logger.js";
+import { Request, Response } from 'express';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { Logger } from '@backend/shared/logging/Logger.js';
 import {
   telegraphService,
   telegraphGovernanceHelper,
@@ -26,24 +26,22 @@ import {
   telegraphArtifactDataHash,
   TelegraphSpendGuardError,
   type TelegraphEvidenceBundleInput,
-} from "@backend/services/telegraph/index.js";
-import { anjomanService } from "@backend/services/anjoman/index.js";
-import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
+} from '@backend/services/telegraph/index.js';
+import { anjomanService } from '@backend/services/anjoman/index.js';
+import { creRunStore } from '@backend/cre/storage/CreRunStore.js';
 import {
+  isValidSolanaAddress,
   SolanaSettlementError,
   solanaSettlementService,
-} from "@backend/services/blockchain/solana/SolanaSettlementService.js";
+  type SettlementLimits,
+} from '@backend/services/blockchain/solana/SolanaSettlementService.js';
+import {
+  recordSettlementConsumption,
+  resolveSettlementPolicy,
+} from '@backend/services/blockchain/solana/SettlementPolicy.js';
 
-const logger = new Logger("TelegraphController");
-const STATS_FILE = join(process.cwd(), "data", "telegraph-stats.json");
-
-// Idempotent authorized-settlement records keyed `workspaceId:intentId` —
-// replays return the recorded outcome instead of broadcasting twice.
-const settlementIntentCache = new Map<
-  string,
-  NonNullable<TelegraphEvidenceBundleInput["authorizedSettlement"]>
->();
-const SETTLEMENT_INTENT_CACHE_MAX = 500;
+const logger = new Logger('TelegraphController');
+const STATS_FILE = join(process.cwd(), 'data', 'telegraph-stats.json');
 
 export class TelegraphController {
   /**
@@ -64,8 +62,8 @@ export class TelegraphController {
           success: true,
           data: {
             enabled: false,
-            reason: "Telegraph integration disabled or not configured",
-            hint: "Set TELEGRAPH_ENABLED=true and TELEGRAPH_EVM_PRIVATE_KEY in environment",
+            reason: 'Telegraph integration disabled or not configured',
+            hint: 'Set TELEGRAPH_ENABLED=true and TELEGRAPH_EVM_PRIVATE_KEY in environment',
             anjoman,
           },
           timestamp: new Date().toISOString(),
@@ -102,6 +100,11 @@ export class TelegraphController {
             enabled: solanaSettlementService.getEnabled(),
             configured: Boolean(solanaSettlementService.getConfig().privateKey),
             cluster: solanaSettlementService.getConfig().cluster,
+            maxTransferUsd: solanaSettlementService.getConfig().maxTransferUsd,
+            runwayUsd: solanaSettlementService.getConfig().runwayUsd,
+            payeeAllowlistSize: solanaSettlementService.getConfig().payeeAllowlist.length,
+            configErrors: solanaSettlementService.getConfigErrors(),
+            warnings: solanaSettlementService.getWarnings(),
           },
           paymentError: paymentReady ? null : telegraphService.getPaymentInitError(),
           daemon: daemonHealth,
@@ -110,10 +113,10 @@ export class TelegraphController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error("Failed to get Telegraph status", { error });
+      logger.error('Failed to get Telegraph status', { error });
       res.status(500).json({
         success: false,
-        error: error.message || "Failed to get Telegraph status",
+        error: error.message || 'Failed to get Telegraph status',
       });
     }
   }
@@ -129,7 +132,7 @@ export class TelegraphController {
       if (!telegraphService.getEnabled()) {
         res.status(503).json({
           success: false,
-          error: "Telegraph integration is not enabled",
+          error: 'Telegraph integration is not enabled',
         });
         return;
       }
@@ -156,7 +159,7 @@ export class TelegraphController {
             totalRequestsServed: m.total_requests_served,
             scored: m.scored,
             topScore: m.scores?.[0]?.score,
-            status: m.activation_status ?? m.status ?? "active",
+            status: m.activation_status ?? m.status ?? 'active',
           })),
           count: miners.length,
           filteredBy: intent ? { intent } : null,
@@ -164,10 +167,10 @@ export class TelegraphController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error("Failed to get Telegraph miners", { error });
+      logger.error('Failed to get Telegraph miners', { error });
       res.status(500).json({
         success: false,
-        error: error.message || "Failed to get miners",
+        error: error.message || 'Failed to get miners',
       });
     }
   }
@@ -182,7 +185,7 @@ export class TelegraphController {
       if (!telegraphService.getEnabled()) {
         res.status(503).json({
           success: false,
-          error: "Telegraph integration is not enabled",
+          error: 'Telegraph integration is not enabled',
         });
         return;
       }
@@ -204,10 +207,10 @@ export class TelegraphController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error("Failed to get Telegraph intents", { error });
+      logger.error('Failed to get Telegraph intents', { error });
       res.status(500).json({
         success: false,
-        error: error.message || "Failed to get intents",
+        error: error.message || 'Failed to get intents',
       });
     }
   }
@@ -222,7 +225,7 @@ export class TelegraphController {
       if (!telegraphService.getEnabled()) {
         res.status(503).json({
           success: false,
-          error: "Telegraph integration is not enabled",
+          error: 'Telegraph integration is not enabled',
         });
         return;
       }
@@ -259,15 +262,15 @@ export class TelegraphController {
           scores: miner.scores,
           baseUrl: miner.base_url,
           walletAddress: miner.wallet_address,
-          status: miner.activation_status ?? miner.status ?? "active",
+          status: miner.activation_status ?? miner.status ?? 'active',
         },
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error("Failed to get Telegraph miner", { minerId: req.params.minerId, error });
+      logger.error('Failed to get Telegraph miner', { minerId: req.params.minerId, error });
       res.status(500).json({
         success: false,
-        error: error.message || "Failed to get miner",
+        error: error.message || 'Failed to get miner',
       });
     }
   }
@@ -282,7 +285,7 @@ export class TelegraphController {
       if (!telegraphService.getEnabled()) {
         res.status(503).json({
           success: false,
-          error: "Telegraph integration is not enabled",
+          error: 'Telegraph integration is not enabled',
         });
         return;
       }
@@ -303,10 +306,10 @@ export class TelegraphController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error("Failed to get daemon categories", { error });
+      logger.error('Failed to get daemon categories', { error });
       res.status(500).json({
         success: false,
-        error: error.message || "Failed to get daemon categories",
+        error: error.message || 'Failed to get daemon categories',
       });
     }
   }
@@ -321,7 +324,7 @@ export class TelegraphController {
       if (!telegraphService.getEnabled()) {
         res.status(503).json({
           success: false,
-          error: "Telegraph integration is not enabled",
+          error: 'Telegraph integration is not enabled',
         });
         return;
       }
@@ -341,10 +344,10 @@ export class TelegraphController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error("Failed to get daemon questions", { error });
+      logger.error('Failed to get daemon questions', { error });
       res.status(500).json({
         success: false,
-        error: error.message || "Failed to get daemon questions",
+        error: error.message || 'Failed to get daemon questions',
       });
     }
   }
@@ -360,49 +363,49 @@ export class TelegraphController {
   async callMiner(req: Request, res: Response) {
     try {
       if (!telegraphService.getEnabled()) {
-        res.status(503).json({ success: false, error: "Telegraph integration is not enabled" });
+        res.status(503).json({ success: false, error: 'Telegraph integration is not enabled' });
         return;
       }
       if (!req.workspaceId) {
-        res.status(401).json({ success: false, error: "Workspace authentication required" });
+        res.status(401).json({ success: false, error: 'Workspace authentication required' });
         return;
       }
 
       const body = (req.body ?? {}) as Record<string, unknown>;
-      const minerId = typeof body.minerId === "string" ? body.minerId.trim() : "";
+      const minerId = typeof body.minerId === 'string' ? body.minerId.trim() : '';
       if (!minerId) {
-        res.status(400).json({ success: false, error: "minerId is required" });
+        res.status(400).json({ success: false, error: 'minerId is required' });
         return;
       }
       const params =
-        typeof body.params === "object" && body.params !== null
+        typeof body.params === 'object' && body.params !== null
           ? (body.params as Record<string, unknown>)
           : {};
       const agentId =
-        (typeof body.agentId === "string" && body.agentId.trim()) ||
+        (typeof body.agentId === 'string' && body.agentId.trim()) ||
         req.userId ||
         `workspace-${req.workspaceId}`;
 
       const result = await telegraphGovernanceHelper.governedMinerCall({
         agentId,
         workspaceId: req.workspaceId,
-        mandateId: typeof body.mandateId === "string" ? body.mandateId : undefined,
-        policyId: typeof body.policyId === "string" ? body.policyId : undefined,
+        mandateId: typeof body.mandateId === 'string' ? body.mandateId : undefined,
+        policyId: typeof body.policyId === 'string' ? body.policyId : undefined,
         minerRequest: {
           minerId,
-          intent: typeof body.intent === "string" ? body.intent : undefined,
+          intent: typeof body.intent === 'string' ? body.intent : undefined,
           params,
           confidenceThreshold:
-            typeof body.confidenceThreshold === "number" ? body.confidenceThreshold : undefined,
+            typeof body.confidenceThreshold === 'number' ? body.confidenceThreshold : undefined,
         },
-        description: typeof body.description === "string" ? body.description : undefined,
+        description: typeof body.description === 'string' ? body.description : undefined,
       });
 
       const run = await recordTelegraphGovernedCall({
         result,
         projectId: req.workspaceId,
         agentId,
-        description: typeof body.description === "string" ? body.description : undefined,
+        description: typeof body.description === 'string' ? body.description : undefined,
       });
 
       res.json({
@@ -411,10 +414,10 @@ export class TelegraphController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error("Telegraph governed call endpoint failed", { error });
+      logger.error('Telegraph governed call endpoint failed', { error });
       res.status(500).json({
         success: false,
-        error: error.message || "Failed to execute governed Telegraph call",
+        error: error.message || 'Failed to execute governed Telegraph call',
       });
     }
   }
@@ -428,44 +431,44 @@ export class TelegraphController {
   async engineAsk(req: Request, res: Response) {
     try {
       if (!telegraphService.getEnabled()) {
-        res.status(503).json({ success: false, error: "Telegraph integration is not enabled" });
+        res.status(503).json({ success: false, error: 'Telegraph integration is not enabled' });
         return;
       }
       if (!req.workspaceId) {
-        res.status(401).json({ success: false, error: "Workspace authentication required" });
+        res.status(401).json({ success: false, error: 'Workspace authentication required' });
         return;
       }
 
       const body = (req.body ?? {}) as Record<string, unknown>;
-      const query = typeof body.query === "string" ? body.query.trim() : "";
+      const query = typeof body.query === 'string' ? body.query.trim() : '';
       if (!query) {
-        res.status(400).json({ success: false, error: "query is required" });
+        res.status(400).json({ success: false, error: 'query is required' });
         return;
       }
       const agentId =
-        (typeof body.agentId === "string" && body.agentId.trim()) ||
+        (typeof body.agentId === 'string' && body.agentId.trim()) ||
         req.userId ||
         `workspace-${req.workspaceId}`;
 
       const result = await telegraphGovernanceHelper.governedEngineAsk({
         agentId,
         workspaceId: req.workspaceId,
-        mandateId: typeof body.mandateId === "string" ? body.mandateId : undefined,
-        policyId: typeof body.policyId === "string" ? body.policyId : undefined,
+        mandateId: typeof body.mandateId === 'string' ? body.mandateId : undefined,
+        policyId: typeof body.policyId === 'string' ? body.policyId : undefined,
         engineRequest: {
           query,
-          intent: typeof body.intent === "string" ? body.intent : undefined,
+          intent: typeof body.intent === 'string' ? body.intent : undefined,
           confidenceThreshold:
-            typeof body.confidenceThreshold === "number" ? body.confidenceThreshold : undefined,
+            typeof body.confidenceThreshold === 'number' ? body.confidenceThreshold : undefined,
         },
-        description: typeof body.description === "string" ? body.description : undefined,
+        description: typeof body.description === 'string' ? body.description : undefined,
       });
 
       const run = await recordTelegraphGovernedCall({
         result,
         projectId: req.workspaceId,
         agentId,
-        description: typeof body.description === "string" ? body.description : undefined,
+        description: typeof body.description === 'string' ? body.description : undefined,
       });
 
       res.json({
@@ -474,10 +477,10 @@ export class TelegraphController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error("Telegraph governed engine ask failed", { error });
+      logger.error('Telegraph governed engine ask failed', { error });
       res.status(500).json({
         success: false,
-        error: error.message || "Failed to execute governed engine ask",
+        error: error.message || 'Failed to execute governed engine ask',
       });
     }
   }
@@ -503,57 +506,59 @@ export class TelegraphController {
    *     Mandate guards run before the paid screen (a payee outside bounds is
    *     denied without buying intelligence); the transfer executes only when
    *     the parent call is approved, and its signature lands in the evidence
-   *     bundle as `authorizedSettlement`. intentId replays are idempotent.
+   *     bundle as `settlementTransfer`. intentId replays are idempotent.
    */
   async compliantCall(req: Request, res: Response) {
     try {
       if (!telegraphService.getEnabled()) {
-        res.status(503).json({ success: false, error: "Telegraph integration is not enabled" });
+        res.status(503).json({ success: false, error: 'Telegraph integration is not enabled' });
         return;
       }
       if (!req.workspaceId) {
-        res.status(401).json({ success: false, error: "Workspace authentication required" });
+        res.status(401).json({ success: false, error: 'Workspace authentication required' });
         return;
       }
 
       const body = (req.body ?? {}) as Record<string, unknown>;
-      const minerId = typeof body.minerId === "string" ? body.minerId.trim() : "";
+      const minerId = typeof body.minerId === 'string' ? body.minerId.trim() : '';
       const compliance = body.compliance as Record<string, unknown> | undefined;
       const complianceParams =
-        compliance && typeof compliance.params === "object" && compliance.params !== null
+        compliance && typeof compliance.params === 'object' && compliance.params !== null
           ? (compliance.params as Record<string, unknown>)
           : null;
 
       if (!minerId) {
-        res.status(400).json({ success: false, error: "minerId is required" });
+        res.status(400).json({ success: false, error: 'minerId is required' });
         return;
       }
       if (!compliance || !complianceParams || Object.keys(complianceParams).length === 0) {
         res.status(400).json({
           success: false,
           error:
-            "compliance.params is required — the subject to screen (e.g. name, address, tx hash)",
+            'compliance.params is required — the subject to screen (e.g. name, address, tx hash)',
         });
         return;
       }
 
       // Optional downstream settlement intent — the transfer the screened
       // intelligence authorizes. Only rail: "solana" today.
+      const bodyHash = sha256CanonicalJson(body);
       let settlement: {
-        rail: "solana";
+        rail: 'solana';
         payee: string;
         amountUsd: number;
-        intentId?: string;
+        intentId: string;
+        intentIdGenerated: boolean;
       } | null = null;
       if (body.settlement !== undefined && body.settlement !== null) {
         const s = body.settlement as Record<string, unknown>;
         if (
-          typeof s !== "object" ||
+          typeof s !== 'object' ||
           s === null ||
-          s.rail !== "solana" ||
-          typeof s.payee !== "string" ||
-          s.payee.trim() === "" ||
-          typeof s.amountUsd !== "number" ||
+          s.rail !== 'solana' ||
+          typeof s.payee !== 'string' ||
+          s.payee.trim() === '' ||
+          typeof s.amountUsd !== 'number' ||
           !Number.isFinite(s.amountUsd) ||
           s.amountUsd <= 0
         ) {
@@ -564,14 +569,35 @@ export class TelegraphController {
           });
           return;
         }
+        const payee = s.payee.trim();
+        if (!isValidSolanaAddress(payee)) {
+          res.status(400).json({
+            success: false,
+            error: 'settlement.payee is not a valid base58 Solana address',
+          });
+          return;
+        }
+        const requestedIntentId =
+          typeof s.intentId === 'string' && s.intentId.trim()
+            ? s.intentId.trim().slice(0, 128)
+            : null;
+        // A missing intentId must not become a fresh random id per retry —
+        // that is a double-pay. Derive it from the request instead, so an
+        // identical retry replays the recorded outcome.
+        const intentId =
+          requestedIntentId ??
+          `auto-${sha256CanonicalJson({
+            workspaceId: req.workspaceId,
+            payee,
+            amountUsd: s.amountUsd,
+            bodyHash,
+          }).slice(0, 32)}`;
         settlement = {
-          rail: "solana",
-          payee: s.payee.trim(),
+          rail: 'solana',
+          payee,
           amountUsd: s.amountUsd,
-          intentId:
-            typeof s.intentId === "string" && s.intentId.trim()
-              ? s.intentId.trim().slice(0, 128)
-              : undefined,
+          intentId,
+          intentIdGenerated: requestedIntentId === null,
         };
       }
 
@@ -587,15 +613,15 @@ export class TelegraphController {
       }
 
       const agentId =
-        (typeof body.agentId === "string" && body.agentId.trim()) ||
+        (typeof body.agentId === 'string' && body.agentId.trim()) ||
         req.userId ||
         `workspace-${req.workspaceId}`;
-      const mandateId = typeof body.mandateId === "string" ? body.mandateId : undefined;
-      const policyId = typeof body.policyId === "string" ? body.policyId : undefined;
-      const description = typeof body.description === "string" ? body.description : undefined;
-      const parentIntent = typeof body.intent === "string" ? body.intent : undefined;
+      const mandateId = typeof body.mandateId === 'string' ? body.mandateId : undefined;
+      const policyId = typeof body.policyId === 'string' ? body.policyId : undefined;
+      const description = typeof body.description === 'string' ? body.description : undefined;
+      const parentIntent = typeof body.intent === 'string' ? body.intent : undefined;
       const parentParams =
-        typeof body.params === "object" && body.params !== null
+        typeof body.params === 'object' && body.params !== null
           ? (body.params as Record<string, unknown>)
           : {};
 
@@ -625,7 +651,7 @@ export class TelegraphController {
       const attemptId = randomUUID();
       const complianceSubject = subjectTerms(complianceParams);
       const reviewNote =
-        typeof compliance.reviewNote === "string"
+        typeof compliance.reviewNote === 'string'
           ? compliance.reviewNote.trim().slice(0, 500) || undefined
           : undefined;
       const parentParamTerms = subjectTerms(parentParams);
@@ -639,7 +665,7 @@ export class TelegraphController {
           }
         : null;
       const requestEvidence = {
-        bodyHash: sha256CanonicalJson(body),
+        bodyHash,
         intendedCall: {
           minerId,
           minerName: parentMiner?.name ?? null,
@@ -649,8 +675,8 @@ export class TelegraphController {
           estimatedCostUsd: parentEstimatedCostUsd,
         },
         compliance: {
-          minerId: typeof compliance.minerId === "string" ? compliance.minerId : undefined,
-          intent: typeof compliance.intent === "string" ? compliance.intent : undefined,
+          minerId: typeof compliance.minerId === 'string' ? compliance.minerId : undefined,
+          intent: typeof compliance.intent === 'string' ? compliance.intent : undefined,
           disputeHit: compliance.disputeHit === true,
           reviewNoteHash: reviewNote ? sha256CanonicalJson(reviewNote) : null,
           paramsHash: sha256CanonicalJson(complianceParams),
@@ -658,23 +684,23 @@ export class TelegraphController {
         },
       };
       const replay = {
-        endpoint: "POST /api/telegraph/compliant-call",
+        endpoint: 'POST /api/telegraph/compliant-call',
         cliCommand:
           "pnpm exec tsx tooling/scripts/agents/telegraph-demo.ts compliant-call '<json body>'",
       };
       const usdNumber = (value: unknown): number | null => {
-        const parsed = typeof value === "number" ? value : Number(value);
+        const parsed = typeof value === 'number' ? value : Number(value);
         return Number.isFinite(parsed) ? parsed : null;
       };
       const formatUsd = (value: number | null): string | null =>
         value === null ? null : value.toFixed(4);
       const costsFor = (screenCostUsd: unknown, parentCostUsd?: unknown) => {
-        const screenUsd = typeof screenCostUsd === "string" ? screenCostUsd : null;
-        const parentUsd = typeof parentCostUsd === "string" ? parentCostUsd : null;
+        const screenUsd = typeof screenCostUsd === 'string' ? screenCostUsd : null;
+        const parentUsd = typeof parentCostUsd === 'string' ? parentCostUsd : null;
         const screenNumber = usdNumber(screenCostUsd);
         const parentNumber = usdNumber(parentCostUsd);
         return {
-          currency: "USD" as const,
+          currency: 'USD' as const,
           screeningUsd: screenUsd,
           parentEstimatedUsd: parentEstimatedCostUsd,
           parentUsd,
@@ -692,9 +718,9 @@ export class TelegraphController {
         detailOverride?: string,
       ) => ({
         gate,
-        verdict: screen?.verdict ?? "unknown",
+        verdict: screen?.verdict ?? 'unknown',
         providerVerdict: screen?.providerVerdict ?? null,
-        verdictSource: screen?.verdictSource ?? "none",
+        verdictSource: screen?.verdictSource ?? 'none',
         detail: detailOverride ?? screen?.detail ?? null,
         screeningRunId: screen?.runId ?? null,
         screeningMinerId: screen?.minerId ?? null,
@@ -716,13 +742,13 @@ export class TelegraphController {
         screen: Awaited<ReturnType<typeof runComplianceScreen>> | null,
       ) => {
         if (!screen) return null;
-        const artifact = screen.run?.artifacts.find((item) => item.type === "telegraph.signal");
+        const artifact = screen.run?.artifacts.find((item) => item.type === 'telegraph.signal');
         return {
           status: screen.screeningSkipped
-            ? ("skipped" as const)
-            : screen.status === "failed"
-              ? ("failed" as const)
-              : ("completed" as const),
+            ? ('skipped' as const)
+            : screen.status === 'failed'
+              ? ('failed' as const)
+              : ('completed' as const),
           runId: screen.runId,
           artifactId: artifact?.id ?? null,
           artifactHash: artifact ? telegraphArtifactDataHash(artifact.data) : null,
@@ -744,11 +770,11 @@ export class TelegraphController {
         };
       };
       const denyAttempt = async (params: {
-        gate: "compliance" | "spend_guard" | "settlement_guard";
+        gate: 'compliance' | 'spend_guard' | 'settlement_guard';
         reason: string;
         screen: Awaited<ReturnType<typeof runComplianceScreen>> | null;
         violations: string[];
-        authorizedSettlement?: TelegraphEvidenceBundleInput["authorizedSettlement"];
+        settlementTransfer?: TelegraphEvidenceBundleInput['settlementTransfer'];
         holdForReview?: {
           pendingAction?: string;
           details?: Record<string, unknown>;
@@ -758,16 +784,11 @@ export class TelegraphController {
         const gateArtifactId = randomUUID();
         const timestamp = new Date().toISOString();
         const reviewNote =
-          typeof params.holdForReview?.details?.reviewNote === "string"
+          typeof params.holdForReview?.details?.reviewNote === 'string'
             ? params.holdForReview.details.reviewNote
             : null;
         const complianceBlock = {
-          ...complianceBlockFor(
-            params.gate,
-            params.screen,
-            params.violations,
-            params.reason,
-          ),
+          ...complianceBlockFor(params.gate, params.screen, params.violations, params.reason),
           reviewRequired: Boolean(params.holdForReview),
           disputed: params.holdForReview?.details?.disputed === true,
           reviewNoteHash: reviewNote ? sha256CanonicalJson(reviewNote) : null,
@@ -783,13 +804,13 @@ export class TelegraphController {
           description,
           gate: {
             name: params.gate,
-            decision: "blocked",
+            decision: 'blocked',
             reason: params.reason,
             reviewRequired: Boolean(params.holdForReview),
           },
           compliance: complianceBlock,
           intendedCall,
-          cost: { usd: "0", paymentMethod: "x402", paid: false },
+          cost: { usd: '0', paymentMethod: 'x402', paid: false },
           timestamp,
         };
         const evidenceBundle = buildTelegraphEvidenceBundle({
@@ -802,7 +823,7 @@ export class TelegraphController {
           request: requestEvidence,
           screening: screeningEvidence(params.screen),
           gate: {
-            decision: "deny",
+            decision: 'deny',
             name: params.gate,
             reason: params.reason,
             reviewRequired: Boolean(params.holdForReview),
@@ -810,8 +831,8 @@ export class TelegraphController {
             artifactId: gateArtifactId,
             artifactHash: telegraphArtifactDataHash(gateArtifactCore),
           },
-          settlement: { status: "not_attempted" },
-          authorizedSettlement: params.authorizedSettlement,
+          settlement: { status: 'not_attempted' },
+          settlementTransfer: params.settlementTransfer,
           spendGuard: spendGuardEvidence,
           policyViolations: params.violations,
           costs: costsFor(params.screen?.costUsd),
@@ -836,13 +857,14 @@ export class TelegraphController {
           success: true,
           data: {
             blocked: true,
-            status: params.holdForReview ? "held" : "denied",
+            status: params.holdForReview ? 'held' : 'denied',
             reviewRequired: Boolean(params.holdForReview),
             pendingAction: params.holdForReview?.pendingAction ?? null,
             reason: params.reason,
             compliance: complianceBlock,
             spendGuard,
             policyViolations: params.violations,
+            settlementTransfer: params.settlementTransfer ?? null,
             evidenceBundle,
             runId: gateRun?.runId ?? null,
             runStatus: gateRun?.status ?? null,
@@ -855,46 +877,71 @@ export class TelegraphController {
 
       if (parentPolicyViolations.length > 0) {
         await denyAttempt({
-          gate: "spend_guard",
-          reason: parentPolicyViolations.join("; "),
+          gate: 'spend_guard',
+          reason: parentPolicyViolations.join('; '),
           screen: null,
           violations: parentPolicyViolations,
-          authorizedSettlement: settlement
+          settlementTransfer: settlement
             ? {
-                rail: "solana",
-                status: "blocked",
+                rail: 'solana',
+                status: 'blocked',
                 payee: settlement.payee,
                 amountUsd: settlement.amountUsd,
-                intentId: settlement.intentId ?? null,
-                reason: "parent call blocked by spend guard",
+                intentId: settlement.intentId,
+                reason: 'parent call blocked by spend guard',
               }
             : undefined,
         });
         return;
       }
 
-      // Mandate guards on the settlement intent run before the paid screen —
-      // a payee outside the declared bounds is denied without spending $0.01.
+      // Settlement guards run before the paid screen. This covers *all* the
+      // reasons a settlement could fail later: mandate policy (budget, allowed
+      // assets, chain), env caps, payee allowlist, and rail readiness (enabled
+      // flag, key, payer SOL/USDC balance). A blocked intent never buys
+      // intelligence it could not settle.
+      let settlementLimits: SettlementLimits | null = null;
+      let settlementPolicySource: 'env' | 'funded_mandate' | null = null;
       if (settlement) {
-        const settlementGuards = solanaSettlementService.evaluateGuards(settlement);
-        if (!settlementGuards.allowed) {
+        const policy = resolveSettlementPolicy({
+          workspaceId: req.workspaceId,
+          mandateId,
+          amountUsd: settlement.amountUsd,
+          envLimits: solanaSettlementService.defaultLimits(),
+        });
+        settlementPolicySource = policy.policySource;
+        const violations = [...policy.violations];
+        if (violations.length === 0) {
+          const preflight = await solanaSettlementService.preflight(
+            settlement,
+            policy.limits,
+            req.workspaceId,
+          );
+          violations.push(...preflight.violations);
+        }
+        const uniqueViolations = [...new Set(violations)];
+        if (uniqueViolations.length > 0) {
           await denyAttempt({
-            gate: "settlement_guard",
-            reason: `settlement blocked by mandate guards: ${settlementGuards.violations.join("; ")}`,
+            gate: 'settlement_guard',
+            reason: `settlement blocked before screening: ${uniqueViolations.join('; ')}`,
             screen: null,
-            violations: settlementGuards.violations,
-            authorizedSettlement: {
-              rail: "solana",
-              status: "blocked",
+            violations: uniqueViolations,
+            settlementTransfer: {
+              rail: 'solana',
+              status: 'blocked',
               payee: settlement.payee,
               amountUsd: settlement.amountUsd,
-              intentId: settlement.intentId ?? null,
-              reason: "settlement intent violates mandate guards",
-              violations: settlementGuards.violations,
+              intentId: settlement.intentId,
+              intentIdGenerated: settlement.intentIdGenerated,
+              policySource: policy.policySource,
+              mandateId: mandateId ?? null,
+              reason: 'settlement intent cannot be executed as requested',
+              violations: uniqueViolations,
             },
           });
           return;
         }
+        settlementLimits = policy.limits;
       }
 
       const screen = await runComplianceScreen({
@@ -903,8 +950,8 @@ export class TelegraphController {
         mandateId,
         policyId,
         screen: {
-          minerId: typeof compliance.minerId === "string" ? compliance.minerId : undefined,
-          intent: typeof compliance.intent === "string" ? compliance.intent : undefined,
+          minerId: typeof compliance.minerId === 'string' ? compliance.minerId : undefined,
+          intent: typeof compliance.intent === 'string' ? compliance.intent : undefined,
           params: complianceParams,
         },
         description,
@@ -915,20 +962,20 @@ export class TelegraphController {
 
       if (screen.blocked) {
         const holdForReview =
-          screen.status === "approved" && screen.verdict === "review"
+          screen.status === 'approved' && screen.verdict === 'review'
             ? {
-                pendingAction: "review_compliance_verdict",
+                pendingAction: 'review_compliance_verdict',
                 details: {
                   verdict: screen.verdict,
                   disputed: false,
                   reviewNote,
                 },
               }
-            : screen.status === "approved" &&
-                screen.verdict === "hit" &&
+            : screen.status === 'approved' &&
+                screen.verdict === 'hit' &&
                 compliance.disputeHit === true
               ? {
-                  pendingAction: "review_disputed_compliance_hit",
+                  pendingAction: 'review_disputed_compliance_hit',
                   details: {
                     verdict: screen.verdict,
                     disputed: true,
@@ -937,17 +984,17 @@ export class TelegraphController {
                 }
               : undefined;
         await denyAttempt({
-          gate: screenViolations.length > 0 ? "spend_guard" : "compliance",
+          gate: screenViolations.length > 0 ? 'spend_guard' : 'compliance',
           reason: screen.blockReason ?? `screening verdict ${screen.verdict}`,
           screen,
           violations: screenViolations,
-          authorizedSettlement: settlement
+          settlementTransfer: settlement
             ? {
-                rail: "solana",
-                status: "blocked",
+                rail: 'solana',
+                status: 'blocked',
                 payee: settlement.payee,
                 amountUsd: settlement.amountUsd,
-                intentId: settlement.intentId ?? null,
+                intentId: settlement.intentId,
                 reason: `screening ${screen.verdict} — settlement not authorized`,
               }
             : undefined,
@@ -963,18 +1010,18 @@ export class TelegraphController {
       });
       if (postScreenViolations.length > 0) {
         await denyAttempt({
-          gate: "spend_guard",
-          reason: postScreenViolations.join("; "),
+          gate: 'spend_guard',
+          reason: postScreenViolations.join('; '),
           screen,
           violations: postScreenViolations,
-          authorizedSettlement: settlement
+          settlementTransfer: settlement
             ? {
-                rail: "solana",
-                status: "blocked",
+                rail: 'solana',
+                status: 'blocked',
                 payee: settlement.payee,
                 amountUsd: settlement.amountUsd,
-                intentId: settlement.intentId ?? null,
-                reason: "post-screen spend guard blocked the call",
+                intentId: settlement.intentId,
+                reason: 'post-screen spend guard blocked the call',
               }
             : undefined,
         });
@@ -991,7 +1038,7 @@ export class TelegraphController {
           intent: parentIntent,
           params: parentParams,
           confidenceThreshold:
-            typeof body.confidenceThreshold === "number" ? body.confidenceThreshold : undefined,
+            typeof body.confidenceThreshold === 'number' ? body.confidenceThreshold : undefined,
         },
         description,
       });
@@ -999,81 +1046,190 @@ export class TelegraphController {
       const parentRunId = randomUUID();
       const parentArtifactId = result.artifact?.id ?? randomUUID();
 
-      // Authorized settlement: only an *approved* intelligence call can
+      // Downstream settlement: only an *approved* intelligence call can
       // release the transfer. A held parent means the evidence is not yet
       // trustworthy; a released hold never resumes settlement — the contract
       // is synchronous-approve-only, recorded here as a blocked intent.
-      let authorizedSettlement:
-        | TelegraphEvidenceBundleInput["authorizedSettlement"]
-        | undefined;
+      //
+      // Replay safety lives in the service's durable intent journal, not in
+      // process memory: a restart or concurrent retry cannot double-pay.
+      let settlementTransfer: TelegraphEvidenceBundleInput['settlementTransfer'] | undefined;
       if (settlement) {
-        const cacheKey = settlement.intentId
-          ? `${req.workspaceId}:${settlement.intentId}`
-          : null;
-        const cached = cacheKey ? settlementIntentCache.get(cacheKey) : undefined;
-        if (cached) {
-          authorizedSettlement = { ...cached, idempotentReplay: true };
-        } else if (result.status !== "approved") {
-          authorizedSettlement = {
-            rail: "solana",
-            status: "blocked",
+        if (result.status !== 'approved') {
+          settlementTransfer = {
+            rail: 'solana',
+            status: 'blocked',
             payee: settlement.payee,
             amountUsd: settlement.amountUsd,
-            intentId: settlement.intentId ?? null,
+            intentId: settlement.intentId,
+            intentIdGenerated: settlement.intentIdGenerated,
             reason: `parent call ${result.status} — settlement not authorized`,
           };
         } else if (!solanaSettlementService.getEnabled()) {
-          authorizedSettlement = {
-            rail: "solana",
-            status: "unavailable",
+          settlementTransfer = {
+            rail: 'solana',
+            status: 'unavailable',
             payee: settlement.payee,
             amountUsd: settlement.amountUsd,
-            intentId: settlement.intentId ?? null,
-            reason: "SOLANA_SETTLEMENT_ENABLED is false — rail not armed",
+            intentId: settlement.intentId,
+            intentIdGenerated: settlement.intentIdGenerated,
+            reason: 'SOLANA_SETTLEMENT_ENABLED is false — rail not armed',
           };
         } else {
           try {
-            authorizedSettlement = {
-              ...(await solanaSettlementService.executeTransfer(settlement)),
-              intentId: settlement.intentId ?? null,
+            const settled = await solanaSettlementService.executeTransfer(
+              {
+                intentId: settlement.intentId,
+                workspaceId: req.workspaceId,
+                payee: settlement.payee,
+                amountUsd: settlement.amountUsd,
+                mandateId,
+              },
+              { limits: settlementLimits ?? undefined },
+            );
+            // The transfer confirmed; debit the mandate budget. A debit
+            // failure cannot un-send USDC, so it is reported in the evidence
+            // rather than silently swallowed. Replays must not debit twice —
+            // the intent journal records that the debit already happened.
+            let mandateDebit: { ok: boolean; reason?: string | null } | null = null;
+            if (mandateId) {
+              try {
+                const recorded = await solanaSettlementService.getIntentStatus(
+                  req.workspaceId,
+                  settlement.intentId,
+                );
+                if (recorded?.mandateDebited) {
+                  mandateDebit = { ok: true, reason: 'already debited' };
+                } else {
+                  const debit = recordSettlementConsumption({
+                    workspaceId: req.workspaceId,
+                    mandateId,
+                    amountUsd: settlement.amountUsd,
+                  });
+                  mandateDebit = debit;
+                  if (debit.ok) {
+                    await solanaSettlementService.markMandateDebited(
+                      req.workspaceId,
+                      settlement.intentId,
+                    );
+                  } else {
+                    logger.error('Settlement confirmed but mandate debit failed', {
+                      workspaceId: req.workspaceId,
+                      mandateId,
+                      intentId: settlement.intentId,
+                      reason: debit.reason,
+                    });
+                  }
+                }
+              } catch (debitError) {
+                // Never let ledger bookkeeping mask a confirmed transfer.
+                mandateDebit = {
+                  ok: false,
+                  reason: debitError instanceof Error ? debitError.message : String(debitError),
+                };
+                logger.error('Settlement debit bookkeeping failed', {
+                  workspaceId: req.workspaceId,
+                  mandateId,
+                  intentId: settlement.intentId,
+                  error: debitError,
+                });
+              }
+            }
+            settlementTransfer = {
+              ...settled,
+              intentId: settlement.intentId,
+              intentIdGenerated: settlement.intentIdGenerated,
+              policySource: settlementPolicySource,
+              mandateId: mandateId ?? null,
+              mandateDebit,
             };
           } catch (error) {
-            if (error instanceof SolanaSettlementError && error.code === "policy") {
-              authorizedSettlement = {
-                rail: "solana",
-                status: "blocked",
-                payee: settlement.payee,
-                amountUsd: settlement.amountUsd,
-                intentId: settlement.intentId ?? null,
-                reason: error.message,
-                violations: error.violations,
-              };
+            const reason = error instanceof Error ? error.message : String(error);
+            if (error instanceof SolanaSettlementError) {
+              if (
+                error.code === 'policy' ||
+                error.code === 'intent_conflict' ||
+                error.code === 'invalid_input'
+              ) {
+                settlementTransfer = {
+                  rail: 'solana',
+                  status: 'blocked',
+                  payee: settlement.payee,
+                  amountUsd: settlement.amountUsd,
+                  intentId: settlement.intentId,
+                  intentIdGenerated: settlement.intentIdGenerated,
+                  policySource: settlementPolicySource,
+                  mandateId: mandateId ?? null,
+                  reason,
+                  violations: error.violations,
+                };
+              } else if (error.code === 'uncertain') {
+                // Surface the signature so the operator can reconcile on the
+                // explorer instead of blind-retrying a send we lost track of.
+                const recorded = await solanaSettlementService
+                  .getIntentStatus(req.workspaceId, settlement.intentId)
+                  .catch(() => null);
+                settlementTransfer = {
+                  rail: 'solana',
+                  status: 'uncertain',
+                  cluster: recorded?.cluster ?? null,
+                  mint: recorded?.mint ?? null,
+                  payee: settlement.payee,
+                  payer: recorded?.payer ?? null,
+                  amountUsd: settlement.amountUsd,
+                  signature: recorded?.signature ?? null,
+                  explorerUrl: recorded?.explorerUrl ?? null,
+                  confirmationStatus: recorded?.confirmationStatus ?? null,
+                  intentId: settlement.intentId,
+                  intentIdGenerated: settlement.intentIdGenerated,
+                  policySource: settlementPolicySource,
+                  mandateId: mandateId ?? null,
+                  reason,
+                };
+              } else if (error.code === 'disabled' || error.code === 'not_ready') {
+                settlementTransfer = {
+                  rail: 'solana',
+                  status: 'unavailable',
+                  payee: settlement.payee,
+                  amountUsd: settlement.amountUsd,
+                  intentId: settlement.intentId,
+                  intentIdGenerated: settlement.intentIdGenerated,
+                  mandateId: mandateId ?? null,
+                  reason,
+                };
+              } else {
+                settlementTransfer = {
+                  rail: 'solana',
+                  status: 'failed',
+                  payee: settlement.payee,
+                  amountUsd: settlement.amountUsd,
+                  intentId: settlement.intentId,
+                  intentIdGenerated: settlement.intentIdGenerated,
+                  mandateId: mandateId ?? null,
+                  reason,
+                };
+              }
             } else {
-              authorizedSettlement = {
-                rail: "solana",
-                status: "failed",
+              settlementTransfer = {
+                rail: 'solana',
+                status: 'failed',
                 payee: settlement.payee,
                 amountUsd: settlement.amountUsd,
-                intentId: settlement.intentId ?? null,
-                reason: error instanceof Error ? error.message : String(error),
+                intentId: settlement.intentId,
+                intentIdGenerated: settlement.intentIdGenerated,
+                mandateId: mandateId ?? null,
+                reason,
               };
             }
           }
         }
-        if (cacheKey && authorizedSettlement) {
-          if (settlementIntentCache.size >= SETTLEMENT_INTENT_CACHE_MAX) {
-            const oldest = settlementIntentCache.keys().next().value;
-            if (oldest) settlementIntentCache.delete(oldest);
-          }
-          settlementIntentCache.set(cacheKey, authorizedSettlement);
-        }
       }
 
-      const complianceBlock = complianceBlockFor("compliance", screen, []);
+      const complianceBlock = complianceBlockFor('compliance', screen, []);
       const meta = result.response?.metadata;
       const artifactData =
         result.artifact?.data &&
-        typeof result.artifact.data === "object" &&
+        typeof result.artifact.data === 'object' &&
         result.artifact.data !== null
           ? (result.artifact.data as Record<string, unknown>)
           : ({
@@ -1094,8 +1250,8 @@ export class TelegraphController {
                 confidenceMet: result.decision?.confidenceMet ?? false,
               },
               cost: {
-                usd: meta?.costUsd ?? "0",
-                paymentMethod: "x402",
+                usd: meta?.costUsd ?? '0',
+                paymentMethod: 'x402',
                 paid: meta?.paid ?? false,
                 paymentNetwork: meta?.paymentNetwork,
               },
@@ -1117,15 +1273,15 @@ export class TelegraphController {
         request: requestEvidence,
         screening: screeningEvidence(screen),
         gate: {
-          decision: "allow",
-          name: "compliance",
+          decision: 'allow',
+          name: 'compliance',
           runId: parentRunId,
           artifactId: parentArtifactId,
           artifactHash: parentArtifactHash,
         },
         settlement: {
           status:
-            result.status === "approved" ? "settled" : result.status === "held" ? "held" : "failed",
+            result.status === 'approved' ? 'settled' : result.status === 'held' ? 'held' : 'failed',
           runId: parentRunId,
           artifactId: parentArtifactId,
           artifactHash: parentArtifactHash,
@@ -1137,7 +1293,7 @@ export class TelegraphController {
           paymentNetwork: meta?.paymentNetwork ?? null,
           latencyMs: meta?.latencyMs ?? null,
         },
-        authorizedSettlement,
+        settlementTransfer,
         spendGuard: spendGuardEvidence,
         policyViolations: [],
         costs: costsFor(screen.costUsd, parentCostUsd),
@@ -1161,7 +1317,7 @@ export class TelegraphController {
           ...result,
           blocked: false,
           compliance: complianceBlock,
-          authorizedSettlement: authorizedSettlement ?? null,
+          settlementTransfer: settlementTransfer ?? null,
           spendGuard,
           policyViolations: [],
           evidenceBundle,
@@ -1171,10 +1327,10 @@ export class TelegraphController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error("Telegraph compliant call endpoint failed", { error });
+      logger.error('Telegraph compliant call endpoint failed', { error });
       res.status(500).json({
         success: false,
-        error: error.message || "Failed to execute compliant Telegraph call",
+        error: error.message || 'Failed to execute compliant Telegraph call',
       });
     }
   }
@@ -1189,11 +1345,11 @@ export class TelegraphController {
   async getEvidence(req: Request, res: Response) {
     try {
       if (!telegraphService.getEnabled()) {
-        res.status(503).json({ success: false, error: "Telegraph integration is not enabled" });
+        res.status(503).json({ success: false, error: 'Telegraph integration is not enabled' });
         return;
       }
       if (!req.workspaceId) {
-        res.status(401).json({ success: false, error: "Workspace authentication required" });
+        res.status(401).json({ success: false, error: 'Workspace authentication required' });
         return;
       }
 
@@ -1206,13 +1362,13 @@ export class TelegraphController {
       }
       const artifact = [...run.artifacts]
         .reverse()
-        .find((item) => item.type === "telegraph.signal");
+        .find((item) => item.type === 'telegraph.signal');
       const data =
-        artifact?.data && typeof artifact.data === "object" && artifact.data !== null
+        artifact?.data && typeof artifact.data === 'object' && artifact.data !== null
           ? (artifact.data as Record<string, unknown>)
           : null;
       const evidenceBundle = data?.evidenceBundle;
-      if (!artifact || !data || !evidenceBundle || typeof evidenceBundle !== "object") {
+      if (!artifact || !data || !evidenceBundle || typeof evidenceBundle !== 'object') {
         res.status(404).json({
           success: false,
           error: `Run ${runId} does not carry a Telegraph evidence bundle`,
@@ -1232,10 +1388,10 @@ export class TelegraphController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error("Failed to get Telegraph evidence bundle", { error, runId: req.params.runId });
+      logger.error('Failed to get Telegraph evidence bundle', { error, runId: req.params.runId });
       res.status(500).json({
         success: false,
-        error: error.message || "Failed to get Telegraph evidence bundle",
+        error: error.message || 'Failed to get Telegraph evidence bundle',
       });
     }
   }
@@ -1261,56 +1417,56 @@ export class TelegraphController {
       if (!anjomanService.isEnabled()) {
         res.status(503).json({
           success: false,
-          error: "Anjoman integration is not enabled — set ANJOMAN_API_KEY",
+          error: 'Anjoman integration is not enabled — set ANJOMAN_API_KEY',
         });
         return;
       }
       if (!req.workspaceId) {
-        res.status(401).json({ success: false, error: "Workspace authentication required" });
+        res.status(401).json({ success: false, error: 'Workspace authentication required' });
         return;
       }
 
       const body = (req.body ?? {}) as Record<string, unknown>;
-      const message = typeof body.message === "string" ? body.message.trim() : "";
-      const intent = typeof body.intent === "string" ? body.intent : undefined;
+      const message = typeof body.message === 'string' ? body.message.trim() : '';
+      const intent = typeof body.intent === 'string' ? body.intent : undefined;
       const params =
-        typeof body.params === "object" && body.params !== null
+        typeof body.params === 'object' && body.params !== null
           ? (body.params as Record<string, unknown>)
           : undefined;
 
       if (!message && !intent) {
         res.status(400).json({
           success: false,
-          error: "message is required — or pass intent + params for a canonical ask",
+          error: 'message is required — or pass intent + params for a canonical ask',
         });
         return;
       }
       if (intent && !params) {
         res.status(400).json({
           success: false,
-          error: "params is required when calling an intent directly",
+          error: 'params is required when calling an intent directly',
         });
         return;
       }
 
       const agentId =
-        (typeof body.agentId === "string" && body.agentId.trim()) ||
+        (typeof body.agentId === 'string' && body.agentId.trim()) ||
         req.userId ||
         `workspace-${req.workspaceId}`;
-      const description = typeof body.description === "string" ? body.description : undefined;
+      const description = typeof body.description === 'string' ? body.description : undefined;
 
       const result = await telegraphGovernanceHelper.governedAnjomanTask({
         agentId,
         workspaceId: req.workspaceId,
-        mandateId: typeof body.mandateId === "string" ? body.mandateId : undefined,
-        policyId: typeof body.policyId === "string" ? body.policyId : undefined,
+        mandateId: typeof body.mandateId === 'string' ? body.mandateId : undefined,
+        policyId: typeof body.policyId === 'string' ? body.policyId : undefined,
         task: {
           message: message || undefined,
           intent,
           params,
-          conversationId: typeof body.conversationId === "string" ? body.conversationId : undefined,
-          maxSpendUsd: typeof body.maxSpendUsd === "number" ? body.maxSpendUsd : undefined,
-          timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
+          conversationId: typeof body.conversationId === 'string' ? body.conversationId : undefined,
+          maxSpendUsd: typeof body.maxSpendUsd === 'number' ? body.maxSpendUsd : undefined,
+          timeoutMs: typeof body.timeoutMs === 'number' ? body.timeoutMs : undefined,
         },
         description,
       });
@@ -1328,10 +1484,10 @@ export class TelegraphController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error("Anjoman governed task endpoint failed", { error });
+      logger.error('Anjoman governed task endpoint failed', { error });
       res.status(500).json({
         success: false,
-        error: error.message || "Failed to execute Anjoman task",
+        error: error.message || 'Failed to execute Anjoman task',
       });
     }
   }
@@ -1346,11 +1502,11 @@ export class TelegraphController {
   async getLedger(req: Request, res: Response) {
     try {
       if (!telegraphService.getEnabled()) {
-        res.status(503).json({ success: false, error: "Telegraph integration is not enabled" });
+        res.status(503).json({ success: false, error: 'Telegraph integration is not enabled' });
         return;
       }
       if (!req.workspaceId) {
-        res.status(401).json({ success: false, error: "Workspace authentication required" });
+        res.status(401).json({ success: false, error: 'Workspace authentication required' });
         return;
       }
 
@@ -1366,10 +1522,10 @@ export class TelegraphController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error("Failed to build Telegraph ledger", { error });
+      logger.error('Failed to build Telegraph ledger', { error });
       res.status(500).json({
         success: false,
-        error: error.message || "Failed to build Telegraph ledger",
+        error: error.message || 'Failed to build Telegraph ledger',
       });
     }
   }
@@ -1386,7 +1542,7 @@ export class TelegraphController {
       if (!telegraphService.getEnabled()) {
         res.status(503).json({
           success: false,
-          error: "Telegraph integration is not enabled",
+          error: 'Telegraph integration is not enabled',
         });
         return;
       }
@@ -1396,7 +1552,7 @@ export class TelegraphController {
           success: true,
           data: {
             available: false,
-            reason: "No digest run yet — stats accumulate when the signal digest runs",
+            reason: 'No digest run yet — stats accumulate when the signal digest runs',
             totalCalls: 0,
             approved: 0,
             held: 0,
@@ -1410,7 +1566,7 @@ export class TelegraphController {
         return;
       }
 
-      const raw = readFileSync(STATS_FILE, "utf-8");
+      const raw = readFileSync(STATS_FILE, 'utf-8');
       const stats = JSON.parse(raw) as {
         totalCalls?: number;
         approved?: number;
@@ -1436,10 +1592,10 @@ export class TelegraphController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error("Failed to get Telegraph stats", { error });
+      logger.error('Failed to get Telegraph stats', { error });
       res.status(500).json({
         success: false,
-        error: error.message || "Failed to get Telegraph stats",
+        error: error.message || 'Failed to get Telegraph stats',
       });
     }
   }

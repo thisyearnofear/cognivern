@@ -107,10 +107,10 @@ describe('buildTelegraphEvidenceBundle', () => {
     expect(canonicalJson(bundle)).not.toContain('ISIL KHORASAN');
   });
 
-  it('carries authorizedSettlement when a downstream transfer was requested', () => {
+  it('carries settlementTransfer when a downstream transfer was requested', () => {
     const bundle = buildTelegraphEvidenceBundle({
       ...input(),
-      authorizedSettlement: {
+      settlementTransfer: {
         rail: 'solana',
         status: 'settled',
         mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
@@ -124,7 +124,7 @@ describe('buildTelegraphEvidenceBundle', () => {
       },
     });
 
-    expect(bundle.authorizedSettlement).toMatchObject({
+    expect(bundle.settlementTransfer).toMatchObject({
       rail: 'solana',
       status: 'settled',
       signature: 'sig-1',
@@ -133,7 +133,7 @@ describe('buildTelegraphEvidenceBundle', () => {
     });
     // The hash seals the settlement — same bundle without it hashes differently.
     const without = buildTelegraphEvidenceBundle(input());
-    expect(without.authorizedSettlement).toBeUndefined();
+    expect(without.settlementTransfer).toBeUndefined();
     expect(without.evidenceHash).not.toBe(bundle.evidenceHash);
   });
 

@@ -77,12 +77,22 @@ export interface TelegraphEvidenceBundleInput {
     latencyMs?: number | null;
   };
   /**
-   * Downstream authorized transfer the intelligence purchase gated (e.g. a
+   * Downstream stablecoin transfer the intelligence purchase gated (e.g. a
    * Solana USDC settlement). Absent when no settlement was requested.
+   *
+   * Named `settlementTransfer` to keep it distinct from `settlement`, which
+   * describes the *parent* paid intelligence call.
    */
-  authorizedSettlement?: {
+  settlementTransfer?: {
     rail: string;
-    status: 'blocked' | 'settled' | 'held' | 'failed' | 'unavailable';
+    status:
+      | 'blocked'
+      | 'settled'
+      | 'held'
+      | 'failed'
+      | 'unavailable'
+      | 'uncertain'
+      | 'not_attempted';
     cluster?: string | null;
     mint?: string | null;
     payee?: string | null;
@@ -91,9 +101,15 @@ export interface TelegraphEvidenceBundleInput {
     amountBaseUnits?: string | null;
     signature?: string | null;
     explorerUrl?: string | null;
+    confirmationStatus?: string | null;
     reason?: string | null;
     violations?: string[];
     intentId?: string | null;
+    /** True when `intentId` was derived server-side from the request hash. */
+    intentIdGenerated?: boolean;
+    policySource?: 'env' | 'funded_mandate' | null;
+    mandateId?: string | null;
+    mandateDebit?: { ok: boolean; reason?: string | null } | null;
     idempotentReplay?: boolean;
   };
   spendGuard: unknown | null;
@@ -128,9 +144,7 @@ export function buildTelegraphEvidenceBundle(
     screening: input.screening,
     gate: input.gate,
     settlement: input.settlement,
-    ...(input.authorizedSettlement
-      ? { authorizedSettlement: input.authorizedSettlement }
-      : {}),
+    ...(input.settlementTransfer ? { settlementTransfer: input.settlementTransfer } : {}),
     spendGuard: input.spendGuard,
     costs: input.costs,
     policyEvaluation: {
