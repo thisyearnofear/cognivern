@@ -116,6 +116,19 @@ export interface DiligenceCasesFile {
 export interface StepEvidence {
   step: number;
   settlementStatus?: string;
+  authorizedSettlement?: {
+    rail: string;
+    status: string;
+    mint?: string | null;
+    payee?: string | null;
+    payer?: string | null;
+    amountUsd?: number | null;
+    signature?: string | null;
+    explorerUrl?: string | null;
+    reason?: string | null;
+    intentId?: string | null;
+    idempotentReplay?: boolean;
+  };
   screenMinerId?: string;
   verdict?: string;
   providerVerdict?: string;
@@ -137,6 +150,10 @@ export interface StepEvidence {
 
 export interface DiligenceEvidence {
   steps: StepEvidence[];
+  /** Case-level rollup of the Solana settlement leg, if one was requested. */
+  settlement?: StepEvidence['authorizedSettlement'] & {
+    attemptedStep?: number;
+  };
   /** True once step 1 cleared, meaning a step 2 must exist to pass the gate. */
   step2Expected: boolean;
   specialistSpendUsd: number;
@@ -445,7 +462,7 @@ function usd(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function compliantCallBody(params: {
+export function compliantCallBody(params: {
   parent: SpecialistSpec;
   screen: SpecialistSpec;
   supplier: Supplier;
@@ -453,6 +470,7 @@ function compliantCallBody(params: {
   description: string;
   disputeHit?: boolean;
   reviewNote?: string;
+  settlement?: { payee: string; amountUsd: number; intentId: string };
 }): JsonObject {
   return {
     minerId: params.parent.minerId,
@@ -474,6 +492,16 @@ function compliantCallBody(params: {
     },
     mandateId: params.mandateId,
     description: params.description,
+    ...(params.settlement
+      ? {
+          settlement: {
+            rail: 'solana',
+            payee: params.settlement.payee,
+            amountUsd: params.settlement.amountUsd,
+            intentId: params.settlement.intentId,
+          },
+        }
+      : {}),
   };
 }
 
@@ -498,6 +526,7 @@ function stepEvidenceFrom(response: unknown, step: number, latencyMs: number): S
     costUsd: usd(getPath(bundle, 'costs.totalUsd')),
     latencyMs,
     settlementStatus: firstString(settlement?.status),
+    authorizedSettlement: (data?.authorizedSettlement as StepEvidence['authorizedSettlement']) ?? undefined,
     parentPurchased: settlement?.status === 'settled' && responseData !== undefined,
     spendGuardBlocked:
       data?.blocked === true && getPath(bundle, 'gate.name') === 'spend_guard',
@@ -511,6 +540,7 @@ async function runEvidencePhase(params: {
   mandateId: string;
   spend: SpendTracker;
   dryRun: boolean;
+  settlement?: { payee: string; amountUsd: number };
 }): Promise<{ evidence: DiligenceEvidence; skipped?: string; plannedBodies: JsonObject[] }> {
   const { casesFile, diligenceCase, mandateId, spend } = params;
   const { specialists, supplier } = { specialists: casesFile.specialists, supplier: diligenceCase.supplier };
@@ -529,6 +559,9 @@ async function runEvidencePhase(params: {
     mandateId,
     description: `Diligence ${diligenceCase.id}: screenA before registry lookup`,
   });
+  // The authorized Solana settlement rides the *final* verification step —
+  // it releases only when every earlier gate cleared and this call is
+  // approved. intentId = case id makes reruns replay the recorded outcome.
   const step2BodyFor = (screeningRunId: string | null) =>
     compliantCallBody({
       parent: specialists.vendorVerify,
@@ -538,6 +571,9 @@ async function runEvidencePhase(params: {
       description: `Diligence ${diligenceCase.id}: screenB (dispute-enabled) before vendor verify`,
       disputeHit: true,
       reviewNote: `screenA run ${screeningRunId ?? 'unknown'} returned clear`,
+      settlement: params.settlement
+        ? { ...params.settlement, intentId: diligenceCase.id }
+        : undefined,
     });
   plannedBodies.push(step1Body);
 
@@ -598,6 +634,14 @@ async function runEvidencePhase(params: {
     }
     if (step2.settlementStatus === 'held' && step2.parentRunId) {
       evidence.escalations.push(step2.parentRunId);
+    }
+  }
+
+  // Case-level settlement rollup — the last step that returned an
+  // authorizedSettlement record (settled on Solana, blocked, or failed).
+  for (const step of evidence.steps) {
+    if (step.authorizedSettlement) {
+      evidence.settlement = { ...step.authorizedSettlement, attemptedStep: step.step };
     }
   }
 
@@ -726,6 +770,8 @@ interface CliOptions {
   only?: Set<string>;
   maxSpendUsd: number;
   mandateId: string;
+  settlementPayee?: string;
+  settlementAmountUsd: number;
   dryRun: boolean;
   help: boolean;
 }
@@ -736,6 +782,7 @@ function parseArgs(argv: string[]): CliOptions {
     maxSpendUsd: DEFAULT_SPEND_CAP_USD,
     mandateId: process.env.DILIGENCE_MANDATE_ID ?? DEFAULT_MANDATE_ID,
     reportId: 'supplier-diligence',
+    settlementAmountUsd: 0.01,
     dryRun: false,
     help: false,
   };
@@ -749,9 +796,18 @@ function parseArgs(argv: string[]): CliOptions {
     else if (arg === '--mandate-id') options.mandateId = argv[++i];
     else if (arg === '--report-id') options.reportId = argv[++i];
     else if (arg === '--public-out') options.publicOut = argv[++i];
+    else if (arg === '--settlement-payee') options.settlementPayee = argv[++i];
+    else if (arg === '--settlement-amount-usd')
+      options.settlementAmountUsd = Number(argv[++i]);
     else if (arg === '--dry-run') options.dryRun = true;
     else if (arg === '--help' || arg === '-h') options.help = true;
     else throw new Error(`unknown argument ${arg}`);
+  }
+  if (
+    options.settlementAmountUsd !== undefined &&
+    (!Number.isFinite(options.settlementAmountUsd) || options.settlementAmountUsd <= 0)
+  ) {
+    throw new Error('--settlement-amount-usd must be a positive number');
   }
   return options;
 }
@@ -768,6 +824,10 @@ Options:
   --mandate-id <id>     Mandate id on paid calls (default ${DEFAULT_MANDATE_ID})
   --report-id <id>      Public report id (default supplier-diligence)
   --public-out <path>   Write the redacted public report JSON
+  --settlement-payee <base58>    Authorize a Solana USDC settlement per cleared
+                               case (rides the final verification step; intentId
+                               = case id, so reruns replay the recorded outcome)
+  --settlement-amount-usd <n>    Settlement amount (default 0.01)
   --dry-run             Validate fixture and print planned request bodies
 `);
 }
@@ -925,6 +985,19 @@ export function toPublicReport(
           pendingAction: step.pendingAction,
           parentPurchased: step.parentPurchased,
           settlementStatus: step.settlementStatus,
+          authorizedSettlement: step.authorizedSettlement
+            ? {
+                rail: step.authorizedSettlement.rail,
+                status: step.authorizedSettlement.status,
+                cluster: step.authorizedSettlement.cluster ?? null,
+                payee: step.authorizedSettlement.payee,
+                amountUsd: step.authorizedSettlement.amountUsd,
+                signature: step.authorizedSettlement.signature,
+                reason: step.authorizedSettlement.reason,
+                intentId: step.authorizedSettlement.intentId,
+                idempotentReplay: step.authorizedSettlement.idempotentReplay === true,
+              }
+            : null,
           costUsd: step.costUsd,
           latencyMs: step.latencyMs,
           screeningRunId: step.screeningRunId,
@@ -934,6 +1007,20 @@ export function toPublicReport(
           parentResponseHash: step.parentResponseHash,
           errored: step.error !== undefined,
         })),
+        settlement: c.evidence.settlement
+          ? {
+              rail: c.evidence.settlement.rail,
+              status: c.evidence.settlement.status,
+              cluster: c.evidence.settlement.cluster ?? null,
+              payee: c.evidence.settlement.payee,
+              amountUsd: c.evidence.settlement.amountUsd,
+              signature: c.evidence.settlement.signature,
+              reason: c.evidence.settlement.reason,
+              intentId: c.evidence.settlement.intentId,
+              attemptedStep: c.evidence.settlement.attemptedStep,
+              idempotentReplay: c.evidence.settlement.idempotentReplay === true,
+            }
+          : null,
         specialistSpendUsd: c.evidence.specialistSpendUsd,
         escalations: c.evidence.escalations,
       },
@@ -1017,6 +1104,11 @@ export function toMarkdown(report: {
       ...(c.evidence.escalations.length
         ? [`  - held for review: ${c.evidence.escalations.join(', ')}`]
         : []),
+      ...(c.evidence.settlement
+        ? [
+            `  - settlement: ${c.evidence.settlement.status} ${money(c.evidence.settlement.amountUsd ?? null)} USDC → ${c.evidence.settlement.payee ?? '—'}${c.evidence.settlement.signature ? ` | tx ${c.evidence.settlement.explorerUrl ?? c.evidence.settlement.signature}` : ''}${c.evidence.settlement.reason ? ` | ${c.evidence.settlement.reason}` : ''}`,
+          ]
+        : []),
     ]),
     '',
     '## Summary',
@@ -1068,6 +1160,9 @@ async function main() {
       mandateId: options.mandateId,
       spend,
       dryRun: options.dryRun,
+      settlement: options.settlementPayee
+        ? { payee: options.settlementPayee, amountUsd: options.settlementAmountUsd }
+        : undefined,
     });
 
     if (options.dryRun) {

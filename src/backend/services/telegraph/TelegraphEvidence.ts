@@ -83,6 +83,7 @@ export interface TelegraphEvidenceBundleInput {
   authorizedSettlement?: {
     rail: string;
     status: 'blocked' | 'settled' | 'held' | 'failed' | 'unavailable';
+    cluster?: string | null;
     mint?: string | null;
     payee?: string | null;
     payer?: string | null;

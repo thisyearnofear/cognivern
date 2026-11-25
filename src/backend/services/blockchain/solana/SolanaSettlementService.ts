@@ -89,6 +89,7 @@ export interface SettlementIntent {
 export interface SettlementResult {
   rail: "solana";
   status: "settled";
+  cluster: SolanaCluster;
   mint: string;
   payee: string;
   payer: string;
@@ -399,6 +400,7 @@ export class SolanaSettlementService {
       return {
         rail: "solana",
         status: "settled",
+        cluster: this.config.cluster,
         mint: this.config.usdcMint,
         payee: intent.payee,
         payer: signer.address,

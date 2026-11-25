@@ -19,6 +19,31 @@ export interface PublicSpecialistSpec {
   intent: string;
 }
 
+export interface PublicAuthorizedSettlement {
+  rail: string;
+  status: string;
+  cluster?: string | null;
+  mint?: string | null;
+  payee?: string | null;
+  payer?: string | null;
+  amountUsd?: number | null;
+  signature?: string | null;
+  reason?: string | null;
+  intentId?: string | null;
+  idempotentReplay?: boolean;
+}
+
+/** Solscan link for a settlement signature; null when there's nothing to link. */
+export function settlementExplorerUrl(settle: {
+  signature?: string | null;
+  cluster?: string | null;
+}): string | null {
+  if (!settle.signature) return null;
+  const base = `https://solscan.io/tx/${settle.signature}`;
+  const cluster = settle.cluster && settle.cluster !== "mainnet-beta" ? settle.cluster : null;
+  return cluster ? `${base}?cluster=${cluster}` : base;
+}
+
 export interface PublicStep {
   step: number;
   screenMinerId?: string;
@@ -29,6 +54,7 @@ export interface PublicStep {
   pendingAction?: string | null;
   parentPurchased: boolean;
   settlementStatus?: string;
+  authorizedSettlement?: PublicAuthorizedSettlement | null;
   costUsd?: number | null;
   latencyMs?: number;
   screeningRunId?: string | null;
@@ -84,6 +110,7 @@ export interface PublicCase {
   groundTruth: { source: string; assertion: string; checkedAt: string };
   evidence: {
     steps: PublicStep[];
+    settlement?: (PublicAuthorizedSettlement & { attemptedStep?: number }) | null;
     specialistSpendUsd: number;
     escalations: string[];
   };

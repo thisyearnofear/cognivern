@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import {
   isValidReportId,
   parsePublicDiligenceReport,
+  settlementExplorerUrl,
   whyLabel,
   type DiligenceDecision,
   type PublicDiligenceReport,
@@ -113,6 +114,10 @@ function parentLabel(intent: string | undefined): string {
 
 function money(value: number | null | undefined): string {
   return typeof value === "number" ? `$${value.toFixed(4)}` : "not priced";
+}
+
+function shorten(value: string): string {
+  return value.length > 12 ? `${value.slice(0, 6)}…${value.slice(-4)}` : value;
 }
 
 function TokenCost({
@@ -813,6 +818,65 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                     </li>
                   );
                 })}
+                {(() => {
+                  const settle = caseResult.evidence.settlement;
+                  if (!settle) return null;
+                  const txUrl = settlementExplorerUrl(settle);
+                  const settled = settle.status === "settled";
+                  const tone = settled
+                    ? "border-emerald-500 bg-emerald-500/20"
+                    : settle.status === "failed"
+                      ? "border-red-500 bg-red-500/20"
+                      : "border-amber-500 bg-amber-500/20";
+                  return (
+                    <li className="relative flex gap-3 pb-0 text-sm">
+                      <span className="flex flex-col items-center" aria-hidden>
+                        <span
+                          className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full border-2 ${tone}`}
+                        />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div>
+                          Solana settlement:{" "}
+                          <span className="font-medium">{settle.status}</span>
+                          {typeof settle.amountUsd === "number" && (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              · {money(settle.amountUsd)} USDC
+                            </span>
+                          )}
+                          {settle.payee && (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              → {shorten(settle.payee)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1.5 space-y-1">
+                          {settle.signature && txUrl && (
+                            <a
+                              href={txUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-primary underline-offset-2 hover:underline"
+                            >
+                              tx {shorten(settle.signature)}{" "}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                          {settle.reason && (
+                            <div className="text-xs text-muted-foreground">{settle.reason}</div>
+                          )}
+                          {settle.idempotentReplay && (
+                            <div className="text-xs text-muted-foreground">
+                              replayed recorded outcome (intentId {settle.intentId})
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })()}
               </ol>
               {caseResult.evidence.escalations.length > 0 && (
                 <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">

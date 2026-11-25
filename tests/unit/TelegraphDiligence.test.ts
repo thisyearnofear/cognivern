@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import {
   SpendTracker,
   buildSummary,
+  compliantCallBody,
   fillParams,
   finalGovernedDecision,
   gateOutcome,
@@ -91,6 +92,44 @@ describe('parseRationale', () => {
     expect(parseRationale('{"decision":"hold","rationale":" a   b  c "}')).toBe('a b c');
     expect(parseRationale('{"decision":"hold"}')).toBeNull();
     expect(parseRationale('no json here')).toBeNull();
+  });
+});
+
+describe('compliantCallBody settlement', () => {
+  const specialists = {
+    screenA: { minerId: '731002', intent: 'SANCTIONS_SCREENING_MATCH', params: { name: '$name' } },
+    screenB: { minerId: '710637', intent: 'SANCTIONS_SCREENING_MATCH', params: { name: '$name' } },
+    registry: { minerId: '7393', intent: 'CORPORATE_REGISTRY_LOOKUP', params: { name: '$name' } },
+    vendorVerify: { minerId: '7396', intent: 'VENDOR_VERIFY', params: { name: '$name' } },
+  };
+
+  it('attaches the Solana settlement block when requested', () => {
+    const body = compliantCallBody({
+      parent: specialists.vendorVerify,
+      screen: specialists.screenB,
+      supplier,
+      mandateId: 'm-1',
+      description: 'd',
+      settlement: { payee: 'payee-wallet', amountUsd: 0.01, intentId: 'case-1' },
+    }) as Record<string, unknown>;
+
+    expect(body.settlement).toEqual({
+      rail: 'solana',
+      payee: 'payee-wallet',
+      amountUsd: 0.01,
+      intentId: 'case-1',
+    });
+  });
+
+  it('omits settlement when not requested', () => {
+    const body = compliantCallBody({
+      parent: specialists.registry,
+      screen: specialists.screenA,
+      supplier,
+      mandateId: 'm-1',
+      description: 'd',
+    }) as Record<string, unknown>;
+    expect('settlement' in body).toBe(false);
   });
 });
 
@@ -188,6 +227,65 @@ describe('toPublicReport', () => {
       intent: 'SANCTIONS_SCREENING_MATCH',
     });
     expect(Array.isArray(pub.honestyBounds)).toBe(true);
+  });
+
+  it('carries the Solana settlement as signature + cluster, never a URL', () => {
+    const withSettlement = {
+      ...internalReport,
+      cases: [
+        {
+          ...internalReport.cases[0],
+          evidence: {
+            ...internalReport.cases[0].evidence,
+            steps: [
+              {
+                ...internalReport.cases[0].evidence.steps[0],
+                authorizedSettlement: {
+                  rail: 'solana',
+                  status: 'settled',
+                  cluster: 'mainnet-beta',
+                  payee: 'payee-wallet',
+                  amountUsd: 0.01,
+                  signature: 'sig-1',
+                  explorerUrl: 'https://internal-should-not-leak.example/tx/sig-1',
+                  intentId: 'listed-entity',
+                },
+              },
+            ],
+            settlement: {
+              rail: 'solana',
+              status: 'settled',
+              cluster: 'mainnet-beta',
+              payee: 'payee-wallet',
+              amountUsd: 0.01,
+              signature: 'sig-1',
+              explorerUrl: 'https://internal-should-not-leak.example/tx/sig-1',
+              intentId: 'listed-entity',
+              attemptedStep: 2,
+            },
+          },
+        },
+      ],
+    };
+    const pub = toPublicReport(withSettlement, { id: 'test-report' });
+    const step = pub.cases[0].evidence.steps[0] as Record<string, unknown>;
+    const settle = pub.cases[0].evidence.settlement as Record<string, unknown>;
+
+    expect(step.authorizedSettlement).toMatchObject({
+      rail: 'solana',
+      status: 'settled',
+      cluster: 'mainnet-beta',
+      signature: 'sig-1',
+    });
+    expect(settle).toMatchObject({
+      status: 'settled',
+      signature: 'sig-1',
+      attemptedStep: 2,
+    });
+    // explorerUrl is derivable — it must not leak into the public report
+    // (also keeps the http-string ban below passing).
+    expect(JSON.stringify(pub)).not.toContain('explorerUrl');
+    expect(JSON.stringify(pub)).not.toContain('http');
   });
 
   it('never leaks internals: no error/key/url keys and no http strings', () => {
