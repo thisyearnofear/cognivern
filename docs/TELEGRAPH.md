@@ -45,10 +45,23 @@ TELEGRAPH_EVM_PRIVATE_KEY=0x...        # BURNER wallet, testnet USDC only
 TELEGRAPH_CONFIDENCE_THRESHOLD=0.7     # default
 TELEGRAPH_EVM_NETWORK=eip155:*         # payments settle on Base Sepolia
 TELEGRAPH_SVM_NETWORK=solana:*
+TELEGRAPH_SOLANA_PRIVATE_KEY=<base58>   # registers ExactSvmScheme alongside EVM (x402 pays on Solana too)
 TELEGRAPH_REFRESH_INTERVAL_MS=300000
 TELEGRAPH_CRE_PROJECT_ID=<workspace-id>   # digest: persist calls as CRE runs (unset = stats-only)
 TELEGRAPH_DIGEST_MANDATE_ID=...           # mandate tag on digest artifacts (default: telegraph-governed-consumption)
 TELEGRAPH_MAX_SPEND_USD=1                 # hard per-run paid-call ceiling for the digest
+```
+
+```bash
+# Authorized settlement on Solana (optional — compliant-call "settlement" leg)
+SOLANA_SETTLEMENT_ENABLED=true
+SOLANA_SETTLEMENT_PRIVATE_KEY=<base58>  # 64-byte ed25519 secret (seed || pubkey)
+SOLANA_CLUSTER=mainnet-beta             # mainnet-beta | devnet | testnet
+SOLANA_RPC_URL=                         # default per cluster
+SOLANA_USDC_MINT=                       # default per cluster
+SOLANA_SETTLEMENT_MAX_USD=0.05          # per-transfer cap
+SOLANA_SETTLEMENT_RUNWAY_USD=0.25       # cumulative cap per service session
+SOLANA_SETTLEMENT_PAYEE_ALLOWLIST=      # csv base58 payees; empty = no transfers
 ```
 
 `paymentReady` in `/api/telegraph/status` is the honest readiness gate: true
@@ -351,6 +364,42 @@ block because this endpoint performs one screen; `budgetId` is recorded for
 mandate/budget linkage but does not yet debit a budget ledger. If a required
 price or miner lookup cannot be proven, the call blocks instead of guessing.
 
+#### Authorized settlement on Solana
+
+`compliant-call` accepts an optional `settlement` object — the downstream
+stablecoin transfer the screened intelligence authorizes:
+
+```json
+{
+  "settlement": { "rail": "solana", "payee": "<base58>", "amountUsd": 0.01, "intentId": "case-1" }
+}
+```
+
+The `SolanaSettlementService`
+(`src/backend/services/blockchain/solana/`) sends SPL USDC
+`transferChecked` instructions to the canonical Token program — no custom
+on-chain program is deployed. SOL pays fees only; USDC is what moves. Mandate
+guards run **before** the paid screen — a payee outside
+`SOLANA_SETTLEMENT_PAYEE_ALLOWLIST`, an amount above
+`SOLANA_SETTLEMENT_MAX_USD`, or a session runway breach blocks the call
+without buying any intelligence, and the blocked intent is recorded in the
+evidence bundle as `authorizedSettlement` (`status: "blocked"`). After gate
+approval, the transfer executes once per `intentId` (replays return the
+recorded signature — retries and eval reruns never double-pay); broadcast
+errors map to honest statuses (`failed`, `unavailable`) rather than blind
+retries. Settled results carry `cluster` + `signature` only — explorer URLs
+are derivable and raw URLs are kept out of the shareable bundle and the
+public `/verify` report (the frontend derives the solscan link).
+`/api/telegraph/status` reports `solanaSettlement` readiness alongside the
+x402 payment rails.
+
+The `telegraph:diligence` eval attaches the settlement intent to its final
+verification step via `--settlement-payee <base58>`
+(`--settlement-amount-usd`, default `0.01`) with `intentId` set to the case
+id, so cleared suppliers settle for real and screened-out suppliers settle
+nothing. `/verify` renders the outcome as a terminal node on the evidence
+chain.
+
 ### Registry intent matching
 
 Miners register suffixed intents (`SANCTIONS_SCREENING_MATCH_GENERAL`,
@@ -434,7 +483,7 @@ move from call governance to repeatable transaction assurance.
 | P0 — implemented | Provider verdict adapters + canonical `clear / hit / review / unknown` | Explicit provider labels now run before recursive field guessing. Counterproof `CLEAR / REVIEW / BLOCK` maps to `clear / review / hit`; the raw response, provider verdict, and verdict source are hashed/linked into compliance evidence.                                                                   |
 | P0 — implemented | Shareable evidence bundle per payment attempt                          | Each compliant-call artifact now carries a signed `evidenceBundle` linking screen, gate, settlement, artifact hashes, miner/source/list metadata, costs, policy evaluation, payment network, and replay metadata. `GET /api/telegraph/evidence/:runId` and `telegraph-demo.ts evidence <runId>` retrieve it. |
 | P0 — implemented | Spend-guard policy on `compliant-call`                                 | `spendGuard` now supports max screening/total cost, permitted parent and screening miners/intents, subject allow/deny terms, consensus count, and budget id. Checks run before any payment and again before the parent purchase; violations block and are recorded.                                          |
-| P1               | Stablecoin payment-guard workflow                                      | Extend the validated call into a payment intent: payee entity/wallet + amount + rail → sanctions/fraud/transaction-risk screen → `allow / deny / review` → downstream purchase or settlement. This is the clearest Mission 02 buyer workflow.                                                                |
+| P1 — implemented | Stablecoin payment-guard workflow (Solana)                              | `compliant-call` now carries `settlement: {rail:"solana", payee, amountUsd, intentId}` — payee wallet + amount + rail → sanctions screen → gate → governed SPL USDC transfer via `SolanaSettlementService`. Mandate guards run before the paid screen; the transfer executes once per `intentId` only on gate approval; outcomes land as `authorizedSettlement` in the evidence bundle and as a terminal node in `/verify`. See "Authorized settlement on Solana". |
 | P1 — implemented | Human review path for compliance screens                              | A provider `review` verdict creates a paused gate-decision run in the existing approval inbox; `compliance.disputeHit: true` does the same for an explicitly disputed `hit`. Approval releases and rejection quarantines the review case, with `held_pending → released/quarantined` ledger states; it never silently clears the provider verdict or resumes the denied parent call. |
 | P1 — implemented | Verification harness and benchmarks                                    | `telegraph-benchmark.ts` re-runs fixed public cases from `telegraph-benchmark-cases.json` against independent ground truth, emits JSON/Markdown reports with run ids, response/evidence hashes, cost, latency, review/unknown/error rates, and hit precision/recall including false positives/negatives. Optional `--baseline` compares an OpenAI-compatible frontier model; live execution still requires workspace auth and paid calls are explicit. |
 | P2               | Quality/cost-aware miner router                                        | Selection today favors score then price. Add measured verifier agreement, historical error/review rates, latency, endpoint health, source freshness, and explicit source coverage; support fallback miners and dry-run quotes.                                                                               |
