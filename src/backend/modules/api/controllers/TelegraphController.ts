@@ -25,12 +25,25 @@ import {
   subjectTerms,
   telegraphArtifactDataHash,
   TelegraphSpendGuardError,
+  type TelegraphEvidenceBundleInput,
 } from "@backend/services/telegraph/index.js";
 import { anjomanService } from "@backend/services/anjoman/index.js";
 import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
+import {
+  SolanaSettlementError,
+  solanaSettlementService,
+} from "@backend/services/blockchain/solana/SolanaSettlementService.js";
 
 const logger = new Logger("TelegraphController");
 const STATS_FILE = join(process.cwd(), "data", "telegraph-stats.json");
+
+// Idempotent authorized-settlement records keyed `workspaceId:intentId` —
+// replays return the recorded outcome instead of broadcasting twice.
+const settlementIntentCache = new Map<
+  string,
+  NonNullable<TelegraphEvidenceBundleInput["authorizedSettlement"]>
+>();
+const SETTLEMENT_INTENT_CACHE_MAX = 500;
 
 export class TelegraphController {
   /**
@@ -81,6 +94,15 @@ export class TelegraphController {
           confidenceThreshold: config.confidenceThreshold,
           network: config.evmNetwork,
           paymentReady,
+          paymentRails: {
+            evm: { configured: Boolean(config.evmPrivateKey), network: config.evmNetwork },
+            svm: { configured: Boolean(config.solanaPrivateKey), network: config.svmNetwork },
+          },
+          solanaSettlement: {
+            enabled: solanaSettlementService.getEnabled(),
+            configured: Boolean(solanaSettlementService.getConfig().privateKey),
+            cluster: solanaSettlementService.getConfig().cluster,
+          },
           paymentError: paymentReady ? null : telegraphService.getPaymentInitError(),
           daemon: daemonHealth,
           anjoman,
@@ -476,6 +498,12 @@ export class TelegraphController {
    *   spendGuard?: { maxScreeningCostUsd?, maxTotalCostUsd?, allowedMiners?,
    *     allowedIntents?, allowedScreenMiners?, allowedScreenIntents?,
    *     subjectAllowlist?, subjectDenylist?, consensusScreens?, budgetId? }
+   *   settlement?: { rail: "solana", payee, amountUsd, intentId? } —
+   *     a downstream transfer the screened intelligence authorizes.
+   *     Mandate guards run before the paid screen (a payee outside bounds is
+   *     denied without buying intelligence); the transfer executes only when
+   *     the parent call is approved, and its signature lands in the evidence
+   *     bundle as `authorizedSettlement`. intentId replays are idempotent.
    */
   async compliantCall(req: Request, res: Response) {
     try {
@@ -507,6 +535,44 @@ export class TelegraphController {
             "compliance.params is required — the subject to screen (e.g. name, address, tx hash)",
         });
         return;
+      }
+
+      // Optional downstream settlement intent — the transfer the screened
+      // intelligence authorizes. Only rail: "solana" today.
+      let settlement: {
+        rail: "solana";
+        payee: string;
+        amountUsd: number;
+        intentId?: string;
+      } | null = null;
+      if (body.settlement !== undefined && body.settlement !== null) {
+        const s = body.settlement as Record<string, unknown>;
+        if (
+          typeof s !== "object" ||
+          s === null ||
+          s.rail !== "solana" ||
+          typeof s.payee !== "string" ||
+          s.payee.trim() === "" ||
+          typeof s.amountUsd !== "number" ||
+          !Number.isFinite(s.amountUsd) ||
+          s.amountUsd <= 0
+        ) {
+          res.status(400).json({
+            success: false,
+            error:
+              'settlement requires { rail: "solana", payee: <base58>, amountUsd: <positive number> }',
+          });
+          return;
+        }
+        settlement = {
+          rail: "solana",
+          payee: s.payee.trim(),
+          amountUsd: s.amountUsd,
+          intentId:
+            typeof s.intentId === "string" && s.intentId.trim()
+              ? s.intentId.trim().slice(0, 128)
+              : undefined,
+        };
       }
 
       let spendGuard;
@@ -678,10 +744,11 @@ export class TelegraphController {
         };
       };
       const denyAttempt = async (params: {
-        gate: "compliance" | "spend_guard";
+        gate: "compliance" | "spend_guard" | "settlement_guard";
         reason: string;
         screen: Awaited<ReturnType<typeof runComplianceScreen>> | null;
         violations: string[];
+        authorizedSettlement?: TelegraphEvidenceBundleInput["authorizedSettlement"];
         holdForReview?: {
           pendingAction?: string;
           details?: Record<string, unknown>;
@@ -744,6 +811,7 @@ export class TelegraphController {
             artifactHash: telegraphArtifactDataHash(gateArtifactCore),
           },
           settlement: { status: "not_attempted" },
+          authorizedSettlement: params.authorizedSettlement,
           spendGuard: spendGuardEvidence,
           policyViolations: params.violations,
           costs: costsFor(params.screen?.costUsd),
@@ -791,8 +859,42 @@ export class TelegraphController {
           reason: parentPolicyViolations.join("; "),
           screen: null,
           violations: parentPolicyViolations,
+          authorizedSettlement: settlement
+            ? {
+                rail: "solana",
+                status: "blocked",
+                payee: settlement.payee,
+                amountUsd: settlement.amountUsd,
+                intentId: settlement.intentId ?? null,
+                reason: "parent call blocked by spend guard",
+              }
+            : undefined,
         });
         return;
+      }
+
+      // Mandate guards on the settlement intent run before the paid screen —
+      // a payee outside the declared bounds is denied without spending $0.01.
+      if (settlement) {
+        const settlementGuards = solanaSettlementService.evaluateGuards(settlement);
+        if (!settlementGuards.allowed) {
+          await denyAttempt({
+            gate: "settlement_guard",
+            reason: `settlement blocked by mandate guards: ${settlementGuards.violations.join("; ")}`,
+            screen: null,
+            violations: settlementGuards.violations,
+            authorizedSettlement: {
+              rail: "solana",
+              status: "blocked",
+              payee: settlement.payee,
+              amountUsd: settlement.amountUsd,
+              intentId: settlement.intentId ?? null,
+              reason: "settlement intent violates mandate guards",
+              violations: settlementGuards.violations,
+            },
+          });
+          return;
+        }
       }
 
       const screen = await runComplianceScreen({
@@ -839,6 +941,16 @@ export class TelegraphController {
           reason: screen.blockReason ?? `screening verdict ${screen.verdict}`,
           screen,
           violations: screenViolations,
+          authorizedSettlement: settlement
+            ? {
+                rail: "solana",
+                status: "blocked",
+                payee: settlement.payee,
+                amountUsd: settlement.amountUsd,
+                intentId: settlement.intentId ?? null,
+                reason: `screening ${screen.verdict} — settlement not authorized`,
+              }
+            : undefined,
           holdForReview,
         });
         return;
@@ -855,6 +967,16 @@ export class TelegraphController {
           reason: postScreenViolations.join("; "),
           screen,
           violations: postScreenViolations,
+          authorizedSettlement: settlement
+            ? {
+                rail: "solana",
+                status: "blocked",
+                payee: settlement.payee,
+                amountUsd: settlement.amountUsd,
+                intentId: settlement.intentId ?? null,
+                reason: "post-screen spend guard blocked the call",
+              }
+            : undefined,
         });
         return;
       }
@@ -876,6 +998,77 @@ export class TelegraphController {
 
       const parentRunId = randomUUID();
       const parentArtifactId = result.artifact?.id ?? randomUUID();
+
+      // Authorized settlement: only an *approved* intelligence call can
+      // release the transfer. A held parent means the evidence is not yet
+      // trustworthy; a released hold never resumes settlement — the contract
+      // is synchronous-approve-only, recorded here as a blocked intent.
+      let authorizedSettlement:
+        | TelegraphEvidenceBundleInput["authorizedSettlement"]
+        | undefined;
+      if (settlement) {
+        const cacheKey = settlement.intentId
+          ? `${req.workspaceId}:${settlement.intentId}`
+          : null;
+        const cached = cacheKey ? settlementIntentCache.get(cacheKey) : undefined;
+        if (cached) {
+          authorizedSettlement = { ...cached, idempotentReplay: true };
+        } else if (result.status !== "approved") {
+          authorizedSettlement = {
+            rail: "solana",
+            status: "blocked",
+            payee: settlement.payee,
+            amountUsd: settlement.amountUsd,
+            intentId: settlement.intentId ?? null,
+            reason: `parent call ${result.status} — settlement not authorized`,
+          };
+        } else if (!solanaSettlementService.getEnabled()) {
+          authorizedSettlement = {
+            rail: "solana",
+            status: "unavailable",
+            payee: settlement.payee,
+            amountUsd: settlement.amountUsd,
+            intentId: settlement.intentId ?? null,
+            reason: "SOLANA_SETTLEMENT_ENABLED is false — rail not armed",
+          };
+        } else {
+          try {
+            authorizedSettlement = {
+              ...(await solanaSettlementService.executeTransfer(settlement)),
+              intentId: settlement.intentId ?? null,
+            };
+          } catch (error) {
+            if (error instanceof SolanaSettlementError && error.code === "policy") {
+              authorizedSettlement = {
+                rail: "solana",
+                status: "blocked",
+                payee: settlement.payee,
+                amountUsd: settlement.amountUsd,
+                intentId: settlement.intentId ?? null,
+                reason: error.message,
+                violations: error.violations,
+              };
+            } else {
+              authorizedSettlement = {
+                rail: "solana",
+                status: "failed",
+                payee: settlement.payee,
+                amountUsd: settlement.amountUsd,
+                intentId: settlement.intentId ?? null,
+                reason: error instanceof Error ? error.message : String(error),
+              };
+            }
+          }
+        }
+        if (cacheKey && authorizedSettlement) {
+          if (settlementIntentCache.size >= SETTLEMENT_INTENT_CACHE_MAX) {
+            const oldest = settlementIntentCache.keys().next().value;
+            if (oldest) settlementIntentCache.delete(oldest);
+          }
+          settlementIntentCache.set(cacheKey, authorizedSettlement);
+        }
+      }
+
       const complianceBlock = complianceBlockFor("compliance", screen, []);
       const meta = result.response?.metadata;
       const artifactData =
@@ -944,6 +1137,7 @@ export class TelegraphController {
           paymentNetwork: meta?.paymentNetwork ?? null,
           latencyMs: meta?.latencyMs ?? null,
         },
+        authorizedSettlement,
         spendGuard: spendGuardEvidence,
         policyViolations: [],
         costs: costsFor(screen.costUsd, parentCostUsd),
@@ -967,6 +1161,7 @@ export class TelegraphController {
           ...result,
           blocked: false,
           compliance: complianceBlock,
+          authorizedSettlement: authorizedSettlement ?? null,
           spendGuard,
           policyViolations: [],
           evidenceBundle,

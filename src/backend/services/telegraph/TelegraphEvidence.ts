@@ -76,6 +76,25 @@ export interface TelegraphEvidenceBundleInput {
     paymentNetwork?: string | null;
     latencyMs?: number | null;
   };
+  /**
+   * Downstream authorized transfer the intelligence purchase gated (e.g. a
+   * Solana USDC settlement). Absent when no settlement was requested.
+   */
+  authorizedSettlement?: {
+    rail: string;
+    status: 'blocked' | 'settled' | 'held' | 'failed' | 'unavailable';
+    mint?: string | null;
+    payee?: string | null;
+    payer?: string | null;
+    amountUsd?: number | null;
+    amountBaseUnits?: string | null;
+    signature?: string | null;
+    explorerUrl?: string | null;
+    reason?: string | null;
+    violations?: string[];
+    intentId?: string | null;
+    idempotentReplay?: boolean;
+  };
   spendGuard: unknown | null;
   policyViolations: string[];
   costs: {
@@ -108,6 +127,9 @@ export function buildTelegraphEvidenceBundle(
     screening: input.screening,
     gate: input.gate,
     settlement: input.settlement,
+    ...(input.authorizedSettlement
+      ? { authorizedSettlement: input.authorizedSettlement }
+      : {}),
     spendGuard: input.spendGuard,
     costs: input.costs,
     policyEvaluation: {
