@@ -2,11 +2,12 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it, vi } from 'vites
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { generateKeyPairSync, sign as cryptoSign } from 'node:crypto';
+import { generateKeyPairSync } from 'node:crypto';
 import type {
   SupplierPaymentExecutorDeps,
   SupplierPaymentRailReceipt,
 } from '@backend/services/telegraph/SupplierPaymentExecutor.js';
+import type { StepWorld } from '../fixtures/supplier-payment-world.js';
 
 const dbPath = path.join(os.tmpdir(), `cognivern-supplier-exec-${process.pid}-${Date.now()}.db`);
 process.env.DB_PATH = dbPath;
@@ -16,12 +17,7 @@ const { FundedMandateService } = await import(
   '@backend/services/governance/FundedMandateService.js'
 );
 const { CreRunStore } = await import('@backend/cre/storage/CreRunStore.js');
-const { buildTelegraphEvidenceBundle } = await import(
-  '@backend/services/telegraph/TelegraphEvidence.js'
-);
-const { canonicalJson, sha256CanonicalJson, telegraphArtifactDataHash } = await import(
-  '@backend/services/telegraph/stableJson.js'
-);
+const { sha256CanonicalJson } = await import('@backend/services/telegraph/stableJson.js');
 const { DEVNET_SCHEMA, REHEARSAL_SCHEMA } = await import(
   '@backend/services/telegraph/SupplierPaymentAuthorization.js'
 );
@@ -31,6 +27,7 @@ const { DEVNET_GENESIS_HASH, executeSupplierPayment, reconcileSupplierPayment } 
 const { initSupplierPaymentClaims, SupplierPaymentStore } = await import(
   '@backend/services/telegraph/SupplierPaymentStore.js'
 );
+const fx = await import('../fixtures/supplier-payment-world.js');
 
 const NOW = Date.parse('2026-11-26T12:00:00.000Z');
 const WS = 'ws-supplier-exec';
@@ -43,356 +40,37 @@ const FULL_DEVNET_GENESIS = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
 const { publicKey, privateKey } = generateKeyPairSync('ed25519');
 const reportRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplier-report-root-'));
 
-const supplier = {
-  name: 'Example Supplier GmbH',
-  type: 'entity',
-  country: 'DE',
-  paymentUsd: 1200,
-  paymentRail: 'SWIFT wire',
-};
-
-const LINEAGE: Array<{
-  step: number;
-  screenMinerId: string;
-  screenIntent: string;
-  screenParams: Record<string, string>;
-  parentMinerId: string;
-  parentIntent: string;
-  parentParams: Record<string, string>;
-}> = [
-  {
-    step: 1,
-    screenMinerId: '731002',
-    screenIntent: 'SANCTIONS_SCREENING_MATCH',
-    screenParams: { name: '$name', type: '$type' },
-    parentMinerId: '7393',
-    parentIntent: 'CORPORATE_REGISTRY_LOOKUP',
-    parentParams: { name: '$name' },
-  },
-  {
-    step: 2,
-    screenMinerId: '710637',
-    screenIntent: 'SANCTIONS_SCREENING_MATCH',
-    screenParams: { name: '$name' },
-    parentMinerId: '7396',
-    parentIntent: 'VENDOR_VERIFY',
-    parentParams: { name: '$name' },
-  },
-];
-
+const supplier: Record<string, unknown> = { ...fx.SUPPLIER };
+const LINEAGE = fx.LINEAGE;
 function fill(params: Record<string, string>) {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(params)) {
-    out[k] = v.startsWith('$') ? (supplier as Record<string, unknown>)[v.slice(1)] : v;
-  }
-  return out;
+  return fx.fillParams(params, supplier);
 }
-
-interface StepWorld {
-  screenRun: Record<string, unknown>;
-  parentRun: Record<string, unknown>;
-  stepEvidence: Record<string, unknown>;
-}
-
 function buildStepWorld(mandateId: string, lin: (typeof LINEAGE)[number]): StepWorld {
-  const i = lin.step;
-  const screenRunId = `screen-run-${i}`;
-  const screenArtifactId = `screen-artifact-${i}`;
-  const parentRunId = `parent-run-${i}`;
-  const parentArtifactId = `parent-artifact-${i}`;
-
-  const screenData = {
-    agentId: 'agent-1',
-    workspaceId: WS,
-    mandateId,
-    miner: { id: lin.screenMinerId, name: 'Counterproof Sanctions Screener', intent: lin.screenIntent },
-    signal: {
-      data: { verdict: 'clear', detail: `screen ${i}` },
-      confidence: 1,
-      confidenceThreshold: 0.5,
-      confidenceMet: true,
-    },
-    cost: { usd: '0.0100', paymentMethod: 'x402', paid: true },
-    latencyMs: 10,
-    timestamp: '2026-11-26T10:00:00.000Z',
-  };
-  const screenArtifactHash = telegraphArtifactDataHash(screenData);
-  const screenArtifactEvidenceHash = `${'e'.repeat(63)}${i}`;
-
-  const parentCore = {
-    agentId: 'agent-1',
-    workspaceId: WS,
-    mandateId,
-    description: `Diligence case-clear: step ${lin.step}`,
-    miner: { id: lin.parentMinerId, name: 'Parent Miner', intent: lin.parentIntent },
-    signal: {
-      data: { ok: true, step: i },
-      confidence: 1,
-      confidenceThreshold: 0.5,
-      confidenceMet: true,
-    },
-    cost: { usd: '0.0100', paymentMethod: 'x402', paid: true, paymentNetwork: 'eip155:84532' },
-    latencyMs: 10,
-    timestamp: '2026-11-26T10:00:00.000Z',
-    compliance: {
-      gate: 'compliance',
-      verdict: 'clear',
-      screeningRunId: screenRunId,
-      screeningMinerId: lin.screenMinerId,
-    },
-  };
-  const parentArtifactHash = telegraphArtifactDataHash(parentCore);
-
-  const bundle = buildTelegraphEvidenceBundle({
-    attemptId: `attempt-${i}`,
-    workspaceId: WS,
-    agentId: 'agent-1',
-    mandateId,
-    policyId: 'policy-1',
-    request: {
-      bodyHash: `body-hash-${i}`,
-      intendedCall: {
-        minerId: lin.parentMinerId,
-        minerName: 'Parent Miner',
-        intent: lin.parentIntent,
-        paramsHash: sha256CanonicalJson(fill(lin.parentParams)),
-        paramFields: ['name'],
-        estimatedCostUsd: 0.01,
-      },
-      compliance: {
-        minerId: lin.screenMinerId,
-        intent: lin.screenIntent,
-        paramsHash: sha256CanonicalJson(fill(lin.screenParams)),
-        subjectFields: Object.keys(lin.screenParams),
-      },
-    },
-    screening: {
-      status: 'completed',
-      runId: screenRunId,
-      artifactId: screenArtifactId,
-      artifactHash: screenArtifactHash,
-      artifactEvidenceHash: screenArtifactEvidenceHash,
-      minerId: lin.screenMinerId,
-      minerName: 'Counterproof Sanctions Screener',
-      intent: lin.screenIntent,
-      verdict: 'clear',
-      providerVerdict: 'CLEAR',
-      rawResponseHash: sha256CanonicalJson(screenData.signal.data),
-      costUsd: '0.0100',
-      latencyMs: 10,
-    },
-    gate: {
-      decision: 'allow',
-      name: 'compliance',
-      runId: parentRunId,
-      artifactId: parentArtifactId,
-      artifactHash: parentArtifactHash,
-    },
-    settlement: {
-      status: 'settled',
-      runId: parentRunId,
-      artifactId: parentArtifactId,
-      artifactHash: parentArtifactHash,
-      minerId: lin.parentMinerId,
-      minerName: 'Parent Miner',
-      intent: lin.parentIntent,
-      costUsd: '0.0100',
-      paid: true,
-      paymentNetwork: 'eip155:84532',
-      latencyMs: 10,
-    },
-    spendGuard: null,
-    policyViolations: [],
-    costs: {
-      currency: 'USD',
-      screeningUsd: '0.0100',
-      parentEstimatedUsd: 0.01,
-      parentUsd: '0.0100',
-      totalUsd: '0.0200',
-    },
-    replay: { endpoint: 'POST /api/telegraph/compliant-call', cliCommand: 'x' },
-  });
-
-  const runShape = {
-    projectId: WS,
-    workflow: 'governance',
-    mode: 'cre',
-    ok: true,
-    status: 'completed',
-    approvalState: 'not_required',
-    provenance: { source: 'cognivern' },
-    steps: [],
-  } as const;
-
-  const screenRun = {
-    ...runShape,
-    runId: screenRunId,
-    startedAt: '2026-11-26T10:00:00.000Z',
-    artifacts: [
-      {
-        id: screenArtifactId,
-        type: 'telegraph.signal',
-        createdAt: '2026-11-26T10:00:00.000Z',
-        data: screenData,
-        evidence: { hash: screenArtifactEvidenceHash },
-      },
-    ],
-  } as unknown as Record<string, unknown>;
-
-  const parentRun = {
-    ...runShape,
-    runId: parentRunId,
-    startedAt: '2026-11-26T10:00:01.000Z',
-    artifacts: [
-      {
-        id: parentArtifactId,
-        type: 'telegraph.signal',
-        createdAt: '2026-11-26T10:00:01.000Z',
-        data: { ...parentCore, evidenceBundle: bundle },
-      },
-    ],
-  } as unknown as Record<string, unknown>;
-
-  const stepEvidence = {
-    step: i,
-    screenMinerId: lin.screenMinerId,
-    verdict: 'clear',
-    status: 'approved',
-    blocked: false,
-    reviewRequired: false,
-    spendGuardBlocked: false,
-    settlementGuardBlocked: false,
-    pendingAction: null,
-    screeningRunId: screenRunId,
-    gateRunId: parentRunId,
-    parentRunId,
-    parentResponseHash: sha256CanonicalJson(parentCore.signal.data),
-    evidenceHash: bundle.evidenceHash,
-    settlementStatus: 'settled',
-    parentPurchased: true,
-    costUsd: 0.01,
-    latencyMs: 10,
-  };
-
-  return { screenRun, parentRun, stepEvidence };
+  return fx.buildStepWorld(WS, mandateId, lin, supplier);
 }
-
-let reportCounter = 0;
-function buildReport(mandateId: string, steps: Record<string, unknown>[]): Record<string, unknown> {
-  // Distinct generatedAt per report keeps each test's binding unique.
-  const generatedAt = `2026-11-26T10:${String(10 + reportCounter++).padStart(2, '0')}:00.000Z`;
-  const model = (label: string) => ({
-    label,
-    alone: { decision: 'proceed', correct: true, costUsd: 0.001 },
-    governed: {
-      modelDecision: 'proceed',
-      finalDecision: 'proceed',
-      decidedBy: 'model',
-      correct: true,
-      costUsd: 0.001,
-    },
-    decisionChanged: false,
-  });
-  return {
-    schema: 'cognivern.telegraph.diligence-report.v1',
-    generatedAt,
-    policy: 'declared policy',
-    execution: {
-      api: 'https://api.internal.example',
-      dryRun: false,
-      startedAt: generatedAt,
-      mandateId,
-      spendCapUsd: 0.25,
-      casesFileHash: 'b'.repeat(64),
-      casesFile: {
-        policy: 'declared policy',
-        specialists: {
-          screenA: { minerId: '731002', intent: 'SANCTIONS_SCREENING_MATCH', params: {} },
-          screenB: { minerId: '710637', intent: 'SANCTIONS_SCREENING_MATCH', params: {} },
-          registry: { minerId: '7393', intent: 'CORPORATE_REGISTRY_LOOKUP', params: {} },
-          vendorVerify: { minerId: '7396', intent: 'VENDOR_VERIFY', params: {} },
-        },
-      },
-      models: [{ label: 'qwen', provider: 'alibaba', model: 'qwen-plus', route: 'direct' }],
-      evaluatorMinersUsed: false,
-    },
-    cases: [
-      {
-        id: 'case-clear',
-        supplier,
-        expectedDecision: 'reject', // deliberately wrong — never consulted
-        groundTruth: { source: 'fixture', assertion: 'synthetic', checkedAt: '2026-11-26' },
-        evidence: { steps, specialistSpendUsd: 0.02, escalations: [] },
-        gate: null,
-        perModel: [model('qwen')],
-      },
-    ],
-    summary: {},
-  };
-}
-
+const buildReport = (mandateId: string, steps: Record<string, unknown>[]) =>
+  fx.buildReport(mandateId, steps, supplier);
 let MANDATE_ID = '';
 function envelopeBody(report: Record<string, unknown>, overrides: Record<string, unknown> = {}) {
-  const diligenceCase = (report.cases as Record<string, unknown>[])[0];
-  return {
-    schema: DEVNET_SCHEMA,
-    workspaceId: WS,
-    mandateId: MANDATE_ID,
-    caseId: 'case-clear',
-    subjectHash: sha256CanonicalJson(diligenceCase.supplier),
-    reportHash: sha256CanonicalJson(report),
-    cluster: 'devnet',
-    mint: MINT,
-    payee: PAYEE,
-    amountBaseUnits: '10000',
-    intentId: `intent-${MANDATE_ID}`,
-    expiresAt: '2026-11-27T12:00:00.000Z',
-    ...overrides,
-  };
+  return fx.envelopeBody(
+    report,
+    {
+      schema: DEVNET_SCHEMA,
+      workspaceId: WS,
+      mandateId: MANDATE_ID,
+      cluster: 'devnet',
+      mint: MINT,
+      payee: PAYEE,
+    },
+    overrides,
+  );
 }
-
 function signEnvelope(body: Record<string, unknown>) {
-  const signature = cryptoSign(null, Buffer.from(canonicalJson(body), 'utf8'), privateKey);
-  return { body, signature: signature.toString('base64') };
+  return fx.signEnvelope(privateKey, body);
 }
-
 function fakeRail(receipt?: Partial<SupplierPaymentRailReceipt>) {
-  const calls: unknown[] = [];
-  const receipts = new Map<string, SupplierPaymentRailReceipt>();
-  return {
-    calls,
-    receipts,
-    async getGenesisHash() {
-      return FULL_DEVNET_GENESIS;
-    },
-    async sendTransfer(transfer: unknown): Promise<SupplierPaymentRailReceipt> {
-      calls.push(transfer);
-      const t = transfer as {
-        mint: string;
-        payee: string;
-        amountBaseUnits: string;
-        intentId: string;
-      };
-      const r: SupplierPaymentRailReceipt = {
-        cluster: 'devnet',
-        mint: t.mint,
-        payee: t.payee,
-        payer: PAYER,
-        amountBaseUnits: t.amountBaseUnits,
-        confirmationStatus: 'confirmed',
-        intentId: t.intentId,
-        signature: `sig-${t.intentId}`,
-        ...receipt,
-      };
-      receipts.set(t.intentId, r);
-      return r;
-    },
-    async fetchReceipt(intentId: string) {
-      return receipts.get(intentId) ?? null;
-    },
-  };
+  return fx.fakeRail({ cluster: 'devnet', genesis: FULL_DEVNET_GENESIS, payer: PAYER, receipt });
 }
-
 function seedReceipt(
   rail: ReturnType<typeof fakeRail>,
   intentId: string,

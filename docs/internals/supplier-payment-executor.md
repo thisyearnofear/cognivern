@@ -128,6 +128,143 @@ import, no shared signer).
   0600, atomic no-clobber, symlink refused). Public keys are recorded for
   the preflight; no seed material is ever printed, logged, or committed.
 
+## Governed worker (`tooling/supplier-payment/`)
+
+The worker is the non-HTTP composition of the executor — a CLI that runs
+the full Gate 2 evidence review plus the rail, for deployments where the
+payment actor must not be the API process.
+
+- `worker-common.ts` — parses a fixed, service-owned JSON config file into
+  `DevnetWorkerConfig` or `LocalWorkerConfig`. All trusted inputs are
+  config-pinned (workspace/mandate/case, payee + subject→payee pins,
+  issuer public key, report root, signer key + expected payer pubkey,
+  journal path, DB path, CRE snapshot path); the request only supplies the
+  signed envelope. Unknown keys are refused and network-affecting keys
+  (`cluster`, `rpcUrl`, `keypair`, `env`…) are forbidden outright — pins
+  live in code. Gating order is fail-closed *before* any signer, DB, or
+  RPC touch: `enabled` must be explicitly `true`; the process uid must
+  equal the pinned `workerUid`, must differ from `distinctBackendUid`, and
+  must not be root (both pins must be positive non-root integers); the
+  config file must be a real 0600 file owned by the worker or root inside
+  a non-symlink 0700 parent; `reportRoot` itself must be a 0700
+  worker/root-owned directory (not merely under one); every trusted file
+  is a regular 0600 file; existing journal/DB paths may never be symlinks;
+  and on devnet the claims/mandate DB must already exist 0600-owned.
+  Parse/read/DB/RPC errors are never printed verbatim — adapter and
+  storage messages can carry endpoints or secrets, so only this module's
+  own `supplier worker rejected:` text reaches stderr.
+- `worker.ts` — devnet-only CLI: `execute`/`reconcile`, envelope from
+  `--envelope <file>` or stdin. Argument parsing is strict: unknown flags
+  (including `--simulate-crash-after-send`, `--endpoint`), duplicate
+  flags, missing or relative path values, and stray positionals all
+  refuse. It builds the public
+  `executeSupplierPayment`/`reconcileSupplierPayment` orchestration over
+  `createSupplierDevnetRail` — local envelopes, local rails, and local
+  signatures can never reach it. The `supplier_payment_claims` table is
+  never provisioned implicitly on devnet: it must exist from an explicit
+  migration before the worker runs, and the run fails closed if it does
+  not. The issuer file must be a `PUBLIC KEY` PEM — a private key in that
+  slot refuses before any parse.
+- `local-worker.ts` — the local-harness twin over `createLocalSupplierRail`
+  and `createLocalSupplierExecutor`. Same CLI shape and config gates, plus
+  `--simulate-crash-after-send` (exit code 42 immediately after the rail
+  returns but before finalize) — a proof hook that exists only in the
+  local worker, never in `worker.ts`.
+- `governed-seed.ts` — seeds a disposable SQLite DB (real
+  `SupplierPaymentStore`/`FundedMandateService` schema + `funded_mandates`
+  row), a CRE JSONL snapshot via `JsonlCreRunPersistence`, a report tree,
+  an ephemeral Ed25519 issuer, and the `worker-config.json` used by the
+  proof. Test/proof fixture only.
+- `signer-check.ts` — thin CLI over `loadDedicatedSigner` for the
+  uid-isolation CI job; prints only the derived address.
+
+### CRE inputs are snapshots, not live stores
+
+The worker reads the governance run/artifact evidence through
+`CreRunStore` over a `JsonlCreRunPersistence` file that is an approved,
+private server snapshot copied into the worker's private directory — never
+the live CRE backing store or a remote Mongo. Same for the diligence
+report root and the mandate/claims database: explicit private paths,
+refused if missing or wrongly permissioned.
+
+### Signed domains
+
+`executeSupplierPayment` accepts only `cognivern.supplier-payment-devnet.v1`
+envelopes with literal devnet terms. `createLocalSupplierExecutor` (tested
+in `tests/unit/SupplierLocalExecutor.test.ts`) accepts only
+`cognivern.supplier-payment-local.v1` — cluster `localnet`, a pinned local
+mint, and the spawned validator's genesis, which must differ from every
+public-chain genesis including devnet. No code path infers the expected
+chain from the envelope body; each direction is covered by negative tests.
+
+### Governed local proof (`local-proof.sh --governed`)
+
+Extends the adapter-only proof: after the mint/funding setup it warms the
+validator with a trivial SOL transfer (fresh validators can silently drop
+their first transaction), seeds the temp DB/CRE/reports/issuer, then runs
+the real worker code path:
+
+1. A held envelope denies with no claim row, no debit, no chain movement.
+2. A proceed envelope executes with `--simulate-crash-after-send` — the
+   worker exits rc 42 after the rail broadcast but before finalize,
+   leaving the claim `pending`, budget consumed 0, and exactly one
+   on-chain transfer.
+3. A *fresh* worker process reconciles: identical pending claim →
+   `confirmed`, exactly one 10000-base-unit debit.
+4. Replaying the identical envelope returns the same signature — no
+   second broadcast, no second debit, payee ATA signature history stays
+   at exactly 1.
+
+Public-only artifact: `.artifacts/supplier-worker-local-proof.json`
+(cluster/mint labels, held result, pending/confirmed/debit values,
+original and recovered signatures). The artifact labels the run `localnet`
+everywhere — a local receipt is never devnet evidence.
+
+## Signer isolation proof (CI)
+
+`.github/workflows/supplier-worker-isolation.yml` runs on PRs touching
+`tooling/supplier-payment/**` or the executor sources, on an ephemeral
+Ubuntu runner with `contents: read` only. It creates two disposable Unix
+users (`supplier-worker`, `supplier-api`), generates a synthetic key under
+a worker-owned 0700 dir with a 0600 file, then proves through the real
+`signer.ts` code path:
+
+- the worker uid loads its own signer (pubkey checked),
+- the API uid is refused (the loader's uid-ownership check fires before
+  `open` reaches the filesystem — a permission denial, not a missing file
+  or a crashed tool),
+- the API uid can still read the public worker config file,
+- the private signer dir is untraversable for the API uid,
+- a disabled worker config refuses before any signer/DB/RPC I/O.
+
+The job stages an `rsync` copy of the repo under a traversable `/tmp` path
+(the checkout dir is not traversable by other uids), generates the
+synthetic key *inside* the worker-owned private dir with `umask 077`, and
+checks the API uid's denial with a raw `os.open` — the failure must be
+EACCES, not a missing file or a crashed tool. Users, keys, and configs are
+deleted at job end; nothing is retained. This exercises the *mechanism* on
+a clean host — it is not proof of any specific deployment.
+
+### Deployment recipe (admin, before any funding)
+
+1. Create a dedicated OS user for the worker (e.g. `supplier-worker`) that
+   is not the API/backend user; keep `distinctBackendUid` pinned to the
+   backend user's uid in the config.
+2. Install the signer key under a dir owned by the worker, mode 0700, file
+   mode 0600 — e.g.
+   `install -d -m 0700 -o supplier-worker /srv/supplier-worker/signer` and
+   `install -m 0600 -o supplier-worker payer.json …/signer/`.
+3. Same treatment for the worker config, journal, DB, issuer pubkey, and
+   the approved CRE snapshot directory — worker-owned, private parents.
+4. Provision the DB explicitly: create `supplier_payment_claims` via
+   `initSupplierPaymentClaims` in a one-off migration step as the worker
+   user — the devnet worker refuses to create it and fails closed if it
+   is missing.
+5. Run the worker under a service manager as that user (`User=` in a
+   systemd unit, or equivalent); never run project code as root.
+6. Only then fund the payer on devnet — funding while the backend user can
+   still read the key defeats the isolation.
+
 ## Manual funding and activation gates
 
 The executor checks above are verified against synthetic fixtures and an
@@ -151,8 +288,9 @@ exercised. Before a real devnet rehearsal all of the following must hold:
    issuing authority, distributed out of band.
 4. `config.subjectPayeePins` — subjectHash → payee pinned per reviewed
    subject; an unlisted payee denies before any lineage lookup.
-5. `initSupplierPaymentClaims` migrated onto the deployment database (today
-   it only runs in tests).
+5. `initSupplierPaymentClaims` migrated onto the deployment database before
+   the worker is enabled (the devnet worker refuses to provision it; today
+   the schema is created only by tests and the local harness).
 6. An active funded mandate with a USDC budget line covering the 0.01 amount;
    env limits never substitute for the mandate (`policySource` must be
    `funded_mandate`).

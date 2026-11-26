@@ -542,11 +542,23 @@ injected, and a real adapter now lives in `tooling/supplier-payment/` —
 devnet-pinned (`createSupplierDevnetRail`) and local-only
 (`createLocalSupplierRail`) factories with a dedicated-signer loader, a
 single-intent SQLite journal committed before broadcast, and chain-only
-receipt verification. It is exercised end to end only against
-`solana-test-validator` (`tooling/supplier-payment/local-proof.sh`, proof at
-`.artifacts/supplier-local-validator-proof.json`) plus a read-only devnet
-preflight (`devnet-preflight.ts` → `.artifacts/supplier-devnet-preflight.json`,
-currently `ready:false` — unfunded keys). It remains unwired from the API:
+receipt verification. A governed worker composition
+(`tooling/supplier-payment/worker.ts`, devnet-only) runs the same review
+under a dedicated OS identity with every trusted input config-pinned;
+`local-worker.ts` is the local-harness twin over a separate
+`cognivern.supplier-payment-local.v1` domain and
+`createLocalSupplierExecutor` — production can never accept local
+envelopes, rails, or signatures. Both are exercised end to end only against
+`solana-test-validator` (`tooling/supplier-payment/local-proof.sh` — proof
+at `.artifacts/supplier-local-validator-proof.json`, and `--governed` →
+`.artifacts/supplier-worker-local-proof.json` covering held-denial,
+crash-mid-flight pending recovery, and replay idempotence) plus a
+read-only devnet preflight (`devnet-preflight.ts` →
+`.artifacts/supplier-devnet-preflight.json`, currently `ready:false` —
+unfunded keys). A dedicated CI job
+(`.github/workflows/supplier-worker-isolation.yml`) proves two-UID signer
+isolation on an ephemeral runner — a mechanism check, not deployment
+evidence. It remains unwired from the API:
 no route can reach it, signer isolation is not OS-enforced yet, and a real
 funded devnet rehearsal remains the gate before any live claim. See
 `internals/supplier-payment-executor.md` for the activation gates, recovery

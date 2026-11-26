@@ -49,14 +49,27 @@ import type { SettlementLimits } from '@backend/services/blockchain/solana/Solan
 import { sha256CanonicalJson, telegraphArtifactDataHash } from './stableJson.js';
 import {
   DEVNET_SCHEMA,
+  LOCAL_SCHEMA,
   reviewSupplierDevnetPayment,
+  reviewSupplierLocalPayment,
   verifyEnvelopeSignature,
+  verifyLocalEnvelopeSignature,
   type ProposedTransfer,
   type SupplierPaymentAuthorizationBody,
 } from './SupplierPaymentAuthorization.js';
 import { SupplierPaymentStore } from './SupplierPaymentStore.js';
 
 export const DEVNET_GENESIS_HASH = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
+const MAINNET_GENESIS_HASH = '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d';
+const TESTNET_GENESIS_HASH = '4uhcVJyU9pJkvQyS88uRDiswHXSCkY3zQawwpjk2NsNY';
+const PUBLIC_GENESIS_HASHES = new Set([
+  DEVNET_GENESIS_HASH,
+  MAINNET_GENESIS_HASH,
+  TESTNET_GENESIS_HASH,
+]);
+// A local executor may never be pinned to the canonical devnet USDC mint —
+// its address would make local receipts indistinguishable in mint terms.
+const DEVNET_USDC_MINT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
 const EVIDENCE_BUNDLE_SCHEMA = 'cognivern.telegraph.compliant-call-evidence.v1';
 const DEFAULT_EVIDENCE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const TRANSFER_USD = 0.01;
@@ -119,7 +132,7 @@ export interface SupplierPaymentRail {
   fetchReceipt?(intentId: string): Promise<SupplierPaymentRailReceipt | null>;
 }
 
-export interface SupplierPaymentExecutorConfig {
+interface SupplierExecutorConfigBase {
   /** Default false — the executor refuses everything until activated. */
   enabled: boolean;
   workspaceId: string;
@@ -130,6 +143,11 @@ export interface SupplierPaymentExecutorConfig {
   reportRoot: string;
   /** subjectHash → payee, pinned per reviewed subject. */
   subjectPayeePins: Record<string, string>;
+  envLimits: SettlementLimits;
+  evidenceMaxAgeMs?: number;
+}
+
+export interface SupplierPaymentExecutorConfig extends SupplierExecutorConfigBase {
   rail: {
     cluster: 'devnet';
     mint: string;
@@ -138,9 +156,23 @@ export interface SupplierPaymentExecutorConfig {
     /** Server-pinned canonical devnet genesis, verified before broadcast. */
     genesisHash: string;
   };
-  envLimits: SettlementLimits;
-  evidenceMaxAgeMs?: number;
 }
+
+export interface SupplierLocalPaymentExecutorConfig extends SupplierExecutorConfigBase {
+  rail: {
+    cluster: 'localnet';
+    mint: string;
+    payer: string;
+    maxTransferUsd: number;
+    /**
+     * Server-pinned genesis of the spawned local validator — must differ
+     * from every public cluster genesis; verified live before broadcast.
+     */
+    genesisHash: string;
+  };
+}
+
+type SupplierExecutorConfig = SupplierPaymentExecutorConfig | SupplierLocalPaymentExecutorConfig;
 
 export interface SupplierPaymentExecutorDeps {
   config: SupplierPaymentExecutorConfig;
@@ -148,6 +180,28 @@ export interface SupplierPaymentExecutorDeps {
   creStore: Pick<CreRunStore, 'get' | 'refresh'>;
   now?: number;
 }
+
+export interface SupplierLocalExecutorDeps {
+  config: SupplierLocalPaymentExecutorConfig;
+  rail: SupplierPaymentRail;
+  creStore: Pick<CreRunStore, 'get' | 'refresh'>;
+  now?: number;
+}
+
+type SupplierExecutorDeps = SupplierPaymentExecutorDeps | SupplierLocalExecutorDeps;
+
+/**
+ * Type-discriminated network binding. The devnet arm is a singleton literal —
+ * schema, cluster, canonical mint and genesis are all constants and cannot be
+ * overridden. The local arm pins a localnet cluster, a valid local mint, and
+ * an explicit spawned-validator genesis that must differ from every public
+ * cluster genesis.
+ */
+export type SupplierExecutorNetwork =
+  | { kind: 'devnet' }
+  | { kind: 'localnet'; genesisHash: string; mint: string };
+
+const DEVNET_NETWORK: SupplierExecutorNetwork = { kind: 'devnet' };
 
 export type SupplierPaymentExecutorResult =
   | { status: 'confirmed'; signature: string }
@@ -166,7 +220,8 @@ const pending = (reason: string): SupplierPaymentExecutorResult => ({ status: 'p
  * whose genesis equals the server-pinned canonical devnet genesis.
  */
 async function checkRailReadiness(
-  config: SupplierPaymentExecutorConfig,
+  network: SupplierExecutorNetwork,
+  config: SupplierExecutorConfig,
   rail: SupplierPaymentRail,
   payee: string,
   mint: string,
@@ -187,16 +242,25 @@ async function checkRailReadiness(
   ) {
     return 'env payee allowlist is not exactly the bound payee';
   }
-  if (config.rail.cluster !== 'devnet' || config.rail.mint !== mint) return 'rail cluster or mint mismatch';
   if (!isAddress(config.rail.payer) || config.rail.payer === payee) {
     return 'rail payer is not a valid address distinct from the payee';
   }
   if (config.rail.maxTransferUsd !== TRANSFER_USD) {
     return 'rail cap is not the rehearsal amount';
   }
-  if (config.rail.genesisHash !== DEVNET_GENESIS_HASH) {
-    return 'rail genesis pin is not canonical devnet';
+  if (network.kind === 'devnet') {
+    if (config.rail.cluster !== 'devnet') return 'rail cluster is not devnet';
+    if (config.rail.genesisHash !== DEVNET_GENESIS_HASH) {
+      return 'rail genesis pin is not canonical devnet';
+    }
+  } else {
+    if (config.rail.cluster !== 'localnet') return 'rail cluster is not localnet';
+    if (config.rail.mint !== network.mint) return 'rail mint is not the pinned local mint';
+    if (config.rail.genesisHash !== network.genesisHash) {
+      return 'rail genesis pin is not the pinned local genesis';
+    }
   }
+  if (config.rail.mint !== mint) return 'rail mint does not match the signed mint';
   let genesisHash: string;
   try {
     genesisHash = await rail.getGenesisHash();
@@ -204,9 +268,19 @@ async function checkRailReadiness(
     return 'rail genesis check failed';
   }
   if (genesisHash !== config.rail.genesisHash) {
-    return 'chain genesis is not the pinned devnet genesis';
+    return 'chain genesis does not match the pinned genesis';
   }
   return null;
+}
+
+function verifyBody(
+  network: SupplierExecutorNetwork,
+  envelope: unknown,
+  config: SupplierExecutorConfig,
+): SupplierPaymentAuthorizationBody | null {
+  return network.kind === 'devnet'
+    ? verifyEnvelopeSignature(DEVNET_SCHEMA, envelope, config.trustedPublicKey)
+    : verifyLocalEnvelopeSignature(envelope, config.trustedPublicKey, network.mint);
 }
 
 function checkTimestampFreshness(value: unknown, now: number, maxAgeMs: number): boolean {
@@ -442,6 +516,15 @@ export async function executeSupplierPayment(
   envelope: unknown,
   deps: SupplierPaymentExecutorDeps,
 ): Promise<SupplierPaymentExecutorResult> {
+  return executeSupplierPaymentImpl(DEVNET_NETWORK, workspaceId, envelope, deps);
+}
+
+async function executeSupplierPaymentImpl(
+  network: SupplierExecutorNetwork,
+  workspaceId: string,
+  envelope: unknown,
+  deps: SupplierExecutorDeps,
+): Promise<SupplierPaymentExecutorResult> {
   const { config, rail, creStore } = deps;
   const now = deps.now ?? Date.now();
 
@@ -450,8 +533,12 @@ export async function executeSupplierPayment(
 
   // Domain + signature gate first: rehearsal schema and untrusted issuers
   // are rejected before any lookup is controlled by envelope contents.
-  const body = verifyEnvelopeSignature(DEVNET_SCHEMA, envelope, config.trustedPublicKey);
-  if (!body) return deny('envelope is not a valid signed devnet authorization');
+  const body = verifyBody(network, envelope, config);
+  if (!body) {
+    return deny(
+      `envelope is not a valid signed ${network.kind === 'devnet' ? 'devnet' : 'local'} authorization`,
+    );
+  }
   if (body.workspaceId !== config.workspaceId || body.mandateId !== config.mandateId) {
     return deny('envelope is not bound to this deployment');
   }
@@ -477,7 +564,10 @@ export async function executeSupplierPayment(
   } catch {
     return deny('internal report not found under the trusted report root');
   }
-  const review = reviewSupplierDevnetPayment(report, envelope, config.trustedPublicKey, now);
+  const review =
+    network.kind === 'devnet'
+      ? reviewSupplierDevnetPayment(report, envelope, config.trustedPublicKey, now)
+      : reviewSupplierLocalPayment(report, envelope, config.trustedPublicKey, now, network.mint);
   if (review.status !== 'eligible_for_rehearsal') return deny(review.reason);
   const transfer = review.proposedTransfer;
 
@@ -488,7 +578,7 @@ export async function executeSupplierPayment(
   if (!Number.isFinite(maxAge) || maxAge <= 0 || maxAge > DEFAULT_EVIDENCE_MAX_AGE_MS) {
     return deny('evidence freshness window is misconfigured');
   }
-  const readiness = await checkRailReadiness(config, rail, body.payee, body.mint);
+  const readiness = await checkRailReadiness(network, config, rail, body.payee, body.mint);
   if (readiness) return deny(readiness);
 
   // Evidence freshness: the report must be recent and not from the future.
@@ -588,6 +678,7 @@ export async function executeSupplierPayment(
   if (
     !receiptMatches(
       receipt,
+      network,
       config.rail.payer,
       {
         mint: transfer.mint,
@@ -617,13 +708,14 @@ export async function executeSupplierPayment(
 
 function receiptMatches(
   receipt: SupplierPaymentRailReceipt | null,
+  network: SupplierExecutorNetwork,
   payer: string,
   proposal: { mint: string; payee: string; amountBaseUnits: string; intentId: string },
   allowedStatuses: ReadonlySet<string>,
 ): receipt is SupplierPaymentRailReceipt & { signature: string } {
   return (
     isRecord(receipt) &&
-    receipt.cluster === 'devnet' &&
+    receipt.cluster === (network.kind === 'devnet' ? 'devnet' : 'localnet') &&
     receipt.mint === proposal.mint &&
     receipt.payee === proposal.payee &&
     receipt.payer === payer &&
@@ -647,19 +739,32 @@ export async function reconcileSupplierPayment(
   envelope: unknown,
   deps: SupplierPaymentExecutorDeps,
 ): Promise<SupplierPaymentExecutorResult> {
+  return reconcileSupplierPaymentImpl(DEVNET_NETWORK, workspaceId, envelope, deps);
+}
+
+async function reconcileSupplierPaymentImpl(
+  network: SupplierExecutorNetwork,
+  workspaceId: string,
+  envelope: unknown,
+  deps: SupplierExecutorDeps,
+): Promise<SupplierPaymentExecutorResult> {
   const { config, rail } = deps;
 
   if (!config.enabled) return deny('supplier payment executor is disabled');
   if (workspaceId !== config.workspaceId) return deny('workspace is not this executor deployment');
 
-  const body = verifyEnvelopeSignature(DEVNET_SCHEMA, envelope, config.trustedPublicKey);
-  if (!body) return deny('envelope is not a valid signed devnet authorization');
+  const body = verifyBody(network, envelope, config);
+  if (!body) {
+    return deny(
+      `envelope is not a valid signed ${network.kind === 'devnet' ? 'devnet' : 'local'} authorization`,
+    );
+  }
   if (body.workspaceId !== config.workspaceId || body.mandateId !== config.mandateId) {
     return deny('envelope is not bound to this deployment');
   }
   const bindingHash = sha256CanonicalJson(body);
 
-  const readiness = await checkRailReadiness(config, rail, body.payee, body.mint);
+  const readiness = await checkRailReadiness(network, config, rail, body.payee, body.mint);
   if (readiness) return deny(readiness);
 
   const claim = SupplierPaymentStore.getClaim(workspaceId, body.intentId);
@@ -682,6 +787,7 @@ export async function reconcileSupplierPayment(
   if (
     !receiptMatches(
       receipt,
+      network,
       config.rail.payer,
       {
         mint: body.mint,
@@ -714,3 +820,78 @@ export async function reconcileSupplierPayment(
   }
   return { status: 'confirmed', signature: receipt.signature };
 }
+
+/**
+ * Validate local network pins once: mint must be a real address and the
+ * genesis must be an explicit spawned-validator hash that is not any public
+ * cluster genesis — a local receipt can never be relabelled as devnet.
+ */
+function localNetworkOrNull(mint: string, genesisHash: string): SupplierExecutorNetwork | null {
+  if (!isAddress(mint) || mint === DEVNET_USDC_MINT) return null;
+  if (typeof genesisHash !== 'string' || !nonblank(genesisHash)) return null;
+  if (PUBLIC_GENESIS_HASHES.has(genesisHash)) return null;
+  return { kind: 'localnet', genesisHash, mint };
+}
+
+function nonblank(v: string): boolean {
+  return v.trim().length > 0;
+}
+
+export interface LocalSupplierExecutor {
+  execute(workspaceId: string, envelope: unknown): Promise<SupplierPaymentExecutorResult>;
+  reconcile(workspaceId: string, envelope: unknown): Promise<SupplierPaymentExecutorResult>;
+}
+
+/**
+ * Local-only executor composition for the governed worker proof. Same
+ * orchestration as the devnet executor, but the network binding is a
+ * `localnet` discriminant whose mint and genesis are validated up front:
+ * local mint must be a valid address and the genesis must be explicitly
+ * non-public. The config's rail pins must match the same local mint and
+ * genesis — mismatched configuration fails closed.
+ *
+ * `deps` are server-owned exactly as in the devnet path — trusted public
+ * key, report root, payee pins, rail and CRE store never come from the
+ * caller or the envelope.
+ */
+export function createLocalSupplierExecutor(deps: SupplierLocalExecutorDeps): LocalSupplierExecutor {
+  const network = localNetworkOrNull(deps.config.rail.mint, deps.config.rail.genesisHash);
+  if (!network || network.kind !== 'localnet') {
+    throw new Error('local executor rejected: mint/genesis pins are not a valid non-public local deployment');
+  }
+  return {
+    execute(workspaceId, envelope) {
+      return executeSupplierPaymentImpl(network, workspaceId, envelope, deps);
+    },
+    reconcile(workspaceId, envelope) {
+      return reconcileSupplierPaymentImpl(network, workspaceId, envelope, deps);
+    },
+  };
+}
+
+/** Unbound local execute — same validation as the factory, one-shot use. */
+export async function executeLocalSupplierPayment(
+  workspaceId: string,
+  envelope: unknown,
+  deps: SupplierLocalExecutorDeps,
+): Promise<SupplierPaymentExecutorResult> {
+  const network = localNetworkOrNull(deps.config.rail.mint, deps.config.rail.genesisHash);
+  if (!network || network.kind !== 'localnet') {
+    return deny('local executor pins are not a valid non-public local deployment');
+  }
+  return executeSupplierPaymentImpl(network, workspaceId, envelope, deps);
+}
+
+export async function reconcileLocalSupplierPayment(
+  workspaceId: string,
+  envelope: unknown,
+  deps: SupplierLocalExecutorDeps,
+): Promise<SupplierPaymentExecutorResult> {
+  const network = localNetworkOrNull(deps.config.rail.mint, deps.config.rail.genesisHash);
+  if (!network || network.kind !== 'localnet') {
+    return deny('local executor pins are not a valid non-public local deployment');
+  }
+  return reconcileSupplierPaymentImpl(network, workspaceId, envelope, deps);
+}
+
+export { LOCAL_SCHEMA };

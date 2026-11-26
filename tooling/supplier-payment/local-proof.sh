@@ -7,11 +7,18 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
+GOVERNED=0
+for a in "$@"; do [ "$a" = "--governed" ] && GOVERNED=1; done
+
 RPC_PORT=18899          # RPC ws is auto-bound at rpc+1 (18900)
 FAUCET_PORT=18901       # must NOT collide with the RPC ws port
 GOSSIP_RANGE="18910-18940"
 ENDPOINT="http://127.0.0.1:${RPC_PORT}"
-OUT=".artifacts/supplier-local-validator-proof.json"
+if [ "${GOVERNED}" = "1" ]; then
+  OUT=".artifacts/supplier-worker-local-proof.json"
+else
+  OUT=".artifacts/supplier-local-validator-proof.json"
+fi
 TMP="$(mktemp -d /tmp/supplier-local-proof.XXXXXX)"
 VALIDATOR_PID=""
 
@@ -144,6 +151,128 @@ done
 [ "$(token_amount "${PAYER_ATA}" finalized)" = "10000" ] \
   || { echo "FAIL: payer ATA funding never finalized"; exit 1; }
 echo "   mint=${MINT} payerAta=${PAYER_PRE} payeeAta=absent (funding finalized)"
+
+if [ "${GOVERNED}" = "1" ]; then
+  # ------------------------------------------------------------------
+  # Governed local-worker proof: same validator + mint, but the transfer is
+  # dispatched through local-worker.ts → createLocalSupplierExecutor → the
+  # real rail adapter, with a real worker-private SQLite DB and a read-only
+  # CRE JSONL snapshot. Held must never dispatch; a crash between send and
+  # finalize must stay pending with no debit; reconcile confirms exactly
+  # once.
+  # ------------------------------------------------------------------
+  echo ">> governed worker proof: seeding temp DB, CRE snapshot, reports, issuer"
+  mkdir -p "${TMP}/worker-journal"
+  chmod 700 "${TMP}/worker-journal"
+  pnpm exec tsx tooling/supplier-payment/governed-seed.ts \
+    --db-dir "${TMP}/worker-db" --cre-dir "${TMP}/cre" \
+    --reports-dir "${TMP}/reports" --envelopes-dir "${TMP}/envelopes" \
+    --config-path "${TMP}/worker-config.json" --issuer-pub "${TMP}/issuer-pub.pem" \
+    --mint "${MINT}" --payee "${PAYEE_PUB}" --genesis "${RPC_GENESIS}" \
+    --endpoint "${ENDPOINT}" --journal "${TMP}/worker-journal/journal.db" \
+    --signer-key "${TMP}/keys/payer.json" --payer "${PAYER_PUB}" \
+    --worker-uid "$(id -u)" > "${TMP}/seed.json"
+  CFG="${TMP}/worker-config.json"
+  DBP="${TMP}/worker-db/claims.db"
+  ENV_PROCEED="${TMP}/envelopes/proceed.json"
+  ENV_HELD="${TMP}/envelopes/held.json"
+  LW="pnpm exec tsx tooling/supplier-payment/local-worker.ts"
+
+  claim_state() {
+    python3 -c "import sqlite3;d=sqlite3.connect('$DBP');r=d.execute('select state,signature from supplier_payment_claims').fetchall();print(r)"
+  }
+  consumed() {
+    python3 -c "import sqlite3,json;d=sqlite3.connect('$DBP');b=d.execute('select budget_by_asset from funded_mandates').fetchone()[0];print(json.loads(b)['USDC']['consumedAmount'])"
+  }
+
+  # Warmup probe: a fresh validator can silently drop its first real
+  # transaction. Prove the TPU path lands a trivial SOL transfer before the
+  # governed dispatch — the probe goes through the same isolated CLI config
+  # and temp keys, never the operator's wallet.
+  for _ in $(seq 1 30); do
+    solana -C "${CLI_CONFIG}" transfer --allow-unfunded-recipient \
+      "${PAYEE_PUB}" 0.001 >>"${TMP}/spl.log" 2>&1 && break
+    sleep 1
+  done
+  for _ in $(seq 1 30); do
+    PAYEE_SOL="$(rpc getBalance "[\"${PAYEE_PUB}\",{\"commitment\":\"confirmed\"}]" \
+      | python3 -c 'import json,sys;print(json.load(sys.stdin)["result"]["value"])')"
+    [ "${PAYEE_SOL}" = "1000000" ] && break
+    sleep 1
+  done
+  [ "${PAYEE_SOL}" = "1000000" ] || { echo "FAIL: warmup transfer never landed"; exit 1; }
+
+  echo ">> held envelope must deny before any dispatch"
+  set +e
+  HELD_OUT="$(${LW} execute --config "${CFG}" --envelope "${ENV_HELD}" 2>/dev/null)"
+  HELD_RC=$?
+  set -e
+  [ "${HELD_RC}" = "3" ] || { echo "FAIL: held execute rc=${HELD_RC}"; exit 1; }
+  echo "${HELD_OUT}" | python3 -c 'import json,sys; r=json.load(sys.stdin)["result"]; assert r["status"]=="denied", r'
+  [ "$(claim_state)" = "[]" ] || { echo "FAIL: held left a claim row"; exit 1; }
+  [ "$(consumed)" = "0" ] || { echo "FAIL: held debited"; exit 1; }
+  [ "$(token_amount "${PAYEE_ATA}")" = "absent" ] || { echo "FAIL: held moved the payee ATA"; exit 1; }
+
+  echo ">> proceed execute, crash after rail returns (before finalize)"
+  set +e
+  ${LW} execute --config "${CFG}" --envelope "${ENV_PROCEED}" --simulate-crash-after-send >/dev/null 2>&1
+  CRASH_RC=$?
+  set -e
+  [ "${CRASH_RC}" = "42" ] || { echo "FAIL: crash exit code ${CRASH_RC}, expected 42"; exit 1; }
+  [ "$(claim_state)" = "[('pending', None)]" ] || { echo "FAIL: claim not pending: $(claim_state)"; exit 1; }
+  [ "$(consumed)" = "0" ] || { echo "FAIL: crash debited the mandate"; exit 1; }
+  for _ in $(seq 1 30); do
+    [ "$(token_amount "${PAYEE_ATA}")" = "10000" ] && break; sleep 1
+  done
+  [ "$(token_amount "${PAYEE_ATA}")" = "10000" ] || { echo "FAIL: chain transfer missing"; exit 1; }
+  [ "$(token_amount "${PAYER_ATA}")" = "0" ] || { echo "FAIL: payer ATA not drained"; exit 1; }
+
+  echo ">> fresh worker process: reconcile must finalize the pending claim"
+  REC_OUT="$(${LW} reconcile --config "${CFG}" --envelope "${ENV_PROCEED}")"
+  SIGNATURE="$(echo "${REC_OUT}" | python3 -c 'import json,sys;print(json.load(sys.stdin)["result"]["signature"])')"
+  [ "$(consumed)" = "10000" ] || { echo "FAIL: reconcile did not debit exactly once"; exit 1; }
+  [ "$(claim_state)" = "[('confirmed', '${SIGNATURE}')]" ] || { echo "FAIL: claim not confirmed"; exit 1; }
+
+  echo ">> replay the identical envelope — same signature, no second send or debit"
+  REPLAY_OUT="$(${LW} execute --config "${CFG}" --envelope "${ENV_PROCEED}")"
+  REPLAYED="$(echo "${REPLAY_OUT}" | python3 -c 'import json,sys;r=json.load(sys.stdin)["result"];assert r["status"]=="replayed",r;print(r["signature"])')"
+  [ "${REPLAYED}" = "${SIGNATURE}" ] || { echo "FAIL: replay signature differs"; exit 1; }
+  [ "$(consumed)" = "10000" ] || { echo "FAIL: replay double-debited"; exit 1; }
+  [ "$(token_amount "${PAYER_ATA}")" = "0" ] || { echo "FAIL: replay moved payer ATA"; exit 1; }
+  [ "$(token_amount "${PAYEE_ATA}")" = "10000" ] || { echo "FAIL: replay moved payee ATA"; exit 1; }
+  for _ in $(seq 1 30); do
+    SIGS_POST="$(sig_count "${PAYEE_ATA}")"
+    [ "${SIGS_POST}" -ge 1 ] 2>/dev/null && break; sleep 1
+  done
+  [ "${SIGS_POST}" = "1" ] || { echo "FAIL: payee ATA history ${SIGS_POST}, expected 1"; exit 1; }
+
+  python3 - "${OUT}" <<PY
+import json,sys,datetime
+proof = {
+  "generatedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+  "generatedBy": "tooling/supplier-payment/local-proof.sh --governed",
+  "validatorVersion": "$(solana-test-validator --version | awk '{print $2}')",
+  "localGenesisHash": "${RPC_GENESIS}",
+  "endpoint": "${ENDPOINT}",
+  "cluster": "localnet",
+  "payer": "${PAYER_PUB}",
+  "payee": "${PAYEE_PUB}",
+  "mint": "${MINT}",
+  "payerAta": "${PAYER_ATA}",
+  "payeeAta": "${PAYEE_ATA}",
+  "held": {"status": "denied", "dispatched": False, "debit": "0"},
+  "crashAfterSend": {"exitCode": 42, "claimState": "pending", "debit": "0", "chainTransfer": True},
+  "reconcile": {"status": "confirmed", "signature": "${SIGNATURE}", "debit": "10000"},
+  "replay": {"status": "replayed", "signature": "${REPLAYED}", "sends": 1},
+  "payeeAtaSignatures": ${SIGS_POST},
+  "note": "LOCAL governed-worker proof only — cluster localnet, local mint, synthetic report/CRE/issuer fixtures. Not devnet evidence; no real funding. Public keys and signatures only."
+}
+open(sys.argv[1],"w").write(json.dumps(proof, indent=2))
+PY
+  rm -rf "${TMP}"
+  echo ">> governed worker proof written to ${OUT} (temp dir removed)"
+  exit 0
+fi
 
 EXPIRES="2030-01-01T00:00:00.000Z"
 COMMON="--endpoint ${ENDPOINT} --payer-key ${TMP}/keys/payer.json --payer ${PAYER_PUB} --payee ${PAYEE_PUB} --mint ${MINT} --journal ${TMP}/journal.db --workspace ws-local --mandate mandate-local --case case-local --intent-id local-proof-1 --expires ${EXPIRES}"
