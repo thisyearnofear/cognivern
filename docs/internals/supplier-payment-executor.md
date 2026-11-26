@@ -112,6 +112,29 @@ import, no shared signer).
   exact balance deltas before/after/replay, and exactly one entry in the
   payee ATA signature history. Public-only proof:
   `.artifacts/supplier-local-validator-proof.json`.
+
+  Strict flags: `--governed`, `--allow-macos`, `--scratch-dir <path>`,
+  `--keep-failed-ledger`, `--help`; anything else refuses. Disk policy:
+  Linux uses `--scratch-dir` / `$RUNNER_TEMP` / `/tmp` with ≥2GiB free.
+  **macOS is denied by default** — an explicit opt-in requires both
+  `--allow-macos` and a `--scratch-dir` that is an already-mounted,
+  capacity-limited separate scratch filesystem (its own mountpoint,
+  2–8GiB total, ≥2GiB free, a different device than `/` and
+  `/private/tmp`, no symlinks; a shared APFS Data volume reports
+  container capacity so it is refused rather than guessed). The script
+  never creates, mounts, or deletes volumes — provisioning a scratch
+  image is a manual, operator-only step and not documented as an
+  automated path. Host `/private/tmp` and the repo filesystem must also
+  have ≥12GiB free on macOS. All temp state lives in one
+  `mktemp -d …/supplier-local-proof.XXXXXX` workspace under the scratch
+  dir (`umask 077`, `TMPDIR` exported there); an EXIT/INT/TERM/HUP trap
+  stops only the captured validator pid (bounded TERM wait, KILL if it
+  refuses), then removes only that workspace — on failure with
+  `--keep-failed-ledger` it keeps ONLY the ledger dir (which holds its
+  own temp credentials: private, never upload) and still removes keys,
+  DBs, envelopes, and CLI config. Every run writes a fixed-field
+  ≤4KiB diagnostic to `.artifacts/supplier-proof-diagnostic.txt`
+  (phase + exit code only — never raw logs).
 - `devnet-preflight.ts` — read-only devnet check. Takes only public
   addresses; verifies genesis, then takes a single confirmed
   `getMultipleAccounts([mint, payer, payee, payerAta, payeeAta])` snapshot
@@ -198,6 +221,17 @@ public-chain genesis including devnet. No code path infers the expected
 chain from the envelope body; each direction is covered by negative tests.
 
 ### Governed local proof (`local-proof.sh --governed`)
+
+The canonical way to run it is the hosted job
+`.github/workflows/supplier-validator-proof.yml` (Ubuntu 24.04 runner,
+pinned Agave v2.3.0 tarball verified by SHA256, `pnpm --frozen-lockfile`,
+loopback-only transfers, proof JSON + bounded diagnostic uploaded with a
+3-day retention, machine discarded). It runs automatically on PRs that
+touch the worker/rail/executor/proof paths and can also be dispatched
+manually — routine local work never needs a validator. Running it on a
+Mac requires the explicit `--allow-macos` + mounted scratch disk path
+described above (SIGKILL is the only escalation the cleanup trap uses,
+and only on its own captured pid).
 
 Extends the adapter-only proof: after the mint/funding setup it warms the
 validator with a trivial SOL transfer (fresh validators can silently drop

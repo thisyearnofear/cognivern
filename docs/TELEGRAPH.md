@@ -549,13 +549,17 @@ under a dedicated OS identity with every trusted input config-pinned;
 `cognivern.supplier-payment-local.v1` domain and
 `createLocalSupplierExecutor` — production can never accept local
 envelopes, rails, or signatures. Both are exercised end to end only against
-`solana-test-validator` (`tooling/supplier-payment/local-proof.sh` — proof
-at `.artifacts/supplier-local-validator-proof.json`, and `--governed` →
+`solana-test-validator` — the canonical runner is the hosted job
+`.github/workflows/supplier-validator-proof.yml` (pinned Agave v2.3.0,
+loopback only); locally `tooling/supplier-payment/local-proof.sh` runs on
+Linux, and on macOS only with an explicit `--allow-macos` opt-in plus a
+mounted, capacity-limited scratch filesystem. Proofs land at
+`.artifacts/supplier-local-validator-proof.json`, and `--governed` →
 `.artifacts/supplier-worker-local-proof.json` covering held-denial,
-crash-mid-flight pending recovery, and replay idempotence) plus a
-read-only devnet preflight (`devnet-preflight.ts` →
-`.artifacts/supplier-devnet-preflight.json`, currently `ready:false` —
-unfunded keys). A dedicated CI job
+crash-mid-flight pending recovery, and replay idempotence; a read-only
+devnet preflight (`devnet-preflight.ts` →
+`.artifacts/supplier-devnet-preflight.json`) currently reports
+`ready:false` — unfunded keys. A dedicated CI job
 (`.github/workflows/supplier-worker-isolation.yml`) proves two-UID signer
 isolation on an ephemeral runner — a mechanism check, not deployment
 evidence. It remains unwired from the API:

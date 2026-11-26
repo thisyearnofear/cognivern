@@ -1,0 +1,86 @@
+name: supplier-validator-proof
+
+# Disposable governed local-validator proof for the supplier payment
+# worker + rail. Runs the real adapter and the real worker composition
+# against a disposable solana-test-validator on loopback ONLY — no
+# devnet, no external network for transfers, no secrets. The runner is
+# discarded afterwards; nothing on it is retained. The toolchain and
+# the ledger are never cached between runs (the pnpm dependency cache is).
+on:
+  pull_request:
+    paths:
+      - 'tooling/supplier-payment/**'
+      - 'src/backend/services/telegraph/SupplierPayment*.ts'
+      - 'tests/fixtures/supplier-payment-world.ts'
+      - 'tests/unit/Supplier*.test.ts'
+      - '.github/workflows/supplier-validator-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  governed-local-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm and node
+        uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Download Agave 2.3.0 release (pinned SHA256)
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -fL --retry 3 -o agave.tar.bz2 \
+            https://github.com/anza-xyz/agave/releases/download/v2.3.0/solana-release-x86_64-unknown-linux-gnu.tar.bz2
+          echo "56241fbe862495ff01b2b875195e44f94c22e9f2a504591a3ade1b9d82862730  agave.tar.bz2" \
+            | sha256sum -c -
+
+      - name: Selective extract (only the four binaries the proof needs)
+        run: |
+          mkdir -p "$RUNNER_TEMP/solana-bin"
+          tar -xjf "$RUNNER_TEMP/agave.tar.bz2" -C "$RUNNER_TEMP/solana-bin" \
+            --strip-components=2 \
+            solana-release/bin/solana-test-validator \
+            solana-release/bin/solana \
+            solana-release/bin/solana-keygen \
+            solana-release/bin/spl-token
+          ls -l "$RUNNER_TEMP/solana-bin"
+          for t in solana-test-validator solana solana-keygen spl-token; do
+            test -x "$RUNNER_TEMP/solana-bin/$t" || { echo "missing tool: $t"; exit 1; }
+          done
+
+      - name: Kernel socket buffers for Agave (Ubuntu runner only)
+        run: |
+          sudo sysctl -w net.core.rmem_max=134217728
+          sudo sysctl -w net.core.wmem_max=134217728
+
+      - name: Run the governed local-validator proof (loopback only)
+        run: |
+          export PATH="$RUNNER_TEMP/solana-bin:$PATH"
+          ulimit -n 65536 || true
+          solana-test-validator --version
+          solana-keygen --version
+          spl-token --version
+          bash tooling/supplier-payment/local-proof.sh --governed \
+            --scratch-dir "$RUNNER_TEMP"
+
+      - name: Upload proof artifact (success) or bounded diagnostic (failure)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supplier-local-proof
+          path: |
+            .artifacts/supplier-worker-local-proof.json
+            .artifacts/supplier-proof-diagnostic.txt
+          if-no-files-found: warn
+          retention-days: 3
+          include-hidden-files: true
