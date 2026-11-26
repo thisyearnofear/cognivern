@@ -219,6 +219,7 @@ const REASON_LABELS: Record<string, string> = {
   settlement_incomplete: 'Authorized settlement did not settle',
   request_error: 'A specialist call failed',
   incomplete_evidence: 'Evidence was incomplete',
+  evidence_too_large: 'Purchased evidence exceeded the governed input size bound',
   parent_review_required: 'The specialist itself asked for human review',
   parent_unverified: 'The subject could not be verified',
   source_unavailable: 'An upstream source could not be consulted',

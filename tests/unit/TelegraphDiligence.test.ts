@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -13,6 +14,8 @@ import {
   modelConfigsFromEnv,
   parseDecision,
   parseRationale,
+  main,
+  modelMessages,
   payloadRiskSignals,
   stepEvidenceFrom,
   toPublicReport,
@@ -883,5 +886,234 @@ describe('stepEvidenceFrom → gateOutcome parent evidence', () => {
     const steps = pub.cases[0].evidence.steps as Record<string, unknown>[];
     expect('parentRiskSignals' in steps[0]).toBe(false);
     expect(steps[1].parentRiskSignals).toEqual([]);
+  });
+});
+
+describe('collector main boundaries', () => {
+  const CASES = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../../tooling/scripts/agents/telegraph-diligence-cases.json',
+  );
+  const SUPPLIER_NAME = 'Siemens Aktiengesellschaft';
+  const tmpDirs: string[] = [];
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+    for (const dir of tmpDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+
+  const registryPayload = (found = true) => ({
+    legal_name: SUPPLIER_NAME,
+    entity_status: 'ACTIVE',
+    found,
+  });
+  const vendorPayload = () => ({
+    legal_name: SUPPLIER_NAME,
+    entity_status: 'ACTIVE',
+    review_required: false,
+    verified: true,
+    verdict: 'Verified',
+    sanctions: {
+      available: true,
+      match: false,
+      age_seconds: 60,
+      max_age_seconds: 86400,
+      non_sdn: { available: true, match: false, age_seconds: 60, max_age_seconds: 86400 },
+    },
+    // Multibyte content makes the UTF-8 byte boundary a real measurement.
+    note: 'Zürich € München',
+  });
+  const compliantJson = (payload: unknown, screeningMinerId: string) => ({
+    data: {
+      status: 'approved',
+      compliance: { screeningMinerId, verdict: 'clear', providerVerdict: 'CLEAR' },
+      evidenceBundle: {
+        gate: { runId: `gate-${screeningMinerId}`, name: 'compliance' },
+        settlement: { status: 'settled', runId: `parent-${screeningMinerId}` },
+        costs: { totalUsd: 0.02 },
+      },
+      response: { data: payload },
+    },
+  });
+  const modelJson = () => ({
+    choices: [{ message: { content: '{"decision":"hold","rationale":"cautious"}' } }],
+    usage: { prompt_tokens: 5, completion_tokens: 3 },
+  });
+
+  function stubEnv() {
+    vi.stubEnv('COGNIVERN_TOKEN', 'test-token');
+    vi.stubEnv('DILIGENCE_MODELS', 'fake');
+    vi.stubEnv('DILIGENCE_FAKE_BASE_URL', 'https://models.example/v1');
+    vi.stubEnv('DILIGENCE_FAKE_API_KEY', 'key');
+    vi.stubEnv('DILIGENCE_FAKE_MODEL', 'm1');
+  }
+
+  function stubFetch(compliantPayloads: unknown[]) {
+    const calls: { url: string; body: unknown }[] = [];
+    let i = 0;
+    const fetchMock = vi.fn(async (input: unknown, init?: { body?: string }) => {
+      const url = String(input);
+      calls.push({ url, body: init?.body ? JSON.parse(init.body) : undefined });
+      if (url.includes('compliant-call')) {
+        return new Response(JSON.stringify(compliantPayloads[i++]), { status: 200 });
+      }
+      if (url.includes('chat/completions')) {
+        return new Response(JSON.stringify(modelJson()), { status: 200 });
+      }
+      throw new Error(`unexpected url ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return { fetchMock, calls };
+  }
+
+  async function runMain(extra: string[] = []) {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'diligence-main-'));
+    tmpDirs.push(dir);
+    const out = path.join(dir, 'report.json');
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    await main([
+      '--cases', CASES,
+      '--only', 'registered-clear',
+      '--out', out,
+      '--max-spend-usd', '0.25',
+      ...extra,
+    ]);
+    return JSON.parse(readFileSync(out, 'utf8')) as Record<string, any>;
+  }
+
+  it('flagged registry evidence buys exactly one compliant call and no governed leg', async () => {
+    stubEnv();
+    const { calls } = stubFetch([
+      compliantJson({ ...registryPayload(), found: false }, '731002'),
+    ]);
+    const report = await runMain();
+    const compliant = calls.filter((c) => c.url.includes('compliant-call'));
+    const modelCalls = calls.filter((c) => c.url.includes('chat/completions'));
+    expect(compliant).toHaveLength(1);
+    // Baseline alone still runs for the historical comparison; no governed leg.
+    expect(modelCalls).toHaveLength(1);
+    const case0 = report.cases[0];
+    expect(case0.gate.decision).toBe('hold');
+    expect(case0.gate.reasons).toContain('incomplete_evidence');
+    expect(case0.evidence.steps).toHaveLength(1);
+    expect('settlementTransfer' in case0.evidence.steps[0]).toBe(false);
+    expect(case0.evidence.steps[0].settlement).toBeUndefined();
+    expect(case0.perModel[0].governed.finalDecision).toBe('hold');
+    expect(case0.perModel[0].governed.decidedBy).toBe('review_hold');
+    expect(case0.perModel[0].governed.modelDecision).toBeNull();
+    expect(report.execution.maxGovernedInputBytes).toBe(16384);
+  });
+
+  it('a sufficient first step buys both guarded calls', async () => {
+    stubEnv();
+    const { calls } = stubFetch([
+      compliantJson(registryPayload(), '731002'),
+      compliantJson(vendorPayload(), '710637'),
+    ]);
+    const report = await runMain();
+    expect(calls.filter((c) => c.url.includes('compliant-call'))).toHaveLength(2);
+    expect(calls.filter((c) => c.url.includes('chat/completions'))).toHaveLength(2);
+    expect(report.cases[0].evidence.steps).toHaveLength(2);
+  });
+
+  it('dispatches the full governed payload at the exact byte boundary', async () => {
+    stubEnv();
+    const { calls } = stubFetch([
+      compliantJson(registryPayload(), '731002'),
+      compliantJson(vendorPayload(), '710637'),
+    ]);
+    const siemens = {
+      name: SUPPLIER_NAME,
+      type: 'entity',
+      country: 'DE',
+      paymentUsd: 48000,
+      paymentRail: 'SEPA credit transfer',
+    };
+    const expectedPrompt = governedPrompt(siemens, [
+      step({ step: 1, screenMinerId: '731002', parentResponse: registryPayload() }),
+      step({ step: 2, screenMinerId: '710637', parentResponse: vendorPayload() }),
+    ]);
+    const exact = Buffer.byteLength(JSON.stringify(modelMessages(expectedPrompt)), 'utf8');
+    const report = await runMain(['--max-governed-input-bytes', String(exact)]);
+    expect(report.execution.maxGovernedInputBytes).toBe(exact);
+    const modelCalls = calls.filter((c) => c.url.includes('chat/completions'));
+    expect(modelCalls).toHaveLength(2); // alone + governed
+    const governedBody = modelCalls[1].body as { messages: { content: string }[] };
+    // The complete payload — tail marker included — is what was measured.
+    expect(JSON.stringify(governedBody.messages)).toBe(JSON.stringify(modelMessages(expectedPrompt)));
+    expect(governedBody.messages[1].content).toContain('Zürich € München');
+    expect(governedBody.messages[1].content).toContain('Decide.');
+    expect(report.cases[0].gate).toBeNull();
+  });
+
+  it('one byte below the boundary suppresses all model calls and holds', async () => {
+    stubEnv();
+    const { calls } = stubFetch([
+      compliantJson(registryPayload(), '731002'),
+      compliantJson(vendorPayload(), '710637'),
+    ]);
+    const siemens = {
+      name: SUPPLIER_NAME,
+      type: 'entity',
+      country: 'DE',
+      paymentUsd: 48000,
+      paymentRail: 'SEPA credit transfer',
+    };
+    const expectedPrompt = governedPrompt(siemens, [
+      step({ step: 1, screenMinerId: '731002', parentResponse: registryPayload() }),
+      step({ step: 2, screenMinerId: '710637', parentResponse: vendorPayload() }),
+    ]);
+    const exact = Buffer.byteLength(JSON.stringify(modelMessages(expectedPrompt)), 'utf8');
+    const report = await runMain(['--max-governed-input-bytes', String(exact - 1)]);
+    const case0 = report.cases[0];
+    expect(case0.gate).toEqual({
+      decision: 'hold',
+      decidedBy: 'review_hold',
+      reasons: ['evidence_too_large'],
+    });
+    // Both specialist calls happened; no model I/O at all.
+    expect(calls.filter((c) => c.url.includes('compliant-call'))).toHaveLength(2);
+    expect(calls.filter((c) => c.url.includes('chat/completions'))).toHaveLength(0);
+    expect(case0.evidence.steps[0].parentResponseHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(case0.evidence.steps[1].parentResponseHash).toMatch(/^[0-9a-f]{64}$/);
+    const row = case0.perModel[0];
+    expect(row.alone.skipped).toBe('evidence_too_large');
+    expect(row.governed.decidedBy).toBe('review_hold');
+    expect(row.governed.finalDecision).toBe('hold');
+    expect(row.governed.modelDecision).toBeNull();
+  });
+
+  it('rejects an invalid byte cap before any fetch', async () => {
+    stubEnv();
+    const { fetchMock } = stubFetch([]);
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    await expect(main(['--max-governed-input-bytes', 'abc'])).rejects.toThrow(
+      /--max-governed-input-bytes/,
+    );
+    await expect(main(['--max-governed-input-bytes'])).rejects.toThrow(
+      /--max-governed-input-bytes/,
+    );
+    await expect(main(['--max-governed-input-bytes', '0'])).rejects.toThrow(
+      /--max-governed-input-bytes/,
+    );
+    await expect(main(['--max-governed-input-bytes', '4.5'])).rejects.toThrow(
+      /--max-governed-input-bytes/,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('an unaffordable first reservation sends zero requests', async () => {
+    stubEnv();
+    const { fetchMock } = stubFetch([]);
+    const report = await runMain(['--max-spend-usd', '0.01']);
+    expect(fetchMock).not.toHaveBeenCalled();
+    const case0 = report.cases[0];
+    expect(case0.skipped).toBe('spend cap');
+    expect(case0.perModel[0].alone.skipped).toBe('spend cap');
+    expect(case0.perModel[0].governed.decidedBy).toBe('skipped');
+    expect(case0.gate.decision).toBe('hold');
+    expect(case0.gate.reasons).toContain('incomplete_evidence');
   });
 });
