@@ -24,6 +24,10 @@ export interface ActivityItem {
   amount: string;
   time: string;
   status: string;
+  /** Evidence forwarded from the raw audit record; absent fields read hollow. */
+  hasFhe?: boolean;
+  hasOnchain?: boolean;
+  hasAnchoring?: boolean;
 }
 
 const ACTIVITY_PAGE_SIZE = 5;
@@ -145,17 +149,21 @@ export function RecentActivity({
               </div>
               <div className="flex items-center gap-3 flex-shrink-0 sm:ml-4 pl-8 sm:pl-0">
                 {/* Evidence completeness wire — derived strictly from what
-                    the row data proves: a decision exists (policy evaluated)
-                    and terminal decisions have a finalized record. Row data
-                    carries no FHE/on-chain proof, so those read hollow. */}
+                    the underlying audit record proves: a decision exists
+                    (policy evaluated), plus whatever FHE/on-chain/anchoring
+                    evidence the raw log actually carries. */}
                 <EvidenceFlow
                   variant="micro-chain"
                   className="hidden md:inline-flex"
                   stages={buildEvidenceMicroChain({
                     policy: true,
-                    privacy: false,
-                    onchain: false,
-                    receipt: item.status === 'approved' || item.status === 'denied',
+                    privacy: item.hasFhe ?? false,
+                    onchain: item.hasOnchain ?? false,
+                    receipt:
+                      (item.hasAnchoring ?? false) ||
+                      (item.hasOnchain ?? false) ||
+                      item.status === 'approved' ||
+                      item.status === 'denied',
                   })}
                 />
                 <span className="font-mono text-xs">{item.amount}</span>

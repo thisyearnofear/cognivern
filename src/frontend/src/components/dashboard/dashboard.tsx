@@ -15,6 +15,7 @@ import { trackUxEvent } from '@/lib/ux-events';
 import { deriveWorkspaceState } from '@/lib/workspace-state';
 import { QuickCheck } from './quick-check';
 import { normalizeAuditLogs, computeAverageLatency } from '@/lib/normalizers';
+import { hasConfidentialFhe, getOnChainTxHash, getAnchoringData } from '@/components/audit/audit-evidence';
 import { SetupChecklist } from './setup-checklist';
 import { WorkspaceNextAction } from './workspace-next-action';
 import { DashboardStats } from './dashboard-stats';
@@ -65,17 +66,37 @@ export function Dashboard() {
     return normalizeAuditLogs(logs as AuditLog[]);
   }, [logs]);
 
+  // Evidence fields (FHE evaluation, on-chain record, anchoring) live on the
+  // raw audit payload, so derive them per row and forward them to the
+  // micro-chain instead of letting those nodes read permanently hollow.
+  const rawLogById = useMemo(() => {
+    const map = new Map<string, unknown>();
+    if (Array.isArray(logs)) {
+      for (const raw of logs) {
+        const id = (raw as unknown as Record<string, unknown>).id;
+        if (id != null) map.set(String(id), raw);
+      }
+    }
+    return map;
+  }, [logs]);
+
   const activity = useMemo(() => {
-    return normalizedLogs.map((l) => ({
-      id: l.id,
-      agent: l.agent,
-      action: l.action,
-      amount: '—',
-      time: l.time,
-      status: l.decision,
-      _normalized: l.decision,
-    }));
-  }, [normalizedLogs]);
+    return normalizedLogs.map((l) => {
+      const raw = rawLogById.get(l.id);
+      return {
+        id: l.id,
+        agent: l.agent,
+        action: l.action,
+        amount: '—',
+        time: l.time,
+        status: l.decision,
+        hasFhe: hasConfidentialFhe(raw),
+        hasOnchain: Boolean(getOnChainTxHash(raw)),
+        hasAnchoring: Boolean(getAnchoringData(raw)),
+        _normalized: l.decision,
+      };
+    });
+  }, [normalizedLogs, rawLogById]);
 
   // Filtered activity based on donut cross-filter
   const filteredActivity = useMemo(() => {

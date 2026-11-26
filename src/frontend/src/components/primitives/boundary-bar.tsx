@@ -11,6 +11,7 @@ import {
   type BoundaryZone,
 } from "@/lib/boundary-scale";
 import { MOTION_SPRING } from "@/lib/motion-tokens";
+import { playDetent } from "@/lib/tactile-sound";
 import { cn } from "@/lib/utils";
 
 export interface BoundaryBarProps {
@@ -132,6 +133,7 @@ export function BoundaryBar({
     if (previousZoneRef.current === zone) return;
     previousZoneRef.current = zone;
     onZoneChange?.(zone);
+    playDetent();
     if (!reduceMotion) {
       void pulseControls.start({
         opacity: [0.7, 0],

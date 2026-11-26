@@ -1,6 +1,6 @@
 # Visual, Motion & Anti-Verbosity UX Master Plan
 
-> **Status:** Planned (Baseline Audit Complete — 2026-11-26)
+> **Status:** Implemented (all phases landed — final integration sweep 2026-11-26)
 > **Companion docs:** [`UX_IA_REVIEW.md`](./UX_IA_REVIEW.md) (information architecture) · [`ADAPTIVE_UX.md`](./ADAPTIVE_UX.md) (state-adaptation contract) · [`PRODUCT_MODEL.md`](./PRODUCT_MODEL.md) (glossary & loop)
 > **Purpose:** Durable design system specification and trackable execution plan to replace Cognivern's prose-heavy UI with differentiated visual, spatial, illustrative, and motion primitives.
 
@@ -17,7 +17,7 @@ Update this table as PRs land. Follow `AGENTS.md`: **one concern per PR**, befor
 | **2A** | Primitive: `BoundaryBar` | Build calibrated 3-zone ruler + semantic stamp; wire into Landing Hero, Policies, Onboarding, QuickCheck, GovernanceCheck | `[x]` Done | typecheck+lint pass; 7/7 `boundary-scale` vitest pass + existing decision-preview suite pass; no `Drag past` copy remains. Playwright drag/reduced-motion check still blocked by occupied dev port |
 | **2B** | Primitive: `DisclosureLens` & `SealedEnvelope` | Build tactile envelopes + security-hatch redaction + Canton vs FHE visual diff; wire into `PartyView`, `RevealComparison`, `VisibilityReplay` | `[x]` Done | typecheck+lint pass; 5/5 new `party-lens` vitest pass + existing visibility-replay/sealed-bid suites green. Disclosure driven purely by real participant responses/replay evidence (amounts reach cards only when disclosed). Playwright party-toggle screenshot matrix still blocked by occupied dev port |
 | **2C** | Primitive: `EvidenceFlow` & `NotaryReceipt` | Upgrade `EvidenceChain` into branching SVG gate + `pathLength` flow + compact inline audit chain; upgrade `DecisionReceipt` | `[x]` Done | typecheck+lint pass; 25/25 scoped vitest pass (evidence-flow 12/12 new: gate SSE mapping, micro-chain derivation, loop selection; decision-receipt, recent-activity, timeline-node regression). Gate wired into SpendFlowDemo + FHE SSE in GovernanceCheck/Onboarding; micro-chain in TimelineNode/RecentActivity; NotaryReceipt seam+stamp+5-node wire; SpendPathStrip node rail; EventTimeline layoutId playhead. Playwright visual pass still blocked by occupied dev port |
-| **2D** | Primitive: `MandateReservoir` | Build stacked budget/escrow/impact-delta bar; wire into `InboxPage`, `CapitalPage`, `ProgramDetail`, `Sponsored Credits` | `[ ]` Not started | Inbox before→after impact diff screenshot |
+| **2D** | Primitive: `MandateReservoir` | Build stacked budget/escrow/impact-delta bar; wire into `InboxPage`, `CapitalPage`, `ProgramDetail`, `Sponsored Credits` | `[x]` Done | typecheck+lint pass; 10/10 `mandate-reservoir` vitest pass; monospace `EvidencePacket` replaced with reservoir delta preview + reversibility badge; wired into inbox, capital, program-detail, credit-program-detail |
 | **3** | Illustration System (`SchematicPlate`) | Author 6 architectural 1.5px-stroke SVG plates; replace generic `HelpCircle` empty states + `EmptyAuditState` + Onboarding hero icons | `[x]` Done | typecheck + scoped eslint pass; token-native SVGs use no raster assets or hardcoded hex; browser light/dark visual pass deferred because the shared dev server is owned by concurrent phase work |
 | **4** | Landing Page Compression & Interactive Loop | Compress 9 prose bands → 5 visual bands; merge Loop/How-it-works/Jobs into 1 interactive explorer; visual `Alone → Governed` flip card | `[x]` Done | typecheck pass; 8/8 new `landing-bands` vitest pass; lint clean for landing files. Copy word count 1,044 → 556 (−46.7%, target ≥45%); `landing-page.tsx` 1,321 → 380 LOC (1,331 LOC total across 5 extracted band modules). Bands: hero unchanged + ProofFlip split card + interactive `EvidenceFlow` loop explorer + tabbed UseCase/API split + compact audience doors. Playwright visual/overflow check still blocked by occupied dev port |
 | **5** | Delight Layer (Optional Polish) | Opt-in synthesized Web Audio micro-detents (`TactileFeedback`), reactive `NumberFlow` digits on live deltas, optional Rive hero showcase | `[x]` Done | typecheck+lint pass; 5/5 tactile-sound gate tests pass; sound opt-in/default-off + reduced-motion/user-gesture gated; `AnimatedValue` instant on first paint with ch-width reservation; production build deferred to avoid disrupting concurrent phase dev server |
@@ -30,16 +30,16 @@ Cognivern's engineering and UX architecture are genuinely strong: single-source 
 
 ### Verified Baseline Metrics (2026-11-26)
 
-| Signal | Baseline Measurement | Target After Plan |
+| Signal | Baseline Measurement | Target After Plan → Achieved |
 | --- | --- | --- |
-| Custom `<svg>` / `<img>` / `<canvas>` files in `src/frontend/src` | **6 files total** (2 chevrons/arrows, 2 bare sparklines, 1 shield logo, 1 static 3-envelope strip) | **15+ purposeful visual primitives & plates** across all core flows |
-| `text-muted-foreground` / `CardDescription` / `app-page-description` occurrences | **1,121** | **≤ 650** (≥40% reduction in explanatory prose) |
+| Custom `<svg>` / `<img>` / `<canvas>` files in `src/frontend/src` | **6 files total** (2 chevrons/arrows, 2 bare sparklines, 1 shield logo, 1 static 3-envelope strip) | **Achieved: 15 purposeful visual primitive/plate modules** — 8 primitives (`boundary-bar`, `decision-stamp`, `disclosure-lens`, `sealed-envelope`, `evidence-flow`, `mandate-reservoir`, `segmented-control`, `animated-value`) + 7 illustration files (6 plates + shared `plate-frame`); 11 files carry direct `<svg>`/`<Image>` markup (plates render geometry inside the shared plate-frame canvas) |
+| `text-muted-foreground` / `CardDescription` / `app-page-description` occurrences | **1,121** | **Achieved: 1,117** — target missed as measured by raw class count. The copy diet removed stacked *essays* (5 sandbox banners → 1, 4-line decision blocks → verdict+reason), but the `text-muted-foreground` class is dominated by small inline field labels, not prose paragraphs. Landing rendered word count fell 1,044 → 556 (−46.7%), which is the honest verbosity signal |
 | Simultaneous "Demo / Sandbox" prose reminders on Dashboard | **5** (`AppSidebar`, `DemoBanner`, `Dashboard` subtitle, `WorkspaceNextAction`, `WelcomeOverlay`) | **1** (`AmbientModeChrome` top hairline + pill) |
 | Redundant outcome statements inside `DecisionPreview` | **4 stacked lines** (`Approved` + blurb + reasoning + footer) | **2 compact signals** (Verdict stamp + BoundaryBar + 1 specific rule reason) |
-| Landing page vertical sections (`landing-page.tsx`, 1,334 LOC) | **9 full bands** (with 12 text cards across 3 consecutive sections repeating the same loop) | **5 distinct, variegated bands** (≤ 750 LOC, ≥45% fewer words) |
+| Landing page vertical sections (`landing-page.tsx`, 1,334 LOC) | **9 full bands** (with 12 text cards across 3 consecutive sections repeating the same loop) | **Achieved: 5 bands** — `landing-page.tsx` 1,334 → 387 LOC, with 4 extracted band modules (proof-flip 258 + loop-explorer 302 + usecase-api 304 + audience-doors 85 = 1,336 total LOC incl. the new interactive primitives); rendered word count −46.7% |
 | Motion packages in `src/frontend/package.json` | **2** (`framer-motion@12.40.0` + `motion@13.1.0`) | **1** (`motion` only, wrapped in root `<MotionConfig>`) |
 | `layoutId` shared-element transitions across app | **0** | All segmented controls, party lenses, filter pills, and inbox resolutions |
-| Route transition blocking latency (`AnimatePresence mode="wait"`) | **~500ms** (250ms exit + 250ms enter) | **≤ 120ms** (non-blocking settle; zero exit lock) |
+| Route transition blocking latency (`AnimatePresence mode="wait"`) | **~500ms** (250ms exit + 250ms enter) | **Achieved: 120ms entrance** (`MOTION_DURATION.micro` in `page-transition.tsx`), no blocking exit — `mode="wait"` fully removed from dashboard layout files (remaining `mode="wait"` instances are local in-component tab/copy swaps, not route transitions) |
 | Idle continuously repainting animations | **2** (`AppSidebar` ping+sweep, `LandingPage` `"Checking policy"` pulse) | **0** (strict compliance with `AGENTS.md` Taste rule) |
 | Operational KPI mount count-up delay (`DashboardStats`) | **2,000ms** (`useCountUp(..., 2000)`) | **0ms on mount** (instant render; ≤250ms odometer roll only on *live deltas*) |
 
@@ -542,3 +542,23 @@ Run this checklist before closing any phase PR:
 4. **The `prefers-reduced-motion` Gate:** Toggle `Emulate CSS media feature prefers-reduced-motion: reduce` in DevTools / Playwright — every primitive must still communicate state clearly via static color, hatch, lock, and spatial position.
 5. **The Dual-Theme Optical Gate:** Inspect every new SVG primitive (`BoundaryBar`, `SealedEnvelope`, `EvidenceFlow`, `MandateReservoir`, `SchematicPlate`, `NotaryReceipt`) in both **Light** and **Dark** mode on `.app-surface` to verify stroke legibility and contrast.
 6. **The Contract Alignment Gate:** Confirm `deriveWorkspaceState` (`docs/ADAPTIVE_UX.md`) remains the single adaptive source of truth on `/dashboard` and all existing Playwright / TestSprite specs stay green.
+
+---
+
+## Implementation Record
+
+Final integration sweep (2026-11-26): full frontend typecheck clean, eslint clean (0 errors, 0 warnings), vitest 277/289 passing — the 12 failures in `tests/store.test.ts` + `tests/demo-flow.test.ts` are a pre-existing jsdom/localStorage environmental issue verified identical at pre-phase base commit `fccf024e`. Production `next build` succeeds (36 routes). Anti-slop grep audit: 0 `framer-motion` refs, 0 `animate-ping`, 0 `pulse-bg`, 0 `Drag past` copy, 0 `mode="wait"` in dashboard layouts, 0 `useCountUp` remnants (runs-page/run-detail local copies removed in the sweep), 0 hardcoded hex in `components/illustrations/`. Sweep wiring: `EmptySealedBidPlate` into the sealed-bid empty `PageState`, `playDetent()` on genuine `BoundaryBar` zone crossings, `playStamp()` on inbox approve/reject confirmation, evidence fields (FHE/on-chain/anchoring) forwarded from raw audit logs into the dashboard recent-activity micro-chain, `primeTactileSound()` on first landing hero slider interaction.
+
+| Commit | Summary |
+| --- | --- |
+| `e3513aa9` | Motion foundation: removed `framer-motion`, unified motion tokens, non-blocking 120ms route transitions |
+| `1c5058e6` | Sandbox chrome consolidation + copy diet: 5 banners → `AmbientModeChrome`, killed idle loops/count-ups |
+| `62a672a3` | `BoundaryBar` + `DecisionStamp` calibrated threshold instrument across hero/policies/onboarding/checks |
+| `5408b40b` | `DisclosureLens` + `SealedEnvelope` tactile Canton/FHE privacy primitives |
+| `432fab2d` | `EvidenceFlow` + `NotaryReceipt` — branching gate schematic, micro-chain, physical proof artifact |
+| `f10380d0` | `MandateReservoir` treasury/escrow impact bar + inbox HITL impact previews |
+| `6ee1a631` | `SchematicPlate` illustration system — 6 token-native architectural plates for empty states + onboarding |
+| `91414f49` | Landing compression: 9 prose bands → 5 visual bands, interactive loop explorer, −46.7% words |
+| `a7de5b4b` | Opt-in tactile sound detents/stamps + `AnimatedValue` kinetic digits |
+
+*Note: commit ordering above follows the phase plan; see `git log` for exact topological order. Playwright visual passes remain outstanding (blocked by a shared dev server owned outside this work) — run `tests/e2e/landing.spec.ts` + `sealed-bid.spec.ts` when a port is free.*

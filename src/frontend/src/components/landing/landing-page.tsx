@@ -17,6 +17,7 @@ import { useAuthStore, useAuthHydrated } from "@/stores/auth-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { DecisionPreview } from "@/components/governance/decision-preview";
 import { BoundaryBar } from "@/components/primitives/boundary-bar";
+import { primeTactileSound } from "@/lib/tactile-sound";
 import { DecisionStamp } from "@/components/primitives/decision-stamp";
 import { ProofFlip } from "@/components/landing/proof-flip";
 import { LoopExplorer } from "@/components/landing/loop-explorer";
@@ -247,7 +248,13 @@ export function LandingPage() {
                     maxDisplay={5000}
                     value={demoAmount}
                     interactive
-                    onChange={setDemoAmount}
+                    onChange={(next) => {
+                      // First drag is a user gesture — create/resume the audio
+                      // context here so zone-crossing detents can be audible
+                      // when the visitor has enabled interface sounds.
+                      primeTactileSound();
+                      setDemoAmount(next);
+                    }}
                   />
                 </div>
                 <div className="relative p-5">

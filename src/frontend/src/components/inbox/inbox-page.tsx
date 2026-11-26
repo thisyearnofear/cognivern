@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MandateReservoir } from "@/components/primitives/mandate-reservoir";
 import { DecisionStamp } from "@/components/primitives/decision-stamp";
 import { EmptyInboxPlate } from "@/components/illustrations/empty-inbox-plate";
+import { playStamp } from "@/lib/tactile-sound";
 import { apiClient, type FundedMandate, type SpendAttributionReport } from "@/lib/api-client";
 import type { Run as SharedRun } from "@cognivern/shared";
 import { useAuthStore } from "@/stores/auth-store";
@@ -277,6 +278,7 @@ export function InboxPage() {
         if (result.success) {
           // Stamp first, then let the row collapse out of the queue.
           setStamped((prev) => ({ ...prev, [runId]: approve ? "approved" : "denied" }));
+          playStamp(approve ? "approved" : "stopped");
           const timer = setTimeout(() => {
             setPending((prev) => prev?.filter((item) => item.run.id !== runId) ?? null);
             timers.current.delete(runId);

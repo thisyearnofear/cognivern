@@ -19,6 +19,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { CantonIdentityCard } from "./canton-identity-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageState } from "@/components/ui/error-state";
+import { EmptySealedBidPlate } from "@/components/illustrations/empty-sealed-bid-plate";
 import { useSealedBidRounds, useSealedBidCapabilities } from "@/hooks/use-api";
 import { useSealedBidLiveUpdates } from "@/hooks/use-sealed-bid-stream";
 import { useWorkspaceMode } from "@/hooks/use-workspace-mode";
@@ -288,6 +289,7 @@ export function SealedBidPage() {
               <div className="col-span-full space-y-2">
                 <PageState
                   variant="empty"
+                  illustration={<EmptySealedBidPlate />}
                   title="No vendor selections yet"
                   message="Start a confidential RFP — vendors bid blind, you reveal one winner."
                   action={{ label: "New agent round", onClick: () => { setShowCreate(false); setShowAgentCreate(true); } }}
