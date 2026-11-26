@@ -22,6 +22,7 @@ commit it or copy its contents into public docs.
 - [ARCHITECTURE_RAILS.md](./ARCHITECTURE_RAILS.md) — how the rails fit together
 - [AGENT_GOVERNANCE_INTEGRATION_SPEC.md](./AGENT_GOVERNANCE_INTEGRATION_SPEC.md) — sealed-bid and governance integration details
 - [UX_IA_REVIEW.md](./UX_IA_REVIEW.md) — information architecture rules
+- [VISUAL_MOTION_UX_PLAN.md](./VISUAL_MOTION_UX_PLAN.md) — visual, illustration, and motion design system: 8 primitives, phased implementation record, anti-slop quality gates
 - [internals/proof-and-eval-contracts.md](./internals/proof-and-eval-contracts.md) — the shared proof envelope (`/verify` summary) and the eval cases/report contract
 - [ADAPTIVE_UX.md](./ADAPTIVE_UX.md) — workspace-adaptive UI behavior
 - [DATA_OWNERSHIP.md](./DATA_OWNERSHIP.md) — trust model and per-domain ownership map
