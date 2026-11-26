@@ -36,6 +36,7 @@ import { useFheProgress } from "@/hooks/use-fhe-progress";
 import type { GovernanceEvaluation } from "@/lib/api-client";
 import { BoundaryBar } from "@/components/primitives/boundary-bar";
 import { EvidenceFlow, gatePhaseFromFheSteps } from "@/components/primitives/evidence-flow";
+import { OnboardingPlate } from "@/components/illustrations/onboarding-plate";
 
 const STEPS = [
   {
@@ -527,6 +528,7 @@ export function OnboardingWizard() {
       {/* Step Content */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className="p-6">
+          <OnboardingPlate step={step} policyProfile={selectedPolicy} className="mx-auto mb-5 max-w-[360px]" />
           <AnimatePresence mode="wait">
             {step === 0 && (
               <motion.div
@@ -538,7 +540,6 @@ export function OnboardingWizard() {
                 className="space-y-4"
               >
               <div className="text-center py-4">
-                <Wallet className="h-12 w-12 mx-auto mb-3 text-primary opacity-70" />
                 <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Connect an Account</h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   Start with email, or connect a wallet when an external transaction
@@ -600,7 +601,6 @@ export function OnboardingWizard() {
                 className="space-y-4"
               >
               <div className="text-center py-2">
-                <ShieldCheck className="h-12 w-12 mx-auto mb-3 text-primary opacity-70" />
                 <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
                   Choose a Policy Template
                 </h2>
@@ -660,7 +660,6 @@ export function OnboardingWizard() {
                 className="space-y-4"
               >
               <div className="text-center py-2">
-                <Users className="h-12 w-12 mx-auto mb-3 text-primary opacity-70" />
                 <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Name Your First Agent</h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   This agent will be governed by your policy

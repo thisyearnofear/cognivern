@@ -9,6 +9,7 @@ import { PageState } from '@/components/ui/error-state';
 import { MandateContextPanel } from '@/components/capital/mandate-context-panel';
 import { MandateReviewTool, getReviewProgress } from '@/components/capital/mandate-review-tool';
 import { MandateReservoir } from '@/components/primitives/mandate-reservoir';
+import { EmptySpendPlate } from '@/components/illustrations/empty-spend-plate';
 import { apiClient, type AllocationRecommendation, type FundedMandate, type FundedMandateStatement, type MandateContext, type MandateContextSyncHealth, type MandateStatementExport, type OutcomeObservation, type PublishedMandateStatementSummary, type SpendAttributionReport } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -461,10 +462,11 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
         <section aria-label="Create spending mandate" className="rounded-xl border border-primary/25 bg-primary/[.035] p-5">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><ShieldCheck className="h-4 w-4" /></div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h2 className="font-semibold">Create your first spending mandate</h2>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Give the work a name and objective first. You can add agents, budgets, policies, and success measures after the review loop is established.</p>
             </div>
+            <EmptySpendPlate className="hidden w-56 shrink-0 sm:block" />
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="space-y-1.5 text-sm">

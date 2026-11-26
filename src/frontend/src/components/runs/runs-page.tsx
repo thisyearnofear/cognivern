@@ -11,6 +11,7 @@ import { AttentionSummary } from '@/components/ui/attention-summary';
 import { useRouter } from 'next/navigation';
 import { Activity, RefreshCw, CheckCircle2, Clock, AlertTriangle, PlayCircle } from 'lucide-react';
 import { useRuns } from '@/hooks/use-api';
+import { EmptySpendPlate } from '@/components/illustrations/empty-spend-plate';
 
 function useCountUp(target: number, duration = 2000, start = false) {
   const [count, setCount] = useState(0);
@@ -241,6 +242,7 @@ export function RunsPage({ hideHeader = false }: { hideHeader?: boolean }) {
             label: 'Create API identity',
             onClick: () => router.push('/agents/workshop'),
           }}
+          illustration={<EmptySpendPlate />}
         />
       ) : error ? (
         <PageState

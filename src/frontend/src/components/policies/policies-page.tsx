@@ -48,6 +48,7 @@ import { HelpIcon } from "@/components/ui/help-icon";
 import { authFetch } from "@/lib/auth-fetch";
 import { formatWeiAsEth } from "@/lib/budget-format";
 import { BoundaryBar } from "@/components/primitives/boundary-bar";
+import { EmptyPolicyPlate } from "@/components/illustrations/empty-policy-plate";
 
 const POLICY_TEMPLATES = [
   {
@@ -414,6 +415,7 @@ export function PoliciesPage() {
               <Zap className="h-4 w-4 text-amber-500" />
               <span className="text-sm font-medium">Quick start templates</span>
             </div>
+            <EmptyPolicyPlate className="mx-auto max-w-[280px]" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {POLICY_TEMPLATES.map((t, i) => (
               <motion.div

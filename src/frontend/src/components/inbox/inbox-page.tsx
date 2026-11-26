@@ -19,6 +19,7 @@ import { PageState } from "@/components/ui/error-state";
 import { Textarea } from "@/components/ui/textarea";
 import { MandateReservoir } from "@/components/primitives/mandate-reservoir";
 import { DecisionStamp } from "@/components/primitives/decision-stamp";
+import { EmptyInboxPlate } from "@/components/illustrations/empty-inbox-plate";
 import { apiClient, type FundedMandate, type SpendAttributionReport } from "@/lib/api-client";
 import type { Run as SharedRun } from "@cognivern/shared";
 import { useAuthStore } from "@/stores/auth-store";
@@ -309,11 +310,11 @@ export function InboxPage() {
       />
 
       {sorted.length === 0 ? (
-        // Phase 3 replaces this with a SchematicPlate illustration plate.
         <PageState
           variant="empty"
           title="Inbox zero"
           message="Nothing is waiting for approval. Held spends will appear here with their suspicion context."
+          illustration={<EmptyInboxPlate />}
         />
       ) : (
         <div className="space-y-3">
