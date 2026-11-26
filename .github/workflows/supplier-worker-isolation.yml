@@ -1,0 +1,178 @@
+name: supplier-worker-isolation
+
+# Proves OS-level signer isolation for the governed supplier worker: the
+# signer file must be readable ONLY by the dedicated worker uid. The API
+# uid must get EACCES opening it, while it can still read the public
+# worker config. Disposable users/keys only — nothing is retained.
+#
+# The whole fixture lives under /tmp/supplier-ci (0755, traversable):
+#   worktree/  — rsync copy of the repo, world-readable so the worker uid
+#                can execute project code (the checkout dir is not)
+#   private/   — worker-owned 0700: signer + private worker config
+#   public/    — 0755: the public control file (expected payer pubkey)
+on:
+  pull_request:
+    paths:
+      - 'tooling/supplier-payment/**'
+      - 'src/backend/services/telegraph/SupplierPayment*.ts'
+      - '.github/workflows/supplier-worker-isolation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  STAGE: /tmp/supplier-ci/worktree
+  PRIV: /tmp/supplier-ci/private
+  PUB: /tmp/supplier-ci/public
+
+jobs:
+  uid-isolation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm and node
+        uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Create disposable worker/api users
+        run: |
+          sudo useradd -m -s /bin/bash supplier-worker
+          sudo useradd -m -s /bin/bash supplier-api
+          id supplier-worker; id supplier-api
+
+      - name: Stage a traversable executable copy under /tmp
+        run: |
+          sudo install -d -m 0755 "$STAGE"
+          sudo install -d -m 0755 -o supplier-worker -g supplier-worker "$PUB"
+          sudo install -d -m 0700 -o supplier-worker -g supplier-worker "$PRIV"
+          sudo rsync -a --exclude .git --exclude .artifacts \
+            "$GITHUB_WORKSPACE/" "$STAGE/"
+          # Guarantee traversal + read for the worker/api uids.
+          sudo find "$STAGE" -type d -exec chmod 0755 {} +
+          sudo find "$STAGE" -type f -exec chmod a+r {} +
+
+      - name: Generate the synthetic signer AS the worker uid inside the private dir
+        run: |
+          cd "$STAGE"
+          NODE_BIN="$(dirname "$(command -v node)")"
+          # umask 077: the key lands 0600 worker-owned without ever passing
+          # through a world-readable location.
+          sudo -u supplier-worker env \
+            HOME="$PRIV" XDG_CACHE_HOME="$PRIV/.cache" \
+            PATH="$NODE_BIN:/usr/bin:/bin" \
+            PRIV="$PRIV" PUB="$PUB" \
+            bash -c 'umask 077 && node -e "
+              const fs = require(\"node:fs\");
+              const { webcrypto } = require(\"node:crypto\");
+              (async () => {
+                const kp = await webcrypto.subtle.generateKey({name:\"Ed25519\"}, true, [\"sign\"]);
+                const priv = await webcrypto.subtle.exportKey(\"jwk\", kp.privateKey);
+                const pub = await webcrypto.subtle.exportKey(\"jwk\", kp.publicKey);
+                const sk = Buffer.concat([Buffer.from(priv.d,\"base64url\"), Buffer.from(pub.x,\"base64url\")]);
+                fs.writeFileSync(process.env.PRIV + \"/payer.json\", JSON.stringify([...sk]));
+                const ALPH=\"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz\";
+                let n=BigInt(\"0x\"+Buffer.from(pub.x,\"base64url\").toString(\"hex\")), s=\"\";
+                while(n>0n){s=ALPH[Number(n%58n)]+s;n/=58n;}
+                for (const b of Buffer.from(pub.x,\"base64url\")) { if(b===0) s=\"1\"+s; else break; }
+                fs.writeFileSync(process.env.PUB + \"/payer.pub\", s);
+              })();
+            "'
+          # Public control file: world-readable, still worker-owned.
+          sudo chmod 0644 "$PUB/payer.pub"
+          sudo chown supplier-worker "$PUB/payer.pub"
+          sudo ls -l "$PRIV"; ls -l "$PUB"
+
+      - name: Worker uid loads its own signer via the real signer.ts
+        run: |
+          cd "$STAGE"
+          NODE_BIN="$(dirname "$(command -v node)")"
+          sudo -u supplier-worker env \
+            HOME="$PRIV" XDG_CACHE_HOME="$PRIV/.cache" \
+            PATH="$NODE_BIN:/usr/bin:/bin" \
+            node_modules/.bin/tsx tooling/supplier-payment/signer-check.ts \
+              --key "$PRIV/payer.json" --expected-pubkey "$(cat "$PUB/payer.pub")"
+
+      - name: API uid gets EACCES opening the signer (raw os.open probe)
+        run: |
+          sudo -u supplier-api env PRIV="$PRIV" python3 - <<'PY'
+          import os, errno, sys
+          key = os.environ["PRIV"] + "/payer.json"
+          try:
+              fd = os.open(key, os.O_RDONLY)
+              os.close(fd)
+              sys.exit("FAIL: api uid opened the worker signer")
+          except PermissionError as e:
+              assert e.errno == errno.EACCES, e
+              print("EACCES confirmed")
+          PY
+
+      - name: API uid can read the public control file; signer dir untraversable
+        run: |
+          sudo -u supplier-api cat "$PUB/payer.pub"
+          set +e
+          sudo -u supplier-api ls "$PRIV/" >/dev/null 2>&1
+          RC=$?
+          set -e
+          [ "$RC" -ne 0 ] || { echo "FAIL: api uid listed the private dir"; exit 1; }
+
+      - name: Disabled worker refuses before touching signer, DB or RPC
+        run: |
+          cd "$STAGE"
+          NODE_BIN="$(dirname "$(command -v node)")"
+          PAYER_PUB="$(cat "$PUB/payer.pub")"
+          sudo install -d -m 0700 -o supplier-worker -g supplier-worker "$PRIV/cfgdir"
+          cat > "$RUNNER_TEMP/disabled-config.json" <<EOF
+          {"enabled": false, "workerUid": $(id -u supplier-worker), "distinctBackendUid": $(id -u supplier-api),
+           "workspaceId": "w", "mandateId": "m", "caseId": "c",
+           "payee": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU", "subjectPayeePins": {},
+           "issuerPublicKeyPath": "/nonexistent", "reportRoot": "/nonexistent",
+           "signerKeyPath": "/nonexistent", "signerPayerPubkey": "${PAYER_PUB}",
+           "journalPath": "/nonexistent/j.db", "dbPath": "/nonexistent/d.db",
+           "creSnapshotPath": "/nonexistent/c.jsonl"}
+          EOF
+          sudo install -m 0600 -o supplier-worker -g supplier-worker \
+            "$RUNNER_TEMP/disabled-config.json" "$PRIV/cfgdir/worker.json"
+          set +e
+          OUT=$(sudo -u supplier-worker env \
+            HOME="$PRIV" XDG_CACHE_HOME="$PRIV/.cache" \
+            PATH="$NODE_BIN:/usr/bin:/bin" \
+            node_modules/.bin/tsx tooling/supplier-payment/worker.ts execute \
+              --config "$PRIV/cfgdir/worker.json" </dev/null 2>&1)
+          RC=$?
+          set -e
+          echo "disabled worker rc=$RC out=$OUT"
+          [ "$RC" -ne 0 ] || { echo "FAIL: disabled worker ran"; exit 1; }
+          echo "$OUT" | grep -q "not explicitly enabled" \
+            || { echo "FAIL: did not refuse at the enabled gate"; exit 1; }
+
+      - name: Devnet worker rejects local-only and unknown flags
+        run: |
+          cd "$STAGE"
+          NODE_BIN="$(dirname "$(command -v node)")"
+          set +e
+          OUT=$(sudo -u supplier-worker env \
+            HOME="$PRIV" XDG_CACHE_HOME="$PRIV/.cache" \
+            PATH="$NODE_BIN:/usr/bin:/bin" \
+            node_modules/.bin/tsx tooling/supplier-payment/worker.ts execute \
+              --config "$PRIV/cfgdir/worker.json" --simulate-crash-after-send </dev/null 2>&1)
+          RC=$?
+          set -e
+          echo "crash-flag worker rc=$RC out=$OUT"
+          [ "$RC" -ne 0 ] || { echo "FAIL: devnet worker accepted --simulate-crash-after-send"; exit 1; }
+          echo "$OUT" | grep -q "unknown flag" \
+            || { echo "FAIL: did not reject the crash flag"; exit 1; }
+
+      - name: Cleanup disposable users and fixture
+        if: always()
+        run: |
+          sudo userdel -r supplier-worker 2>/dev/null || true
+          sudo userdel -r supplier-api 2>/dev/null || true
+          sudo rm -rf /tmp/supplier-ci

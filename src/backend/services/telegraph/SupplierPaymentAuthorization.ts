@@ -21,8 +21,10 @@ import { canonicalJson, sha256CanonicalJson } from './stableJson.js';
 
 export const REHEARSAL_SCHEMA = 'cognivern.supplier-payment-rehearsal.v1';
 export const DEVNET_SCHEMA = 'cognivern.supplier-payment-devnet.v1';
+export const LOCAL_SCHEMA = 'cognivern.supplier-payment-local.v1';
 const INTERNAL_REPORT_SCHEMA = 'cognivern.telegraph.diligence-report.v1';
 const REHEARSAL_CLUSTER = 'devnet';
+const LOCAL_CLUSTER = 'localnet';
 const REHEARSAL_MINT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
 const REHEARSAL_AMOUNT_BASE_UNITS = '10000';
 const HEX64 = /^[0-9a-f]{64}$/;
@@ -31,7 +33,13 @@ const hex64 = z.string().regex(HEX64, 'expected a 64-char lowercase hex digest')
 // Non-whitespace, but the signed bytes are never normalized or trimmed.
 const nonempty = z.string().refine((s) => s.trim().length > 0, 'must not be blank');
 
-const bodySchemaFor = (schema: string) =>
+/**
+ * Signed network pins are part of the body schema itself: the devnet and
+ * rehearsal domains require literal devnet + canonical mint; the local
+ * domain requires literal localnet + the deployment-pinned local mint.
+ * No code path ever reads the expected chain from the signed body.
+ */
+const bodySchemaFor = (schema: string, cluster: string, mint: string) =>
   z
     .object({
       schema: z.literal(schema),
@@ -40,8 +48,8 @@ const bodySchemaFor = (schema: string) =>
       caseId: nonempty,
       subjectHash: hex64,
       reportHash: hex64,
-      cluster: z.literal(REHEARSAL_CLUSTER),
-      mint: z.literal(REHEARSAL_MINT),
+      cluster: z.literal(cluster),
+      mint: z.literal(mint),
       payee: nonempty,
       amountBaseUnits: z.literal(REHEARSAL_AMOUNT_BASE_UNITS),
       intentId: nonempty,
@@ -49,10 +57,10 @@ const bodySchemaFor = (schema: string) =>
     })
     .strict();
 
-const envelopeSchemaFor = (schema: string) =>
+const envelopeSchemaFor = (schema: string, cluster: string, mint: string) =>
   z
     .object({
-      body: bodySchemaFor(schema),
+      body: bodySchemaFor(schema, cluster, mint),
       // Standard base64 Ed25519 signature only — exactly 86 chars + "==" pad.
       signature: z.string().regex(/^[A-Za-z0-9+/]{86}==$/, 'expected base64 Ed25519 signature'),
     })
@@ -100,12 +108,20 @@ const nonblankString = (v: unknown): v is string =>
  * the executor for its early replay lookup — a stored signature is only
  * replayed for bytes that already verified against the pinned key.
  */
-export function verifyEnvelopeSignature(
+interface NetworkPins {
+  cluster: string;
+  mint: string;
+}
+
+const DEVNET_PINS: NetworkPins = { cluster: REHEARSAL_CLUSTER, mint: REHEARSAL_MINT };
+
+function verifyEnvelopeSignatureForPins(
   expectedSchema: string,
+  pins: NetworkPins,
   envelope: unknown,
   trustedPublicKey: KeyObject,
 ): SupplierPaymentAuthorizationBody | null {
-  const env = envelopeSchemaFor(expectedSchema).safeParse(envelope);
+  const env = envelopeSchemaFor(expectedSchema, pins.cluster, pins.mint).safeParse(envelope);
   if (!env.success) return null;
   if (trustedPublicKey.type !== 'public' || trustedPublicKey.asymmetricKeyType !== 'ed25519') {
     return null;
@@ -115,6 +131,38 @@ export function verifyEnvelopeSignature(
   const signed = Buffer.from(canonicalJson(env.data.body), 'utf8');
   if (!cryptoVerify(null, signed, trustedPublicKey, signature)) return null;
   return env.data.body;
+}
+
+/**
+ * Devnet-domain signature check. The schema, cluster and canonical mint are
+ * fixed literals — nothing here can be relaxed by a caller or the body.
+ */
+export function verifyEnvelopeSignature(
+  expectedSchema: string,
+  envelope: unknown,
+  trustedPublicKey: KeyObject,
+): SupplierPaymentAuthorizationBody | null {
+  return verifyEnvelopeSignatureForPins(expectedSchema, DEVNET_PINS, envelope, trustedPublicKey);
+}
+
+/**
+ * Local-domain signature check. The schema and the `localnet` literal are
+ * fixed; the local mint is pinned by trusted deployment configuration and
+ * baked into the body schema — a body carrying any other mint fails parsing
+ * before signature verification.
+ */
+export function verifyLocalEnvelopeSignature(
+  envelope: unknown,
+  trustedPublicKey: KeyObject,
+  localMint: string,
+): SupplierPaymentAuthorizationBody | null {
+  if (!isAddress(localMint)) return null;
+  return verifyEnvelopeSignatureForPins(
+    LOCAL_SCHEMA,
+    { cluster: LOCAL_CLUSTER, mint: localMint },
+    envelope,
+    trustedPublicKey,
+  );
 }
 
 function checkStep(
@@ -171,12 +219,13 @@ function checkSupplier(supplier: unknown): string | null {
 
 function reviewSupplierPaymentForSchema(
   expectedSchema: string,
+  pins: NetworkPins,
   report: unknown,
   envelope: unknown,
   trustedPublicKey: KeyObject,
   now: number,
 ): ReviewResult {
-  const env = envelopeSchemaFor(expectedSchema).safeParse(envelope);
+  const env = envelopeSchemaFor(expectedSchema, pins.cluster, pins.mint).safeParse(envelope);
   if (!env.success) return blocked('approval envelope does not match the v1 schema');
   const body = env.data.body;
 
@@ -186,7 +235,7 @@ function reviewSupplierPaymentForSchema(
   const expiresAtMs = Date.parse(body.expiresAt);
   if (expiresAtMs <= now) return blocked('authorization expired');
 
-  if (verifyEnvelopeSignature(expectedSchema, envelope, trustedPublicKey) === null) {
+  if (verifyEnvelopeSignatureForPins(expectedSchema, pins, envelope, trustedPublicKey) === null) {
     return blocked('signature does not verify against the trusted key');
   }
 
@@ -306,7 +355,7 @@ export function reviewSupplierPayment(
   trustedPublicKey: KeyObject,
   now: number,
 ): ReviewResult {
-  return reviewSupplierPaymentForSchema(REHEARSAL_SCHEMA, report, envelope, trustedPublicKey, now);
+  return reviewSupplierPaymentForSchema(REHEARSAL_SCHEMA, DEVNET_PINS, report, envelope, trustedPublicKey, now);
 }
 
 /** Gate 2 review — the only schema the supplier-payment executor accepts. */
@@ -316,5 +365,28 @@ export function reviewSupplierDevnetPayment(
   trustedPublicKey: KeyObject,
   now: number,
 ): ReviewResult {
-  return reviewSupplierPaymentForSchema(DEVNET_SCHEMA, report, envelope, trustedPublicKey, now);
+  return reviewSupplierPaymentForSchema(DEVNET_SCHEMA, DEVNET_PINS, report, envelope, trustedPublicKey, now);
+}
+
+/**
+ * Local-domain review — the only schema the local executor accepts. The
+ * pinned local mint is trusted deployment configuration baked into the
+ * body literal, identical to how the devnet canonical mint is enforced.
+ */
+export function reviewSupplierLocalPayment(
+  report: unknown,
+  envelope: unknown,
+  trustedPublicKey: KeyObject,
+  now: number,
+  localMint: string,
+): ReviewResult {
+  if (!isAddress(localMint)) return blocked('local mint is not a valid address');
+  return reviewSupplierPaymentForSchema(
+    LOCAL_SCHEMA,
+    { cluster: LOCAL_CLUSTER, mint: localMint },
+    report,
+    envelope,
+    trustedPublicKey,
+    now,
+  );
 }
