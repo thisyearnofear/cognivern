@@ -45,7 +45,7 @@ commit it or copy its contents into public docs.
 
 ## Program status
 
-Status as of **2026-11-23**. Update this table when a program changes state;
+Status as of **2026-11-25**. Update this table when a program changes state;
 never bake deadlines into `AGENTS.md` or rail docs.
 
 | Program | Type | Status | Reference |
@@ -55,6 +55,7 @@ never bake deadlines into `AGENTS.md` or rail docs.
 | HackCanton S3 | Hackathon | Concluded Oct 21 2026 — not shortlisted; [retro](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md#retrospective) | [submission](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md) |
 | HackCanton S4 | Hackathon | Postponed to 2027 — dates to be announced | [CANTON.md](./CANTON.md) |
 | Prezenti AI Builder Sponsorship | Sponsorship (not a hackathon) | Applying — hard close Dec 29 2026; Celo mainnet milestone required | [PREZENTI_SPONSORSHIP.md](./PREZENTI_SPONSORSHIP.md) |
+| Zapier Build Week | Usage challenge (not a hackathon, no prizes) | Event Nov 23–29 2026 — preview-only weekly vendor review pilot (Challenges 1–2); partner and live run pending; free-call window ends 5 Jan 2027 | [ZAPIER_BUILD_WEEK.md](./ZAPIER_BUILD_WEEK.md) |
 | HackCanton S2 | Hackathon | Concluded | [CANTON.md](./CANTON.md) (rail stays live) |
 | Cleanverse Build: Trusted Assets | Hackathon | Concluded Aug 9 2026 | [history submission](./history/HACKATHON_SUBMISSION_CLEANVERSE.md) |
 | KeeperHub — Agents Onchain | Hackathon | Concluded Aug 13 2026 | [history submission](./history/HACKATHON_SUBMISSION_KEEPERHUB.md) |
