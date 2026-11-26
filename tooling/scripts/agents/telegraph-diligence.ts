@@ -76,6 +76,9 @@ const DEFAULT_CASES = path.join(
 );
 const DEFAULT_MANDATE_ID = 'telegraph-supplier-diligence';
 const DEFAULT_SPEND_CAP_USD = 0.25;
+/** UTF-8 byte ceiling on one governed request's messages JSON — a size
+ *  bound, not a token or USD cap. */
+const DEFAULT_MAX_GOVERNED_INPUT_BYTES = 16384;
 const SPEND_GUARD = { maxScreeningCostUsd: 0.02, maxTotalCostUsd: 0.03 };
 
 type JsonObject = Record<string, unknown>;
@@ -318,6 +321,7 @@ export function gateOutcome(evidence: DiligenceEvidence): GateOutcome | null {
     }
   }
   const reasons: string[] = [];
+  if (evidence.steps.length === 0) reasons.push('incomplete_evidence');
   for (const step of evidence.steps) {
     const held = step.reviewRequired === true || step.status === 'held';
     if (step.error) reasons.push('request_error');
@@ -354,6 +358,14 @@ export function gateOutcome(evidence: DiligenceEvidence): GateOutcome | null {
         reasons.push('low_confidence_evidence');
       } else if (!step.parentPurchased || step.status !== 'approved') {
         reasons.push('incomplete_evidence');
+      } else if (
+        step.blocked === true ||
+        step.reviewRequired === true ||
+        step.pendingAction != null
+      ) {
+        // An approved clear envelope still carrying block/review/pending
+        // flags is contradictory evidence — hold, never a clean pass.
+        reasons.push('compliance_review');
       }
     } else if (
       !step.error &&
@@ -586,7 +598,11 @@ async function runEvidencePhase(params: {
   mandateId: string;
   spend: SpendTracker;
   dryRun: boolean;
-}): Promise<{ evidence: DiligenceEvidence; skipped?: string; plannedBodies: JsonObject[] }> {
+}): Promise<{
+  evidence: DiligenceEvidence;
+  skipped?: string;
+  plannedBodies: { body: JsonObject; conditional?: boolean }[];
+}> {
   const { casesFile, diligenceCase, mandateId, spend } = params;
   const { specialists, supplier } = {
     specialists: casesFile.specialists,
@@ -598,7 +614,7 @@ async function runEvidencePhase(params: {
     specialistSpendUsd: 0,
     escalations: [],
   };
-  const plannedBodies: JsonObject[] = [];
+  const plannedBodies: { body: JsonObject; conditional?: boolean }[] = [];
 
   const step1Body = compliantCallBody({
     parent: specialists.registry,
@@ -617,10 +633,12 @@ async function runEvidencePhase(params: {
       disputeHit: true,
       reviewNote: `screenA run ${screeningRunId ?? 'unknown'} returned clear`,
     });
-  plannedBodies.push(step1Body);
+  plannedBodies.push({ body: step1Body });
 
   if (params.dryRun) {
-    plannedBodies.push(step2BodyFor(null));
+    // Dry runs have no step-1 evidence, so step 2 can only ever be a
+    // conditional plan — it is planned but never promised.
+    plannedBodies.push({ body: step2BodyFor(null), conditional: true });
     return { evidence, plannedBodies };
   }
 
@@ -653,14 +671,16 @@ async function runEvidencePhase(params: {
     evidence.escalations.push(step1.parentRunId);
   }
 
-  // Only a clean screenA earns the second screen. A screenB hit after a
-  // screenA clear is screener disagreement, so step 2 carries disputeHit —
-  // the compliant-call then routes it to the approval inbox for a human
-  // instead of silently denying the vendor-verify purchase.
-  if (step1.verdict === 'clear' && !step1.error) {
+  // Only a clean screenA earns the second screen — and now the full gate
+  // must pass on step-1 evidence alone, so a decisive first hold keeps
+  // step2Expected false and never spends the second call. A screenB hit
+  // after a screenA clear is screener disagreement, so step 2 carries
+  // disputeHit — the compliant-call then routes it to the approval inbox
+  // for a human instead of silently denying the vendor-verify purchase.
+  if (step1.verdict === 'clear' && gateOutcome(evidence) === null) {
     evidence.step2Expected = true;
     const step2Body = step2BodyFor(step1.screeningRunId ?? null);
-    plannedBodies.push(step2Body);
+    plannedBodies.push({ body: step2Body });
     if (!spend.tryReserve()) return { evidence, skipped: 'spend cap', plannedBodies };
     const started2 = Date.now();
     let step2: StepEvidence;
@@ -714,6 +734,15 @@ interface ModelCallOutcome {
   errored?: boolean;
 }
 
+/** Exact message shape used for both byte counting and dispatch — one
+ *  source so the governed-input cap measures what is actually sent. */
+export function modelMessages(prompt: string) {
+  return [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'user', content: prompt },
+  ];
+}
+
 async function callModel(
   config: ModelConfig,
   userPrompt: string,
@@ -723,10 +752,7 @@ async function callModel(
   const body = JSON.stringify({
     model: config.model,
     temperature: 0,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: userPrompt },
-    ],
+    messages: modelMessages(userPrompt),
   });
   try {
     const res = viaGateway
@@ -821,6 +847,7 @@ interface CliOptions {
   publicOut?: string;
   only?: Set<string>;
   maxSpendUsd: number;
+  maxGovernedInputBytes: number;
   mandateId: string;
   dryRun: boolean;
   help: boolean;
@@ -830,6 +857,7 @@ function parseArgs(argv: string[]): CliOptions {
   const options: CliOptions = {
     casesPath: DEFAULT_CASES,
     maxSpendUsd: DEFAULT_SPEND_CAP_USD,
+    maxGovernedInputBytes: DEFAULT_MAX_GOVERNED_INPUT_BYTES,
     mandateId: process.env.DILIGENCE_MANDATE_ID ?? DEFAULT_MANDATE_ID,
     reportId: 'supplier-diligence',
     dryRun: false,
@@ -842,6 +870,15 @@ function parseArgs(argv: string[]): CliOptions {
     else if (arg === '--markdown') options.markdown = argv[++i];
     else if (arg === '--only') options.only = new Set((argv[++i] ?? '').split(',').filter(Boolean));
     else if (arg === '--max-spend-usd') options.maxSpendUsd = Number(argv[++i]);
+    else if (arg === '--max-governed-input-bytes') {
+      const value = Number(argv[++i]);
+      if (!Number.isSafeInteger(value) || value <= 0) {
+        throw new Error(
+          'invalid --max-governed-input-bytes: expected a positive safe integer',
+        );
+      }
+      options.maxGovernedInputBytes = value;
+    }
     else if (arg === '--mandate-id') options.mandateId = argv[++i];
     else if (arg === '--report-id') options.reportId = argv[++i];
     else if (arg === '--public-out') options.publicOut = argv[++i];
@@ -865,6 +902,11 @@ Options:
   --markdown <path>     Write Markdown report
   --only <a,b>          Run selected case ids
   --max-spend-usd <n>   Specialist spend cap (default ${DEFAULT_SPEND_CAP_USD})
+  --max-governed-input-bytes <n>
+                        UTF-8 byte ceiling on one governed request's messages
+                        JSON (default ${DEFAULT_MAX_GOVERNED_INPUT_BYTES}); a size
+                        bound, not a token/USD or baseline cap. Oversized cases
+                        hold with evidence_too_large and suppress all model I/O.
   --mandate-id <id>     Mandate id on paid calls (default ${DEFAULT_MANDATE_ID})
   --report-id <id>      Public report id (default supplier-diligence)
   --public-out <path>   Write the redacted public report JSON
@@ -1200,8 +1242,8 @@ export function toMarkdown(report: {
   return `${lines.join('\n')}\n`;
 }
 
-async function main() {
-  const options = parseArgs(process.argv.slice(2));
+export async function main(argv: string[] = process.argv.slice(2)) {
+  const options = parseArgs(argv);
   if (options.help) {
     usageText();
     return;
@@ -1235,7 +1277,11 @@ async function main() {
 
     if (options.dryRun) {
       console.log(`case ${diligenceCase.id}: planned compliant-call bodies`);
-      for (const body of plannedBodies) console.log(`  ${JSON.stringify(body)}`);
+      for (const entry of plannedBodies) {
+        console.log(
+          `  ${entry.conditional ? '(conditional) ' : ''}${JSON.stringify(entry.body)}`,
+        );
+      }
       caseResults.push({
         id: diligenceCase.id,
         description: diligenceCase.description,
@@ -1250,18 +1296,42 @@ async function main() {
       continue;
     }
 
-    const gate = gateOutcome(evidence);
+    let gate = gateOutcome(evidence);
+    const prompt =
+      gate === null && !skipped
+        ? governedPrompt(diligenceCase.supplier, evidence.steps)
+        : null;
+    if (
+      prompt !== null &&
+      Buffer.byteLength(JSON.stringify(modelMessages(prompt)), 'utf8') >
+        options.maxGovernedInputBytes
+    ) {
+      gate = { decision: 'hold', decidedBy: 'review_hold', reasons: ['evidence_too_large'] };
+    }
+    // An oversized governed request suppresses all model I/O for the case —
+    // baseline included — but keeps the real hold reason on the governed row.
+    const oversized = gate?.reasons.includes('evidence_too_large') === true;
     const perModel: PerModelResult[] = [];
     for (const config of models) {
-      if (config.skipped) {
+      if (config.skipped || skipped !== undefined || oversized) {
+        // A case that never bought its evidence (or whose evidence cannot
+        // fit one governed request) sends no model calls at all — baseline
+        // included. skipped/oversized cases still record a governed row so
+        // the summary sees the hold, not an absent leg.
+        const aloneSkipped =
+          config.skipped ?? (oversized ? 'evidence_too_large' : (skipped ?? 'skipped'));
+        const governedHold =
+          oversized && gate
+            ? finalGovernedDecision(gate, 'unparseable', false)
+            : { decision: 'hold' as Decision, decidedBy: 'skipped', modelDecision: null };
         perModel.push({
           label: config.label,
-          alone: { decision: 'unparseable', correct: null, costUsd: null, skipped: config.skipped },
+          alone: { decision: 'unparseable', correct: null, costUsd: null, skipped: aloneSkipped },
           governed: {
-            modelDecision: null,
-            finalDecision: 'hold',
-            decidedBy: 'skipped',
-            correct: false,
+            modelDecision: governedHold.modelDecision,
+            finalDecision: governedHold.decision,
+            decidedBy: governedHold.decidedBy,
+            correct: oversized && governedHold.decision === diligenceCase.expectedDecision,
             costUsd: null,
           },
           decisionChanged: false,
@@ -1283,15 +1353,12 @@ async function main() {
       };
 
       // The governed synthesis call only costs tokens when the gate has not
-      // already decided the case.
+      // already decided the case. It dispatches the exact message shape the
+      // byte cap measured — never a re-derived or truncated prompt.
       let governedCall: ModelCallOutcome | null = null;
       let modelDecision: Decision | 'unparseable' = 'unparseable';
-      if (gate === null) {
-        governedCall = await callModel(
-          config,
-          governedPrompt(diligenceCase.supplier, evidence.steps),
-          Boolean(config.gatewayKey),
-        );
+      if (gate === null && prompt !== null) {
+        governedCall = await callModel(config, prompt, Boolean(config.gatewayKey));
         modelDecision = governedCall.decision;
       }
       const governed = finalGovernedDecision(gate, modelDecision, governedCall?.errored === true);
@@ -1348,6 +1415,7 @@ async function main() {
       startedAt: new Date().toISOString(),
       mandateId: options.mandateId,
       spendCapUsd: options.maxSpendUsd,
+      maxGovernedInputBytes: options.maxGovernedInputBytes,
       casesFileHash,
       casesFile: {
         policy: casesRaw.policy,
