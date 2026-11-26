@@ -14,6 +14,7 @@ import {
   parseDecision,
   parseRationale,
   payloadRiskSignals,
+  stepEvidenceFrom,
   toPublicReport,
   type CaseResult,
   type DiligenceCasesFile,
@@ -37,6 +38,7 @@ function step(overrides: Partial<StepEvidence> = {}): StepEvidence {
     blocked: false,
     reviewRequired: false,
     parentPurchased: true,
+    parentRiskSignals: [],
     ...overrides,
   };
 }
@@ -748,5 +750,138 @@ describe('shipped cases file', () => {
         expect(() => fillParams(parsed.specialists[key].params, c.supplier)).not.toThrow();
       }
     }
+  });
+});
+
+describe('stepEvidenceFrom → gateOutcome parent evidence', () => {
+  const compliantResponse = (parentData: unknown, includeResponse = true) => ({
+    data: {
+      status: 'approved',
+      compliance: { screeningMinerId: '710637', verdict: 'clear', providerVerdict: 'CLEAR' },
+      evidenceBundle: {
+        gate: { runId: 'gate-2', name: 'compliance' },
+        settlement: { status: 'settled', runId: 'parent-2' },
+        costs: { totalUsd: 0.02 },
+      },
+      ...(includeResponse ? { response: { data: parentData } } : {}),
+    },
+  });
+  const validVendor = () => ({
+    legal_name: 'MAHAN AIR',
+    entity_status: 'ACTIVE',
+    review_required: false,
+    verified: true,
+    verdict: 'Verified',
+    sanctions: {
+      available: true,
+      match: false,
+      age_seconds: 60,
+      max_age_seconds: 86400,
+      non_sdn: { available: true, match: false, age_seconds: 60, max_age_seconds: 86400 },
+    },
+  });
+  const cleanStep1 = () => step({ step: 1, screenMinerId: '731002' });
+  const gateHolds = (step2: StepEvidence) =>
+    expect(
+      gateOutcome(evidence([cleanStep1(), step2], true))?.reasons,
+    ).toContain('incomplete_evidence');
+
+  it('accepts a fully verified vendor payload', () => {
+    const s2 = stepEvidenceFrom(compliantResponse(validVendor()), 2, 10, '7396', supplier.name);
+    expect(s2.parentPurchased).toBe(true);
+    expect(s2.parentRiskSignals).toEqual([]);
+    expect(gateOutcome(evidence([cleanStep1(), s2], true))).toBeNull();
+  });
+
+  it('denies an explicit null parent payload', () => {
+    const s2 = stepEvidenceFrom(compliantResponse(null), 2, 10, '7396', supplier.name);
+    expect(s2.parentPurchased).toBe(false);
+    expect(s2.parentRiskSignals).toEqual(['incomplete_evidence']);
+    gateHolds(s2);
+  });
+
+  it('denies a settled response with no payload at all', () => {
+    const s2 = stepEvidenceFrom(
+      compliantResponse(undefined, false),
+      2,
+      10,
+      '7396',
+      supplier.name,
+    );
+    expect(s2.parentPurchased).toBe(false);
+    expect(s2.parentRiskSignals).toBeUndefined();
+    gateHolds(s2);
+  });
+
+  it.each([
+    ['a malformed payload', 'junk'],
+    ['a payload that never identifies the subject', { verified: true }],
+    ['a verified payload missing the non-SDN source', { ...validVendor(), sanctions: { available: true, match: false, age_seconds: 60, max_age_seconds: 86400 } }],
+    ['a verified payload for a different legal name', { ...validVendor(), legal_name: 'OTHER CORP' }],
+  ])('denies %s', (_label, payload) => {
+    const s2 = stepEvidenceFrom(compliantResponse(payload), 2, 10, '7396', supplier.name);
+    expect(s2.parentRiskSignals).toContain('incomplete_evidence');
+    gateHolds(s2);
+  });
+
+  it('denies a registry payload that lacks positive subject identity', () => {
+    const s1 = stepEvidenceFrom(compliantResponse({ found: true }), 1, 10, '7393', supplier.name);
+    expect(s1.parentRiskSignals).toContain('incomplete_evidence');
+    gateHolds(s1);
+  });
+
+  it('denies a purchased step whose payload was never inspected', () => {
+    const uninspected = step({
+      step: 2,
+      screenMinerId: '710637',
+      parentPurchased: true,
+      parentRiskSignals: undefined,
+    });
+    const out = gateOutcome(evidence([cleanStep1(), uninspected], true));
+    expect(out?.decision).toBe('hold');
+    expect(out?.reasons).toContain('incomplete_evidence');
+  });
+
+  it('serializes parentRiskSignals in the public report only when inspected', () => {
+    const report = {
+      schema: 'cognivern.telegraph.diligence-report.v1',
+      policy: 'declared policy',
+      execution: {
+        startedAt: '2026-11-26T00:00:00Z',
+        mandateId: 'm',
+        spendCapUsd: 0.25,
+        casesFile: {
+          policy: 'p',
+          specialists: {
+            registry: { minerId: '7393', intent: 'CORPORATE_REGISTRY_LOOKUP', params: {} },
+          },
+        },
+        models: [],
+      },
+      cases: [
+        {
+          id: 'c1',
+          description: 'd',
+          supplier,
+          expectedDecision: 'hold',
+          groundTruth: { source: 's', assertion: 'a', checkedAt: '2026-11-26' },
+          evidence: {
+            steps: [
+              step({ step: 1, parentRiskSignals: undefined }),
+              step({ step: 2, screenMinerId: '710637' }),
+            ],
+            specialistSpendUsd: 0,
+            escalations: [],
+          },
+          gate: null,
+          perModel: [],
+        },
+      ],
+      summary: { perModel: [], run: { specialistSpendUsd: 0, escalations: 0 } },
+    } as unknown as Parameters<typeof toPublicReport>[0];
+    const pub = toPublicReport(report, { id: 'r' });
+    const steps = pub.cases[0].evidence.steps as Record<string, unknown>[];
+    expect('parentRiskSignals' in steps[0]).toBe(false);
+    expect(steps[1].parentRiskSignals).toEqual([]);
   });
 });

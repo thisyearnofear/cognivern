@@ -62,6 +62,12 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { sha256CanonicalJson } from '../../../src/backend/services/telegraph/stableJson.js';
+import {
+  payloadRiskSignals,
+  supplierParentRiskSignals,
+} from '../../../src/backend/services/telegraph/SupplierPaymentEvidence.js';
+
+export { payloadRiskSignals };
 
 const API = (process.env.COGNIVERN_API ?? 'https://api.cognivern.persidian.com').replace(/\/$/, '');
 const DEFAULT_CASES = path.join(
@@ -212,7 +218,9 @@ export function governedPrompt(supplier: Supplier, steps: StepEvidence[]): strin
     step: step.step,
     screenMinerId: step.screenMinerId,
     screenVerdict: step.verdict,
-    parentRiskSignals: step.parentRiskSignals ?? [],
+    ...(step.parentRiskSignals !== undefined
+      ? { parentRiskSignals: step.parentRiskSignals }
+      : {}),
     specialistPayload: step.parentResponse ?? null,
   }));
   return (
@@ -294,50 +302,6 @@ export function parseRationale(text: string): string | null {
 }
 
 /**
- * Structural risk signals inside a specialist payload, independent of any
- * model reading. Miner schemas are heterogeneous, so this is a deliberately
- * conservative fail-closed heuristic: a false positive costs a human review,
- * a false negative costs an unsupported payment. Recursive — review flags
- * nested inside check results count exactly like top-level ones.
- *  - `review_required`/`reviewRequired` true → the specialist itself asks
- *    for a human;
- *  - `verified` false → the subject could not be verified;
- *  - `available` false → an upstream source (e.g. a sanctions list) could
- *    not be consulted, so the payload is a non-answer;
- *  - an `age_seconds`/`max_age_seconds` (or camelCase) pair with age beyond
- *    the maximum → the underlying source was stale on arrival.
- */
-export function payloadRiskSignals(payload: unknown): string[] {
-  const reasons = new Set<string>();
-  const walk = (value: unknown): void => {
-    if (Array.isArray(value)) {
-      for (const item of value) walk(item);
-      return;
-    }
-    if (typeof value !== 'object' || value === null) return;
-    const record = value as JsonObject;
-    if (record.review_required === true || record.reviewRequired === true) {
-      reasons.add('parent_review_required');
-    }
-    if (record.verified === false) reasons.add('parent_unverified');
-    if (record.available === false) reasons.add('source_unavailable');
-    for (const [ageKey, maxKey] of [
-      ['age_seconds', 'max_age_seconds'],
-      ['ageSeconds', 'maxAgeSeconds'],
-    ] as const) {
-      const age = record[ageKey];
-      const max = record[maxKey];
-      if (typeof age === 'number' && typeof max === 'number' && age > max) {
-        reasons.add('source_stale');
-      }
-    }
-    for (const item of Object.values(record)) walk(item);
-  };
-  walk(payload);
-  return [...reasons].sort();
-}
-
-/**
  * Declared fixture policy, applied to the collected specialist evidence
  * before any model is consulted. First match wins:
  *  - an undisputed sanctions `hit` → reject;
@@ -373,6 +337,11 @@ export function gateOutcome(evidence: DiligenceEvidence): GateOutcome | null {
     // or stale upstream sources) hold the case structurally even when the
     // screening envelope is clean — the model never gets to waive them.
     if (step.parentRiskSignals) reasons.push(...step.parentRiskSignals);
+    // A settled parent that was never risk-inspected cannot support
+    // clearance — absent signals are a gap, not a pass.
+    if (step.parentPurchased && !Array.isArray(step.parentRiskSignals)) {
+      reasons.push('incomplete_evidence');
+    }
     if (
       step.verdict === 'review' ||
       step.verdict === 'unknown' ||
@@ -565,7 +534,13 @@ export function compliantCallBody(params: {
   };
 }
 
-function stepEvidenceFrom(response: unknown, step: number, latencyMs: number): StepEvidence {
+export function stepEvidenceFrom(
+  response: unknown,
+  step: number,
+  latencyMs: number,
+  parentMinerId: string,
+  subjectName: string,
+): StepEvidence {
   const data = getPath(response, 'data') as JsonObject | undefined;
   const bundle = data?.evidenceBundle as JsonObject | undefined;
   const settlement = bundle?.settlement as JsonObject | undefined;
@@ -594,10 +569,13 @@ function stepEvidenceFrom(response: unknown, step: number, latencyMs: number): S
     latencyMs,
     settlementStatus: firstString(settlement?.status),
     settlementTransfer,
-    parentPurchased: settlement?.status === 'settled' && responseData !== undefined,
+    parentPurchased: settlement?.status === 'settled' && responseData != null,
     spendGuardBlocked: data?.blocked === true && gateName === 'spend_guard',
     settlementGuardBlocked: data?.blocked === true && gateName === 'settlement_guard',
-    parentRiskSignals: responseData === undefined ? undefined : payloadRiskSignals(responseData),
+    parentRiskSignals:
+      responseData === undefined
+        ? undefined
+        : supplierParentRiskSignals(parentMinerId, responseData, subjectName),
     parentResponse: responseData,
   };
 }
@@ -651,7 +629,13 @@ async function runEvidencePhase(params: {
   let step1: StepEvidence;
   try {
     const response = await apiRequest('compliant-call', step1Body);
-    step1 = stepEvidenceFrom(response, 1, Date.now() - started1);
+    step1 = stepEvidenceFrom(
+      response,
+      1,
+      Date.now() - started1,
+      specialists.registry.minerId,
+      supplier.name,
+    );
   } catch (error) {
     step1 = {
       step: 1,
@@ -682,7 +666,13 @@ async function runEvidencePhase(params: {
     let step2: StepEvidence;
     try {
       const response = await apiRequest('compliant-call', step2Body);
-      step2 = stepEvidenceFrom(response, 2, Date.now() - started2);
+      step2 = stepEvidenceFrom(
+        response,
+        2,
+        Date.now() - started2,
+        specialists.vendorVerify.minerId,
+        supplier.name,
+      );
     } catch (error) {
       step2 = {
         step: 2,
@@ -1056,7 +1046,9 @@ export function toPublicReport(
           status: step.status,
           reviewRequired: step.reviewRequired,
           pendingAction: step.pendingAction,
-          parentRiskSignals: step.parentRiskSignals ?? [],
+          ...(step.parentRiskSignals !== undefined
+            ? { parentRiskSignals: step.parentRiskSignals }
+            : {}),
           parentPurchased: step.parentPurchased,
           settlementStatus: step.settlementStatus,
           settlementTransfer: step.settlementTransfer

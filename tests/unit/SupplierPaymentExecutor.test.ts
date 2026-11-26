@@ -557,3 +557,125 @@ describe('pending claims and reconciliation', () => {
     expect(consumedBaseUnits()).toBe('10000');
   });
 });
+
+describe('CRE parent evidence gate — derived from the signal, not the report', () => {
+  // Each case replaces one step's world with a parent payload that fails the
+  // positive-sufficiency check; the other step keeps the clean default.
+  const held: { name: string; stepIndex: number; payload: unknown; risks: string[] }[] = [
+    {
+      name: 'the step-2 vendor payload carries the Nov 24 warning shape',
+      stepIndex: 1,
+      payload: {
+        legal_name: supplier.name,
+        entity_status: 'ACTIVE',
+        verdict: 'Caution',
+        verified: false,
+        review_required: true,
+        sanctions: {
+          available: false,
+          match: null,
+          age_seconds: 1382472,
+          max_age_seconds: 86400,
+        },
+      },
+      risks: [
+        'incomplete_evidence',
+        'parent_review_required',
+        'parent_unverified',
+        'source_stale',
+        'source_unavailable',
+      ],
+    },
+    {
+      name: 'the step-2 vendor payload is null',
+      stepIndex: 1,
+      payload: null,
+      risks: ['incomplete_evidence'],
+    },
+    {
+      name: 'the step-2 vendor payload is an empty object',
+      stepIndex: 1,
+      payload: {},
+      risks: ['incomplete_evidence'],
+    },
+    {
+      name: 'the vendor reports verified but the non-SDN source is absent',
+      stepIndex: 1,
+      payload: {
+        legal_name: supplier.name,
+        entity_status: 'ACTIVE',
+        review_required: false,
+        verified: true,
+        verdict: 'Verified',
+        sanctions: { available: true, match: false, age_seconds: 60, max_age_seconds: 86400 },
+      },
+      risks: ['incomplete_evidence'],
+    },
+    {
+      name: 'the vendor reports a non-clear non-SDN match',
+      stepIndex: 1,
+      payload: {
+        legal_name: supplier.name,
+        entity_status: 'ACTIVE',
+        review_required: false,
+        verified: true,
+        verdict: 'Verified',
+        sanctions: {
+          available: true,
+          match: false,
+          age_seconds: 60,
+          max_age_seconds: 86400,
+          non_sdn: { available: true, match: true, age_seconds: 60, max_age_seconds: 86400 },
+        },
+      },
+      risks: ['incomplete_evidence'],
+    },
+    {
+      name: 'the vendor verified a different legal name',
+      stepIndex: 1,
+      payload: {
+        legal_name: 'Unrelated Holdings AG',
+        entity_status: 'ACTIVE',
+        review_required: false,
+        verified: true,
+        verdict: 'Verified',
+        sanctions: {
+          available: true,
+          match: false,
+          age_seconds: 60,
+          max_age_seconds: 86400,
+          non_sdn: { available: true, match: false, age_seconds: 60, max_age_seconds: 86400 },
+        },
+      },
+      risks: ['incomplete_evidence'],
+    },
+    {
+      name: 'the step-1 registry payload lacks subject identity',
+      stepIndex: 0,
+      payload: { found: true },
+      risks: ['incomplete_evidence'],
+    },
+  ];
+
+  for (const c of held) {
+    it(`denies with 'CRE parent evidence held' when ${c.name}`, async () => {
+      worlds[c.stepIndex] = fx.buildStepWorld(WS, MANDATE_ID, LINEAGE[c.stepIndex], supplier, c.payload);
+      await seedWorld();
+      const rail = fakeRail();
+      const report = baseReport();
+      const body = envelopeBody(report);
+      const result = await executeSupplierPayment(
+        WS,
+        signEnvelope(body),
+        makeDeps(rail, report),
+      );
+      expect(result.status).toBe('denied');
+      if (result.status !== 'denied') return;
+      expect(result.reason).toContain(`step ${c.stepIndex + 1}: CRE parent evidence held`);
+      for (const risk of c.risks) expect(result.reason).toContain(risk);
+      expect(rail.calls).toHaveLength(0);
+      expect(SupplierPaymentStore.getClaim(WS, body.intentId)).toBeUndefined();
+      expect(consumedBaseUnits()).toBe('0');
+    });
+  }
+});

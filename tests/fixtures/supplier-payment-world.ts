@@ -77,12 +77,44 @@ export interface StepWorld {
   stepEvidence: Record<string, unknown>;
 }
 
+/**
+ * Default parent payload per pinned miner: the positive shape that satisfies
+ * supplierParentRiskSignals — the registry reports the subject found and
+ * active; the vendor verifier reports verified with both SDN and non-SDN
+ * sources available, unmatched, and inside their maximum ages.
+ */
+function defaultParentPayload(
+  lin: StepLineageDef,
+  supplier: Record<string, unknown>,
+): Record<string, unknown> {
+  if (lin.parentMinerId === '7396') {
+    return {
+      legal_name: supplier.name,
+      entity_status: 'ACTIVE',
+      review_required: false,
+      verified: true,
+      verdict: 'Verified',
+      sanctions: {
+        available: true,
+        match: false,
+        age_seconds: 60,
+        max_age_seconds: 86400,
+        non_sdn: { available: true, match: false, age_seconds: 60, max_age_seconds: 86400 },
+      },
+    };
+  }
+  return { legal_name: supplier.name, entity_status: 'ACTIVE', found: true };
+}
+
 export function buildStepWorld(
   workspaceId: string,
   mandateId: string,
   lin: StepLineageDef,
   supplier: Record<string, unknown> = SUPPLIER,
+  parentPayload: unknown = undefined,
 ): StepWorld {
+  // Explicit null is a deliberate "no payload" test shape, not "use default".
+  const parentData = parentPayload === undefined ? defaultParentPayload(lin, supplier) : parentPayload;
   const i = lin.step;
   const screenRunId = `screen-run-${i}`;
   const screenArtifactId = `screen-artifact-${i}`;
@@ -114,7 +146,7 @@ export function buildStepWorld(
     description: `Diligence case-clear: step ${lin.step}`,
     miner: { id: lin.parentMinerId, name: 'Parent Miner', intent: lin.parentIntent },
     signal: {
-      data: { ok: true, step: i },
+      data: parentData,
       confidence: 1,
       confidenceThreshold: 0.5,
       confidenceMet: true,
