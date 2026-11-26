@@ -8,8 +8,15 @@ import { Button } from '@/components/ui/button';
 import { PageState } from '@/components/ui/error-state';
 import { MandateContextPanel } from '@/components/capital/mandate-context-panel';
 import { MandateReviewTool, getReviewProgress } from '@/components/capital/mandate-review-tool';
+import { MandateReservoir } from '@/components/primitives/mandate-reservoir';
 import { apiClient, type AllocationRecommendation, type FundedMandate, type FundedMandateStatement, type MandateContext, type MandateContextSyncHealth, type MandateStatementExport, type OutcomeObservation, type PublishedMandateStatementSummary, type SpendAttributionReport } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
+
+function toBigIntSafe(value: string | undefined): number {
+  if (!value || !/^\d+$/.test(value)) return 0;
+  const n = Number(BigInt(value));
+  return Number.isFinite(n) ? n : 0;
+}
 
 function formatAmount(value: string) {
   if (!/^\d+$/.test(value)) return '—';
@@ -508,6 +515,22 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
             <div className="bg-muted/40 p-3"><div className="text-lg font-semibold">{observations.length}</div><div className="text-xs text-muted-foreground">Outcomes recorded</div></div>
             <div className="bg-muted/40 p-3"><div className="text-lg font-semibold">{selectedMandate.agentIds.length}</div><div className="text-xs text-muted-foreground">Identities</div></div>
           </div>
+          <div className="mt-4 space-y-4">
+            {Object.entries(selectedMandate.budget.byAsset).map(([asset, budget], index) => {
+              const authorized = toBigIntSafe(budget.authorizedAmount);
+              if (authorized <= 0) return null;
+              return (
+                <MandateReservoir
+                  key={asset}
+                  label={`${asset} budget position`}
+                  capacity={authorized}
+                  consumed={toBigIntSafe(budget.consumedAmount)}
+                  pendingOther={toBigIntSafe(budget.pendingAmount)}
+                  showLegend={index === 0}
+                />
+              );
+            })}
+          </div>
         </section>
       )}
 
@@ -826,14 +849,30 @@ export function CapitalPage({ hideHeader = false }: { hideHeader?: boolean }) {
       <section className="border-t p-5">
         <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-500" /><h2 className="font-semibold">By asset</h2></div>
         <div className="mt-4 space-y-2">
-          {Object.entries(report.totalsByAsset).map(([asset, totals]) => (
-            <div key={asset} className="grid gap-2 rounded-lg border p-3 text-sm sm:grid-cols-4 sm:items-center">
-              <span className="font-medium">{asset}</span>
-              <span><span className="text-muted-foreground">Allocated </span>{formatAmount(totals.allocatedAmount)}</span>
-              <span><span className="text-muted-foreground">Consumed </span>{formatAmount(totals.consumedAmount)}</span>
-              <span><span className="text-muted-foreground">Pending </span>{formatAmount(totals.pendingAmount)}</span>
-            </div>
-          ))}
+          {Object.entries(report.totalsByAsset).map(([asset, totals]) => {
+            const mandateBudget = selectedMandate?.budget.byAsset[asset];
+            const capacity = toBigIntSafe(mandateBudget?.authorizedAmount);
+            if (capacity > 0) {
+              return (
+                <div key={asset} className="rounded-lg border p-3">
+                  <MandateReservoir
+                    label={asset}
+                    capacity={capacity}
+                    consumed={toBigIntSafe(totals.consumedAmount)}
+                    pendingOther={toBigIntSafe(totals.pendingAmount)}
+                  />
+                </div>
+              );
+            }
+            return (
+              <div key={asset} className="grid gap-2 rounded-lg border p-3 text-sm sm:grid-cols-4 sm:items-center">
+                <span className="font-medium">{asset}</span>
+                <span><span className="text-muted-foreground">Allocated </span>{formatAmount(totals.allocatedAmount)}</span>
+                <span><span className="text-muted-foreground">Consumed </span>{formatAmount(totals.consumedAmount)}</span>
+                <span><span className="text-muted-foreground">Pending </span>{formatAmount(totals.pendingAmount)}</span>
+              </div>
+            );
+          })}
           {Object.keys(report.totalsByAsset).length === 0 && <p className="text-sm text-muted-foreground">No allocations recorded yet.</p>}
         </div>
       </section>

@@ -480,12 +480,12 @@ Every major surface in `src/frontend/src`, mapped from its exact current files t
 ### Phase 2D — `MandateReservoir` Primitive & HITL Inbox Upgrade (1 PR)
 > **Rails touched:** Frontend (`src/frontend`) · **Goal:** Eliminate monospace dumps in approvals and make treasury/budget state spatially legible.
 
-- [ ] Build `src/frontend/src/components/primitives/mandate-reservoir.tsx` (stacked `consumed` + `pendingOther` + highlighted `proposedDelta` + `remaining` bar, optional soft-cap tick, `tabular-nums` before→after percentage readout).
-- [ ] Refactor `src/frontend/src/components/inbox/inbox-page.tsx`:
-  - [ ] Replace monospace `EvidencePacket` with `MandateReservoir` delta preview + Reversibility Badge (`Irreversible on-chain` vs `Reversible`) + 1-line trigger chip.
-  - [ ] Animate approval/rejection with `<AnimatePresence>` + `layout` smooth collapse into stamped confirmation.
-- [ ] Wire `MandateReservoir` into `capital-page.tsx`, `program-detail.tsx`, and `credit-program-detail.tsx`.
-- [ ] **Verify:** Screenshot `/inbox` with pending escalation showing before→after treasury shift; verify approve/reject animation and empty-queue transition.
+- [x] Build `src/frontend/src/components/primitives/mandate-reservoir.tsx` (stacked `consumed` + `pendingOther` + highlighted `proposedDelta` + `remaining` bar, optional soft-cap tick, `tabular-nums` before→after percentage readout).
+- [x] Refactor `src/frontend/src/components/inbox/inbox-page.tsx`:
+  - [x] Replace monospace `EvidencePacket` with `MandateReservoir` delta preview + Reversibility Badge (`Irreversible on-chain` vs `Reversible`) + 1-line trigger chip.
+  - [x] Animate approval/rejection with `<AnimatePresence>` + `layout` smooth collapse into stamped confirmation.
+- [x] Wire `MandateReservoir` into `capital-page.tsx`, `program-detail.tsx`, and `credit-program-detail.tsx`.
+- [x] **Verify:** `pnpm typecheck` + `pnpm lint` clean, vitest pure-helper suite (`tests/mandate-reservoir.test.ts`, 10 tests) passing. Browser screenshot of `/inbox` deferred — shared dev server owned by concurrent phase work; visual pass belongs to the Phase 5 sweep.
 
 ---
 
