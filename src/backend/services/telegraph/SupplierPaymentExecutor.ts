@@ -58,6 +58,7 @@ import {
   type SupplierPaymentAuthorizationBody,
 } from './SupplierPaymentAuthorization.js';
 import { SupplierPaymentStore } from './SupplierPaymentStore.js';
+import { supplierParentRiskSignals } from './SupplierPaymentEvidence.js';
 
 export const DEVNET_GENESIS_HASH = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
 const MAINNET_GENESIS_HASH = '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d';
@@ -369,6 +370,8 @@ async function checkStepLineage(params: {
   if (step.parentResponseHash !== sha256CanonicalJson(parentSignal.data)) {
     return `${tag}: parent response hash does not match the report`;
   }
+  const risks = supplierParentRiskSignals(lineage.parentMinerId, parentSignal.data, supplier.name);
+  if (risks.length) return `${tag}: CRE parent evidence held: ${risks.join(', ')}`;
   const parentCompliance = isRecord(data.compliance) ? data.compliance : undefined;
 
   const bundle = data.evidenceBundle;

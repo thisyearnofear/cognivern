@@ -189,9 +189,11 @@ function checkStep(
   if (step.pendingAction != null) return `step ${expectedStep}: pending action`;
   if (step.error != null) return `step ${expectedStep}: error recorded`;
   // The parent payload itself is redacted from the report, so the collector
-  // records the structural risk signals it extracted. Absent means the
-  // payload was never inspected; non-empty means it carried a warning — the
-  // evidence cannot support clearance either way.
+  // records the structural risk signals it extracted. This is a report-shape
+  // filter only — Gate 2 independently re-derives the signals from the CRE
+  // parent signal before dispatch. Absent means the payload was never
+  // inspected; non-empty means it carried a warning — the evidence cannot
+  // support clearance either way.
   if (!Array.isArray(step.parentRiskSignals) || step.parentRiskSignals.length !== 0)
     return `step ${expectedStep}: parent risk signals missing or non-empty`;
   if (step.settlementTransfer != null)
