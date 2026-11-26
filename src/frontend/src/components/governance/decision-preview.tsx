@@ -73,9 +73,13 @@ export function DecisionPreview({
         </div>
         <div className="min-w-0 flex-1">
           <div className={`font-semibold ${compact ? "text-sm" : "text-lg"}`}>{copy.label}</div>
-          <p className={`${compact ? "text-[11px]" : "text-sm"} text-muted-foreground`}>
-            {copy.blurb}
-          </p>
+          {/* Verdict + one concrete reason. The generic blurb only renders
+              when no specific reasoning exists — never both. */}
+          {!(showReasoning && reasoning) && (
+            <p className={`${compact ? "text-[11px]" : "text-sm"} text-muted-foreground`}>
+              {copy.blurb}
+            </p>
+          )}
           {amount !== undefined && (
             <p className="mt-1 text-xs font-medium text-foreground/80">
               ${typeof amount === "number" ? amount.toLocaleString() : amount}

@@ -49,34 +49,26 @@ export function TelegraphPage() {
         <PageHeader
           eyebrow="Governed action"
           title="Verified signals"
-          description="Confirm external intelligence before it drives a spend or policy decision. Categories, interest scores, and questions collected for this workspace."
+          description="External intelligence, confidence-gated before it drives spend."
         />
-        <p className="text-[11px] text-muted-foreground -mt-4">
-          Miner calls pay ~$0.01 x402 USDC; confidence ≥ threshold approves, below holds — each call receipts a <span className="font-mono">telegraph.signal</span> artifact.
-        </p>
-        <aside
-          aria-label="Worked example"
-          className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm"
-        >
-          <h2 className="text-sm font-semibold">
-            Why was this supplier held for review?
-          </h2>
-          <p className="mt-1 text-muted-foreground">
-            For Northwind, a fictional supplier, the model recommended
-            proceeding. Low-confidence evidence sent the request to review.
-          </p>
-          <p className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <Link
-              href="/verify?report=supplier-diligence&case=2&model=groq&view=governed"
-              className="text-primary hover:underline"
-            >
-              Inspect the decision
-            </Link>
-            <span className="text-xs text-muted-foreground">
-              Recorded testnet example · No new charge
-            </span>
-          </p>
-        </aside>
+        {/* Compact worked-example strip: one line, one link. Threshold and
+            receipt mechanics surface on the inspect page itself. */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/5 px-2 py-0.5 font-medium text-amber-700 dark:text-amber-400"
+            title="Miner calls pay ~$0.01 x402 USDC; confidence at or above threshold approves, below holds — each call receipts a telegraph.signal artifact."
+          >
+            <ShieldAlert className="h-3 w-3" aria-hidden />
+            Northwind: held at low confidence — model alone said proceed
+          </span>
+          <Link
+            href="/verify?report=supplier-diligence&case=2&model=groq&view=governed"
+            className="text-primary hover:underline font-medium"
+          >
+            Inspect the decision →
+          </Link>
+          <span className="text-[11px]">Recorded testnet example · No new charge</span>
+        </div>
 
         {isLoading ? (
           <div className="space-y-8">

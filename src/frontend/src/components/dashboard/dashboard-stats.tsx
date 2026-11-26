@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import {
   Users,
   Percent,
@@ -10,7 +9,6 @@ import {
   TrendingDown,
 } from 'lucide-react';
 import { ApprovalSparkline } from './approval-sparkline';
-import { useCountUp } from '@/hooks/use-count-up';
 import type { AuditLog } from '@cognivern/shared';
 
 interface DashboardStatsProps {
@@ -20,14 +18,17 @@ interface DashboardStatsProps {
   approvalRate: number;
   approvalDelta: number;
   blockedCount: number;
+  heldCount: number;
+  approvedCount: number;
   decisions: number;
   logs: AuditLog[];
 }
 
 /**
  * The three-KPI operational strip: active identities, approval rate, and
- * stopped decisions. Self-contained — it owns the intersection observer and
- * count-up animations so the parent only supplies raw values.
+ * stopped decisions. Values render immediately with tabular-nums — posture
+ * should never wait on a mount animation — and a thin decision-mix bar below
+ * the strip shows the approved/held/stopped proportion at a glance.
  */
 export function DashboardStats({
   loading,
@@ -36,28 +37,11 @@ export function DashboardStats({
   approvalRate,
   approvalDelta,
   blockedCount,
+  heldCount,
+  approvedCount,
   decisions,
   logs,
 }: DashboardStatsProps) {
-  const statsRef = useRef<HTMLDivElement>(null);
-  const [statsVisible, setStatsVisible] = useState(false);
-
-  useEffect(() => {
-    if (!statsRef.current) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setStatsVisible(true);
-      },
-      { threshold: 0.3 },
-    );
-    obs.observe(statsRef.current);
-    return () => obs.disconnect();
-  }, []);
-
-  const animatedApprovalRate = useCountUp(approvalRate, 2000, statsVisible);
-  const animatedBlocked = useCountUp(blockedCount, 2000, statsVisible);
-  const animatedActive = useCountUp(activeCount, 2000, statsVisible);
-
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -71,19 +55,21 @@ export function DashboardStats({
     );
   }
 
+  const mixTotal = approvedCount + heldCount + blockedCount;
+
   return (
-    <div ref={statsRef}>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden">
+    <div className="rounded-xl overflow-hidden border border-border bg-border">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-px">
         <div className="bg-card p-5 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950 flex-shrink-0">
             <Users className="h-5 w-5 text-primary" />
           </div>
           <div>
             <div
-              className="text-2xl font-bold"
+              className="text-2xl font-bold tabular-nums"
               style={{ fontFamily: 'var(--font-space-grotesk)' }}
             >
-              {statsVisible ? `${animatedActive}/${totalIdentities}` : '—'}
+              {activeCount}/{totalIdentities}
             </div>
             <div className="text-xs text-muted-foreground">Active identities</div>
           </div>
@@ -97,14 +83,14 @@ export function DashboardStats({
             <div>
               <div className="flex items-center gap-2">
                 <span
-                  className="text-2xl font-bold"
+                  className="text-2xl font-bold tabular-nums"
                   style={{ fontFamily: 'var(--font-space-grotesk)' }}
                 >
-                  {statsVisible ? `${animatedApprovalRate}%` : '—'}
+                  {approvalRate}%
                 </span>
                 {approvalDelta !== 0 && (
                   <span
-                    className={`flex items-center text-[11px] font-medium ${
+                    className={`flex items-center text-[11px] font-medium tabular-nums ${
                       approvalDelta > 0 ? 'text-emerald-600' : 'text-red-500'
                     }`}
                   >
@@ -137,12 +123,12 @@ export function DashboardStats({
           <div>
             <div className="flex items-center gap-2">
               <span
-                className="text-2xl font-bold"
+                className="text-2xl font-bold tabular-nums"
                 style={{ fontFamily: 'var(--font-space-grotesk)' }}
               >
-                {statsVisible ? animatedBlocked : '—'}
+                {blockedCount}
               </span>
-              <span className="text-[11px] font-medium text-muted-foreground">
+              <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
                 {decisions} total
               </span>
             </div>
@@ -150,6 +136,35 @@ export function DashboardStats({
           </div>
         </div>
       </div>
+
+      {/* Decision-mix proportion bar: emerald approved / amber held / crimson
+          stopped, computed from the same decision outcomes as the KPIs. */}
+      {mixTotal > 0 && (
+        <div
+          className="flex h-1.5 w-full bg-card"
+          role="img"
+          aria-label={`Decision mix: ${approvedCount} approved, ${heldCount} held, ${blockedCount} stopped`}
+        >
+          {approvedCount > 0 && (
+            <div
+              className="h-full bg-emerald-500/80"
+              style={{ width: `${(approvedCount / mixTotal) * 100}%` }}
+            />
+          )}
+          {heldCount > 0 && (
+            <div
+              className="h-full bg-amber-500/80"
+              style={{ width: `${(heldCount / mixTotal) * 100}%` }}
+            />
+          )}
+          {blockedCount > 0 && (
+            <div
+              className="h-full bg-red-500/80"
+              style={{ width: `${(blockedCount / mixTotal) * 100}%` }}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

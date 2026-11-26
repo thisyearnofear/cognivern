@@ -35,6 +35,7 @@ import {
   resolveDemoDecision,
   type DemoDecision,
 } from "@cognivern/shared";
+import { decisionLabel } from "@/lib/decision-language";
 
 /**
  * Canonical public API origin for user-facing snippets (curl examples,
@@ -530,9 +531,21 @@ export function LandingPage() {
                   <p className="text-sm font-semibold">Incoming agent request</p>
                   <p className="text-xs text-muted-foreground">Pay an approved vendor</p>
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-                  Checking policy
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                  aria-live="polite"
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      demoResult.status === "approved"
+                        ? "bg-emerald-500"
+                        : demoResult.status === "held"
+                          ? "bg-amber-500"
+                          : "bg-red-500"
+                    }`}
+                    aria-hidden
+                  />
+                  {decisionLabel(demoResult.status)}
                 </span>
               </div>
               <div className="grid md:grid-cols-[1.1fr_0.9fr]">

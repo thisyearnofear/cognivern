@@ -24,16 +24,9 @@ import {
   Settings,
   HelpCircle,
   LogOut,
-  Sparkles,
   ArrowRight,
   PlayCircle,
 } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDemoStore, startDemoTour } from "@/stores/demo-store";
@@ -93,66 +86,24 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-border/40 border-r-0 shadow-none">
       <SidebarHeader className="p-4 space-y-4">
-        <div className="flex items-center gap-3 group/brand">
+        <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
             <ShieldCheck className="h-4 w-4" />
           </div>
-          <div className="flex flex-col relative">
+          <div className="flex flex-col">
             <span className="text-sm font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Cognivern</span>
             <span className="text-xs text-muted-foreground">Governance for agentic work</span>
-            <span className="absolute left-0 top-full mt-1 px-2 py-1 bg-foreground text-background text-[10px] rounded-md opacity-0 group-hover/brand:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap shadow-lg">
-              Cogni-vern: governance for the cognitive age
-            </span>
           </div>
-        </div>
-        <div className="px-1">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <span className="text-[10px] text-muted-foreground/60 cursor-help">
-                  Powered by{" "}
-                  <span className="text-primary/70 hover:text-primary underline decoration-dotted">
-                    OWS
-                  </span>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="max-w-[240px] text-xs">
-                <p className="font-medium mb-1">Open Wallet Standard</p>
-                <p className="text-muted-foreground">
-                  Decentralized key custody for AI agents. Each agent gets its own scoped wallet with revocable permissions — no shared keys, no single point of failure.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </div>
 
         {/* Authenticated users get the real Sandbox ⇄ Production control.
-            The old read-only "Demo Mode / Sample data" chip is kept only for
-            the unauthenticated demo tour, where there is no workspace to
-            switch. The chip also keyed off `demoMode` while the banner keyed
-            off `workspaceMode`, so the two could contradict each other. */}
+            Demo/sandbox framing itself is owned by AmbientModeChrome (the top
+            hairline + slim bar) — the sidebar no longer repeats it. */}
         {isAppAuthenticated ? (
           <>
             <WorkspaceSwitcher />
             <ModeSwitch />
           </>
-        ) : demoMode ? (
-          <div className="relative flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-amber-100/0 via-amber-100/50 to-amber-100/0 dark:from-amber-900/0 dark:via-amber-900/30 dark:to-amber-900/0 animate-[pulse-bg_2s_ease-in-out_infinite]" />
-            <div className="relative flex items-center gap-2">
-              <div className="relative">
-                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 bg-amber-400 rounded-full animate-ping" />
-                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 bg-amber-400 rounded-full" />
-              </div>
-              <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
-                Demo Mode
-              </span>
-              <span className="ml-auto text-[10px] text-amber-600/70 dark:text-amber-400/70 font-medium">
-                Sample data
-              </span>
-            </div>
-          </div>
         ) : (
           <WorkspaceSwitcher />
         )}

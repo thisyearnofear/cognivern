@@ -16,6 +16,9 @@ import {
   PlusCircle,
   X,
   Lock,
+  Scale,
+  ClipboardList,
+  UserCheck,
   EyeOff,
   Zap,
   Loader2,
@@ -43,13 +46,14 @@ import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
 import { HelpIcon } from "@/components/ui/help-icon";
 import { authFetch } from "@/lib/auth-fetch";
+import { formatWeiAsEth } from "@/lib/budget-format";
 
 const POLICY_TEMPLATES = [
   {
     id: "strict-budget",
     name: "Strict Budget",
     desc: "Max $100/day, deny above $500 per tx",
-    icon: "🔒",
+    icon: Lock,
     type: "budget",
     rules: [
       { condition: "amount > 500", action: "deny" },
@@ -60,7 +64,7 @@ const POLICY_TEMPLATES = [
     id: "moderate-budget",
     name: "Moderate Budget",
     desc: "Max $500/day, flag above $1,000",
-    icon: "⚖️",
+    icon: Scale,
     type: "budget",
     rules: [
       { condition: "amount > 1000", action: "deny" },
@@ -71,7 +75,7 @@ const POLICY_TEMPLATES = [
     id: "dex-only",
     name: "DEX Allowlist",
     desc: "Only Uniswap, Curve, Sushi allowed",
-    icon: "📋",
+    icon: ClipboardList,
     type: "allowlist",
     rules: [
       {
@@ -84,7 +88,7 @@ const POLICY_TEMPLATES = [
     id: "human-approval",
     name: "Human Approval",
     desc: "Require approval above $500",
-    icon: "👤",
+    icon: UserCheck,
     type: "approval",
     rules: [{ condition: "amount > 500", action: "flag" }],
   },
@@ -401,7 +405,7 @@ export function PoliciesPage() {
                 className="p-4 rounded-xl border border-border text-left hover:border-primary/50 hover:bg-muted/50 transition-colors disabled:opacity-50"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">{t.icon}</span>
+                  <t.icon className="h-4 w-4 text-primary" aria-hidden />
                   <span className="text-sm font-medium">{t.name}</span>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">{t.desc}</p>
@@ -537,14 +541,13 @@ export function PoliciesPage() {
                     </div>
                   )}
                   {policy.approvalThreshold && (
-                    <div title="Spends at/above this amount (wei) are held for operator approval before signing">
+                    <div title={`Spends at/above this amount are held for operator approval before signing (raw: ${policy.approvalThreshold} wei)`}>
                       <span className="text-muted-foreground text-xs">
                         Approval ≥:
                       </span>{" "}
-                      <span className="font-medium font-mono">
-                        {policy.approvalThreshold}
-                      </span>{" "}
-                      <span className="text-muted-foreground text-xs">wei</span>
+                      <span className="font-medium tabular-nums">
+                        {formatWeiAsEth(policy.approvalThreshold)}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -890,7 +893,7 @@ function CreatePolicyForm({
                     : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
                 }`}
               >
-                <span>{t.icon}</span>
+                <t.icon className="h-3 w-3" aria-hidden />
                 <span>{t.name}</span>
               </button>
             ))}

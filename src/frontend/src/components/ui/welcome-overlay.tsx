@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDemoStore } from "@/stores/demo-store";
-import { usePreferencesStore } from "@/stores/preferences-store";
 import { useRouter } from "next/navigation";
 
 interface WelcomeCard {
@@ -55,20 +54,16 @@ const OVERLAY_KEY = "cognivern-welcome-shown";
 export function WelcomeOverlay() {
   const [show, setShow] = useState(false);
   const demoMode = useDemoStore((s) => s.demoMode);
-  const onboardingCompleted = usePreferencesStore((s) => s.onboardingCompleted);
   const router = useRouter();
 
   useEffect(() => {
-    // Production workspaces get their orientation inline through the
-    // dashboard journey. Keep the overlay for the exploratory demo only so
-    // first-use guidance does not compete with the user's next action.
-    const alreadyShown = sessionStorage.getItem(OVERLAY_KEY);
-    if (alreadyShown || !demoMode || onboardingCompleted) return;
-
-    // Delay slightly to let the page render first.
-    const timer = setTimeout(() => setShow(true), 600);
-    return () => clearTimeout(timer);
-  }, [demoMode, onboardingCompleted]);
+    // The overlay never opens on its own: visitors land directly in the live
+    // product and the tour is an explicit opt-in. `AmbientModeChrome` fires
+    // this event from its "Interactive tour" trigger.
+    const open = () => setShow(true);
+    document.addEventListener("cognivern-open-tour", open);
+    return () => document.removeEventListener("cognivern-open-tour", open);
+  }, []);
 
   const handleDismiss = () => {
     setShow(false);

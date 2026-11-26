@@ -40,39 +40,42 @@ function StatusPill({ status }: { status: string }) {
   return <Badge variant="outline" className="capitalize">{status}</Badge>;
 }
 
-function WorkspaceStatusLine() {
+function WorkspaceStatusChips() {
   const { mode, isConnected } = useWorkspaceMode();
   const { data: caps, isLoading } = useSealedBidCapabilities();
   if (!isConnected) {
     return (
-      <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-700 dark:text-amber-400">
-        <Shield className="h-4 w-4 shrink-0 mt-0.5" />
-        <span><span className="font-semibold">Sample data.</span> Sign in to create real rounds. Nothing here moves funds.</span>
-      </div>
+      <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/5 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+        <Shield className="h-3 w-3" aria-hidden />
+        Sample data. Sign in for real rounds
+      </span>
     );
   }
-  if (isLoading) return <Skeleton className="h-10 rounded-xl" />;
+  if (isLoading) return <Skeleton className="h-5 w-28 rounded-full" />;
   if (mode === "production") {
     if (caps?.backendConfigured && caps?.settlementSupported) {
       return (
-        <div className="flex items-start gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-700 dark:text-emerald-400">
-          <Shield className="h-4 w-4 shrink-0 mt-0.5" />
-          <span><span className="font-semibold">Production · Canton connected.</span> New rounds can reserve real settlement value at reveal.</span>
-        </div>
+        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+          <Shield className="h-3 w-3" aria-hidden />
+          Canton connected — real settlement at reveal
+        </span>
       );
     }
     return (
-      <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-700 dark:text-amber-400">
-        <Shield className="h-4 w-4 shrink-0 mt-0.5" />
-        <span><span className="font-semibold">Production · ledger not fully connected.</span> {caps?.settlementReason ?? "Rounds run without fund movement until settlement is configured."}</span>
-      </div>
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/5 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400"
+        title={caps?.settlementReason ?? "Rounds run without fund movement until settlement is configured."}
+      >
+        <Shield className="h-3 w-3" aria-hidden />
+        Ledger not fully connected
+      </span>
     );
   }
   return (
-    <div className="flex items-start gap-2 rounded-xl border border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
-      <Shield className="h-4 w-4 shrink-0 mt-0.5" />
-      <span><span className="font-semibold text-foreground">Sandbox.</span> Explore freely — bids are demo personas and no real funds can move.</span>
-    </div>
+    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+      <Shield className="h-3 w-3" aria-hidden />
+      Sandbox — no real funds
+    </span>
   );
 }
 
@@ -108,15 +111,25 @@ export function SealedBidPage() {
             <Gavel className="h-6 w-6" /> Private vendor selection
           </h1>
           <p className="text-sm text-muted-foreground max-w-2xl">
-            Run a confidential RFP. Vendors bid blind — nobody sees a
-            competitor&apos;s price until you reveal the winner.
+            Vendors bid blind; you reveal one winner.
           </p>
-          <p className="text-xs text-muted-foreground max-w-2xl">
-            <span className="font-medium text-foreground">Recommended:</span> an agent
-            round checks budget, deadline and bid rules for you.{" "}
-            <span className="font-medium text-foreground">Manual</span> is a quick
-            private bid collection with no fund movement.
-          </p>
+          {/* Compact inline status: ledger connectivity + bidding identity.
+              The agent-vs-manual tradeoff is explained inside each creation
+              form at the moment of choice, not in the permanent header. */}
+          <div className="flex items-center gap-2 flex-wrap pt-0.5">
+            <WorkspaceStatusChips />
+            {!isAppAuthenticated && (
+              <button
+                type="button"
+                onClick={() => setShowCantonSignIn(true)}
+                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                title="Connect a wallet for a Canton bidding identity — signing is gasless and never moves funds."
+              >
+                <Network className="h-3 w-3" aria-hidden />
+                Get a bidding identity
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button
@@ -170,21 +183,7 @@ export function SealedBidPage() {
         />
       )}
 
-      <WorkspaceStatusLine />
-      {isAppAuthenticated ? (
-        <CantonIdentityCard compact />
-      ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
-          <p className="text-sm text-muted-foreground max-w-xl">
-            <span className="font-medium text-foreground">Want to bid privately?</span>{" "}
-            Connect a wallet and we&apos;ll give you a Canton bidding identity.
-            Signing is gasless — it never moves funds.
-          </p>
-          <Button size="sm" variant="outline" onClick={() => setShowCantonSignIn(true)} className="gap-2">
-            <Network className="h-3.5 w-3.5" /> Get a bidding identity
-          </Button>
-        </div>
-      )}
+      {isAppAuthenticated && <CantonIdentityCard compact />}
       <AuthModal
         open={showCantonSignIn}
         initialTab="canton"
