@@ -11,6 +11,14 @@ import { ShieldCheck } from "lucide-react";
  * sake. Honors `prefers-reduced-motion` by rendering the settled state.
  */
 
+/**
+ * EvidenceFlow (src/components/primitives/evidence-flow.tsx) absorbs and
+ * evolves this motif for audit/pipeline surfaces — the branching gate, the
+ * compact inline micro-chain, and the mandate loop. Re-exported here so the
+ * brand divider and the primitive share one import home during migration.
+ */
+export { EvidenceFlow, buildEvidenceMicroChain } from "@/components/primitives/evidence-flow";
+
 const DEFAULT_STAGES = ["Mandate", "Action", "Spend", "Evidence"];
 
 interface EvidenceChainProps {

@@ -20,6 +20,7 @@ import {
 import NextLink from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { DecisionReceipt } from '@/components/ui/decision-receipt';
+import { EvidenceFlow, buildEvidenceMicroChain } from '@/components/primitives/evidence-flow';
 import { decisionLabel } from '@/lib/decision-language';
 import { PermitDialog } from './permit-dialog';
 import { EventTimeline, type TimelineEvent } from '@/components/shared/event-timeline';
@@ -177,29 +178,19 @@ export function TimelineNode({
                 <Badge variant="outline" className="text-xs">
                   {log.action}
                 </Badge>
-                {/* Compact evidence indicator so expanded detail is discoverable
-                    without crowding the collapsed row. */}
-                {(isFhe ||
-                  isChainGpt ||
-                  isLedger ||
-                  txHash ||
-                  (suspicion && suspicion.label !== 'normal')) && (
-                  <span
-                    className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground"
-                    title="Has additional evidence — expand for details"
-                  >
-                    <ShieldCheck className="h-2.5 w-2.5" />+
-                    {
-                      [
-                        isFhe,
-                        isChainGpt,
-                        isLedger,
-                        !!txHash,
-                        suspicion && suspicion.label !== 'normal',
-                      ].filter(Boolean).length
-                    }
-                  </span>
-                )}
+                {/* Compact evidence wire — completeness reads visually from
+                    real evidence fields; hollow nodes are absent proof. */}
+                <EvidenceFlow
+                  variant="micro-chain"
+                  stages={buildEvidenceMicroChain({
+                    // A decision in the audit log only exists because the
+                    // policy boundary was evaluated — always proven here.
+                    policy: true,
+                    privacy: isFhe,
+                    onchain: Boolean(txHash),
+                    receipt: Boolean(anchoring) || Boolean(txHash) || Boolean(runId),
+                  })}
+                />
               </div>
 
               {/* Description */}

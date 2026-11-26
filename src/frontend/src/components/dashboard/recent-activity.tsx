@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { EvidenceFlow, buildEvidenceMicroChain } from '@/components/primitives/evidence-flow';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageState } from '@/components/ui/error-state';
 import { decisionLabel } from '@/lib/decision-language';
@@ -143,6 +144,20 @@ export function RecentActivity({
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0 sm:ml-4 pl-8 sm:pl-0">
+                {/* Evidence completeness wire — derived strictly from what
+                    the row data proves: a decision exists (policy evaluated)
+                    and terminal decisions have a finalized record. Row data
+                    carries no FHE/on-chain proof, so those read hollow. */}
+                <EvidenceFlow
+                  variant="micro-chain"
+                  className="hidden md:inline-flex"
+                  stages={buildEvidenceMicroChain({
+                    policy: true,
+                    privacy: false,
+                    onchain: false,
+                    receipt: item.status === 'approved' || item.status === 'denied',
+                  })}
+                />
                 <span className="font-mono text-xs">{item.amount}</span>
                 <Badge
                   variant={

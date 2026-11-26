@@ -1,23 +1,21 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAuthStore } from "@/stores/auth-store";
 import { GovernanceMoment } from "@/components/ui/governance-moment";
+import { EvidenceFlow, type GatePhase, type GateOutcome } from "@/components/primitives/evidence-flow";
 import { trackUxEvent } from "@/lib/ux-events";
 import {
   ShieldCheck,
-  FileSearch,
   CheckCircle2,
   XCircle,
   PlayCircle,
   RotateCcw,
   Clock,
-  Activity,
   Lock,
   ShieldOff,
   AlertTriangle,
@@ -32,21 +30,13 @@ import {
 const EXECUTION_RAIL_NAME = defaultExecutionRail().displayName;
 const EVIDENCE_LINE = formatEvidenceAnchorLine();
 
-interface StepState {
-  id: string;
-  label: string;
-  icon: typeof ShieldCheck;
-  status: "pending" | "active" | "passed" | "failed" | "held";
-  detail: string;
-}
-
 interface Scenario {
   id: string;
   label: string;
   amount: number;
   asset: string;
   purpose: string;
-  outcome: "approved" | "held" | "denied";
+  outcome: GateOutcome;
   decisionDetail: string;
   summaryDetail: string;
 }
@@ -84,73 +74,10 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
-function buildSteps(scenario: Scenario): StepState[] {
-  return [
-    {
-      id: "policy",
-      label: "Policy Created",
-      icon: ShieldCheck,
-      status: "pending",
-      detail: "Daily limit: $1,000 (encrypted), soft limit: $200, compliance check enabled",
-    },
-    {
-      id: "request",
-      label: "Agent Requests Spend",
-      icon: Activity,
-      status: "pending",
-      detail: `YieldHunter-01 requests ${scenario.amount} ${scenario.asset} — ${scenario.purpose} (encrypted client-side)`,
-    },
-    {
-      id: "evaluate",
-      label: "Policy Evaluated",
-      icon: FileSearch,
-      status: "pending",
-      detail: "FHE comparisons on encrypted values — budget and amount never in plaintext",
-    },
-    {
-      id: "decision",
-      label: "Decision",
-      icon: scenario.outcome === "approved" ? CheckCircle2 : scenario.outcome === "held" ? Clock : XCircle,
-      status: "pending",
-      detail: "",
-    },
-    {
-      id: "audit",
-      label: scenario.outcome === "held" ? "Held — Awaiting Approval" : "Audit Logged",
-      icon: Clock,
-      status: "pending",
-      detail: scenario.outcome === "held"
-        ? "Run paused. Operator must approve before broadcast."
-        : EVIDENCE_LINE.replace("Immutable on", "Immutable record stored on"),
-    },
-  ];
-}
-
-function buildUngovernedSteps(scenario: Scenario): StepState[] {
-  return [
-    {
-      id: "request",
-      label: "Agent Requests Spend",
-      icon: Activity,
-      status: "pending",
-      detail: `YieldHunter-01 requests ${scenario.amount} ${scenario.asset} — ${scenario.purpose} — no policy check`,
-    },
-    {
-      id: "execute",
-      label: "Executes Immediately",
-      icon: AlertTriangle,
-      status: "pending",
-      detail: "Transaction sent directly to the blockchain with no guardrails",
-    },
-    {
-      id: "no-audit",
-      label: "No Audit Trail",
-      icon: XCircle,
-      status: "pending",
-      detail: "No record of policy compliance — no evidence of approval",
-    },
-  ];
-}
+/** Demo playback timing for the gate phases (ms). */
+const TRAVEL_MS = 900;
+const EVALUATE_MS = 1400;
+const UNGOVERNED_MS = 1200;
 
 export function SpendFlowDemo() {
   const router = useRouter();
@@ -158,90 +85,72 @@ export function SpendFlowDemo() {
   const [scenarioId, setScenarioId] = useState(SCENARIOS[0].id);
   const scenario = SCENARIOS.find((s) => s.id === scenarioId) ?? SCENARIOS[0];
   const [governed, setGoverned] = useState(true);
-  const [steps, setSteps] = useState<StepState[]>(() => buildSteps(scenario));
-  const [currentStep, setCurrentStep] = useState(0);
+  const [phase, setPhase] = useState<GatePhase>("idle");
+  const [outcome, setOutcome] = useState<GateOutcome | null>(null);
   const [running, setRunning] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const timersRef = useRef<number[]>([]);
 
-  const activeSteps = governed ? buildSteps(scenario) : buildUngovernedSteps(scenario);
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach((t) => window.clearTimeout(t));
+    timersRef.current = [];
+  }, []);
 
-  const advanceStep = useCallback(() => {
-    const isUngoverned = !governed;
-    const decisionIdx = isUngoverned ? 1 : 3;
+  useEffect(() => clearTimers, [clearTimers]);
 
-    setSteps((prev) =>
-      prev.map((s, i) => {
-        if (i === currentStep) {
-          if (i === decisionIdx && !isUngoverned) {
-            const outcome = scenario.outcome;
-            return {
-              ...s,
-              status: outcome === "approved" ? ("passed" as const) : outcome === "held" ? ("held" as const) : ("failed" as const),
-              detail: scenario.decisionDetail,
-            };
-          }
-          return { ...s, status: "passed" as const };
-        }
-        return s;
-      }),
-    );
-
-    if (currentStep < steps.length - 1) {
-      const next = currentStep + 1;
-      setCurrentStep(next);
-      setSteps((prev) =>
-        prev.map((s, i) => {
-          if (i === next) return { ...s, status: "active" as const };
-          return s;
-        }),
-      );
-    } else {
-      setCompleted(true);
-      setRunning(false);
-      trackUxEvent("primary_action_completed", "spend_flow_demo", governed ? scenario.outcome : "ungoverned");
-    }
-  }, [currentStep, steps.length, governed, scenario]);
-
-  useEffect(() => {
-    if (!running || completed) return;
-    const timer = setTimeout(advanceStep, 1200);
-    return () => clearTimeout(timer);
-  }, [running, currentStep, completed, advanceStep]);
+  const schedule = useCallback((fn: () => void, ms: number) => {
+    const id = window.setTimeout(fn, ms);
+    timersRef.current.push(id);
+  }, []);
 
   function handleStart() {
     trackUxEvent("primary_action_clicked", "spend_flow_demo", governed ? scenario.outcome : "ungoverned");
-    setSteps(
-      activeSteps.map((s, i) =>
-        i === 0 ? { ...s, status: "active" as const } : s,
-      ),
-    );
-    setCurrentStep(0);
+    clearTimers();
     setCompleted(false);
+    setOutcome(null);
     setRunning(true);
+    setPhase("travel");
+
+    if (governed) {
+      schedule(() => setPhase("evaluate"), TRAVEL_MS);
+      schedule(() => {
+        setPhase("decided");
+        setOutcome(scenario.outcome);
+      }, TRAVEL_MS + EVALUATE_MS);
+      schedule(() => {
+        setCompleted(true);
+        setRunning(false);
+        trackUxEvent("primary_action_completed", "spend_flow_demo", scenario.outcome);
+      }, TRAVEL_MS + EVALUATE_MS + 700);
+    } else {
+      // Ungoverned: the packet bypasses the gate — no evaluation ever happens.
+      schedule(() => {
+        setPhase("decided");
+        setCompleted(true);
+        setRunning(false);
+        trackUxEvent("primary_action_completed", "spend_flow_demo", "ungoverned");
+      }, UNGOVERNED_MS);
+    }
   }
 
-  function handleReset() {
-    setSteps(activeSteps);
-    setCurrentStep(0);
+  const handleReset = useCallback(() => {
+    clearTimers();
+    setPhase("idle");
+    setOutcome(null);
     setCompleted(false);
     setRunning(false);
-  }
+  }, [clearTimers]);
 
   function selectScenario(id: string) {
     if (running) return;
-    const sc = SCENARIOS.find((s) => s.id === id) ?? SCENARIOS[0];
     setScenarioId(id);
-    setCompleted(false);
-    setSteps(governed ? buildSteps(sc) : buildUngovernedSteps(sc));
-    setCurrentStep(0);
+    handleReset();
   }
 
   function toggleGoverned() {
     if (running) return;
     setGoverned(!governed);
-    setCompleted(false);
-    setSteps(!governed ? buildSteps(scenario) : buildUngovernedSteps(scenario));
-    setCurrentStep(0);
+    handleReset();
   }
 
   return (
@@ -315,6 +224,7 @@ export function SpendFlowDemo() {
         <button
           type="button"
           onClick={toggleGoverned}
+          aria-label="Toggle governance"
           className={`relative w-12 h-6 rounded-full transition-colors ${
             governed ? "bg-emerald-500" : "bg-red-400"
           }`}
@@ -336,134 +246,50 @@ export function SpendFlowDemo() {
         </span>
       </div>
 
-      {/* Flow visualization */}
-      <div className="space-y-0">
-        {steps.map((step, idx) => {
-          const Icon = step.icon;
-          const isUngoverned = !governed;
-          return (
-            <div key={step.id} className="flex gap-4">
-              <div className="flex flex-col items-center">
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500 ${
-                    step.status === "active"
-                      ? "bg-primary text-primary-foreground scale-110 shadow-lg ring-2 ring-primary/30"
-                      : step.status === "passed"
-                        ? isUngoverned
-                          ? "bg-red-100 dark:bg-red-950 text-red-500"
-                          : "bg-emerald-100 dark:bg-emerald-950 text-emerald-500"
-                        : step.status === "failed"
-                          ? "bg-red-100 dark:bg-red-950 text-red-500"
-                          : step.status === "held"
-                            ? "bg-amber-100 dark:bg-amber-950 text-amber-500"
-                            : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {step.status === "passed" || step.status === "failed" || step.status === "held" ? (
-                    isUngoverned && step.status === "passed" ? (
-                      <AlertTriangle className="h-5 w-5" />
-                    ) : step.status === "failed" ? (
-                      <XCircle className="h-5 w-5" />
-                    ) : step.status === "held" ? (
-                      <Clock className="h-5 w-5" />
-                    ) : (
-                      <CheckCircle2 className="h-5 w-5" />
-                    )
-                  ) : (
-                    <Icon className="h-5 w-5" />
-                  )}
-                </div>
-                {idx < steps.length - 1 && (
-                  <div
-                    className={`w-0.5 h-8 my-1 transition-colors duration-500 ${
-                      step.status === "passed"
-                        ? isUngoverned
-                          ? "bg-red-300"
-                          : "bg-emerald-300"
-                        : step.status === "held"
-                          ? "bg-amber-300"
-                          : step.status === "active"
-                            ? "bg-primary/30"
-                            : "bg-border"
-                    }`}
-                  />
-                )}
-              </div>
-              <div
-                className={`flex-1 pb-6 transition-all duration-500 ${
-                  step.status === "active"
-                    ? "opacity-100"
-                    : step.status === "pending"
-                      ? "opacity-50"
-                      : "opacity-100"
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span
-                    className={`font-semibold text-sm ${
-                      step.status === "active"
-                        ? "text-foreground"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {step.label}
-                  </span>
-                  {governed &&
-                    (step.id === "policy" ||
-                      step.id === "request" ||
-                      step.id === "evaluate") && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
-                        <Lock className="h-2.5 w-2.5" />
-                        Encrypted
-                      </span>
-                    )}
-                  {step.status === "active" && (
-                    <span className="flex items-center gap-1 text-xs text-primary">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                      In progress
-                    </span>
-                  )}
-                  {step.status === "passed" && idx === 3 && governed && (
-                    <Badge variant="secondary" className="text-xs">
-                      Approved
-                    </Badge>
-                  )}
-                  {step.status === "held" && idx === 3 && governed && (
-                    <Badge className="text-xs bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30">
-                      Held
-                    </Badge>
-                  )}
-                  {step.status === "failed" && idx === 3 && governed && (
-                    <Badge variant="destructive" className="text-xs">
-                      Denied
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">{step.detail}</p>
-                {step.status === "passed" && idx === 3 && governed && scenario.outcome === "approved" && (
-                  <div className="mt-2 flex items-center gap-2 text-xs">
-                    <Lock className="h-3 w-3 text-blue-500" />
-                    <span className="text-blue-600 dark:text-blue-400">
-                      ${scenario.amount} {scenario.asset} within encrypted daily budget
-                    </span>
-                    <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-2" />
-                    <span className="text-emerald-600 dark:text-emerald-400">
-                      Compliance passed
-                    </span>
-                  </div>
-                )}
-                {step.status === "held" && idx === 3 && governed && (
-                  <div className="mt-2 flex items-center gap-2 text-xs">
-                    <Clock className="h-3 w-3 text-amber-500" />
-                    <span className="text-amber-600 dark:text-amber-400">
-                      ${scenario.amount} {scenario.asset} exceeds soft limit — operator approval required
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+      {/* Live gate schematic — replaces the old timed text-row stepper. */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <EvidenceFlow
+          variant="gate"
+          governed={governed}
+          fhe={governed}
+          phase={phase}
+          outcome={outcome}
+          intentLabel="YieldHunter-01"
+          amountLabel={`$${scenario.amount} ${scenario.asset}`}
+          subscript={
+            phase === "evaluate"
+              ? "FHE comparisons on encrypted values — amounts never in plaintext"
+              : phase === "idle"
+                ? scenario.purpose
+                : null
+          }
+        />
+        {phase === "decided" && governed && outcome && (
+          <div className="mt-2 flex items-center justify-center gap-2 text-xs">
+            {outcome === "approved" ? (
+              <>
+                <Lock className="h-3 w-3 text-blue-500" />
+                <span className="text-blue-600 dark:text-blue-400">
+                  ${scenario.amount} {scenario.asset} within encrypted daily budget
+                </span>
+                <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-2" />
+                <span className="text-emerald-600 dark:text-emerald-400">Compliance passed</span>
+              </>
+            ) : outcome === "held" ? (
+              <>
+                <Clock className="h-3 w-3 text-amber-500" />
+                <span className="text-amber-600 dark:text-amber-400">
+                  ${scenario.amount} {scenario.asset} exceeds soft limit — operator approval required
+                </span>
+              </>
+            ) : (
+              <>
+                <XCircle className="h-3 w-3 text-red-500" />
+                <span className="text-red-600 dark:text-red-400">{scenario.decisionDetail}</span>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Summary */}
@@ -507,7 +333,7 @@ export function SpendFlowDemo() {
                 <strong>Amount:</strong> ${scenario.amount} {scenario.asset}
               </span>
               <span>
-                <strong>Duration:</strong> {(steps.length * 1.2).toFixed(1)}s
+                <strong>Duration:</strong> {((TRAVEL_MS + EVALUATE_MS) / 1000).toFixed(1)}s
               </span>
               <span>
                 <strong>Policies checked:</strong> 3

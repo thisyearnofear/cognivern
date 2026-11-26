@@ -35,6 +35,7 @@ import { Separator } from "@/components/ui/separator";
 import { useFheProgress } from "@/hooks/use-fhe-progress";
 import type { GovernanceEvaluation } from "@/lib/api-client";
 import { BoundaryBar } from "@/components/primitives/boundary-bar";
+import { EvidenceFlow, gatePhaseFromFheSteps } from "@/components/primitives/evidence-flow";
 
 const STEPS = [
   {
@@ -228,36 +229,24 @@ function CompactGovernanceCheck() {
             <Lock className="h-3.5 w-3.5" />
             Private policy check
           </div>
-          <div className="space-y-0.5">
-            {fheSteps.map((step) => (
-              <div key={step.label} className="flex items-center gap-2 py-0.5">
-                <div className="flex-shrink-0 w-5 flex justify-center">
-                  {step.status === "done" ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                  ) : step.status === "active" ? (
-                    <Loader2 className="h-3.5 w-3.5 text-amber-500 animate-spin" />
-                  ) : step.status === "error" ? (
-                    <XCircle className="h-3.5 w-3.5 text-red-500" />
-                  ) : (
-                    <div className="h-3.5 w-3.5 rounded-full border-2 border-muted-foreground/20" />
-                  )}
-                </div>
-                <span
-                  className={`text-[11px] ${
-                    step.status === "done"
-                      ? "text-foreground"
-                      : step.status === "active"
-                        ? "text-amber-600 dark:text-amber-400 font-medium"
-                        : step.status === "error"
-                          ? "text-red-500"
-                          : "text-muted-foreground/50"
-                  }`}
-                >
-                  {step.label}
-                </span>
-              </div>
-            ))}
-          </div>
+          {/* Live gate schematic driven by the real SSE step events —
+              steps without a visual analog surface as the subscript. */}
+          <EvidenceFlow
+            variant="gate"
+            governed
+            fhe
+            phase={gatePhaseFromFheSteps(fheSteps).phase}
+            outcome={null}
+            intentLabel="Test request"
+            amountLabel={amount ? `$${amount}` : undefined}
+            subscript={gatePhaseFromFheSteps(fheSteps).subscript}
+          />
+          {fheSteps.some((s) => s.status === "error") && (
+            <div className="flex items-center gap-1.5 text-[11px] text-red-500">
+              <XCircle className="h-3.5 w-3.5" />
+              {fheSteps.find((s) => s.status === "error")?.label} failed
+            </div>
+          )}
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Evaluation in progress

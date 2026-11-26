@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import {
   FastForward,
   Pause,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MOTION_SPRING } from "@/lib/motion-tokens";
 import { cn } from "@/lib/utils";
 
 export interface TimelineEvent {
@@ -58,6 +60,9 @@ export function EventTimeline({
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<ReplaySpeed>(1);
   const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+  // Unique-per-instance so simultaneous timelines never share the gliding ring.
+  const playheadId = `timeline-playhead-${useId()}`;
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -215,12 +220,22 @@ export function EventTimeline({
                 itemRefs.current.set(i, node);
               }}
               className={cn(
-                "rounded-lg border p-2.5 transition-all text-xs",
+                "relative rounded-lg border p-2.5 transition-all text-xs",
                 tone,
-                isActive && "ring-2 ring-primary ring-offset-1 ring-offset-background shadow-md",
+                isActive && "shadow-md",
                 isFuture && "opacity-30",
               )}
             >
+              {/* Gliding playhead ring — steps/replays glide down the list
+                  instead of teleporting the highlight. */}
+              {isActive && (
+                <motion.div
+                  layoutId={playheadId}
+                  transition={reduceMotion ? { duration: 0 } : MOTION_SPRING.snappy}
+                  className="pointer-events-none absolute -inset-px rounded-lg ring-2 ring-primary ring-offset-1 ring-offset-background"
+                  aria-hidden="true"
+                />
+              )}
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
