@@ -100,6 +100,11 @@ hierarchy**, not new UI.
 
 ## Applied changes
 
+> *Dated implementation record (Aug 2026, second pass Aug 24 2026). The live
+> tracker for visual/motion/UX execution is now
+> [`VISUAL_MOTION_UX_PLAN.md`](./VISUAL_MOTION_UX_PLAN.md) — this section is
+> kept as the historical record of what shipped, not as current truth.*
+
 Implemented alongside this review:
 
 - Nav restructured to the target 3 groups; Verified Capital folded into a tab

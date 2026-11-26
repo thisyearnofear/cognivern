@@ -1,10 +1,10 @@
 # Telegraph Protocol Season II — Cognivern Submission (working doc)
 
-> Working submission document. Durable rails: [`../TELEGRAPH.md`](../TELEGRAPH.md)
+> Working submission document. Durable rails: [`./TELEGRAPH.md`](./TELEGRAPH.md)
 > (governed calls, compliance-on-payment, ledger) and
-> [`../SPONSORED_CREDITS.md`](../SPONSORED_CREDITS.md) (sponsored inference,
+> [`./SPONSORED_CREDITS.md`](./SPONSORED_CREDITS.md) (sponsored inference,
 > verified-answer economics). Pre-submission pass:
-> [`../SUBMISSION_CHECKLIST.md`](../SUBMISSION_CHECKLIST.md).
+> [`./SUBMISSION_CHECKLIST.md`](./SUBMISSION_CHECKLIST.md).
 
 **Track:** Apps & Agents · **Missions:** 02 (stablecoin agent expense ledger +
 compliance proof on payment) and 10 (model economy / cost per verified answer)
@@ -309,7 +309,7 @@ slice. The next core rail is the payment-intent workflow; the supplier
 diligence item is a bounded, model-agnostic enterprise example rather than
 generic model routing. Durable
 detail lives in
-[`../TELEGRAPH.md#product-roadmap-after-mission-02-validation`](../TELEGRAPH.md#product-roadmap-after-mission-02-validation).
+[`./TELEGRAPH.md#product-roadmap-after-mission-02-validation`](./TELEGRAPH.md#product-roadmap-after-mission-02-validation).
 
 ## Solana commercial use cases (PR #106)
 

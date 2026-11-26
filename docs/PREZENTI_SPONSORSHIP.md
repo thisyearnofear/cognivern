@@ -15,6 +15,8 @@ as a **Celo EAS attestation naming the GitHub handle** at acceptance.
 
 ## Where we stand (2026-08-22)
 
+*Dated snapshot — the program table in [`README.md`](./README.md#program-status) carries current status.*
+
 - Reproduced our own score with their engine: **34.07/100**, flagged
   `partial_data`. Root cause was **commit attribution**, not output: local git
   used the legacy unprefixed noreply email, so GitHub could not link ~6 months

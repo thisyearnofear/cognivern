@@ -2,7 +2,7 @@
 
 What the Lexsi governed-spend work (Track 3 submission, `lexsi/`) teaches us
 about Cognivern's roadmap — and the build order that follows. Durable context:
-`docs/LEXSI_HACKATHON.md` (experiment log), `lexsi/SUBMISSION.md` (submission),
+`docs/history/LEXSI_HACKATHON.md` (experiment log), `lexsi/SUBMISSION.md` (submission),
 `lexsi/HF_ARTICLE.md` (write-up).
 
 ## What the experiments actually showed

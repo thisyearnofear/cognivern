@@ -1,5 +1,12 @@
 # Lexsi AI Safety and Alignment Hackathon integration plan — Cognivern
 
+> **Historical — hackathon concluded.** The submission window is closed
+> (Nov 15 2026 per the program table in `../README.md`; some checklist lines
+> below say Nov 14 AoE — the date ambiguity is moot, the window is closed
+> either way). The durable product translation lives in
+> [`../LEXSI_PRODUCT.md`](../LEXSI_PRODUCT.md). This doc is the experiment
+> log only.
+
 > Event: Lexsi AI Safety and Alignment Hackathon (Nov 1–21, 2026; submit by **Nov 15, 11:59 PM AoE**; Demo Day Nov 22)
 > Track: **Agentic Fine-tuning** (primary and only submission — only the final submission counts)
 > Stack: Lexsi open-source (**AgentTune**, **AuditKIT** — the track repos; AlignTune/SafeTune/CuratorKIT/CircuitKIT are other tracks' repos and cannot satisfy the chaining requirement) + Cohere Labs open-weights models + Hugging Face

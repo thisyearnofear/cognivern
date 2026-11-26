@@ -1,5 +1,8 @@
 # Tester Guide — Cognivern
 
+> Companion doc: [`TESTING.md`](./TESTING.md) is the automated verification
+> contract; this file is the manual operator walkthrough.
+
 **Live app:** https://cognivern.persidian.com
 **API:** https://api.cognivern.persidian.com
 **API docs:** https://api.cognivern.persidian.com/api/docs/openapi.json

@@ -1,7 +1,12 @@
 # Swarm Oversight — product direction notes
 
+> **Historical — implementation record of the Nov 2026 Apart Swarm sprint.**
+> The items below marked DONE shipped; the durable design constraints were
+> distilled into [`../internals/population-governance.md`](../internals/population-governance.md),
+> which is the live reference. This doc is the sprint-direction record only.
+
 *Drafted Nov 8, 2026 alongside the Apart Swarm Alignment sprint work
-(`lexsi/swarm/`, `docs/APART_SWARM_2026.md`). Directional — priorities depend
+(`lexsi/swarm/`, `docs/history/APART_SWARM_2026.md`). Directional — priorities depend
 on the swarm eval results; see "Open questions" at the bottom.*
 
 ## Implementation status (Nov 8, same-day)

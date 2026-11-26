@@ -5,6 +5,9 @@
 > every pull request. The write→verify→fix iteration log lives in
 > [`history/LOOP.md`](./history/LOOP.md) — that file is the historical record;
 > this one is the current contract.
+>
+> Companion doc: [`TESTER_GUIDE.md`](./TESTER_GUIDE.md) is the manual
+> operator walkthrough; this file is the automated verification contract.
 
 ---
 

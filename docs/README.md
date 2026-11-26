@@ -24,6 +24,8 @@ commit it or copy its contents into public docs.
 - [UX_IA_REVIEW.md](./UX_IA_REVIEW.md) — information architecture rules
 - [VISUAL_MOTION_UX_PLAN.md](./VISUAL_MOTION_UX_PLAN.md) — visual, illustration, and motion design system: 8 primitives, phased implementation record, anti-slop quality gates
 - [internals/proof-and-eval-contracts.md](./internals/proof-and-eval-contracts.md) — the shared proof envelope (`/verify` summary) and the eval cases/report contract
+- [internals/population-governance.md](./internals/population-governance.md) — durable design constraints for the Programs/population layer from the Apart Swarm experiment
+- [internals/settlement-pipeline.md](./internals/settlement-pipeline.md) — settlement pipeline shape and rail-agnostic evolution path
 - [ADAPTIVE_UX.md](./ADAPTIVE_UX.md) — workspace-adaptive UI behavior
 - [DATA_OWNERSHIP.md](./DATA_OWNERSHIP.md) — trust model and per-domain ownership map
 - [LANGFUSE_LESSONS.md](./LANGFUSE_LESSONS.md) — observability adjacency plan
@@ -61,8 +63,9 @@ never bake deadlines into `AGENTS.md` or rail docs.
 | Cleanverse Build: Trusted Assets | Hackathon | Concluded Aug 9 2026 | [history submission](./history/HACKATHON_SUBMISSION_CLEANVERSE.md) |
 | KeeperHub — Agents Onchain | Hackathon | Concluded Aug 13 2026 | [history submission](./history/HACKATHON_SUBMISSION_KEEPERHUB.md) |
 | Flare Summer Signal | Hackathon | Concluded Aug 14 2026 | [history submission](./history/FLARE_SUMMER_SIGNAL.md) |
-| Lexsi AI Safety & Alignment | Hackathon | Concluded — submission window closed Nov 15 2026; v7 adapter/results documented; no outcome recorded | [experiment log](./LEXSI_HACKATHON.md) · [product translation](./LEXSI_PRODUCT.md) |
-| Telegraph Protocol S2 | Hackathon | Active — final submission prep; Track 03 Apps & Agents with Mission 02 primary and Mission 10 supporting evidence; model-agnostic supplier-diligence example live against production with three model arms (qwen4-max, gemini-3.6-flash, gpt-oss-20b) — public report at `/verify?report=supplier-diligence`; submissions close Dec 1 2026 23:59 UTC via Anjoman | [submission](./history/HACKATHON_SUBMISSION_TELEGRAPH_S2.md) · [TELEGRAPH.md](./TELEGRAPH.md) · [SPONSORED_CREDITS.md](./SPONSORED_CREDITS.md) |
+| Lexsi AI Safety & Alignment | Hackathon | Concluded — submission window closed Nov 15 2026; v7 adapter/results documented; no outcome recorded | [experiment log](./history/LEXSI_HACKATHON.md) · [product translation](./LEXSI_PRODUCT.md) |
+| Apart Swarm Alignment | Hackathon | Concluded Nov 8 2026 — Kernel v8 results final | [archived doc](./history/APART_SWARM_2026.md) · [durable constraints](./internals/population-governance.md) |
+| Telegraph Protocol S2 | Hackathon | Active — final submission prep; Track 03 Apps & Agents with Mission 02 primary and Mission 10 supporting evidence; model-agnostic supplier-diligence example live against production with three model arms (qwen4-max, gemini-3.6-flash, gpt-oss-20b) — public report at `/verify?report=supplier-diligence`; submissions close Dec 1 2026 23:59 UTC via Anjoman | [submission](./HACKATHON_SUBMISSION_TELEGRAPH_S2.md) · [TELEGRAPH.md](./TELEGRAPH.md) · [SPONSORED_CREDITS.md](./SPONSORED_CREDITS.md) |
 | Telegraph Protocol S1 Track 3 | Hackathon | Concluded Sep 7 2026 — no placement; [retrospective](./TELEGRAPH.md#season-i-retrospective) | [history submission](./history/HACKATHON_SUBMISSION_TELEGRAPH.md) |
 
 ## History

@@ -1,5 +1,11 @@
 # Apart Research — Swarm Alignment Hackathon 2026
 
+> **Historical — hackathon concluded Nov 8 2026.** Kernel v8 results are
+> final (`lexsi/swarm/results/v8/`, report in `lexsi/swarm/REPORT.md`). The
+> durable design constraints this experiment produced live in
+> [`../internals/population-governance.md`](../internals/population-governance.md).
+> This doc is the sprint record only.
+
 Sprint: Nov 6–8, 2026 (online). **Submission deadline: Nov 8, 11:59 PM AoE.**
 Report: official template, ≤8 pages + refs/appendices, 150–250-word abstract,
 mandatory Limitations & Dual-Use appendix. Rubric: Impact/Innovation,
