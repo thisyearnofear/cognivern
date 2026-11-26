@@ -64,6 +64,7 @@ export interface PublicStep {
   parentRunId?: string | null;
   evidenceHash?: string;
   parentResponseHash?: string;
+  parentRiskSignals?: string[];
   errored: boolean;
 }
 
@@ -218,6 +219,10 @@ const REASON_LABELS: Record<string, string> = {
   settlement_incomplete: 'Authorized settlement did not settle',
   request_error: 'A specialist call failed',
   incomplete_evidence: 'Evidence was incomplete',
+  parent_review_required: 'The specialist itself asked for human review',
+  parent_unverified: 'The subject could not be verified',
+  source_unavailable: 'An upstream source could not be consulted',
+  source_stale: 'An upstream source was past its freshness limit',
 };
 
 /** Plain-English label for the gate reasons, joined for display. */

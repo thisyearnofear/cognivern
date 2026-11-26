@@ -296,28 +296,40 @@ a clean host — it is not proof of any specific deployment.
    is missing.
 5. Run the worker under a service manager as that user (`User=` in a
    systemd unit, or equivalent); never run project code as root.
-6. Only then fund the payer on devnet — funding while the backend user can
-   still read the key defeats the isolation.
+6. Stop before funding. Verify the target's administrative boundary (including privileged groups and shared credentials), repeat signer isolation and the read-only devnet preflight there, and require separate funding approval.
+
+## Supplier evidence readiness
+
+The Nov 24 `registered-clear` case (Siemens Aktiengesellschaft) is a comparison fixture, not a payment approval. All three governed model arms held. Keep that report immutable; a fresh collection is a new observation, not a replacement or a release of the hold.
+
+**2026-11-26 21:46 UTC: do not buy a rerun or provision a worker VM yet.** Miner `710637`'s [health record](https://telegraph-s2-sanctions.margyn.workers.dev/health) still advertised the same snapshot as the earlier check. Its OFAC SDN entry was fetched Nov 9. The entry's corroborating CSV SHA-256 was `7f43332dae0d1b78ce44c31692d87a3c66e4075bcd97e36d3f18585572ff55b8`; the bytes served by the [same Treasury export](https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.CSV) hashed to `89b2a6d6d825d3a0a5033c9d523ef8a5e05a0b766ccff1ad934aea7436da49b9`. This is a file-version mismatch, not a finding about the supplier. Vendor verifier `7396`'s [documentation](https://telegraph-data.margyn.workers.dev/) names GLEIF and OFAC SDN; its [health response](https://telegraph-data.margyn.workers.dev/health) lists supported intents but gives no dataset version or last successful refresh.
+
+At 21:57 UTC, the SHA-256 of each primary Treasury file ([SDN.XML](https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.XML) and [CONSOLIDATED.XML](https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/CONSOLIDATED.XML)) also differed from its corresponding digest in the saved 21:46 miner `710637` health record. These are same-format comparisons, not XML-versus-CSV checks. [OFAC documents file hashes](https://ofac.treasury.gov/specially-designated-nationals-list-sdn-list/hash-values-for-ofac-sanctions-list-files) for file integrity; they do not identify which entity records changed.
+
+The Nov 24 workspace audit subsequently recovered both parent and both screening signals and matched their response hashes, artifact links and bundle seals. The vendor-verification parent itself returned Caution, review required, and no sufficiently recent complete SDN source (age 1,382,472 seconds; maximum 86,400). Its review flag and unavailable-source error survive the collector's truncation when the prompt is reconstructed from the stored payload. This establishes the historical evidence for the hold, not today's provider state or a supplier match. The reconstruction is not a captured model request. Keep the raw export private.
+
+**2026-11-26 structural enforcement (post-audit fix).** The hold no longer depends on a model noticing payload warnings. The collector extracts structural risk signals from every parent payload (`payloadRiskSignals` in `telegraph-diligence.ts`): a specialist's own `review_required`, an unverifiable subject (`verified: false`), an unavailable upstream source (`available: false`), or a source past its own maximum age. Any signal forces a `review_hold` gate outcome even when both screening envelopes are clean, so a model `proceed` cannot waive it. Gate 1/Gate 2 review correspondingly requires each step's `parentRiskSignals` to be a present, empty array — absent means the payload was never inspected, non-empty means it carried a warning, and both block. Specialist payloads are now passed to governed models complete and untruncated: truncation could cut off exactly the verdict and review fields that mattered, and it made every model arm a joint observation of the same partial evidence. The Nov 24 regression shape (clean envelope, flagged payload) is covered in `tests/unit/TelegraphDiligence.test.ts` and `tests/unit/SupplierPaymentRehearsal.test.ts`. Because older reports lack the field entirely, they fail closed at review and can never authorize — which is correct, since they cannot prove the payload was inspected.
+
+Before a paid run, repeat the Treasury comparison after a provider refresh and obtain the SDN source version, UTC fetch time, and digest or immutable upstream version actually used by `7396` for `VENDOR_VERIFY`. Record the observations with the UTC check time. HTTP 200, a recent report timestamp, or a new miner score is not evidence of source freshness. A match on one file does not validate the other lists or clear the supplier.
+
+The registry links the [7396 manifest](https://github.com/zkasuran/telegraph-catalog-miners/blob/a33a7ab9b39c2c2a173b1d572373d661372cb83e/datawire-vendor-verify.yaml). It describes the result schema, not the deployed dataset. If no version record is published, the catalog repository's issue tracker is a public inquiry route. Ask for the upstream source URL, last successful refresh (UTC), digest or immutable revision, and how an individual result identifies that snapshot. No supplier input or wallet address is needed for that inquiry.
+
+Plan only `registered-clear` with `pnpm telegraph:diligence --dry-run --only registered-clear --max-spend-usd 0.06`. This plans two guarded specialist calls, not a supplier transfer; model costs are separate. If the source checks pass, confirm spending authority and model budget before a single live collection. Keep the original three model arms and unchanged policy, preserve the private report and CRE evidence, and retain any hold or rejection. A devnet rehearsal payee must be separately controlled and pinned; it is not a Siemens wallet or evidence of a commercial payment.
 
 ## Manual funding and activation gates
 
-The executor checks above are verified against synthetic fixtures and an
-in-memory fake rail; the adapter itself has been exercised end to end only
-on a local validator (localnet cluster + local mint, not devnet). No real
-devnet broadcast, funded wallet, or devnet chain receipt has ever been
-exercised. Before a real devnet rehearsal all of the following must hold:
+The governed worker has passed hold, crash recovery, and replay on a
+local validator. The devnet preflight was read-only and unfunded; there
+is no funded devnet receipt. Before activation all of the following must
+hold:
 
 1. `config.enabled` — hard gate, defaults to refusal.
-2. A wired `SupplierPaymentRail` for the deployment — the adapter exists in
-   `tooling/supplier-payment/` and is proven against `solana-test-validator`
-   (see "Rail adapter" above), but it is still unwired: no executor config
-   constructs it, signer isolation is not OS-enforced on the dev machine
-   (a dedicated Unix user + file ACLs is required before real funding —
-   today the backend process could read the key file), and no funded devnet
-   rehearsal has ever run. The devnet factory pins the canonical genesis
-   (`EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG`, re-verified live on every
-   send and recovery), the devnet USDC mint, and a single dedicated
-   payer/payee scope — no `allowMainnet` exists anywhere in this path.
+2. A separately deployed worker with an isolated signer. The devnet worker
+   constructs the real adapter; the API does not. CI isolation and
+   local-validator results are not deployment-host proof. The devnet
+   factory pins the canonical genesis (rechecked before send and
+   recovery), mint, and dedicated payer/payee scope; there is no mainnet
+   switch.
 3. The operator-pinned Ed25519 public key (`config.trustedPublicKey`) for the
    issuing authority, distributed out of band.
 4. `config.subjectPayeePins` — subjectHash → payee pinned per reviewed

@@ -251,6 +251,7 @@ export function buildStepWorld(
     spendGuardBlocked: false,
     settlementGuardBlocked: false,
     pendingAction: null,
+    parentRiskSignals: [],
     screeningRunId: screenRunId,
     gateRunId: parentRunId,
     parentRunId,

@@ -32,6 +32,7 @@ function step(overrides: Record<string, unknown> = {}): Record<string, unknown> 
     spendGuardBlocked: false,
     settlementGuardBlocked: false,
     pendingAction: null,
+    parentRiskSignals: [],
     screeningRunId: 'run-screen-1',
     gateRunId: 'run-gate-1',
     parentRunId: 'run-parent-1',
@@ -330,6 +331,31 @@ describe('reviewSupplierPayment', () => {
     expectBlocked(
       reviewSupplierPayment(report, { ...env, signature: hexSignature }, publicKey, NOW),
       /schema/,
+    );
+  });
+
+  it('blocks when parent risk signals are missing or non-empty', () => {
+    // Missing entirely — the payload was never structurally inspected.
+    const missing = validReport();
+    const missingSteps = (
+      (missing.cases as Record<string, unknown>[])[0].evidence as Record<string, unknown>
+    ).steps as Record<string, unknown>[];
+    delete missingSteps[1].parentRiskSignals;
+    expectBlocked(
+      reviewSupplierPayment(missing, signEnvelope(bodyFor(missing)), publicKey, NOW),
+      /parent risk signals missing or non-empty/,
+    );
+
+    // Non-empty — the Nov 24 shape: clean envelope, but the vendor-verify
+    // payload itself carried review/staleness warnings.
+    const flagged = validReport();
+    const flaggedSteps = (
+      (flagged.cases as Record<string, unknown>[])[0].evidence as Record<string, unknown>
+    ).steps as Record<string, unknown>[];
+    flaggedSteps[1].parentRiskSignals = ['parent_review_required', 'source_stale'];
+    expectBlocked(
+      reviewSupplierPayment(flagged, signEnvelope(bodyFor(flagged)), publicKey, NOW),
+      /parent risk signals missing or non-empty/,
     );
   });
 

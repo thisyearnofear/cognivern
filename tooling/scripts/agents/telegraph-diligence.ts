@@ -70,10 +70,7 @@ const DEFAULT_CASES = path.join(
 );
 const DEFAULT_MANDATE_ID = 'telegraph-supplier-diligence';
 const DEFAULT_SPEND_CAP_USD = 0.25;
-/** Worst-case cost reserved per compliant-call (screen + parent purchase). */
-const WORST_CASE_STEP_USD = 0.02;
 const SPEND_GUARD = { maxScreeningCostUsd: 0.02, maxTotalCostUsd: 0.03 };
-const PAYLOAD_TRUNCATE = 4000;
 
 type JsonObject = Record<string, unknown>;
 type Decision = 'proceed' | 'hold' | 'reject';
@@ -152,6 +149,10 @@ export interface StepEvidence {
   parentPurchased: boolean;
   spendGuardBlocked?: boolean;
   settlementGuardBlocked?: boolean;
+  /** Structural risk signals extracted from the parent payload — present
+   *  (possibly empty) whenever a parent response was received, so reports
+   *  prove the payload was inspected, not merely hashed. */
+  parentRiskSignals?: string[];
   parentResponse?: unknown;
   error?: string;
 }
@@ -202,18 +203,17 @@ export function supplierPrompt(supplier: Supplier): string {
   );
 }
 
-function truncatePayload(payload: unknown): unknown {
-  const text = JSON.stringify(payload ?? null);
-  if (text.length <= PAYLOAD_TRUNCATE) return payload;
-  return `${text.slice(0, PAYLOAD_TRUNCATE)}…<truncated>`;
-}
-
 export function governedPrompt(supplier: Supplier, steps: StepEvidence[]): string {
+  // Specialist payloads are passed complete and untruncated: truncation can
+  // cut off exactly the fields (review flags, verdicts, source staleness)
+  // the model most needs to see, and it makes every model arm a joint
+  // observation of the same partial evidence rather than the full record.
   const evidence = steps.map((step) => ({
     step: step.step,
     screenMinerId: step.screenMinerId,
     screenVerdict: step.verdict,
-    specialistPayload: truncatePayload(step.parentResponse),
+    parentRiskSignals: step.parentRiskSignals ?? [],
+    specialistPayload: step.parentResponse ?? null,
   }));
   return (
     `${supplierPrompt(supplier)}\n\n` +
@@ -294,10 +294,55 @@ export function parseRationale(text: string): string | null {
 }
 
 /**
+ * Structural risk signals inside a specialist payload, independent of any
+ * model reading. Miner schemas are heterogeneous, so this is a deliberately
+ * conservative fail-closed heuristic: a false positive costs a human review,
+ * a false negative costs an unsupported payment. Recursive — review flags
+ * nested inside check results count exactly like top-level ones.
+ *  - `review_required`/`reviewRequired` true → the specialist itself asks
+ *    for a human;
+ *  - `verified` false → the subject could not be verified;
+ *  - `available` false → an upstream source (e.g. a sanctions list) could
+ *    not be consulted, so the payload is a non-answer;
+ *  - an `age_seconds`/`max_age_seconds` (or camelCase) pair with age beyond
+ *    the maximum → the underlying source was stale on arrival.
+ */
+export function payloadRiskSignals(payload: unknown): string[] {
+  const reasons = new Set<string>();
+  const walk = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      for (const item of value) walk(item);
+      return;
+    }
+    if (typeof value !== 'object' || value === null) return;
+    const record = value as JsonObject;
+    if (record.review_required === true || record.reviewRequired === true) {
+      reasons.add('parent_review_required');
+    }
+    if (record.verified === false) reasons.add('parent_unverified');
+    if (record.available === false) reasons.add('source_unavailable');
+    for (const [ageKey, maxKey] of [
+      ['age_seconds', 'max_age_seconds'],
+      ['ageSeconds', 'maxAgeSeconds'],
+    ] as const) {
+      const age = record[ageKey];
+      const max = record[maxKey];
+      if (typeof age === 'number' && typeof max === 'number' && age > max) {
+        reasons.add('source_stale');
+      }
+    }
+    for (const item of Object.values(record)) walk(item);
+  };
+  walk(payload);
+  return [...reasons].sort();
+}
+
+/**
  * Declared fixture policy, applied to the collected specialist evidence
  * before any model is consulted. First match wins:
  *  - an undisputed sanctions `hit` → reject;
- *  - anything held, reviewed, unknown, errored, spend-guard blocked, or
+ *  - anything held, reviewed, unknown, errored, spend-guard blocked,
+ *    payload-flagged (review/unverified/unavailable/stale source), or
  *    incompletely evidenced (missing step 2, unpaid parent) → hold;
  *  - otherwise null — the model decides with the evidence attached.
  */
@@ -324,6 +369,10 @@ export function gateOutcome(evidence: DiligenceEvidence): GateOutcome | null {
       reasons.push('settlement_incomplete');
     }
     if (step.verdict === 'hit' && held) reasons.push('disputed_hit');
+    // Payload-internal warnings (review flags, unverifiable subject, missing
+    // or stale upstream sources) hold the case structurally even when the
+    // screening envelope is clean — the model never gets to waive them.
+    if (step.parentRiskSignals) reasons.push(...step.parentRiskSignals);
     if (
       step.verdict === 'review' ||
       step.verdict === 'unknown' ||
@@ -371,11 +420,16 @@ export function finalGovernedDecision(
 
 export class SpendTracker {
   spent = 0;
-  constructor(private readonly capUsd: number) {}
-  /** Reserve the worst-case cost of one compliant-call; false if over cap. */
-  tryReserve(worstCaseUsd = WORST_CASE_STEP_USD): boolean {
-    if (this.spent + worstCaseUsd > this.capUsd) return false;
-    this.spent += worstCaseUsd;
+  constructor(private readonly capUsd: number) {
+    if (!Number.isFinite(capUsd) || capUsd < 0) throw new Error('specialist spend cap must be finite and nonnegative');
+  }
+  /** Reserve the request guard ceiling for one compliant-call — a
+   *  worst-case reservation, separate from whatever the models actually
+   *  charge; false if the reservation would exceed the cap. */
+  tryReserve(): boolean {
+    const next = Math.round((this.spent + SPEND_GUARD.maxTotalCostUsd) * 100) / 100;
+    if (next > this.capUsd) return false;
+    this.spent = next;
     return true;
   }
 }
@@ -543,6 +597,7 @@ function stepEvidenceFrom(response: unknown, step: number, latencyMs: number): S
     parentPurchased: settlement?.status === 'settled' && responseData !== undefined,
     spendGuardBlocked: data?.blocked === true && gateName === 'spend_guard',
     settlementGuardBlocked: data?.blocked === true && gateName === 'settlement_guard',
+    parentRiskSignals: responseData === undefined ? undefined : payloadRiskSignals(responseData),
     parentResponse: responseData,
   };
 }
@@ -1001,6 +1056,7 @@ export function toPublicReport(
           status: step.status,
           reviewRequired: step.reviewRequired,
           pendingAction: step.pendingAction,
+          parentRiskSignals: step.parentRiskSignals ?? [],
           parentPurchased: step.parentPurchased,
           settlementStatus: step.settlementStatus,
           settlementTransfer: step.settlementTransfer

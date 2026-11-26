@@ -9,9 +9,11 @@ import {
   fillParams,
   finalGovernedDecision,
   gateOutcome,
+  governedPrompt,
   modelConfigsFromEnv,
   parseDecision,
   parseRationale,
+  payloadRiskSignals,
   toPublicReport,
   type CaseResult,
   type DiligenceCasesFile,
@@ -451,6 +453,146 @@ describe('gateOutcome', () => {
   });
 });
 
+
+describe('payloadRiskSignals', () => {
+  it('returns empty for a benign payload', () => {
+    expect(
+      payloadRiskSignals({
+        verified: true,
+        review_required: false,
+        sanctions: { available: true, match: null, age_seconds: 100, max_age_seconds: 86400 },
+      }),
+    ).toEqual([]);
+    expect(payloadRiskSignals(null)).toEqual([]);
+    expect(payloadRiskSignals('string')).toEqual([]);
+  });
+
+  it('detects review flags, unverified subjects and unavailable sources at any depth', () => {
+    const out = payloadRiskSignals({
+      result: {
+        checks: [
+          { name: 'ofac', available: false },
+          { name: 'registry', verified: false, reviewRequired: true },
+        ],
+      },
+    });
+    expect(out).toEqual(['parent_review_required', 'parent_unverified', 'source_unavailable']);
+  });
+
+  it('detects stale sources only when age exceeds the maximum', () => {
+    expect(payloadRiskSignals({ age_seconds: 1382472, max_age_seconds: 86400 })).toEqual([
+      'source_stale',
+    ]);
+    expect(payloadRiskSignals({ source: { ageSeconds: 90000, maxAgeSeconds: 86400 } })).toEqual([
+      'source_stale',
+    ]);
+    expect(payloadRiskSignals({ age_seconds: 100, max_age_seconds: 86400 })).toEqual([]);
+  });
+});
+
+describe('structural payload gate (Nov 24 regression)', () => {
+  // The Nov 24 registered-clear evidence: both screening miners clear, both
+  // parents purchased and approved — but the vendor-verify payload itself
+  // said review_required, verified=false, sanctions unavailable, and its SDN
+  // copy was ~16x beyond its own maximum age. Before payloadRiskSignals the
+  // gate stayed silent and the hold depended on the models noticing.
+  const nov24VendorPayload = {
+    verdict: 'Caution',
+    verified: false,
+    review_required: true,
+    sanctions: {
+      available: false,
+      match: null,
+      age_seconds: 1382472,
+      max_age_seconds: 86400,
+    },
+  };
+
+  it('the extracted signals match the documented Nov 24 warnings', () => {
+    expect(payloadRiskSignals(nov24VendorPayload)).toEqual([
+      'parent_review_required',
+      'parent_unverified',
+      'source_stale',
+      'source_unavailable',
+    ]);
+  });
+
+  it('gateOutcome holds even when every envelope flag is clean', () => {
+    const cleanStep = (n: number, miner: string, payload: unknown) =>
+      step({
+        step: n,
+        screenMinerId: miner,
+        verdict: 'clear',
+        status: 'approved',
+        reviewRequired: false,
+        settlementStatus: 'settled',
+        parentPurchased: true,
+        parentRiskSignals: payloadRiskSignals(payload),
+        parentResponse: payload,
+      });
+    const registryPayload = { status: 'active', verified: true };
+    const out = gateOutcome(
+      evidence(
+        [
+          cleanStep(1, '731002', registryPayload),
+          cleanStep(2, '710637', nov24VendorPayload),
+        ],
+        true,
+      ),
+    );
+    expect(out?.decision).toBe('hold');
+    expect(out?.decidedBy).toBe('review_hold');
+    expect(out?.reasons).toEqual(
+      expect.arrayContaining([
+        'parent_review_required',
+        'parent_unverified',
+        'source_stale',
+        'source_unavailable',
+      ]),
+    );
+    // A model proceed must not override the structural hold.
+    const final = finalGovernedDecision(out, 'proceed', false);
+    expect(final.decision).toBe('hold');
+    expect(final.decidedBy).toBe('review_hold');
+  });
+
+  it('a clean payload still lets the gate pass', () => {
+    const clean = step({
+      parentRiskSignals: [],
+      parentResponse: { verified: true, sanctions: { available: true, match: null } },
+    });
+    expect(gateOutcome(evidence([clean, step({ step: 2, screenMinerId: '710637' })], true))).toBeNull();
+  });
+});
+
+describe('governedPrompt', () => {
+  it('passes the complete parent payload untruncated', () => {
+    const long = 'x'.repeat(9000);
+    const payload = {
+      verdict: 'Caution',
+      padding: long,
+      review_required: true,
+      sanctions: { available: false, match: null },
+    };
+    const prompt = governedPrompt(supplier, [
+      step({
+        parentResponse: payload,
+        parentRiskSignals: payloadRiskSignals(payload),
+      }),
+    ]);
+    expect(prompt).toContain(long);
+    expect(prompt).toContain('"review_required": true');
+    expect(prompt).toContain('"available": false');
+    expect(prompt).not.toContain('<truncated>');
+    expect(prompt.length).toBeGreaterThan(9000);
+  });
+
+  it('records null rather than a truncated stub when the parent was never purchased', () => {
+    const prompt = governedPrompt(supplier, [step({ parentResponse: undefined })]);
+    expect(prompt).toContain('"specialistPayload": null');
+  });
+});
+
 describe('finalGovernedDecision', () => {
   it('lets the gate override a model proceed', () => {
     const out = finalGovernedDecision(
@@ -502,11 +644,26 @@ describe('modelConfigsFromEnv', () => {
 });
 
 describe('SpendTracker', () => {
-  it('refuses the call that would exceed the cap', () => {
-    const spend = new SpendTracker(0.03);
-    expect(spend.tryReserve()).toBe(true); // 0.02 used
-    expect(spend.tryReserve()).toBe(false); // 0.04 > 0.03
-    expect(spend.spent).toBeCloseTo(0.02);
+  it('0.04 permits exactly one reservation', () => {
+    const spend = new SpendTracker(0.04);
+    expect([spend.tryReserve(), spend.tryReserve()]).toEqual([true, false]);
+    expect(spend.spent).toBe(0.03);
+  });
+
+  it('0.06 permits precisely two reservations', () => {
+    const spend = new SpendTracker(0.06);
+    expect([spend.tryReserve(), spend.tryReserve(), spend.tryReserve()]).toEqual([true, true, false]);
+    expect(spend.spent).toBe(0.06);
+  });
+
+  it.each([NaN, Infinity, -Infinity, -1])('constructor rejects %s', (cap) => {
+    expect(() => new SpendTracker(cap)).toThrow(/finite and nonnegative/);
+  });
+
+  it('zero cap permits no reservation', () => {
+    const spend = new SpendTracker(0);
+    expect(spend.tryReserve()).toBe(false);
+    expect(spend.spent).toBe(0);
   });
 });
 

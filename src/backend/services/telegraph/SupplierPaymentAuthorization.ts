@@ -188,6 +188,12 @@ function checkStep(
     return `step ${expectedStep}: guard block flag missing or true`;
   if (step.pendingAction != null) return `step ${expectedStep}: pending action`;
   if (step.error != null) return `step ${expectedStep}: error recorded`;
+  // The parent payload itself is redacted from the report, so the collector
+  // records the structural risk signals it extracted. Absent means the
+  // payload was never inspected; non-empty means it carried a warning — the
+  // evidence cannot support clearance either way.
+  if (!Array.isArray(step.parentRiskSignals) || step.parentRiskSignals.length !== 0)
+    return `step ${expectedStep}: parent risk signals missing or non-empty`;
   if (step.settlementTransfer != null)
     return `step ${expectedStep}: carries a transfer record`;
   if (!nonblankString(step.screeningRunId))
