@@ -91,7 +91,7 @@ describe('parseRationale', () => {
   });
 });
 
-describe('compliantCallBody settlement', () => {
+describe('compliantCallBody', () => {
   const specialists = {
     screenA: { minerId: '731002', intent: 'SANCTIONS_SCREENING_MATCH', params: { name: '$name' } },
     screenB: { minerId: '710637', intent: 'SANCTIONS_SCREENING_MATCH', params: { name: '$name' } },
@@ -99,33 +99,27 @@ describe('compliantCallBody settlement', () => {
     vendorVerify: { minerId: '7396', intent: 'VENDOR_VERIFY', params: { name: '$name' } },
   };
 
-  it('attaches the Solana settlement block when requested', () => {
-    const body = compliantCallBody({
-      parent: specialists.vendorVerify,
-      screen: specialists.screenB,
-      supplier,
-      mandateId: 'm-1',
-      description: 'd',
-      settlement: { payee: 'payee-wallet', amountUsd: 0.01, intentId: 'case-1' },
-    }) as Record<string, unknown>;
-
-    expect(body.settlement).toEqual({
-      rail: 'solana',
-      payee: 'payee-wallet',
-      amountUsd: 0.01,
-      intentId: 'case-1',
-    });
-  });
-
-  it('omits settlement when not requested', () => {
-    const body = compliantCallBody({
+  it('never emits a settlement block, even if unexpected runtime props are supplied', () => {
+    const unexpected = { settlement: { payee: 'payee-wallet', amountUsd: 0.01, intentId: 'c-1' } };
+    const registryBody = compliantCallBody({
       parent: specialists.registry,
       screen: specialists.screenA,
       supplier,
       mandateId: 'm-1',
       description: 'd',
+      ...unexpected,
     }) as Record<string, unknown>;
-    expect('settlement' in body).toBe(false);
+    const vendorBody = compliantCallBody({
+      parent: specialists.vendorVerify,
+      screen: specialists.screenB,
+      supplier,
+      mandateId: 'm-1',
+      description: 'd',
+      ...unexpected,
+    }) as Record<string, unknown>;
+
+    expect('settlement' in registryBody).toBe(false);
+    expect('settlement' in vendorBody).toBe(false);
   });
 });
 
@@ -460,7 +454,7 @@ describe('gateOutcome', () => {
 describe('finalGovernedDecision', () => {
   it('lets the gate override a model proceed', () => {
     const out = finalGovernedDecision(
-      { decision: 'reject', decidedBy: 'compliance_gate' },
+      { decision: 'reject', decidedBy: 'compliance_gate', reasons: ['sanctions_hit'] },
       'proceed',
       false,
     );

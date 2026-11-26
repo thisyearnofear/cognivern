@@ -12,7 +12,9 @@ function normalizeForJson(value: unknown): unknown {
       return normalized === undefined ? null : normalized;
     });
   }
-  const out: Record<string, unknown> = {};
+  // null-prototype object keeps an own "__proto__" key from vanishing into
+  // Object.prototype assignment; JSON.stringify serializes it normally.
+  const out: Record<string, unknown> = Object.create(null);
   for (const key of Object.keys(value as Record<string, unknown>).sort()) {
     const normalized = normalizeForJson((value as Record<string, unknown>)[key]);
     if (normalized !== undefined) out[key] = normalized;

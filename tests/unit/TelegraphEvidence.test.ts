@@ -142,6 +142,9 @@ describe('buildTelegraphEvidenceBundle', () => {
     const b = { a: [true, { c: 'x' }], b: 1 };
     expect(canonicalJson(a)).toBe(canonicalJson(b));
     expect(sha256CanonicalJson(a)).toBe(sha256CanonicalJson(b));
+    // An own "__proto__" key survives normalization instead of being
+    // swallowed by Object.prototype.
+    expect(canonicalJson(JSON.parse('{"__proto__":1}'))).toBe('{"__proto__":1}');
   });
 });
 

@@ -1,0 +1,86 @@
+{
+  "schema": "cognivern.telegraph.compliant-call-evidence.v1",
+  "generatedAt": "2026-11-26T00:00:00.000Z",
+  "attemptId": "praman-synthetic-attempt-1",
+  "workspaceId": "praman-synthetic-workspace",
+  "agentId": "praman-synthetic-agent",
+  "mandateId": "praman-synthetic-mandate",
+  "policyId": null,
+  "description": null,
+  "request": {
+    "bodyHash": "synthetic-body-hash",
+    "intendedCall": {
+      "minerId": "9002",
+      "minerName": "TxLens",
+      "intent": "GAS_PRICE",
+      "paramsHash": "synthetic-params-hash",
+      "paramFields": [
+        "chain"
+      ],
+      "estimatedCostUsd": 0.01
+    },
+    "compliance": {
+      "minerId": "731002",
+      "intent": "SANCTIONS_SCREENING_MATCH",
+      "paramsHash": "synthetic-subject-hash",
+      "subjectFields": [
+        "name"
+      ]
+    }
+  },
+  "screening": {
+    "status": "completed",
+    "runId": "praman-synthetic-screen-1",
+    "artifactId": "praman-synthetic-screen-artifact-1",
+    "artifactHash": "praman-synthetic-screen-artifact-hash",
+    "artifactEvidenceHash": "praman-synthetic-screen-artifact-evidence-hash",
+    "minerId": "731002",
+    "minerName": "Counterproof Sanctions Screener",
+    "intent": "SANCTIONS_SCREENING_MATCH",
+    "verdict": "review",
+    "providerVerdict": "REVIEW",
+    "verdictSource": "counterproof-adapter",
+    "detail": "label=REVIEW",
+    "confidence": 1,
+    "costUsd": "0.0100",
+    "latencyMs": 120,
+    "paymentNetwork": "eip155:84532",
+    "rawResponseHash": "synthetic-raw-response-hash",
+    "source": "OFAC SDN",
+    "listVersion": "2026-11-22"
+  },
+  "gate": {
+    "decision": "deny",
+    "name": "compliance",
+    "reason": "screen requires review",
+    "reviewRequired": true,
+    "runId": "praman-synthetic-gate-1",
+    "artifactId": "praman-synthetic-gate-artifact-1",
+    "artifactHash": "praman-synthetic-gate-artifact-hash"
+  },
+  "settlement": {
+    "status": "not_attempted"
+  },
+  "spendGuard": {
+    "enabled": true,
+    "schema": "cognivern.telegraph.spend-guard.v1",
+    "maxTotalCostUsd": 0.03,
+    "consensusScreens": 1
+  },
+  "costs": {
+    "currency": "USD",
+    "screeningUsd": "0.0100",
+    "parentEstimatedUsd": 0.01,
+    "parentUsd": null,
+    "totalUsd": "0.0100"
+  },
+  "policyEvaluation": {
+    "passed": true,
+    "violations": []
+  },
+  "replay": {
+    "endpoint": "POST /api/telegraph/compliant-call",
+    "cliCommand": "telegraph-demo compliant-call"
+  },
+  "evidenceHash": "0a532c32a6fb22a0f14c26f182c19085e0cfd24de3bb2414503de8a4b80bc427"
+}

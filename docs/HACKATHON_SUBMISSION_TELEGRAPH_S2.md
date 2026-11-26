@@ -192,9 +192,9 @@ not yet claimed. Implemented claims are re-runnable via
 Because "the agent paid a stranger and nobody can prove it was allowed" stops
 being acceptable the moment spend is real. Mandates, compliance-on-payment,
 and verified-answer economics are the difference between a demo and an
-auditable agent economy. Before production: a funded mainnet settlement run
-(the rail is code-complete but has only moved devnet/test USDC so far), more
-evaluator coverage, and independent (non-miner) ground-truth checks.
+auditable agent economy. The supplier adapter has moved a test token on a
+local validator only. A funded devnet rehearsal, broader evaluator coverage
+and independent ground-truth checks remain outstanding.
 
 **05 How can someone try it?**
 `cognivern.persidian.com/telegraph` for the ledger and inbox;
@@ -358,11 +358,17 @@ positive control must legitimately pass the same policy without changing
 thresholds or releasing a held intent. Mainnet is outside this
 reproduction.
 
+On Nov 26 the adapter transferred 10,000 base units of a local test mint; a
+fresh process recovered the finalized signature and an identical replay left
+the recipient balance unchanged. The public devnet check only read the
+genesis, mint and unfunded accounts. Signer isolation and executor wiring
+precede funding (see [activation gates](./internals/supplier-payment-executor.md)).
+
 ## Public reproduction boundary (Nov 26)
 
 Praman proposed binding a Cognivern decision digest to its WASM/screening receipt. This is a proposed audit experiment, not a deployed integration or payment authorization. Start with synthetic, publishable bytes and a pinned commit on each side. Each team recomputes the other's expected digest locally; an altered input must fail. Agree on canonicalization, signer/trust root, list source/version, idempotency, retention and which subject/transaction is actually covered before any network call. A matched hash authenticates neither the issuer nor the truth of the screening conclusion. Keep any future combined receipt separate from the original bundle and from settlement authority: a human release never resumes a blocked transfer. The public diligence CLI dry run validates fixtures without buying intelligence or moving funds; it does not reproduce live provider responses.
 
-Gate 1 is executable offline: `tooling/scripts/agents/supplier-payment-rehearsal.ts` verifies an Ed25519-signed `cognivern.supplier-payment-rehearsal.v1` envelope — the sole transaction request — against an operator-pinned public key and the internal report's canonical-JSON digest (fixed at 0.01 USDC on devnet). The diligence collector no longer constructs supplier settlements; the legacy `--settlement-payee` / `--settlement-amount-usd` flags are rejected before any network call, and historical reports remain readable — the Nov 24 report itself has no transfer signature. Before any live execution an executor must still independently satisfy authenticated server-side evidence and mandate-policy lineage, an independently pinned issuer plus envelope freshness, atomic consume/replay with a single debit, and a real funded devnet rehearsal. The verifier is not a payment authorization API and no legacy flag or route may be used as a fallback. A synthetic held-decision reproduction of the proposed Praman digest-binding experiment lives in [`../examples/praman-reproduction/`](../examples/praman-reproduction/) with a pinned digest and standalone verifier.
+Gate 1 is executable offline: `tooling/scripts/agents/supplier-payment-rehearsal.ts` verifies an Ed25519-signed `cognivern.supplier-payment-rehearsal.v1` envelope — the sole transaction request — against an operator-pinned public key and the internal report's canonical-JSON digest (fixed at 0.01 USDC on devnet). The diligence collector no longer constructs supplier settlements; the legacy `--settlement-payee` / `--settlement-amount-usd` flags are rejected before any network call, and historical reports remain readable — the Nov 24 report itself has no transfer signature. A Gate 2 executor (`src/backend/services/telegraph/SupplierPaymentExecutor.ts`) now satisfies authenticated server-side evidence and mandate-policy lineage, an independently pinned issuer plus envelope freshness, and atomic consume/replay with a single debit — verified against synthetic fixtures and a fake rail only, disabled by default with no HTTP endpoint. Its real rail adapter is proven only on a local validator; a funded devnet rehearsal remains pending activation (see [`internals/supplier-payment-executor.md`](./internals/supplier-payment-executor.md)). The verifier is not a payment authorization API and no legacy flag or route may be used as a fallback. A synthetic held-decision reproduction of the proposed Praman digest-binding experiment lives in [`../examples/praman-reproduction/`](../examples/praman-reproduction/) with a pinned digest and standalone verifier.
 
 Showcase gates: attach a cluster-labelled confirmed signature and matching amount/mint/payee, demonstrate replay without a second debit plus a held case with no transfer, and obtain a shareable video URL before calling the Solana use case complete. Link the X post and confirm Anjoman submission separately. No Praman result, partnership, or future commercial-thread claim is asserted here.
 

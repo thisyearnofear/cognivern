@@ -493,12 +493,65 @@ link itself, so the shareable report never leaks a raw URL.
 (enabled/configured/cluster/caps/allowlist size/config errors) alongside the
 x402 payment rails.
 
-The `telegraph:diligence` eval attaches the settlement intent to its final
-verification step via `--settlement-payee <base58>`
-(`--settlement-amount-usd`, default `0.01`) with `intentId` set to the case
-id, so cleared suppliers settle for real and screened-out suppliers settle
-nothing. `/verify` renders the outcome as a terminal node on the evidence
-chain.
+The `telegraph:diligence` eval collects evidence only — it no longer
+constructs a supplier `settlement` on the compliant-call, and the legacy
+`--settlement-payee` / `--settlement-amount-usd` flags are rejected before
+any network call. Transfer records embedded in historical responses are
+still read and reported, and `/verify` renders them as a terminal node on
+the evidence chain.
+
+The first gate on paying a cleared supplier is an offline rehearsal review,
+`tooling/scripts/agents/supplier-payment-rehearsal.ts`:
+
+```sh
+pnpm exec tsx tooling/scripts/agents/supplier-payment-rehearsal.ts \
+  --report internal-diligence.json --approval approval.json \
+  --trusted-public-key operator-pinned.pem
+```
+
+It verifies an Ed25519-signed `cognivern.supplier-payment-rehearsal.v1`
+envelope — the sole transaction request — against an operator-pinned public
+key and the internal report's canonical-JSON digest: report hash, mandate id, a
+non-dry-run execution, two approved clear screens from distinct configured
+screen miners with purchased parents and no transfer, escalation, or review
+flag, and every configured model reaching `proceed` without a gate hold.
+Terms are fixed at 0.01 USDC on devnet. A blocked result exits nonzero and
+records nothing; an eligible result returns one bound `proposedTransfer`
+tuple to a caller-supplied recording callback — the tool ships no signer,
+no executor, and no live adapter.
+
+Envelope conventions: the signed `body` carries exactly `schema`,
+`workspaceId`, `mandateId`, `caseId`, `subjectHash`, `reportHash`,
+`cluster`, `mint`, `payee`, `amountBaseUnits`, `intentId`, and `expiresAt`
+(strict ISO timestamp). The signature is a standard-base64 Ed25519
+signature over the UTF-8 bytes of `canonicalJson(body)` — digests compare
+canonicalized JSON, not exact file bytes — and the trusted key file must be
+a PEM that begins with `-----BEGIN PUBLIC KEY-----`; a private key is never
+accepted.
+
+Gate 2 adds a backend-only executor —
+`src/backend/services/telegraph/SupplierPaymentExecutor.ts` — that composes
+those checks with real server-side loaders: a `devnet`-domain envelope
+(`cognivern.supplier-payment-devnet.v1`) verified against a deployment-pinned
+key, a content-addressed internal report, durable SQLite single-use claims,
+full CRE lineage recomputation for both evidence steps, a live devnet genesis
+check against the canonical hash
+`EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG`, and an atomic finalize that
+debits the funded mandate once. There is no HTTP endpoint; the rail is
+injected, and a real adapter now lives in `tooling/supplier-payment/` —
+devnet-pinned (`createSupplierDevnetRail`) and local-only
+(`createLocalSupplierRail`) factories with a dedicated-signer loader, a
+single-intent SQLite journal committed before broadcast, and chain-only
+receipt verification. It is exercised end to end only against
+`solana-test-validator` (`tooling/supplier-payment/local-proof.sh`, proof at
+`.artifacts/supplier-local-validator-proof.json`) plus a read-only devnet
+preflight (`devnet-preflight.ts` → `.artifacts/supplier-devnet-preflight.json`,
+currently `ready:false` — unfunded keys). It remains unwired from the API:
+no route can reach it, signer isolation is not OS-enforced yet, and a real
+funded devnet rehearsal remains the gate before any live claim. See
+`internals/supplier-payment-executor.md` for the activation gates, recovery
+model, and what is synthetic versus actual. The offline verifier is not a
+payment authorization API and offers no way around those gates.
 
 ### Registry intent matching
 

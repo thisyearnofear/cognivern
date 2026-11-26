@@ -487,7 +487,6 @@ export function compliantCallBody(params: {
   description: string;
   disputeHit?: boolean;
   reviewNote?: string;
-  settlement?: { payee: string; amountUsd: number; intentId: string };
 }): JsonObject {
   return {
     minerId: params.parent.minerId,
@@ -509,16 +508,6 @@ export function compliantCallBody(params: {
     },
     mandateId: params.mandateId,
     description: params.description,
-    ...(params.settlement
-      ? {
-          settlement: {
-            rail: 'solana',
-            payee: params.settlement.payee,
-            amountUsd: params.settlement.amountUsd,
-            intentId: params.settlement.intentId,
-          },
-        }
-      : {}),
   };
 }
 
@@ -564,7 +553,6 @@ async function runEvidencePhase(params: {
   mandateId: string;
   spend: SpendTracker;
   dryRun: boolean;
-  settlement?: { payee: string; amountUsd: number };
 }): Promise<{ evidence: DiligenceEvidence; skipped?: string; plannedBodies: JsonObject[] }> {
   const { casesFile, diligenceCase, mandateId, spend } = params;
   const { specialists, supplier } = {
@@ -586,9 +574,6 @@ async function runEvidencePhase(params: {
     mandateId,
     description: `Diligence ${diligenceCase.id}: screenA before registry lookup`,
   });
-  // The authorized Solana settlement rides the *final* verification step —
-  // it releases only when every earlier gate cleared and this call is
-  // approved. intentId = case id makes reruns replay the recorded outcome.
   const step2BodyFor = (screeningRunId: string | null) =>
     compliantCallBody({
       parent: specialists.vendorVerify,
@@ -598,9 +583,6 @@ async function runEvidencePhase(params: {
       description: `Diligence ${diligenceCase.id}: screenB (dispute-enabled) before vendor verify`,
       disputeHit: true,
       reviewNote: `screenA run ${screeningRunId ?? 'unknown'} returned clear`,
-      settlement: params.settlement
-        ? { ...params.settlement, intentId: diligenceCase.id }
-        : undefined,
     });
   plannedBodies.push(step1Body);
 
@@ -795,8 +777,6 @@ interface CliOptions {
   only?: Set<string>;
   maxSpendUsd: number;
   mandateId: string;
-  settlementPayee?: string;
-  settlementAmountUsd: number;
   dryRun: boolean;
   help: boolean;
 }
@@ -807,7 +787,6 @@ function parseArgs(argv: string[]): CliOptions {
     maxSpendUsd: DEFAULT_SPEND_CAP_USD,
     mandateId: process.env.DILIGENCE_MANDATE_ID ?? DEFAULT_MANDATE_ID,
     reportId: 'supplier-diligence',
-    settlementAmountUsd: 0.01,
     dryRun: false,
     help: false,
   };
@@ -821,17 +800,13 @@ function parseArgs(argv: string[]): CliOptions {
     else if (arg === '--mandate-id') options.mandateId = argv[++i];
     else if (arg === '--report-id') options.reportId = argv[++i];
     else if (arg === '--public-out') options.publicOut = argv[++i];
-    else if (arg === '--settlement-payee') options.settlementPayee = argv[++i];
-    else if (arg === '--settlement-amount-usd') options.settlementAmountUsd = Number(argv[++i]);
+    else if (arg === '--settlement-payee' || arg === '--settlement-amount-usd')
+      throw new Error(
+        'Supplier payment is disabled in the diligence collector. Collect evidence first; use the offline supplier authorization rehearsal.',
+      );
     else if (arg === '--dry-run') options.dryRun = true;
     else if (arg === '--help' || arg === '-h') options.help = true;
     else throw new Error(`unknown argument ${arg}`);
-  }
-  if (
-    options.settlementAmountUsd !== undefined &&
-    (!Number.isFinite(options.settlementAmountUsd) || options.settlementAmountUsd <= 0)
-  ) {
-    throw new Error('--settlement-amount-usd must be a positive number');
   }
   return options;
 }
@@ -848,10 +823,6 @@ Options:
   --mandate-id <id>     Mandate id on paid calls (default ${DEFAULT_MANDATE_ID})
   --report-id <id>      Public report id (default supplier-diligence)
   --public-out <path>   Write the redacted public report JSON
-  --settlement-payee <base58>    Authorize a Solana USDC settlement per cleared
-                               case (rides the final verification step; intentId
-                               = case id, so reruns replay the recorded outcome)
-  --settlement-amount-usd <n>    Settlement amount (default 0.01)
   --dry-run             Validate fixture and print planned request bodies
 `);
 }
@@ -1212,9 +1183,6 @@ async function main() {
       mandateId: options.mandateId,
       spend,
       dryRun: options.dryRun,
-      settlement: options.settlementPayee
-        ? { payee: options.settlementPayee, amountUsd: options.settlementAmountUsd }
-        : undefined,
     });
 
     if (options.dryRun) {
