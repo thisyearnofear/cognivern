@@ -94,6 +94,16 @@ division. Low-confidence signals must aggregate, not spam; repeated
 identical findings dedup. A signal that fires constantly is noise and
 erodes the inbox.
 
+## Open items
+
+- **Cross-agent transaction graph view** — delegated-spend edges on
+  `/programs/[id]` are currently rendered as a buyer→beneficiary table; a
+  graph visualization would make unauthorized transfer shapes legible at a
+  glance. Polish, not substrate — the attribution data already exists.
+- **Agent Bazaar live demo** — replaying or live-running the 4-agent market
+  with the forensics panel lighting up on collusion remains a high-value
+  demo surface, not yet built.
+
 ## Non-goals
 
 - No production multi-agent orchestration — this is governance/observability

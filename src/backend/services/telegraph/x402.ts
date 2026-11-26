@@ -12,10 +12,11 @@
  * The agent/application never sees the payment flow, the private key, or the
  * blockchain transaction — exactly how the official Telegraph MCP server works.
  *
- * Solana (SVM) support: the live testnet also accepts solana:EtWTRABZaYq... payments.
- * To enable, install @x402/svm, @solana/kit, and @scure/base, then add the
- * Solana branch following the pattern in the MCP server's x402.ts reference.
- * For now, EVM (Base Sepolia) is the primary and tested path.
+ * Solana (SVM) support: when TELEGRAPH_SOLANA_PRIVATE_KEY (base58) is set, an
+ * SVM scheme registers alongside EVM and calls whose 402 challenge offers a
+ * solana:* payment option settle on Solana instead. The live testnet accepts
+ * solana:EtWTRABZaYq... (devnet); mainnet acceptance is decided by the
+ * facilitator's offer, not this client.
  */
 
 import {
@@ -25,6 +26,9 @@ import {
   type x402ClientConfig,
 } from "@x402/fetch";
 import { ExactEvmScheme, toClientEvmSigner } from "@x402/evm";
+import { ExactSvmScheme, toClientSvmSigner } from "@x402/svm";
+import { createKeyPairSignerFromBytes } from "@solana/kit";
+import { base58 } from "@scure/base";
 import { privateKeyToAccount } from "viem/accounts";
 
 export type PaymentAwareFetch = (
@@ -35,22 +39,16 @@ export type PaymentAwareFetch = (
 export interface X402SchemeConfig {
   evmPrivateKey?: string;
   evmNetwork?: string;
-  solanaPrivateKey?: string; // reserved for future Solana support
+  solanaPrivateKey?: string;
   svmNetwork?: string;
 }
 
 /**
- * Build a payment-aware fetch from the configured EVM private key.
+ * Build a payment-aware fetch from the configured signing keys.
  *
- * Returns null when no usable payment scheme can be constructed (no key,
+ * Returns null when no usable payment scheme can be constructed (no keys,
  * or signer setup failed). Callers decide whether that means "unpaid calls
- * only" or "disabled".
- *
- * Solana support: when @x402/svm is installed, add a second registration:
- *   schemes.push({
- *     network: config.svmNetwork ?? "solana:*",
- *     client: new ExactSvmScheme(toClientSvmSigner(keypair)),
- *   });
+ * only" or "disabled". Either rail alone is sufficient; both may register.
  */
 export async function createPaymentAwareFetch(
   config: X402SchemeConfig,
@@ -70,6 +68,27 @@ export async function createPaymentAwareFetch(
       );
     } catch (error) {
       console.error("[telegraph-x402] EVM signer setup failed", { error });
+    }
+  }
+
+  if (config.solanaPrivateKey) {
+    try {
+      const secretKey = base58.decode(config.solanaPrivateKey);
+      if (secretKey.length !== 64) {
+        throw new Error(`expected 64-byte secret key, got ${secretKey.length}`);
+      }
+      const svmSigner = toClientSvmSigner(
+        await createKeyPairSignerFromBytes(secretKey),
+      );
+      schemes.push({
+        network: (config.svmNetwork ?? "solana:*") as `${string}:${string}`,
+        client: new ExactSvmScheme(svmSigner),
+      });
+      console.error(
+        `[telegraph-x402] SVM payment enabled (network: ${config.svmNetwork ?? "solana:*"}, from: ${svmSigner.address})`,
+      );
+    } catch (error) {
+      console.error("[telegraph-x402] SVM signer setup failed", { error });
     }
   }
 

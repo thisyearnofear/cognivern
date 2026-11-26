@@ -2,19 +2,20 @@
 
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
+import { MOTION_DURATION, MOTION_EASE } from "@/lib/motion-tokens";
 
 interface PageTransitionProps {
   children: ReactNode;
   className?: string;
-  /** Route key that triggers exit/enter animation when it changes. Pass `pathname` from the layout. */
+  /** Route key that triggers the entrance animation when it changes. Pass `pathname` from the layout. */
   routeKey?: string;
 }
 
 /**
- * Shared page entrance/exit animation.
- * Wraps page content with a fade-in + slight upward motion on mount,
- * and a fade-out + downward motion on unmount (when routeKey changes
- * and wrapped in <AnimatePresence mode="wait">).
+ * Shared page entrance animation.
+ * Fast, non-blocking fade-in + slight upward settle on mount. There is no
+ * blocking exit animation: route switches must never hold exit frames or
+ * delay the incoming page.
  *
  * Reuse this on every dashboard page for consistent motion language.
  */
@@ -22,10 +23,10 @@ export function PageTransition({ children, className, routeKey }: PageTransition
   return (
     <motion.div
       key={routeKey}
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: MOTION_DURATION.micro, ease: MOTION_EASE.out }}
       className={className}
     >
       {children}

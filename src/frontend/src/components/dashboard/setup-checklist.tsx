@@ -6,7 +6,6 @@ import { motion, useReducedMotion } from 'motion/react';
 import {
   ArrowRight,
   CheckCircle2,
-  Circle,
   KeyRound,
   Loader2,
   PlayCircle,
@@ -199,72 +198,90 @@ export function SetupChecklist({
         </div>
       </div>
 
-      {/* Steps */}
-      <div className="mt-4 space-y-1.5">
-        {steps.map((step) => {
+      {/* Horizontal 4-node connected progress rail — completion state reads
+          spatially; only the active step's action appears below. */}
+      <ol className="mt-5 flex items-start" aria-label="Setup progress">
+        {steps.map((step, index) => {
           const Icon = step.icon;
           const isNext = step === nextStep;
-          const showInline = step.id === 'check' && isNext && allPrereqsDone;
-
+          const segmentComplete = step.complete;
           return (
-            <div key={step.id}>
-              <div
-                className={`rounded-lg border p-3 transition-colors ${
-                  step.complete
-                    ? 'border-emerald-500/20 bg-emerald-500/5'
-                    : isNext
-                      ? 'border-primary/40 bg-primary/5'
-                      : 'border-border bg-muted/10 opacity-60'
-                }`}
-              >
-                <div className="flex items-start gap-3">
+            <li key={step.id} className="flex flex-1 items-start last:flex-none">
+              <div className="flex w-14 flex-col items-center gap-1.5">
+                <span
+                  className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-colors ${
+                    step.complete
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-500'
+                      : isNext
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-muted/20 text-muted-foreground/50'
+                  }`}
+                  aria-label={`${step.label}: ${step.complete ? 'complete' : isNext ? 'next' : 'pending'}`}
+                >
                   {step.complete ? (
-                    <CheckCircle2
-                      className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500"
-                      aria-label="Complete"
-                    />
+                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                   ) : (
-                    <Circle
-                      className={`mt-0.5 h-4 w-4 shrink-0 ${isNext ? 'text-primary' : 'text-muted-foreground/40'}`}
-                      aria-hidden="true"
-                    />
+                    <Icon className="h-4 w-4" aria-hidden="true" />
                   )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-                      <span className={`text-xs font-semibold ${step.complete ? 'line-through text-muted-foreground' : ''}`}>
-                        {step.label}
-                      </span>
-                      {!step.complete && (
-                        <span className="text-[10px] text-muted-foreground/70">~{step.time}</span>
-                      )}
-                    </div>
-                    {isNext && !showInline && (
-                      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                        {step.why}
-                      </p>
-                    )}
-                  </div>
-                  {isNext && !showInline && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 gap-1 px-2.5 text-[11px] shrink-0"
-                      onClick={() => router.push(step.href)}
-                    >
-                      {step.action}
-                      <ArrowRight className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
+                </span>
+                <span
+                  className={`text-center text-[10px] font-medium leading-tight ${
+                    step.complete
+                      ? 'text-muted-foreground line-through'
+                      : isNext
+                        ? 'text-foreground'
+                        : 'text-muted-foreground/60'
+                  }`}
+                >
+                  {step.label}
+                </span>
               </div>
-
-              {/* Inline governance check when steps 1-3 are done */}
-              {showInline && <InlineGovernanceCheck />}
-            </div>
+              {index < steps.length - 1 && (
+                <span className="relative mx-1 mt-[17px] h-0.5 flex-1 overflow-hidden rounded-full bg-border" aria-hidden="true">
+                  {/* Progress fill — scaleX keeps it on the GPU; reduced
+                      motion users get the settled fill instantly. */}
+                  <motion.span
+                    className={`absolute inset-0 origin-left rounded-full ${segmentComplete ? 'bg-emerald-500' : 'bg-transparent'}`}
+                    initial={reducedMotion ? false : { scaleX: 0 }}
+                    animate={{ scaleX: segmentComplete ? 1 : 0 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                  />
+                </span>
+              )}
+            </li>
           );
         })}
-      </div>
+      </ol>
+
+      {/* Active step action — exactly one job, one line. */}
+      {(() => {
+        const isInline = nextStep.id === 'check' && allPrereqsDone;
+        if (isInline) {
+          return (
+            <div className="mt-4">
+              <InlineGovernanceCheck />
+            </div>
+          );
+        }
+        return (
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <p className="min-w-0 text-[11px] leading-relaxed text-muted-foreground">
+              <span className="font-medium text-foreground">{nextStep.label}:</span>{' '}
+              {nextStep.why}{' '}
+              <span className="text-muted-foreground/70">~{nextStep.time}</span>
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 gap-1 px-2.5 text-[11px] shrink-0"
+              onClick={() => router.push(nextStep.href)}
+            >
+              {nextStep.action}
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </div>
+        );
+      })()}
     </section>
   );
 }

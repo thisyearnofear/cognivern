@@ -10,6 +10,7 @@
 export type ExecutionCapability =
   | "native_transfer"
   | "erc20_transfer"
+  | "spl_transfer"
   | "sponsored";
 
 export interface ExecutionTransferRequest {

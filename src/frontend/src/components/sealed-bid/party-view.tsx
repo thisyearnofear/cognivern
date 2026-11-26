@@ -3,12 +3,21 @@
 import { useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { motion, AnimatePresence } from "motion/react";
-import { Eye, Lock, Loader2, Database } from "lucide-react";
-import { apiClient, type SealedBidRound } from "@/lib/api-client";
+import { Eye, Lock } from "lucide-react";
+import {
+  apiClient,
+  type PartyVisibleBid,
+  type SealedBid,
+  type SealedBidRound,
+} from "@/lib/api-client";
 import { useDemoStore } from "@/stores/demo-store";
 import { DEMO_SEALED_BID_PARTY_VIEW } from "@/lib/demo-data";
 import { displayPartyName } from "@/lib/workspace-label";
+import {
+  DisclosureLens,
+  type LensBid,
+} from "@/components/primitives/disclosure-lens";
+import type { EnvelopeState } from "@/components/primitives/sealed-envelope";
 
 // The demo parties allocated on Devnet. Toggling one re-queries the Canton
 // participant ACTING AS that party — the visible-bid count is whatever the
@@ -16,16 +25,62 @@ import { displayPartyName } from "@/lib/workspace-label";
 const PARTIES = ["Auctioneer", "Alice", "Bob", "Charlie"] as const;
 type PartyName = (typeof PARTIES)[number];
 
-function shortParty(id: string): string {
-  const [name, ns] = id.split("::");
-  return ns ? `${name}::${ns.slice(0, 6)}…` : name;
-}
 function shortName(bidder: string): string {
   return displayPartyName(bidder);
 }
 
 interface PartyViewProps {
   round: SealedBidRound;
+}
+
+/**
+ * Pure lens construction — exported for tests. Builds the envelope row from
+ * the union of the round's public bid metadata and whatever the participant
+ * disclosed to the queried party. Amounts exist ONLY on disclosed bids
+ * (`round.bids` carries `encryptedAmount`, never the plaintext), so a
+ * redacted envelope can never leak a price.
+ */
+export function buildPartyLensBids(
+  roundBids: SealedBid[],
+  visibleBids: PartyVisibleBid[],
+): LensBid[] {
+  const byIndex = new Map(visibleBids.map((v) => [v.index, v]));
+  const lens = roundBids.map((b) => {
+    const visible = byIndex.get(b.index);
+    return {
+      id: `${b.bidder}-${b.index}`,
+      bidder: shortName(b.bidder),
+      amountUsd: visible?.amountUsd ?? null,
+      index: b.index,
+    };
+  });
+  const known = new Set(roundBids.map((b) => b.index));
+  for (const v of visibleBids) {
+    if (!known.has(v.index)) {
+      lens.push({
+        id: `${v.bidder}-${v.index}`,
+        bidder: shortName(v.bidder),
+        amountUsd: v.amountUsd,
+        index: v.index,
+      });
+    }
+  }
+  return lens;
+}
+
+/**
+ * Disclosure resolution per the participant contract response — the only
+ * inputs are the round status and whether the bid appeared in the queried
+ * party's `visibleBids`. No client-side inference beyond what the ledger
+ * returned.
+ */
+export function resolvePartyEnvelopeState(
+  roundStatus: SealedBidRound["status"],
+  bidIndex: number,
+  visibleBids: PartyVisibleBid[],
+): EnvelopeState {
+  if (roundStatus === "revealed") return "archived";
+  return visibleBids.some((v) => v.index === bidIndex) ? "open" : "redacted";
 }
 
 // Interactive privacy demonstrator. On a Canton round each toggle re-queries
@@ -61,7 +116,7 @@ export function PartyView({ round }: PartyViewProps) {
   const result = !demoMode && !queryFailed && data?.success ? data.data : undefined;
   const loading = !demoMode && isCanton && isLoading;
   const unsupported = !isCanton || result?.supported === false;
-  const bids =
+  const visibleBids =
     unsupported || loading
       ? undefined
       : demoMode
@@ -74,155 +129,94 @@ export function PartyView({ round }: PartyViewProps) {
           ? result.visibleBids
           : undefined;
 
-  const partyLabel = demoMode ? demoView?.party : result?.partyId;
-  const count = bids?.length ?? 0;
+  const count = visibleBids?.length ?? 0;
+  const lensBids =
+    visibleBids !== undefined ? buildPartyLensBids(round.bids, visibleBids) : [];
 
   return (
     <div className="rounded-xl border bg-card p-4 space-y-4">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold flex items-center gap-2">
-            <Eye className="h-4 w-4" /> Party view —{" "}
-            {demoMode ? "sample view" : "live ledger query"}
-          </h3>
-          <p className="text-xs text-muted-foreground max-w-md">
-            {demoMode ? (
-              <>
-                A recorded sample of what each party could read — no ledger is
-                queried in demo mode.
-              </>
-            ) : (
-              <>
-                Each toggle re-queries the Canton participant through this
-                service{" "}
-                <span className="font-medium text-foreground">
-                  acting as that party
-                </span>
-                . You&apos;re seeing exactly what the ledger returns — not a UI
-                filter.
-              </>
-            )}
-          </p>
-        </div>
-        <div className="flex gap-1">
-          {PARTIES.map((p) => (
-            <button
-              key={p}
-              type="button"
-              aria-pressed={asParty === p}
-              onClick={() => setAsParty(p)}
-              className={`px-3 py-1 text-xs rounded-md border transition-colors ${
-                asParty === p
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "hover:bg-accent"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <Eye className="h-4 w-4" /> Party view —{" "}
+          {demoMode ? "sample view" : "live ledger query"}
+        </h3>
       </div>
 
-      {/* The response line — the count changes per identity. */}
-      <div className="rounded-lg border bg-muted/40 p-3 font-mono text-xs">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Database className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">
-            {demoMode
-              ? "Sample view — no ledger request"
-              : `GET /rounds/${round.roundId.slice(0, 10)}…/party-view?party=${asParty}`}
-          </span>
-          {loading && <Loader2 className="h-3 w-3 animate-spin shrink-0" />}
+      {/* Honest terminal states first — no envelopes without real data. */}
+      {!loading && queryFailed && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          Ledger query failed. Bid visibility could not be verified.
         </div>
-        {!loading && queryFailed && (
-          <div className="mt-1.5 text-destructive">
-            Ledger query failed. Bid visibility could not be verified.
-          </div>
-        )}
-        {!loading && !queryFailed && unsupported && (
-          <div className="mt-1.5 text-muted-foreground">
-            Per-party ledger disclosure is a Canton property — not available on
-            this backend.
-          </div>
-        )}
-        {!loading && !queryFailed && !unsupported && bids === undefined && (
-          <div className="mt-1.5 text-muted-foreground">
-            {demoMode
-              ? "No sample response for this party."
-              : "No party-view data returned."}
-          </div>
-        )}
-        {!loading && !queryFailed && !unsupported && bids !== undefined && (
-          <div className="mt-1.5 text-foreground">
-            {demoMode ? "sample records" : "participant returned"}{" "}
-            <motion.span
-              key={`${asParty}-${count}`}
-              initial={{ scale: 1.3, color: "rgb(16 185 129)" }}
-              animate={{ scale: 1, color: "currentColor" }}
-              transition={{ duration: 0.35 }}
-              className="inline-block font-bold"
-            >
-              {count}
-            </motion.span>{" "}
-            Bid contract{count === 1 ? "" : "s"}
-            {partyLabel && (
-              <>
-                {" "}
-                as{" "}
-                <span className="text-muted-foreground">
-                  {shortParty(partyLabel)}
-                </span>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+      )}
+      {!loading && !queryFailed && unsupported && (
+        <div className="rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          Per-party ledger disclosure is a Canton property — not available on
+          this backend.
+        </div>
+      )}
+      {!loading && !queryFailed && !unsupported && visibleBids === undefined && (
+        <div className="rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          {demoMode
+            ? "No sample response for this party."
+            : "No party-view data returned."}
+        </div>
+      )}
 
-      {/* What that party actually sees. */}
-      {bids !== undefined ? (
-        <AnimatePresence mode="wait">
-          <motion.ul
-            key={asParty}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="space-y-2"
-          >
-            {count > 0 ? (
-              bids.map((b) => (
-                <li
-                  key={`${b.bidder}-${b.index}`}
-                  className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                >
-                  <div className="flex items-center gap-2">
-                    <Eye className="h-4 w-4 text-emerald-600" />
-                    <span className="font-medium">{shortName(b.bidder)}</span>
-                    {asParty !== "Auctioneer" &&
-                      shortName(b.bidder).toLowerCase().startsWith(
-                        asParty.toLowerCase(),
-                      ) && (
-                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                          your bid
-                        </span>
-                      )}
-                  </div>
-                  <span className="font-semibold tabular-nums">
-                    ${b.amountUsd.toLocaleString()}
+      {visibleBids !== undefined && !unsupported && !queryFailed ? (
+        lensBids.length > 0 ? (
+          <DisclosureLens
+            id="party-lens"
+            parties={PARTIES.map((p) => ({ value: p, label: p }))}
+            activeParty={asParty}
+            onPartyChange={setAsParty}
+            loading={loading}
+            bids={lensBids.map((b) => ({
+              ...b,
+              tag:
+                asParty !== "Auctioneer" &&
+                b.bidder.toLowerCase().startsWith(asParty.toLowerCase())
+                  ? "your bid"
+                  : undefined,
+            }))}
+            resolveEnvelopeState={(_party, bid) =>
+              resolvePartyEnvelopeState(
+                round.status,
+                bid.index ?? Number.NaN,
+                visibleBids,
+              )
+            }
+            visibleCount={count}
+            proofQuery={
+              demoMode
+                ? "Sample view — no ledger request"
+                : `GET /rounds/${round.roundId.slice(0, 10)}…/party-view?party=${asParty}`
+            }
+            headerNote={
+              demoMode ? (
+                "A recorded sample of what each party could read — no ledger is queried in demo mode."
+              ) : (
+                <>
+                  Each toggle re-queries the Canton participant{" "}
+                  <span className="font-medium text-foreground">
+                    acting as that party
                   </span>
-                </li>
-              ))
-            ) : (
-              <li className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground flex items-center gap-2">
-                <Lock className="h-3.5 w-3.5 shrink-0" />
-                {round.status === "revealed"
-                  ? "No active bids remain in the revealed round."
-                  : "No active bids visible to this party."}
-              </li>
-            )}
-          </motion.ul>
-        </AnimatePresence>
-      ) : demoMode && !demoView ? (
+                  . You&apos;re seeing exactly what the ledger returns — not a
+                  UI filter.
+                </>
+              )
+            }
+          />
+        ) : (
+          <div className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground flex items-center gap-2">
+            <Lock className="h-3.5 w-3.5 shrink-0" />
+            {round.status === "revealed"
+              ? "No active bids remain in the revealed round."
+              : "No active bids visible to this party."}
+          </div>
+        )
+      ) : null}
+
+      {demoMode && !demoView && visibleBids === undefined && !unsupported ? (
         <p className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
           This sample round has no party-view recording.{" "}
           <Link href="/verify?round=sandbox-replay" className="text-primary hover:underline">

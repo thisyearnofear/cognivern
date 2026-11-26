@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw, HelpCircle, Mail } from "lucide-react";
 import { trackUxEvent } from "@/lib/ux-events";
@@ -12,6 +13,8 @@ interface PageStateProps {
   message: string;
   action?: { label: string; onClick: () => void };
   secondaryAction?: { label: string; onClick: () => void };
+  /** Architectural plate for empty states; errors keep the alert glyph. */
+  illustration?: ReactNode;
   className?: string;
 }
 
@@ -25,6 +28,7 @@ export function PageState({
   message,
   action,
   secondaryAction,
+  illustration,
   className,
 }: PageStateProps) {
   const isError = variant === "error";
@@ -42,9 +46,17 @@ export function PageState({
   };
   return (
     <div className={`flex flex-col items-center justify-center gap-3 rounded-xl border p-8 text-center ${isError ? "border-destructive/20 bg-destructive/5" : "border-dashed bg-card"} ${className || ""}`}>
-      <div className={`rounded-full p-3 ${isError ? "bg-destructive/10" : "bg-muted"}`}>
-        {isError ? <AlertTriangle className="h-6 w-6 text-destructive" /> : <HelpCircle className="h-6 w-6 text-muted-foreground" />}
-      </div>
+      {isError ? (
+        <div className="rounded-full bg-destructive/10 p-3">
+          <AlertTriangle className="h-6 w-6 text-destructive" />
+        </div>
+      ) : illustration ? (
+        <div className="w-full max-w-[320px] text-foreground">{illustration}</div>
+      ) : (
+        <div className="rounded-full bg-muted p-3">
+          <HelpCircle className="h-6 w-6 text-muted-foreground" />
+        </div>
+      )}
       <div className="space-y-1">
         <h3 className="font-semibold text-foreground" style={{ fontFamily: "var(--font-space-grotesk)" }}>{title}</h3>
         <p className="max-w-sm text-sm text-muted-foreground">{message}</p>

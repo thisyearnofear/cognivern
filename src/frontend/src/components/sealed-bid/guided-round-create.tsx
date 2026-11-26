@@ -112,8 +112,9 @@ export function GuidedRoundCreate({
               Create a private vendor selection
             </div>
             <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-              Set up the request first, then review what is private and whether
-              this flow reserves funds before anything is created.
+              A manual round: quick private bid collection with no fund
+              movement. For policy-checked budget, deadline and bid rules,
+              use an agent round instead.
             </p>
           </div>
           <Button type="button" variant="ghost" size="icon-sm" onClick={onCancel} aria-label="Cancel round creation">

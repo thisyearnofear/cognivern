@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
@@ -194,34 +194,9 @@ function getTransferExplorerUrl(chainId: number | undefined, txHash: string): st
   );
 }
 
-function useCountUp(target: number, duration = 2000, start = false) {
-  const [count, setCount] = useState(0);
-  const ref = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!start) return;
-    const startTime = performance.now();
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-      if (progress < 1) ref.current = requestAnimationFrame(animate);
-    };
-    ref.current = requestAnimationFrame(animate);
-    return () => {
-      if (ref.current) cancelAnimationFrame(ref.current);
-    };
-  }, [target, duration, start]);
-
-  return count;
-}
-
 export function RunDetail({ runId }: { runId: string }) {
   const router = useRouter();
   const { data: run, isLoading, error, mutate } = useRun(runId);
-  const statsRef = useRef<HTMLDivElement>(null);
-  const [statsVisible, setStatsVisible] = useState(false);
   const [submitting, setSubmitting] = useState<'approve' | 'deny' | null>(null);
   const [approval, setApproval] = useState<ApprovalResult | null>(null);
   const [reconciliation, setReconciliation] = useState<ReconciliationResult | null>(null);
@@ -269,21 +244,8 @@ export function RunDetail({ runId }: { runId: string }) {
     }
   }
 
-  useEffect(() => {
-    if (!statsRef.current) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setStatsVisible(true);
-      },
-      { threshold: 0.3 },
-    );
-    obs.observe(statsRef.current);
-    return () => obs.disconnect();
-  }, []);
 
   // Animated counters (must be before early returns per React rules)
-  const animatedSteps = useCountUp(run?.steps || 0, 2000, statsVisible);
-  const animatedArtifacts = useCountUp(run?.artifacts || 0, 2000, statsVisible);
 
   useEffect(() => {
     trackUxEvent('route_viewed', 'run_detail');
@@ -391,7 +353,6 @@ export function RunDetail({ runId }: { runId: string }) {
 
       {/* Summary */}
       <div
-        ref={statsRef}
         className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden"
       >
         <div className="bg-card p-4">
@@ -406,8 +367,8 @@ export function RunDetail({ runId }: { runId: string }) {
           </div>
         </div>
         <div className="bg-card p-4">
-          <div className="text-lg font-bold" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
-            {statsVisible ? animatedSteps : '—'}
+          <div className="text-lg font-bold tabular-nums" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+            {run.steps}
           </div>
           <div className="text-xs text-muted-foreground">Steps</div>
         </div>
@@ -416,8 +377,8 @@ export function RunDetail({ runId }: { runId: string }) {
           <div className="text-xs text-muted-foreground">Duration</div>
         </div>
         <div className="bg-card p-4">
-          <div className="text-lg font-bold" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
-            {statsVisible ? animatedArtifacts : '—'}
+          <div className="text-lg font-bold tabular-nums" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+            {run.artifacts}
           </div>
           <div className="text-xs text-muted-foreground">Artifacts</div>
         </div>

@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "dist/**",
+    // Local browser-verification sandboxes contain copied source plus built output.
+    ".phase5-browser-verify/**",
     "next-env.d.ts",
   ]),
 ]);

@@ -15,6 +15,7 @@ import { useAgents } from "@/hooks/use-api";
 import { useDemoStore } from "@/stores/demo-store";
 import { HelpIcon } from "@/components/ui/help-icon";
 import { DecisionPreview, type DecisionOutcome } from "@/components/governance/decision-preview";
+import { BoundaryBar } from "@/components/primitives/boundary-bar";
 import { trackUxEvent } from "@/lib/ux-events";
 import {
   DEMO_APPROVE_THRESHOLD,
@@ -185,6 +186,14 @@ export function QuickCheck() {
             Check
           </Button>
         </div>
+
+        <BoundaryBar
+          compact
+          approveLimit={DEMO_APPROVE_THRESHOLD}
+          hardLimit={DEMO_HARD_LIMIT}
+          maxDisplay={5000}
+          value={parseFloat(amount) || 0}
+        />
 
         {/* Result */}
         {error && (

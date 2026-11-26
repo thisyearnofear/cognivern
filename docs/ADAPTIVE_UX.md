@@ -95,6 +95,17 @@ ladder. Each state renders exactly one primary object and at most one action:
 | `attention` | `AttentionSummary` (attention tone) | Review decisions |
 | `operating` | `AttentionSummary` (healthy tone) + `WorkspaceNextAction` | the forward-looking spend/mandate review |
 
+## Worked examples at the point of use
+
+Examples live beside the decision they explain. They do not add a second action to the dashboard's attention state.
+
+| Surface | Action | What it does |
+| --- | --- | --- |
+| Verified signals (`/telegraph`) | Inspect the decision | Opens the recorded Northwind supplier example at its governed decision. Reading the report does not buy intelligence or move funds. |
+| Spend & Outcomes (`/spend`, Attribution) | Use an example objective | Fills a blank first-mandate objective. It leaves the name and existing drafts alone; creating the mandate is a separate action. |
+| Governance Check (`/governance/check`) | Evaluate example | Evaluates immediately. The suggested outcome illustrates demo policies; the active policy determines the result. |
+| Private selection (`/sealed-bid`) | See a completed round | Opens a recorded sandbox replay when no rounds exist. It never creates a round; filtered lists still offer Clear filters. |
+
 ## Extending the loop safely
 
 When adding a new adaptation, it must pass this checklist:

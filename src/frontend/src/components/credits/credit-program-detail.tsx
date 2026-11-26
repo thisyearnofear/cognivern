@@ -24,6 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageState } from '@/components/ui/error-state';
 import { formatUsd } from '@/lib/budget-format';
+import { MandateReservoir } from '@/components/primitives/mandate-reservoir';
 import { apiClient, type CreditProgramReport, type CreditProgramStatus } from '@/lib/api-client';
 import {
   useCreditProgram,
@@ -362,6 +363,28 @@ export function CreditProgramDetail({ programId }: { programId: string }) {
           hint={`${totals?.participantCount ?? 0} participant(s)`}
         />
       </div>
+
+      {(() => {
+        const pool = totals?.poolUsd ?? program.poolUsd;
+        const consumedUsd = totals?.consumedUsd ?? 0;
+        const allocatedUsd = totals?.allocatedUsd ?? 0;
+        if (pool == null || pool <= 0) return null;
+        return (
+          <div className="rounded-xl border bg-card p-4">
+            <MandateReservoir
+              label="Sponsored credit pool"
+              capacity={pool}
+              consumed={consumedUsd}
+              pendingOther={Math.max(0, allocatedUsd - consumedUsd)}
+              formatValue={(v) => formatUsd(v)}
+              showLegend
+            />
+            <p className="mt-2 text-[0.7rem] text-muted-foreground">
+              Held is multiplier-applied allocation not yet consumed by real provider-metered spend.
+            </p>
+          </div>
+        );
+      })()}
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-5">

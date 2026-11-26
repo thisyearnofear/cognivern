@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Sparkles, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import type { AuditLog } from '@cognivern/shared';
 import { Button } from '@/components/ui/button';
 import { AttentionSummary } from '@/components/ui/attention-summary';
@@ -15,6 +15,7 @@ import { trackUxEvent } from '@/lib/ux-events';
 import { deriveWorkspaceState } from '@/lib/workspace-state';
 import { QuickCheck } from './quick-check';
 import { normalizeAuditLogs, computeAverageLatency } from '@/lib/normalizers';
+import { hasConfidentialFhe, getOnChainTxHash, getAnchoringData } from '@/components/audit/audit-evidence';
 import { SetupChecklist } from './setup-checklist';
 import { WorkspaceNextAction } from './workspace-next-action';
 import { DashboardStats } from './dashboard-stats';
@@ -34,7 +35,6 @@ import type { DecisionFilter } from './decision-chart';
 export function Dashboard() {
   const router = useRouter();
   const demoMode = useDemoStore((s) => s.demoMode);
-  const workspace = useAuthStore((s) => s.workspace);
   const isAuthenticated = useAuthStore((s) => s.isConnected);
   const [refreshing, setRefreshing] = useState(false);
   useNetworkStatus();
@@ -66,17 +66,37 @@ export function Dashboard() {
     return normalizeAuditLogs(logs as AuditLog[]);
   }, [logs]);
 
+  // Evidence fields (FHE evaluation, on-chain record, anchoring) live on the
+  // raw audit payload, so derive them per row and forward them to the
+  // micro-chain instead of letting those nodes read permanently hollow.
+  const rawLogById = useMemo(() => {
+    const map = new Map<string, unknown>();
+    if (Array.isArray(logs)) {
+      for (const raw of logs) {
+        const id = (raw as unknown as Record<string, unknown>).id;
+        if (id != null) map.set(String(id), raw);
+      }
+    }
+    return map;
+  }, [logs]);
+
   const activity = useMemo(() => {
-    return normalizedLogs.map((l) => ({
-      id: l.id,
-      agent: l.agent,
-      action: l.action,
-      amount: '—',
-      time: l.time,
-      status: l.decision,
-      _normalized: l.decision,
-    }));
-  }, [normalizedLogs]);
+    return normalizedLogs.map((l) => {
+      const raw = rawLogById.get(l.id);
+      return {
+        id: l.id,
+        agent: l.agent,
+        action: l.action,
+        amount: '—',
+        time: l.time,
+        status: l.decision,
+        hasFhe: hasConfidentialFhe(raw),
+        hasOnchain: Boolean(getOnChainTxHash(raw)),
+        hasAnchoring: Boolean(getAnchoringData(raw)),
+        _normalized: l.decision,
+      };
+    });
+  }, [normalizedLogs, rawLogById]);
 
   // Filtered activity based on donut cross-filter
   const filteredActivity = useMemo(() => {
@@ -95,6 +115,7 @@ export function Dashboard() {
   const decisions = normalizedLogs.length;
   const blockedCount = normalizedLogs.filter((l) => l.decision === 'denied').length;
   const heldCount = normalizedLogs.filter((l) => l.decision === 'held').length;
+  const approvedCount = normalizedLogs.filter((l) => l.decision === 'approved').length;
   const avgLatency = computeAverageLatency(normalizedLogs);
   const hasActivePolicy = (policies || []).some((policy) => policy.status === 'active');
   const hasActiveAgent = agentList.some((agent) => agent.status !== 'inactive');
@@ -156,12 +177,6 @@ export function Dashboard() {
                 ? `${heldCount + blockedCount} decision${heldCount + blockedCount === 1 ? '' : 's'} needs your attention.`
                 : 'Review governed activity and keep agent actions inside policy.'}
             </p>
-          )}
-          {demoMode && workspace && (
-            <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-              <Sparkles className="h-3 w-3" />
-              <span>Demo workspace · Sample data · No real funds can move</span>
-            </div>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -258,6 +273,8 @@ export function Dashboard() {
           approvalRate={approvalRate}
           approvalDelta={approvalDelta}
           blockedCount={blockedCount}
+          heldCount={heldCount}
+          approvedCount={approvedCount}
           decisions={decisions}
           logs={Array.isArray(logs) ? logs : []}
         />

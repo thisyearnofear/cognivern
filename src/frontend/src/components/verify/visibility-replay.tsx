@@ -15,37 +15,20 @@ import {
 import { proofFromVisibilityReplay } from "@/lib/proof";
 import { Button } from "@/components/ui/button";
 import { ChipGroup, ProofSummary, ReplayStatus } from "./proof-replay";
+import { DisclosureLens } from "@/components/primitives/disclosure-lens";
 
 /**
  * The sealed-bid visibility replay, folded into /verify's auction mode.
  * It queries the frozen Canton sandbox evidence as each party — same rows
  * the standalone /procure/demo page rendered, now as a proof view.
+ *
+ * Disclosure honesty: an envelope renders `open` only when the queried
+ * party's evidence row actually contains that quote; the amount is passed
+ * to the card only in that case. Everything else is `redacted` (before
+ * close) or `archived` (after close — no active bids remain).
  */
 
 const evidence = evidenceJson as VisibilityEvidenceRow[];
-
-function Envelope({ body, flap }: { body: string; flap: string }) {
-  return (
-    <svg
-      className="h-10 w-16"
-      viewBox="0 0 74 48"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <rect
-        x="1"
-        y="1"
-        width="72"
-        height="46"
-        rx="5"
-        fill={body}
-        stroke="var(--border)"
-        strokeWidth="2"
-      />
-      <path d="M1 1 L37 28 L73 1" fill="none" stroke={flap} strokeWidth="3" />
-    </svg>
-  );
-}
 
 export function VisibilityReplay() {
   const [role, setRole] = useState<ReplayRole>("Vendor A");
@@ -71,21 +54,9 @@ export function VisibilityReplay() {
         </p>
       </div>
 
-      <div className="flex gap-3" aria-hidden="true">
-        <Envelope body="var(--card)" flap="var(--primary)" />
-        <Envelope body="var(--muted)" flap="var(--foreground)" />
-        <Envelope body="var(--primary)" flap="var(--card)" />
-      </div>
-
       <ReplayStatus>{view.summary}</ReplayStatus>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-6">
-        <ChipGroup
-          label="Query as"
-          options={REPLAY_ROLES.map((r) => ({ value: r, label: r }))}
-          value={role}
-          onChange={setRole}
-        />
         <ChipGroup
           label="Phase"
           options={[
@@ -105,59 +76,55 @@ export function VisibilityReplay() {
         </Button>
       </div>
 
-      {phase === "before" ? (
-        <div className="grid gap-3 sm:grid-cols-3">
-          {view.quoteCards.map((card) => (
-            <div
-              key={card.role}
-              className="rounded-xl border border-border bg-card p-4"
-            >
-              <span className="text-xs text-muted-foreground">
-                {card.role}&apos;s quote
-              </span>
-              {card.visible ? (
-                <div
-                  key={`${role}-${card.amount}`}
-                  className="mt-1 text-2xl font-bold text-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150"
-                >
-                  {card.amount}
-                </div>
-              ) : (
-                <div className="mt-1 text-sm italic text-muted-foreground">
-                  Not visible to this party
-                </div>
-              )}
-            </div>
-          ))}
+      <DisclosureLens
+        id="party-lens"
+        parties={REPLAY_ROLES.map((r) => ({ value: r, label: r }))}
+        activeParty={role}
+        onPartyChange={setRole}
+        bids={view.quoteCards.map((card) => ({
+          id: card.role,
+          bidder: card.role,
+          // The amount reaches the card only when this party's evidence row
+          // discloses it — redacted envelopes carry no price at all.
+          amountUsd: card.visible ? card.amount : null,
+          tag: card.role === role ? "your bid" : undefined,
+        }))}
+        resolveEnvelopeState={(_party, bid) => {
+          if (phase === "after") return "archived";
+          const card = view.quoteCards.find((c) => c.role === bid.bidder);
+          return card?.visible ? "open" : "redacted";
+        }}
+        visibleCount={phase === "before" ? view.visibleQuotes.length : 0}
+        proofQuery={`GET /evidence/canton-visibility-44996498857.json — frozen sandbox rows queried as ${role}`}
+        proofExtra={
+          <a
+            href="/evidence/canton-visibility-44996498857.json"
+            className="text-primary hover:underline"
+          >
+            See the actual sandbox output
+          </a>
+        }
+      />
+
+      {phase === "after" && (
+        <div className="rounded-xl border border-border bg-card p-5">
+          <span className="text-xs text-muted-foreground">
+            Auction result
+          </span>
+          <p className="mt-1 text-lg font-semibold text-foreground">
+            {REPLAY_WINNER}
+          </p>
+          <p className="text-3xl font-bold text-foreground">
+            {view.winningAmount}
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            The manager had already seen the losing prices. They are not
+            included in this result.
+          </p>
         </div>
-      ) : (
-        <>
-          <p className="text-sm text-muted-foreground">No active bids.</p>
-          <div className="rounded-xl border border-border bg-card p-5">
-            <span className="text-xs text-muted-foreground">
-              Auction result
-            </span>
-            <p className="mt-1 text-lg font-semibold text-foreground">
-              {REPLAY_WINNER}
-            </p>
-            <p className="text-3xl font-bold text-foreground">
-              {view.winningAmount}
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              The manager had already seen the losing prices. They are not
-              included in this result.
-            </p>
-          </div>
-        </>
       )}
 
       <div id="evidence" className="flex flex-wrap gap-4 text-xs">
-        <a
-          href="/evidence/canton-visibility-44996498857.json"
-          className="inline-flex items-center gap-1 text-primary hover:underline"
-        >
-          See the actual sandbox output
-        </a>
         <a
           href="https://github.com/thisyearnofear/cognivern/blob/caa6e29c201b428c8a6713e66019218bb876de41/daml/README.md#local-workflow"
           target="_blank"

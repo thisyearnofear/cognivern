@@ -29,6 +29,7 @@ import {
   type ProgramSignal,
 } from "@/lib/program-signals";
 import type { AssetUnitOverride } from "@cognivern/shared";
+import { MandateReservoir } from "@/components/primitives/mandate-reservoir";
 import { useAuthStore } from "@/stores/auth-store";
 
 function toBigInt(value: string | undefined): bigint {
@@ -304,6 +305,22 @@ export function ProgramDetail() {
       {/* Shared treasury */}
       <section className="space-y-3">
         <h2 className="text-sm font-medium">Shared treasury</h2>
+        <div className="space-y-4 rounded-xl border bg-card p-4">
+          {Object.entries(mandate.budget.byAsset).map(([asset, budget]) => {
+            const authorized = toBigInt(budget.authorizedAmount);
+            if (authorized === BigInt(0)) return null;
+            return (
+              <MandateReservoir
+                key={asset}
+                label={`${asset} treasury`}
+                capacity={Number(authorized)}
+                consumed={Number(toBigInt(budget.consumedAmount))}
+                pendingOther={Number(toBigInt(budget.pendingAmount))}
+                showLegend={Object.keys(mandate.budget.byAsset).indexOf(asset) === 0}
+              />
+            );
+          })}
+        </div>
         <div className="overflow-hidden rounded-xl border">
           <table className="w-full text-sm">
             <thead>

@@ -1,10 +1,10 @@
 # Telegraph Protocol Season II — Cognivern Submission (working doc)
 
-> Working submission document. Durable rails: [`../TELEGRAPH.md`](../TELEGRAPH.md)
+> Working submission document. Durable rails: [`./TELEGRAPH.md`](./TELEGRAPH.md)
 > (governed calls, compliance-on-payment, ledger) and
-> [`../SPONSORED_CREDITS.md`](../SPONSORED_CREDITS.md) (sponsored inference,
+> [`./SPONSORED_CREDITS.md`](./SPONSORED_CREDITS.md) (sponsored inference,
 > verified-answer economics). Pre-submission pass:
-> [`../SUBMISSION_CHECKLIST.md`](../SUBMISSION_CHECKLIST.md).
+> [`./SUBMISSION_CHECKLIST.md`](./SUBMISSION_CHECKLIST.md).
 
 **Track:** Apps & Agents · **Missions:** 02 (stablecoin agent expense ledger +
 compliance proof on payment) and 10 (model economy / cost per verified answer)
@@ -107,6 +107,7 @@ whose response deliberately lacked a recognizable compliance verdict.
 - `test(inference): cover openai-compat backend contract` (7 tests)
 - Anjoman API-key rail — `AnjomanService` (`/agent/chat`, async-job poll/cancel, escrow balance) + `governedAnjomanTask` (`telegraph.signal`, `paymentMethod: "anjoman_api_key"`, fail-safe held)
 - Anjoman-delegated vendor screening for sealed-bid rounds — `sealed_bid.vendor_screened` governance events + `requireScreened` reveal gate + UI badges + judge CLI
+- `feat(telegraph): governed Solana settlement rail` — `SolanaSettlementService` (mandate-guarded SPL USDC `transferChecked`, idempotent `intentId`), `compliant-call` settlement leg with pre-screen guards, `settlementTransfer` evidence, x402 `ExactSvmScheme` registration, diligence-eval `--settlement-payee` + `/verify` settlement node (PR #106)
 - Ledger/compliance/CRE rails from earlier commits (`18ccb457`, `47988448`, …)
 
 Latest verification for the assurance slice: focused Telegraph compliance,
@@ -140,6 +141,12 @@ three production fixture cases with `$0.03` measured spend.
   the balance endpoint reported `$0.03` cumulative unbilled, so do not claim
   completed paid specialist delegation yet.
 - Only `open`-disclosure-tier records are sampled; private/detailed content is never sent to evaluators.
+- Solana settlement executes only after gate approval and inside the mandate
+  caps — but the live on-chain evidence is not yet produced (funded run
+  pending). Until the first real signature exists, every settlement claim
+  in this document is "tested code", not "observed on-chain".
+- No custom on-chain program is deployed; the reviewable surface is the
+  TypeScript service, not contract code.
 
 ## Apps & Agents — five commercial questions (paste-ready answers)
 
@@ -185,8 +192,9 @@ not yet claimed. Implemented claims are re-runnable via
 Because "the agent paid a stranger and nobody can prove it was allowed" stops
 being acceptable the moment spend is real. Mandates, compliance-on-payment,
 and verified-answer economics are the difference between a demo and an
-auditable agent economy. Before production: mainnet rail, more evaluator
-coverage, and independent (non-miner) ground-truth checks.
+auditable agent economy. Before production: a funded mainnet settlement run
+(the rail is code-complete but has only moved devnet/test USDC so far), more
+evaluator coverage, and independent (non-miner) ground-truth checks.
 
 **05 How can someone try it?**
 `cognivern.persidian.com/telegraph` for the ledger and inbox;
@@ -260,9 +268,18 @@ or judge can independently verify. Ordered by leverage:
    subject allow/deny terms (hashed in evidence), consensus count, and budget
    linkage. Checks run before any payment and again before the parent purchase;
    violations fail closed and are recorded on the artifact and ledger.
-4. **Stablecoin payment guard (P1).** Turn `compliant-call` into a payment
-   intent: payee + amount + rail → sanctions/fraud/transaction-risk screen →
-   `allow / deny / review` → purchase or settlement.
+4. **Stablecoin payment guard (implemented on Solana).** `compliant-call`
+   now carries `settlement: {rail: "solana", payee, amountUsd, intentId}` —
+   the payment intent this item described. All guards (mandate policy, payee
+   allowlist, per-transfer and cumulative caps, rail readiness, payer
+   SOL/USDC balance) run before the paid screen; a governed SPL USDC
+   `transferChecked` executes once per `intentId` only on gate approval.
+   Replay safety is a durable pre-broadcast intent journal (not process
+   memory), so restarts and concurrent retries cannot double-pay; ambiguous
+   broadcasts are recorded as `uncertain` and never blind-retried. Outcomes
+   land as `settlementTransfer` in the evidence bundle and on `/verify`.
+   Mainnet requires `SOLANA_ALLOW_MAINNET=true`; devnet is the default.
+   See "Solana commercial use cases" below.
 5. **Human review path (implemented).** Provider `REVIEW` verdicts enter the
    existing approval inbox as paused gate runs; an explicit
    `compliance.disputeHit: true` does the same for a disputed `hit`. Approval
@@ -292,7 +309,49 @@ slice. The next core rail is the payment-intent workflow; the supplier
 diligence item is a bounded, model-agnostic enterprise example rather than
 generic model routing. Durable
 detail lives in
-[`../TELEGRAPH.md#product-roadmap-after-mission-02-validation`](../TELEGRAPH.md#product-roadmap-after-mission-02-validation).
+[`./TELEGRAPH.md#product-roadmap-after-mission-02-validation`](./TELEGRAPH.md#product-roadmap-after-mission-02-validation).
+
+## Solana commercial use cases (PR #106)
+
+The Telegraph team's Solana brief asked for institutional agents operating
+with "enforceable spending mandates, independently verified intelligence,
+transaction authorization and auditable settlement." Cognivern's answer
+combines use cases **#1 Institutional Transaction Intelligence** and **#4
+Verified Global Trade** on one rail:
+
+- **Enforceable spending mandates** — `SolanaSettlementService` guards run
+  before any paid intelligence is bought: funded-mandate policy (budget,
+  allowed assets, chain constraints), payee allowlist, per-transfer cap
+  (`SOLANA_SETTLEMENT_MAX_USD`), cumulative runway, and a kill switch. A
+  blocked payee never costs a cent, and the rail also fails closed on
+  malformed config, an unarmed mainnet, or an unfunded payer.
+- **Independently verified intelligence** — the existing compliant-call
+  rail: paid sanctions/registry/vendor screens from Telegraph miners gate
+  every decision.
+- **Transaction authorization** — the governed gate: `clear` → settle,
+  `hit`/`unknown` → block, `review`/disputed → human approval inbox.
+- **Auditable settlement** — SPL USDC `transferChecked` on devnet or
+  mainnet-beta, executed once per `intentId` through a durable pre-broadcast
+  journal (restart- and concurrency-safe; ambiguous sends become `uncertain`
+  and are never blind-retried), with `cluster` + `signature` in the public
+  report and a solscan link on `/verify`.
+
+**Scope note for reviewers:** no custom on-chain program is deployed. The
+service composes the canonical SPL Token program; all governance logic lives
+in `src/backend/services/blockchain/solana/` and the `compliant-call`
+settlement leg in `TelegraphController.ts`. SOL funds transaction fees plus
+~0.00204 SOL of rent when a payee's token account is first created; neither
+is part of the USDC caps. The rail does not screen the payee address itself —
+the allowlist is the payee control, and the compliance screen covers whatever
+subject is passed to `compliance.params`.
+
+**Status:** code complete and unit/integration-tested
+(`SolanaSettlementService` unit suite including a mocked-RPC broadcast,
+durable-journal replay/concurrency tests, settlement-policy tests, diligence
+plumbing + public-report leak-guard tests, controller suite). **Live funded
+run pending** — devnet first, then mainnet with `SOLANA_ALLOW_MAINNET=true`;
+the diligence eval will settle cleared suppliers at $0.01 USDC each against a
+second controlled wallet, with screened-out suppliers receiving nothing.
 
 ## Submission checklist status
 

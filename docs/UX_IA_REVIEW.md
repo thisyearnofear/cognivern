@@ -2,7 +2,9 @@
 
 Assessment of the landing page and dashboard against best-in-class progressive
 disclosure and UI/UX primitives, anchored to the product vision in
-[`PRODUCT_STRATEGY.md`](./PRODUCT_STRATEGY.md):
+[`PRODUCT_STRATEGY.md`](./PRODUCT_STRATEGY.md). The visual, illustration, and
+motion-system implementation of these rules lives in
+[`VISUAL_MOTION_UX_PLAN.md`](./VISUAL_MOTION_UX_PLAN.md):
 
 ```text
 funded mandate → governed action → attributable spend → evidenced outcome → measured performance
@@ -97,6 +99,11 @@ hierarchy**, not new UI.
    pattern instead of stacking.
 
 ## Applied changes
+
+> *Dated implementation record (Aug 2026, second pass Aug 24 2026). The live
+> tracker for visual/motion/UX execution is now
+> [`VISUAL_MOTION_UX_PLAN.md`](./VISUAL_MOTION_UX_PLAN.md) — this section is
+> kept as the historical record of what shipped, not as current truth.*
 
 Implemented alongside this review:
 

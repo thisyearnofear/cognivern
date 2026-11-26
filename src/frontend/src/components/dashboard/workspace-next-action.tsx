@@ -47,7 +47,7 @@ function chooseNextAction({ state, demoMode, mandateCount }: WorkspaceNextAction
     return {
       eyebrow: 'Sample workspace',
       title: 'Explore a governed spend preview',
-      description: 'See the approval boundary with sample data. Nothing in demo mode moves real funds.',
+      description: 'See the approval boundary with sample data.',
       button: 'Try the demo check',
       href: '/governance/check',
       icon: PlayCircle,

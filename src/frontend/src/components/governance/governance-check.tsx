@@ -46,6 +46,9 @@ import { GovernanceMoment } from "@/components/ui/governance-moment";
 import { ConfidentialSpendTry } from "@/components/governance/confidential-spend-try";
 import { DecisionPreview, type DecisionOutcome } from "@/components/governance/decision-preview";
 import { resolveDecision } from "@/lib/decision-language";
+import { BoundaryBar } from "@/components/primitives/boundary-bar";
+import { EvidenceFlow, gatePhaseFromFheSteps } from "@/components/primitives/evidence-flow";
+import { DEMO_APPROVE_THRESHOLD, DEMO_HARD_LIMIT } from "@cognivern/shared";
 
 function getSuggestion(reason: string): string {
   const lower = reason.toLowerCase();
@@ -691,6 +694,14 @@ export function GovernanceCheck() {
                         </div>
                       </div>
                     </div>
+                    <BoundaryBar
+                      compact
+                      className="mt-3"
+                      approveLimit={DEMO_APPROVE_THRESHOLD}
+                      hardLimit={DEMO_HARD_LIMIT}
+                      maxDisplay={5000}
+                      value={numAmount}
+                    />
                   </div>
                 );
               })()}
@@ -769,38 +780,26 @@ export function GovernanceCheck() {
                 <p className="text-xs text-muted-foreground">
                   {rail.progressBody}
                 </p>
-                <div className="space-y-0.5">
-                  {fheSteps.map((step) => (
-                    <div key={step.label} className="flex items-center gap-3 py-1.5">
-                      {/* Step indicator */}
-                      <div className="flex-shrink-0 w-6 flex justify-center">
-                        {step.status === "done" ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                        ) : step.status === "active" ? (
-                          <Loader2 className="h-4 w-4 text-amber-500 animate-spin" />
-                        ) : step.status === "error" ? (
-                          <XCircle className="h-4 w-4 text-red-500" />
-                        ) : (
-                          <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/20" />
-                        )}
-                      </div>
-                      {/* Step label */}
-                      <span
-                        className={`text-xs transition-colors ${
-                          step.status === "done"
-                            ? "text-foreground"
-                            : step.status === "active"
-                              ? "text-amber-600 dark:text-amber-400 font-medium"
-                              : step.status === "error"
-                                ? "text-red-500"
-                                : "text-muted-foreground/50"
-                        }`}
-                      >
-                        {step.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                {/* Live gate schematic driven by the real SSE step events.
+                    Steps without a visual analog surface as the subscript —
+                    no faked branch progress. */}
+                <EvidenceFlow
+                  variant="gate"
+                  governed
+                  fhe
+                  phase={gatePhaseFromFheSteps(fheSteps).phase}
+                  outcome={null}
+                  intentLabel="This request"
+                  amountLabel={amount ? `$${amount}` : undefined}
+                  subscript={gatePhaseFromFheSteps(fheSteps).subscript}
+                />
+                {/* Step states — compact honest readout for errored steps */}
+                {fheSteps.some((s) => s.status === "error") && (
+                  <div className="flex items-center gap-1.5 text-[11px] text-red-500">
+                    <XCircle className="h-3.5 w-3.5" />
+                    {fheSteps.find((s) => s.status === "error")?.label} failed
+                  </div>
+                )}
                 {/* Live progress timestamp */}
                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -1135,8 +1134,9 @@ export function GovernanceCheck() {
                 <ShieldCheck className="h-10 w-10 mx-auto mb-2 opacity-30" />
                 <p className="font-medium">See it work</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Click an example to evaluate it, or describe your own
-                  spend in the input on the left.
+                  Evaluate an example now, or describe your own spend. The
+                  suggested outcomes use demo policies; your policy may
+                  differ.
                 </p>
               </div>
               <div className="space-y-2 flex-1">
@@ -1169,7 +1169,7 @@ export function GovernanceCheck() {
                       <Icon className={`h-5 w-5 shrink-0 ${iconCls}`} />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium flex items-center gap-2">
-                          {label}
+                          Evaluate example: {label}
                           <span className="text-xs font-normal text-muted-foreground">
                             ${ex.amount.toLocaleString()}
                           </span>
@@ -1183,10 +1183,6 @@ export function GovernanceCheck() {
                   );
                 })}
               </div>
-              <p className="text-[10px] text-muted-foreground/70 text-center">
-                Outcomes shown for demo policies. Your live policies may
-                evaluate differently.
-              </p>
             </div>
           )}
         </div>

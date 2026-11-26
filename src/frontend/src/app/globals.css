@@ -315,18 +315,3 @@
   border-radius: 2px;
 }
 
-/* Demo mode pulse animation */
-@keyframes pulse-bg {
-  0%, 100% {
-    opacity: 0;
-    transform: translateX(-100%);
-  }
-  50% {
-    opacity: 1;
-    transform: translateX(100%);
-  }
-}
-
-.animate-\[pulse-bg_2s_ease-in-out_infinite\] {
-  animation: pulse-bg 2s ease-in-out infinite;
-}

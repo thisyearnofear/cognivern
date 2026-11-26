@@ -1,11 +1,8 @@
-import { randomUUID } from "node:crypto";
-import { getDb } from "@backend/db/index.js";
-import {
-  normalizeOutcomeSources,
-  type OutcomeSource,
-} from "../outcomes/outcomeSourceConfig.js";
+import { randomUUID } from 'node:crypto';
+import { getDb } from '@backend/db/index.js';
+import { normalizeOutcomeSources, type OutcomeSource } from '../outcomes/outcomeSourceConfig.js';
 
-export type FundedMandateStatus = "draft" | "active" | "paused" | "closed";
+export type FundedMandateStatus = 'draft' | 'active' | 'paused' | 'closed';
 
 export interface MandateBudgetAsset {
   authorizedAmount: string;
@@ -55,7 +52,7 @@ export interface CreateFundedMandateInput {
   budget?: { byAsset?: Record<string, Partial<MandateBudgetAsset>> };
   policyIds?: string[];
   measurementWindow?: { startsAt: string; endsAt?: string };
-  successMetrics?: FundedMandate["successMetrics"];
+  successMetrics?: FundedMandate['successMetrics'];
   settlement?: MandateSettlementConstraints;
   outcomeSources?: OutcomeSource[];
 }
@@ -66,7 +63,7 @@ type Row = Record<string, unknown>;
 const INTEGER_AMOUNT = /^\d+$/;
 
 function parseJson<T>(value: unknown, fallback: T): T {
-  if (typeof value !== "string") return fallback;
+  if (typeof value !== 'string') return fallback;
   try {
     return JSON.parse(value) as T;
   } catch {
@@ -75,24 +72,30 @@ function parseJson<T>(value: unknown, fallback: T): T {
 }
 
 function normalizeAmount(value: unknown): string {
-  if (typeof value !== "string" || !INTEGER_AMOUNT.test(value)) {
-    throw new Error("Mandate amounts must be non-negative integer base-unit strings");
+  if (typeof value !== 'string' || !INTEGER_AMOUNT.test(value)) {
+    throw new Error('Mandate amounts must be non-negative integer base-unit strings');
   }
   return value;
 }
 
 function normalizeBudget(
-  budget: CreateFundedMandateInput["budget"] | undefined,
-  base: FundedMandate["budget"] = { byAsset: {} },
-): FundedMandate["budget"] {
+  budget: CreateFundedMandateInput['budget'] | undefined,
+  base: FundedMandate['budget'] = { byAsset: {} },
+): FundedMandate['budget'] {
   const byAsset: Record<string, MandateBudgetAsset> = { ...base.byAsset };
   for (const [asset, values] of Object.entries(budget?.byAsset || {})) {
-    if (!asset.trim()) throw new Error("Mandate budget asset is required");
+    if (!asset.trim()) throw new Error('Mandate budget asset is required');
     const previous = base.byAsset[asset];
-    const authorizedAmount = normalizeAmount(values.authorizedAmount ?? previous?.authorizedAmount ?? "0");
-    const allocatedAmount = normalizeAmount(values.allocatedAmount ?? previous?.allocatedAmount ?? "0");
-    const consumedAmount = normalizeAmount(values.consumedAmount ?? previous?.consumedAmount ?? "0");
-    const pendingAmount = normalizeAmount(values.pendingAmount ?? previous?.pendingAmount ?? "0");
+    const authorizedAmount = normalizeAmount(
+      values.authorizedAmount ?? previous?.authorizedAmount ?? '0',
+    );
+    const allocatedAmount = normalizeAmount(
+      values.allocatedAmount ?? previous?.allocatedAmount ?? '0',
+    );
+    const consumedAmount = normalizeAmount(
+      values.consumedAmount ?? previous?.consumedAmount ?? '0',
+    );
+    const pendingAmount = normalizeAmount(values.pendingAmount ?? previous?.pendingAmount ?? '0');
     const authorized = BigInt(authorizedAmount);
     const allocated = BigInt(allocatedAmount);
     const consumed = BigInt(consumedAmount);
@@ -115,9 +118,7 @@ function normalizeSettlement(
   settlement: MandateSettlementConstraints | undefined,
 ): MandateSettlementConstraints | undefined {
   if (!settlement) return undefined;
-  const allowedAssets = settlement.allowedAssets
-    ?.map((asset) => asset.trim())
-    .filter(Boolean);
+  const allowedAssets = settlement.allowedAssets?.map((asset) => asset.trim()).filter(Boolean);
   const chainIds = settlement.chainIds?.filter((id) => Number.isFinite(id));
   const next: MandateSettlementConstraints = {
     requireCleanverseIdentity: settlement.requireCleanverseIdentity === true,
@@ -155,6 +156,41 @@ function rowToMandate(row: Row): FundedMandate {
   };
 }
 
+/**
+ * Mandate budget amounts are integer base units. Settlement is USDC-only and
+ * USDC has 6 decimals, so one whole USDC is 1_000_000 base units.
+ */
+const STABLECOIN_BASE_UNITS = 1_000_000;
+
+function baseUnitsToUsd(value: string): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed / STABLECOIN_BASE_UNITS : 0;
+}
+
+function usdToBaseUnits(amountUsd: number): bigint {
+  return BigInt(Math.round(amountUsd * STABLECOIN_BASE_UNITS));
+}
+
+/** Case-insensitive lookup for the stablecoin budget line. */
+export function findUsdcAsset(
+  mandate: FundedMandate,
+  asset = 'USDC',
+): { key: string; budget: MandateBudgetAsset } | null {
+  const wanted = asset.trim().toLowerCase();
+  for (const [key, budget] of Object.entries(mandate.budget.byAsset)) {
+    if (key.trim().toLowerCase() === wanted) return { key, budget };
+  }
+  return null;
+}
+
+/** Remaining spendable amount on an asset line, in USD (0 when absent). */
+export function remainingForAsset(mandate: FundedMandate, asset = 'USDC'): number {
+  const found = findUsdcAsset(mandate, asset);
+  if (!found) return 0;
+  const remaining = BigInt(found.budget.allocatedAmount) - BigInt(found.budget.consumedAmount);
+  return remaining > 0n ? baseUnitsToUsd(remaining.toString()) : 0;
+}
+
 function validateWorkspaceReferences(
   workspaceId: string,
   agentIds: string[],
@@ -162,25 +198,23 @@ function validateWorkspaceReferences(
 ): void {
   const db = getDb();
   if (agentIds.length > 0) {
-    const placeholders = agentIds.map(() => "?").join(",");
+    const placeholders = agentIds.map(() => '?').join(',');
     const rows = db
-      .prepare(
-        `SELECT id FROM workspace_agents WHERE workspace_id = ? AND id IN (${placeholders})`,
-      )
+      .prepare(`SELECT id FROM workspace_agents WHERE workspace_id = ? AND id IN (${placeholders})`)
       .all(workspaceId, ...agentIds) as Array<{ id: string }>;
     if (rows.length !== new Set(agentIds).size) {
-      throw new Error("Every mandate agent must belong to the current workspace");
+      throw new Error('Every mandate agent must belong to the current workspace');
     }
   }
   if (policyIds.length > 0) {
-    const placeholders = policyIds.map(() => "?").join(",");
+    const placeholders = policyIds.map(() => '?').join(',');
     const rows = db
       .prepare(
         `SELECT id FROM workspace_policies WHERE workspace_id = ? AND id IN (${placeholders})`,
       )
       .all(workspaceId, ...policyIds) as Array<{ id: string }>;
     if (rows.length !== new Set(policyIds).size) {
-      throw new Error("Every mandate policy must belong to the current workspace");
+      throw new Error('Every mandate policy must belong to the current workspace');
     }
   }
 }
@@ -188,24 +222,78 @@ function validateWorkspaceReferences(
 export const FundedMandateService = {
   list(workspaceId: string): FundedMandate[] {
     const rows = getDb()
-      .prepare(
-        "SELECT * FROM funded_mandates WHERE workspace_id = ? ORDER BY created_at DESC",
-      )
+      .prepare('SELECT * FROM funded_mandates WHERE workspace_id = ? ORDER BY created_at DESC')
       .all(workspaceId) as Row[];
     return rows.map(rowToMandate);
   },
 
   get(workspaceId: string, mandateId: string): FundedMandate | undefined {
     const row = getDb()
-      .prepare("SELECT * FROM funded_mandates WHERE id = ? AND workspace_id = ?")
+      .prepare('SELECT * FROM funded_mandates WHERE id = ? AND workspace_id = ?')
       .get(mandateId, workspaceId) as Row | undefined;
     return row ? rowToMandate(row) : undefined;
+  },
+
+  /**
+   * Debit a settled spend against the mandate's stablecoin budget.
+   *
+   * Settlement rails call this only *after* a transfer confirms, so a failed
+   * or uncertain transfer never consumes budget. The UPDATE is wrapped in a
+   * SQLite transaction so a concurrent debit cannot read the same consumed
+   * amount twice.
+   */
+  consumeBudget(
+    workspaceId: string,
+    mandateId: string,
+    amountUsd: number,
+    asset = 'USDC',
+  ): { ok: true; remainingUsd: number } | { ok: false; reason: string } {
+    if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
+      return { ok: false, reason: 'consumption amount must be a positive number' };
+    }
+    const db = getDb();
+    const run = db.transaction(() => {
+      const mandate = FundedMandateService.get(workspaceId, mandateId);
+      if (!mandate) return { ok: false as const, reason: 'mandate not found in this workspace' };
+      const found = findUsdcAsset(mandate, asset);
+      if (!found) return { ok: false as const, reason: `mandate has no ${asset} budget line` };
+      if (mandate.status !== 'active') {
+        return { ok: false as const, reason: `mandate status is ${mandate.status}` };
+      }
+      const allocated = BigInt(found.budget.allocatedAmount);
+      const consumed = BigInt(found.budget.consumedAmount);
+      const amount = usdToBaseUnits(amountUsd);
+      if (consumed + amount > allocated) {
+        return { ok: false as const, reason: 'mandate budget exhausted' };
+      }
+      const nextConsumed = consumed + amount;
+      const nextAsset: MandateBudgetAsset = {
+        authorizedAmount: found.budget.authorizedAmount,
+        allocatedAmount: found.budget.allocatedAmount,
+        consumedAmount: nextConsumed.toString(),
+        // normalizeBudget keeps pending == allocated - consumed.
+        pendingAmount: (allocated - nextConsumed).toString(),
+      };
+      db.prepare(
+        'UPDATE funded_mandates SET budget_by_asset = ?, updated_at = ? WHERE id = ? AND workspace_id = ?',
+      ).run(
+        JSON.stringify({ ...mandate.budget.byAsset, [found.key]: nextAsset }),
+        new Date().toISOString(),
+        mandateId,
+        workspaceId,
+      );
+      return {
+        ok: true as const,
+        remainingUsd: baseUnitsToUsd((allocated - nextConsumed).toString()),
+      };
+    });
+    return run();
   },
 
   create(workspaceId: string, input: CreateFundedMandateInput): FundedMandate {
     const name = input.name.trim();
     const objective = input.objective.trim();
-    if (!name || !objective) throw new Error("Mandate name and objective are required");
+    if (!name || !objective) throw new Error('Mandate name and objective are required');
     const agentIds = [...new Set(input.agentIds || [])];
     const policyIds = [...new Set(input.policyIds || [])];
     validateWorkspaceReferences(workspaceId, agentIds, policyIds);
@@ -230,7 +318,7 @@ export const FundedMandateService = {
         name,
         objective,
         JSON.stringify(agentIds),
-        input.status || "draft",
+        input.status || 'draft',
         JSON.stringify(budget.byAsset),
         JSON.stringify(policyIds),
         input.measurementWindow ? JSON.stringify(input.measurementWindow) : null,
@@ -253,7 +341,9 @@ export const FundedMandateService = {
     const agentIds = updates.agentIds ? [...new Set(updates.agentIds)] : existing.agentIds;
     const policyIds = updates.policyIds ? [...new Set(updates.policyIds)] : existing.policyIds;
     validateWorkspaceReferences(workspaceId, agentIds, policyIds);
-    const budget = updates.budget ? normalizeBudget(updates.budget, existing.budget) : existing.budget;
+    const budget = updates.budget
+      ? normalizeBudget(updates.budget, existing.budget)
+      : existing.budget;
     const settlement =
       updates.settlement !== undefined
         ? normalizeSettlement(updates.settlement)
@@ -280,7 +370,7 @@ export const FundedMandateService = {
       outcomeSources,
       updatedAt: new Date().toISOString(),
     };
-    if (!next.name || !next.objective) throw new Error("Mandate name and objective are required");
+    if (!next.name || !next.objective) throw new Error('Mandate name and objective are required');
     getDb()
       .prepare(
         `UPDATE funded_mandates SET name = ?, objective = ?, agent_ids = ?, status = ?, budget_by_asset = ?, policy_ids = ?, measurement_window = ?, success_metrics = ?, settlement = ?, outcome_sources = ?, updated_at = ? WHERE id = ? AND workspace_id = ?`,

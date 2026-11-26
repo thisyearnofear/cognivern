@@ -318,5 +318,5 @@ emits JSON *arrays* of planned actions and the original parser executed
 only the first element, so agents repeated one purchase and never
 messaged. v5/v6 episodes were discarded: cap breach terminated episodes
 at ~round 3 before post-breach behavior could occur. Both are documented
-in `docs/APART_SWARM_2026.md`; v8 is the first run with full-length
+in `docs/history/APART_SWARM_2026.md`; v8 is the first run with full-length
 episodes and complete action-plan execution.

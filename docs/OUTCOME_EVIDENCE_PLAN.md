@@ -85,9 +85,48 @@ Chrome origin trial): `document.modelContext.registerTool({ name, description,
 inputSchema, execute })` — prefer current draft; `navigator.modelContext` is
 legacy. Live tab only (not a substitute for server MCP, not headless).
 Mutating tools require user confirmation; read tools use `readOnlyHint`;
-untrusted payloads carry `untrustedContentHint`. Register the same domain ops
-on `/capital`; degrade gracefully when absent. Do not block the M2 dogfood on
-WebMCP or the origin trial.
+untrusted payloads carry `untrustedContentHint`. Do not block the M2 dogfood
+on WebMCP or the origin trial.
+
+Implemented scope (pilot, 2026-11): a **single read-only tool**,
+`get_mandate_review`, registered by `MandateReviewTool`
+(`src/frontend/src/components/capital/mandate-review-tool.tsx`) while the connected
+`/spend` Attribution view is mounted — not the full domain-op surface this
+milestone originally sketched. It returns a bounded projection of review
+state already loaded for the **current selection only**: mandate summary,
+review phase, citations (scope-tagged context provenance entries, scoped
+observation IDs, statement ID), outcome observations, recommendation
+stance and evidence score, statement metadata, and gaps
+(`knownUnknowns`/`blockers`). It accepts **no caller-supplied IDs** and
+returns JSON text.
+
+The page tracks per-selection load provenance (`loadedScope` in
+`capital-page.tsx`) recording which of the report / observations /
+published fetches completed, failed, or were skipped for the selected
+mandate. The tool reads only scope-matched, fetch-confirmed data: a failed
+fetch reports `unavailable`, an unfetched or stale-scope section reports
+`not_loaded`, and the review phase derives only from context /
+recommendation / statement / published data verified against the current
+`mandateId` + `workspaceId` — foreign or stale data never advances it.
+
+Boundaries enforced at invocation, not just at registration: re-checks the
+auth store (user + workspace + mode + `/spend` attribution route + positive
+`exp` remaining on a real JWT — sandbox mode is a UI mode, not token
+evidence), aborts on unmount, tab switch, or selection change via the
+registration `AbortSignal` and effect re-registration, and the Attribution
+view remounts on credentials-identity change (keyed in
+`capital-overview.tsx`). Async registration rejection aborts the tool;
+synchronous failure is swallowed so ordinary UI is unaffected when
+`document.modelContext` is absent.
+
+Limitations (reported in every response): no fetch/generate/sync/publish/
+spend; no raw context chunks, untagged `sources` list, observation notes,
+or published snapshot contents (published summaries drive the phase but
+are never serialized); `not_loaded` vs `unavailable` vs a loaded empty
+result are distinct states — absence is never claimed as non-existence;
+no fallback to workspace-wide attribution data.
+
+Native verification (2026-11-25): Chrome for Testing 157.0.8103.38 on localhost, with WebMCP testing flags enabled, discovered the tool with `document.modelContext.getTools()` and invoked it with `executeTool(descriptor, {})`. Using two synthetic mandates, the first returned its self-reported observation citation; the second returned an empty observation list without inheriting the first citation. Both reported unbuilt reviews as `not_loaded`; neither invocation made an API request. Switching to Runs removed the tool. This is a native API check, not a claim of default browser support, autonomous tool selection, or completed human usability testing.
 
 ### Milestone C — server MCP mandate tools (parallel, headless)
 

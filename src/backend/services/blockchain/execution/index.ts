@@ -3,6 +3,7 @@ import { evmExecutionBackend } from "./EvmExecutionBackend.js";
 import { keeperHubExecutionBackend } from "./KeeperHubExecutionBackend.js";
 import { cleanverseExecutionBackend } from "./CleanverseExecutionBackend.js";
 import { dynamicExecutionBackend } from "./DynamicExecutionBackend.js";
+import { solanaExecutionBackend } from "./SolanaExecutionBackend.js";
 
 export type {
   ExecutionBackend,
@@ -24,6 +25,10 @@ export {
   DynamicExecutionBackend,
   dynamicExecutionBackend,
 } from "./DynamicExecutionBackend.js";
+export {
+  SolanaExecutionBackend,
+  solanaExecutionBackend,
+} from "./SolanaExecutionBackend.js";
 
 const REGISTRY = new Map<string, ExecutionBackend>([
   ["local", evmExecutionBackend],
@@ -31,6 +36,7 @@ const REGISTRY = new Map<string, ExecutionBackend>([
   ["keeperhub", keeperHubExecutionBackend],
   ["cleanverse", cleanverseExecutionBackend],
   ["dynamic", dynamicExecutionBackend],
+  ["solana", solanaExecutionBackend],
 ]);
 
 /**
@@ -50,5 +56,6 @@ export function listExecutionBackends(): ExecutionBackend[] {
     keeperHubExecutionBackend,
     cleanverseExecutionBackend,
     dynamicExecutionBackend,
+    solanaExecutionBackend,
   ];
 }

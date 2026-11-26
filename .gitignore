@@ -78,7 +78,15 @@ Thumbs.db
 .artifacts/
 .blackbox/
 .blackboxcli/
-.claude/
+**/.claude/*
+!/.claude/skills/
+/.claude/skills/*
+!/.claude/skills/weekly-vendor-review/
+/.claude/skills/weekly-vendor-review/*
+!/.claude/skills/weekly-vendor-review/SKILL.md
+!/.claude/skills/weekly-vendor-review/references/
+/.claude/skills/weekly-vendor-review/references/*
+!/.claude/skills/weekly-vendor-review/references/rehearsal.md
 .openclaude/
 .commandcode/
 .cursor/
@@ -158,6 +166,7 @@ remix-smart-bin-monitoring-das/
 .qoder/
 
 # ── Root-level tool artifacts (pnpm/tsc workspace side-effects) ────
+/.perch/
 /tsc
 /cognivern@*
 /cognivern-frontend@*

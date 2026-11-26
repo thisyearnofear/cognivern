@@ -76,6 +76,42 @@ export interface TelegraphEvidenceBundleInput {
     paymentNetwork?: string | null;
     latencyMs?: number | null;
   };
+  /**
+   * Downstream stablecoin transfer the intelligence purchase gated (e.g. a
+   * Solana USDC settlement). Absent when no settlement was requested.
+   *
+   * Named `settlementTransfer` to keep it distinct from `settlement`, which
+   * describes the *parent* paid intelligence call.
+   */
+  settlementTransfer?: {
+    rail: string;
+    status:
+      | 'blocked'
+      | 'settled'
+      | 'held'
+      | 'failed'
+      | 'unavailable'
+      | 'uncertain'
+      | 'not_attempted';
+    cluster?: string | null;
+    mint?: string | null;
+    payee?: string | null;
+    payer?: string | null;
+    amountUsd?: number | null;
+    amountBaseUnits?: string | null;
+    signature?: string | null;
+    explorerUrl?: string | null;
+    confirmationStatus?: string | null;
+    reason?: string | null;
+    violations?: string[];
+    intentId?: string | null;
+    /** True when `intentId` was derived server-side from the request hash. */
+    intentIdGenerated?: boolean;
+    policySource?: 'env' | 'funded_mandate' | null;
+    mandateId?: string | null;
+    mandateDebit?: { ok: boolean; reason?: string | null } | null;
+    idempotentReplay?: boolean;
+  };
   spendGuard: unknown | null;
   policyViolations: string[];
   costs: {
@@ -108,6 +144,7 @@ export function buildTelegraphEvidenceBundle(
     screening: input.screening,
     gate: input.gate,
     settlement: input.settlement,
+    ...(input.settlementTransfer ? { settlementTransfer: input.settlementTransfer } : {}),
     spendGuard: input.spendGuard,
     costs: input.costs,
     policyEvaluation: {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Gavel,
@@ -18,6 +19,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { CantonIdentityCard } from "./canton-identity-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageState } from "@/components/ui/error-state";
+import { EmptySealedBidPlate } from "@/components/illustrations/empty-sealed-bid-plate";
 import { useSealedBidRounds, useSealedBidCapabilities } from "@/hooks/use-api";
 import { useSealedBidLiveUpdates } from "@/hooks/use-sealed-bid-stream";
 import { useWorkspaceMode } from "@/hooks/use-workspace-mode";
@@ -26,6 +28,9 @@ import { AgentCreateRound } from "./agent-create-round";
 import { GuidedRoundCreate } from "./guided-round-create";
 import { RoundDetail } from "./round-detail";
 import { displayPartyName, relativeDeadline } from "@/lib/workspace-label";
+import { SegmentedControl } from "@/components/primitives/segmented-control";
+import { AnimatedValue } from "@/components/primitives/animated-value";
+import { playSeal } from "@/lib/tactile-sound";
 
 function StatusPill({ status }: { status: string }) {
   if (status === "open")
@@ -39,39 +44,42 @@ function StatusPill({ status }: { status: string }) {
   return <Badge variant="outline" className="capitalize">{status}</Badge>;
 }
 
-function WorkspaceStatusLine() {
+function WorkspaceStatusChips() {
   const { mode, isConnected } = useWorkspaceMode();
   const { data: caps, isLoading } = useSealedBidCapabilities();
   if (!isConnected) {
     return (
-      <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-700 dark:text-amber-400">
-        <Shield className="h-4 w-4 shrink-0 mt-0.5" />
-        <span><span className="font-semibold">Sample data.</span> Sign in to create real rounds. Nothing here moves funds.</span>
-      </div>
+      <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/5 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+        <Shield className="h-3 w-3" aria-hidden />
+        Sample data. Sign in for real rounds
+      </span>
     );
   }
-  if (isLoading) return <Skeleton className="h-10 rounded-xl" />;
+  if (isLoading) return <Skeleton className="h-5 w-28 rounded-full" />;
   if (mode === "production") {
     if (caps?.backendConfigured && caps?.settlementSupported) {
       return (
-        <div className="flex items-start gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-700 dark:text-emerald-400">
-          <Shield className="h-4 w-4 shrink-0 mt-0.5" />
-          <span><span className="font-semibold">Production · Canton connected.</span> New rounds can reserve real settlement value at reveal.</span>
-        </div>
+        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+          <Shield className="h-3 w-3" aria-hidden />
+          Canton connected — real settlement at reveal
+        </span>
       );
     }
     return (
-      <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-700 dark:text-amber-400">
-        <Shield className="h-4 w-4 shrink-0 mt-0.5" />
-        <span><span className="font-semibold">Production · ledger not fully connected.</span> {caps?.settlementReason ?? "Rounds run without fund movement until settlement is configured."}</span>
-      </div>
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/5 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400"
+        title={caps?.settlementReason ?? "Rounds run without fund movement until settlement is configured."}
+      >
+        <Shield className="h-3 w-3" aria-hidden />
+        Ledger not fully connected
+      </span>
     );
   }
   return (
-    <div className="flex items-start gap-2 rounded-xl border border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
-      <Shield className="h-4 w-4 shrink-0 mt-0.5" />
-      <span><span className="font-semibold text-foreground">Sandbox.</span> Explore freely — bids are demo personas and no real funds can move.</span>
-    </div>
+    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+      <Shield className="h-3 w-3" aria-hidden />
+      Sandbox — no real funds
+    </span>
   );
 }
 
@@ -88,6 +96,32 @@ export function SealedBidPage() {
   useSealedBidLiveUpdates(null, undefined, !selectedRoundId);
   const [showCantonSignIn, setShowCantonSignIn] = useState(false);
   const isAppAuthenticated = useAuthStore((s) => s.isConnected);
+  const previousRounds = useRef<Map<string, { status: string; bidCount: number }> | null>(null);
+
+  // The detail action buttons live inside RoundDetail; at list level we still
+  // acknowledge genuine ledger transitions (new sealed bid count or a round
+  // reaching reveal) once, never on initial load or repeated renders.
+  useEffect(() => {
+    if (!rounds) return;
+    const next = new Map(rounds.map((round) => [round.roundId, {
+      status: round.status,
+      bidCount: round.bidCount,
+    }]));
+    const previous = previousRounds.current;
+    if (previous) {
+      for (const round of rounds) {
+        const before = previous.get(round.roundId);
+        if (!before) continue;
+        const sealedNewBid = round.bidCount > before.bidCount;
+        const revealed = before.status !== "revealed" && round.status === "revealed";
+        if (sealedNewBid || revealed) {
+          playSeal();
+          break;
+        }
+      }
+    }
+    previousRounds.current = next;
+  }, [rounds]);
 
   if (selectedRoundId) {
     return (
@@ -107,15 +141,25 @@ export function SealedBidPage() {
             <Gavel className="h-6 w-6" /> Private vendor selection
           </h1>
           <p className="text-sm text-muted-foreground max-w-2xl">
-            Run a confidential RFP. Vendors bid blind — nobody sees a
-            competitor&apos;s price until you reveal the winner.
+            Vendors bid blind; you reveal one winner.
           </p>
-          <p className="text-xs text-muted-foreground max-w-2xl">
-            <span className="font-medium text-foreground">Recommended:</span> an agent
-            round checks budget, deadline and bid rules for you.{" "}
-            <span className="font-medium text-foreground">Manual</span> is a quick
-            private bid collection with no fund movement.
-          </p>
+          {/* Compact inline status: ledger connectivity + bidding identity.
+              The agent-vs-manual tradeoff is explained inside each creation
+              form at the moment of choice, not in the permanent header. */}
+          <div className="flex items-center gap-2 flex-wrap pt-0.5">
+            <WorkspaceStatusChips />
+            {!isAppAuthenticated && (
+              <button
+                type="button"
+                onClick={() => setShowCantonSignIn(true)}
+                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                title="Connect a wallet for a Canton bidding identity — signing is gasless and never moves funds."
+              >
+                <Network className="h-3 w-3" aria-hidden />
+                Get a bidding identity
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button
@@ -169,21 +213,7 @@ export function SealedBidPage() {
         />
       )}
 
-      <WorkspaceStatusLine />
-      {isAppAuthenticated ? (
-        <CantonIdentityCard compact />
-      ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
-          <p className="text-sm text-muted-foreground max-w-xl">
-            <span className="font-medium text-foreground">Want to bid privately?</span>{" "}
-            Connect a wallet and we&apos;ll give you a Canton bidding identity.
-            Signing is gasless — it never moves funds.
-          </p>
-          <Button size="sm" variant="outline" onClick={() => setShowCantonSignIn(true)} className="gap-2">
-            <Network className="h-3.5 w-3.5" /> Get a bidding identity
-          </Button>
-        </div>
-      )}
+      {isAppAuthenticated && <CantonIdentityCard compact />}
       <AuthModal
         open={showCantonSignIn}
         initialTab="canton"
@@ -235,33 +265,43 @@ export function SealedBidPage() {
                 aria-label="Search rounds"
                 className="h-9 w-full sm:w-64 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
               />
-              <div className="flex gap-1" role="group" aria-label="Filter by status">
-                {(["all", "open", "closed", "revealed", "cancelled"] as const).map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setStatusFilter(s)}
-                    aria-pressed={statusFilter === s}
-                    className={`px-2.5 py-1 text-xs rounded-md border transition-colors capitalize ${statusFilter === s ? "bg-primary text-primary-foreground border-primary" : "hover:bg-accent"}`}
-                  >
-                    {s === "all" ? "All" : s === "revealed" ? "Decided" : s}
-                  </button>
-                ))}
-              </div>
-              <span className="ml-auto text-xs text-muted-foreground">{filtered.length} of {rounds.length}</span>
+              <SegmentedControl
+                id="sealed-bid-status-filter"
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "open", label: "Open" },
+                  { value: "closed", label: "Closed" },
+                  { value: "revealed", label: "Decided" },
+                  { value: "cancelled", label: "Cancelled" },
+                ]}
+                value={statusFilter}
+                onChange={setStatusFilter}
+              />
+              <span className="ml-auto text-xs text-muted-foreground">
+                <AnimatedValue value={filtered.length} minChars={2} /> of{" "}
+                <AnimatedValue value={rounds.length} minChars={2} />
+              </span>
             </div>
           )}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <AnimatePresence mode="popLayout">
             {rounds.length === 0 ? (
-              <PageState
-                variant="empty"
-                title="No vendor selections yet"
-                message="Start a confidential RFP — vendors bid blind, you reveal one winner."
-                action={{ label: "New agent round", onClick: () => { setShowCreate(false); setShowAgentCreate(true); } }}
-                secondaryAction={{ label: "Manual instead", onClick: () => { setShowAgentCreate(false); setShowCreate(true); } }}
-                className="col-span-full"
-              />
+              <div className="col-span-full space-y-2">
+                <PageState
+                  variant="empty"
+                  illustration={<EmptySealedBidPlate />}
+                  title="No vendor selections yet"
+                  message="Start a confidential RFP — vendors bid blind, you reveal one winner."
+                  action={{ label: "New agent round", onClick: () => { setShowCreate(false); setShowAgentCreate(true); } }}
+                  secondaryAction={{ label: "Manual instead", onClick: () => { setShowAgentCreate(false); setShowCreate(true); } }}
+                />
+                <p className="text-center text-xs text-muted-foreground">
+                  <Link href="/verify?round=sandbox-replay" className="text-primary underline underline-offset-2 hover:text-primary/80">
+                    See a completed round
+                  </Link>{" "}
+                  · Recorded sandbox replay
+                </p>
+              </div>
             ) : filtered.length === 0 ? (
               <PageState
                 variant="no-results"
@@ -306,7 +346,11 @@ export function SealedBidPage() {
                     <span>
                       {r.status === "revealed"
                         ? "Bids sealed & archived"
-                        : `${r.bidCount}/${r.maxBids} bids`}
+                        : (
+                          <>
+                            <AnimatedValue value={r.bidCount} minChars={1} />/{r.maxBids} bids
+                          </>
+                        )}
                       {r.createdByAgent && " · agent-checked"}
                     </span>
                     {r.winner && (

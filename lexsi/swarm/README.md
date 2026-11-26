@@ -1,7 +1,7 @@
 # Agent Bazaar — swarm-economy testbed
 
 Weekend work for the **Apart Research Swarm Alignment Hackathon 2026**
-(submission deadline Nov 8, 11:59 PM AoE). See `docs/APART_SWARM_2026.md`.
+(submission deadline Nov 8, 11:59 PM AoE). See `docs/history/APART_SWARM_2026.md`.
 
 ## What this is
 

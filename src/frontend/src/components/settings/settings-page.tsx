@@ -51,8 +51,11 @@ import {
   Shield,
   Lock,
   RefreshCw,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useWorkspaceMode } from "@/hooks/use-workspace-mode";
 import { apiClient } from "@/lib/api-client";
 import { shortAddress, workspaceLabel } from "@/lib/workspace-label";
@@ -60,6 +63,8 @@ import { authFetch } from "@/lib/auth-fetch";
 import { useWallets } from "@/hooks/use-api";
 import { PageState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { Switch } from "@/components/ui/switch";
+import { primeTactileSound, setSoundEnabled } from "@/lib/tactile-sound";
 import type { ApiKey, ApiKeyCreateResponse } from "@/lib/api-client";
 import type { OwsWallet, WalletSigningProviderId } from "@cognivern/shared";
 import useSWR, { mutate } from "swr";
@@ -1791,6 +1796,15 @@ function AppearanceCard({
   theme: string | undefined;
   setTheme: (t: string) => void;
 }) {
+  const soundEnabled = usePreferencesStore((state) => state.soundEnabled);
+  const updatePreferences = usePreferencesStore((state) => state.updatePreferences);
+
+  const handleSoundChange = (enabled: boolean) => {
+    setSoundEnabled(enabled);
+    updatePreferences({ soundEnabled: enabled });
+    if (enabled) primeTactileSound();
+  };
+
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
       <h2 className="font-semibold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>
@@ -1816,6 +1830,27 @@ function AppearanceCard({
               {t.label}
             </button>
           ))}
+        </div>
+
+        <div className="flex items-center justify-between gap-4 border-t border-border pt-4">
+          <div className="flex min-w-0 items-center gap-3">
+            {soundEnabled ? (
+              <Volume2 className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+            ) : (
+              <VolumeX className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+            )}
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-foreground">Interface sounds</div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Subtle clicks on thresholds, seals and approvals
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={soundEnabled}
+            onCheckedChange={handleSoundChange}
+            aria-label="Interface sounds"
+          />
         </div>
     </div>
   );

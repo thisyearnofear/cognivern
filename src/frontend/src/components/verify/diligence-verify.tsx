@@ -21,12 +21,16 @@ import { Input } from "@/components/ui/input";
 import {
   isValidReportId,
   parsePublicDiligenceReport,
+  settlementExplorerUrl,
   whyLabel,
   type DiligenceDecision,
   type PublicDiligenceReport,
 } from "@/lib/diligence-report";
-import { ChipGroup, ProofSummary, ReceiptRow, Reveal } from "./proof-replay";
+import { ProofSummary, ReceiptRow, Reveal } from "./proof-replay";
 import { proofFromDiligenceReport } from "@/lib/proof";
+import { SegmentedControl } from "@/components/primitives/segmented-control";
+import { AnimatedValue } from "@/components/primitives/animated-value";
+import { playStamp, primeTactileSound } from "@/lib/tactile-sound";
 
 /**
  * Public, login-free replay of a published supplier-diligence report.
@@ -113,6 +117,10 @@ function parentLabel(intent: string | undefined): string {
 
 function money(value: number | null | undefined): string {
   return typeof value === "number" ? `$${value.toFixed(4)}` : "not priced";
+}
+
+function shorten(value: string): string {
+  return value.length > 12 ? `${value.slice(0, 6)}…${value.slice(-4)}` : value;
 }
 
 function TokenCost({
@@ -235,6 +243,7 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
     searchParams.get("view") === "governed" ? "governed" : "alone",
   );
   const [replaying, setReplaying] = useState(false);
+  const replayStampKey = useRef<string | null>(null);
   // Captured once: whether the URL carried a cell selection. Not a dep of
   // `load` — a live searchParams dep makes load() refire on every
   // router.replace, and each refire unmounts the report tree mid-animation.
@@ -348,6 +357,23 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
     return () => clearTimeout(t);
   }, [replaying, view, caseIndex, report]);
 
+  // Sound follows only the auto-replay's alone → governed verdict transition.
+  // The key makes it once per supplier/model/replay pass, so scrubbing and
+  // re-renders cannot turn the cue into a loop.
+  useEffect(() => {
+    if (!replaying || view !== "governed" || !governedDecision) return;
+    const key = `${caseIndex}:${activeModel?.label ?? "none"}:${governedDecision}`;
+    if (replayStampKey.current === key) return;
+    replayStampKey.current = key;
+    playStamp(
+      governedDecision === "proceed"
+        ? "approved"
+        : governedDecision === "reject"
+          ? "stopped"
+          : "held",
+    );
+  }, [replaying, view, governedDecision, caseIndex, activeModel?.label]);
+
   const cta = (() => {
     if (!report || !caseResult) return null;
     if (view === "alone") {
@@ -438,7 +464,7 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-center">
                   <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
-                    {heroStats.totalChanged}
+                    <AnimatedValue value={heroStats.totalChanged} minChars={1} />
                   </div>
                   <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                     decision{heroStats.totalChanged === 1 ? "" : "s"} changed by governance
@@ -446,7 +472,7 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                 </div>
                 <div className="rounded-xl border border-border bg-card p-4 text-center">
                   <div className="text-2xl font-bold text-foreground">
-                    {heroStats.models}
+                    <AnimatedValue value={heroStats.models} minChars={1} />
                   </div>
                   <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                     model vendors, same evidence
@@ -454,7 +480,7 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                 </div>
                 <div className="rounded-xl border border-border bg-card p-4 text-center">
                   <div className="text-2xl font-bold text-foreground">
-                    {heroStats.escalations}
+                    <AnimatedValue value={heroStats.escalations} minChars={1} />
                   </div>
                   <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                     item{heroStats.escalations === 1 ? "" : "s"} sent to a human
@@ -578,7 +604,8 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
           {/* ── Controls ── */}
           <div className="space-y-4 rounded-xl border border-border bg-card p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-6">
-              <ChipGroup
+              <SegmentedControl
+                id="diligence-supplier"
                 label="Supplier"
                 options={report.cases.map((c, i) => ({
                   value: String(i),
@@ -597,7 +624,8 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                 }}
               />
               {runnableModels.length > 0 ? (
-                <ChipGroup
+                <SegmentedControl
+                  id="diligence-model"
                   label="Model"
                   options={runnableModels.map((m) => ({
                     value: m.label,
@@ -622,7 +650,8 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
               {/* The alone/governed toggle only matters on narrow screens,
                   where the two arms stack; on sm+ both render side by side. */}
               <div className="sm:hidden">
-                <ChipGroup
+                <SegmentedControl<"alone" | "governed">
+                  id="diligence-view"
                   label="View"
                   options={[
                     { value: "alone", label: "Model alone" },
@@ -642,6 +671,8 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                     if (replaying) {
                       setReplaying(false);
                     } else {
+                      replayStampKey.current = null;
+                      primeTactileSound();
                       setCaseIndex(0);
                       setView("alone");
                       setReplaying(true);
@@ -813,6 +844,65 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                     </li>
                   );
                 })}
+                {(() => {
+                  const settle = caseResult.evidence.settlement;
+                  if (!settle) return null;
+                  const txUrl = settlementExplorerUrl(settle);
+                  const settled = settle.status === "settled";
+                  const tone = settled
+                    ? "border-emerald-500 bg-emerald-500/20"
+                    : settle.status === "failed"
+                      ? "border-red-500 bg-red-500/20"
+                      : "border-amber-500 bg-amber-500/20";
+                  return (
+                    <li className="relative flex gap-3 pb-0 text-sm">
+                      <span className="flex flex-col items-center" aria-hidden>
+                        <span
+                          className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full border-2 ${tone}`}
+                        />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div>
+                          Solana settlement:{" "}
+                          <span className="font-medium">{settle.status}</span>
+                          {typeof settle.amountUsd === "number" && (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              · {money(settle.amountUsd)} USDC
+                            </span>
+                          )}
+                          {settle.payee && (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              → {shorten(settle.payee)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1.5 space-y-1">
+                          {settle.signature && txUrl && (
+                            <a
+                              href={txUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-primary underline-offset-2 hover:underline"
+                            >
+                              tx {shorten(settle.signature)}{" "}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                          {settle.reason && (
+                            <div className="text-xs text-muted-foreground">{settle.reason}</div>
+                          )}
+                          {settle.idempotentReplay && (
+                            <div className="text-xs text-muted-foreground">
+                              replayed recorded outcome (intentId {settle.intentId})
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })()}
               </ol>
               {caseResult.evidence.escalations.length > 0 && (
                 <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">

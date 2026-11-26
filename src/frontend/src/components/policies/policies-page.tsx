@@ -16,6 +16,9 @@ import {
   PlusCircle,
   X,
   Lock,
+  Scale,
+  ClipboardList,
+  UserCheck,
   EyeOff,
   Zap,
   Loader2,
@@ -43,14 +46,18 @@ import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
 import { HelpIcon } from "@/components/ui/help-icon";
 import { authFetch } from "@/lib/auth-fetch";
+import { formatWeiAsEth } from "@/lib/budget-format";
+import { BoundaryBar } from "@/components/primitives/boundary-bar";
+import { EmptyPolicyPlate } from "@/components/illustrations/empty-policy-plate";
 
 const POLICY_TEMPLATES = [
   {
     id: "strict-budget",
     name: "Strict Budget",
     desc: "Max $100/day, deny above $500 per tx",
-    icon: "🔒",
+    icon: Lock,
     type: "budget",
+    previewBoundary: { approveLimit: 100, hardLimit: 500 },
     rules: [
       { condition: "amount > 500", action: "deny" },
       { condition: "daily_total > 100", action: "deny" },
@@ -60,8 +67,9 @@ const POLICY_TEMPLATES = [
     id: "moderate-budget",
     name: "Moderate Budget",
     desc: "Max $500/day, flag above $1,000",
-    icon: "⚖️",
+    icon: Scale,
     type: "budget",
+    previewBoundary: { approveLimit: 500, hardLimit: 1000 },
     rules: [
       { condition: "amount > 1000", action: "deny" },
       { condition: "daily_total > 500", action: "flag" },
@@ -71,7 +79,7 @@ const POLICY_TEMPLATES = [
     id: "dex-only",
     name: "DEX Allowlist",
     desc: "Only Uniswap, Curve, Sushi allowed",
-    icon: "📋",
+    icon: ClipboardList,
     type: "allowlist",
     rules: [
       {
@@ -84,11 +92,32 @@ const POLICY_TEMPLATES = [
     id: "human-approval",
     name: "Human Approval",
     desc: "Require approval above $500",
-    icon: "👤",
+    icon: UserCheck,
     type: "approval",
     rules: [{ condition: "amount > 500", action: "flag" }],
   },
 ];
+
+/** Extract real per-transaction amount boundaries from policy rules.
+ *  Returns null when a policy is not amount-bounded; vendor/chain rules do
+ *  not map onto a spend-threshold instrument without inventing limits. */
+function extractAmountBoundary(
+  rules: Array<{ condition: string; action: string }>,
+): { approveLimit: number; hardLimit: number } | null {
+  const amountFor = (action: string) => {
+    const values = rules
+      .filter((rule) => rule.action === action)
+      .map((rule) => rule.condition.match(/^amount\s*>\s*(\d+(?:\.\d+)?)$/)?.[1])
+      .filter((value): value is string => Boolean(value))
+      .map(Number)
+      .filter((value) => Number.isFinite(value) && value > 0);
+    return values.length ? Math.min(...values) : null;
+  };
+  const hardLimit = amountFor("deny");
+  const approveLimit = amountFor("flag");
+  if (!hardLimit || !approveLimit || approveLimit >= hardLimit) return null;
+  return { approveLimit, hardLimit };
+}
 
 export function PoliciesPage() {
   const router = useRouter();
@@ -386,6 +415,7 @@ export function PoliciesPage() {
               <Zap className="h-4 w-4 text-amber-500" />
               <span className="text-sm font-medium">Quick start templates</span>
             </div>
+            <EmptyPolicyPlate className="mx-auto max-w-[280px]" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {POLICY_TEMPLATES.map((t, i) => (
               <motion.div
@@ -401,10 +431,20 @@ export function PoliciesPage() {
                 className="p-4 rounded-xl border border-border text-left hover:border-primary/50 hover:bg-muted/50 transition-colors disabled:opacity-50"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">{t.icon}</span>
+                  <t.icon className="h-4 w-4 text-primary" aria-hidden />
                   <span className="text-sm font-medium">{t.name}</span>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">{t.desc}</p>
+                {t.previewBoundary && (
+                  <BoundaryBar
+                    compact
+                    className="mb-3"
+                    approveLimit={t.previewBoundary.approveLimit}
+                    hardLimit={t.previewBoundary.hardLimit}
+                    maxDisplay={t.previewBoundary.hardLimit * 1.5}
+                    value={t.previewBoundary.approveLimit}
+                  />
+                )}
                 {quickCreating === t.id ? (
                   <div className="flex items-center gap-1.5 text-xs text-primary">
                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -502,6 +542,21 @@ export function PoliciesPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 {policy.desc}
               </p>
+              {(() => {
+                const boundary = extractAmountBoundary(policy.rules);
+                if (!boundary) return null;
+                return (
+                  <BoundaryBar
+                    compact
+                    className="mb-4"
+                    approveLimit={boundary.approveLimit}
+                    hardLimit={boundary.hardLimit}
+                    maxDisplay={boundary.hardLimit * 1.5}
+                    value={boundary.approveLimit}
+                    confidential={policy.confidential}
+                  />
+                );
+              })()}
               {policy.confidential && (
                 <div className="flex items-center gap-2 mb-3 px-2 py-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30 text-xs text-amber-700 dark:text-amber-300">
                   <EyeOff className="h-3 w-3" />
@@ -537,14 +592,13 @@ export function PoliciesPage() {
                     </div>
                   )}
                   {policy.approvalThreshold && (
-                    <div title="Spends at/above this amount (wei) are held for operator approval before signing">
+                    <div title={`Spends at/above this amount are held for operator approval before signing (raw: ${policy.approvalThreshold} wei)`}>
                       <span className="text-muted-foreground text-xs">
                         Approval ≥:
                       </span>{" "}
-                      <span className="font-medium font-mono">
-                        {policy.approvalThreshold}
-                      </span>{" "}
-                      <span className="text-muted-foreground text-xs">wei</span>
+                      <span className="font-medium tabular-nums">
+                        {formatWeiAsEth(policy.approvalThreshold)}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -890,7 +944,7 @@ function CreatePolicyForm({
                     : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
                 }`}
               >
-                <span>{t.icon}</span>
+                <t.icon className="h-3 w-3" aria-hidden />
                 <span>{t.name}</span>
               </button>
             ))}

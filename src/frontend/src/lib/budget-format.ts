@@ -74,3 +74,25 @@ export function formatUsd(value: number | null | undefined, maxFractionDigits = 
     maximumFractionDigits: maxFractionDigits,
   }).format(value);
 }
+
+/**
+ * Format a wei-denominated threshold into human-readable ETH units.
+ * Wei strings are integers; anything that isn't a clean integer passes
+ * through untouched so callers never lose information. Extremely small
+ * non-zero values collapse to a floor label rather than scientific notation.
+ */
+export function formatWeiAsEth(wei: string): string {
+  if (!/^\d+$/.test(wei)) return wei;
+  const value = Number(wei) / 1e18;
+  if (!Number.isFinite(value)) {
+    try {
+      return `${BigInt(wei).toLocaleString()} wei`;
+    } catch {
+      return wei;
+    }
+  }
+  if (value === 0) return "0 ETH";
+  if (value < 0.0001) return "<0.0001 ETH";
+  const rounded = parseFloat(value.toFixed(4));
+  return `${rounded.toLocaleString("en-US", { maximumFractionDigits: 4 })} ETH`;
+}

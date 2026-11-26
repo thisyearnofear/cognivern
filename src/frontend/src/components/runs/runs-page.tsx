@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -11,48 +11,12 @@ import { AttentionSummary } from '@/components/ui/attention-summary';
 import { useRouter } from 'next/navigation';
 import { Activity, RefreshCw, CheckCircle2, Clock, AlertTriangle, PlayCircle } from 'lucide-react';
 import { useRuns } from '@/hooks/use-api';
-
-function useCountUp(target: number, duration = 2000, start = false) {
-  const [count, setCount] = useState(0);
-  const ref = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!start) return;
-    const startTime = performance.now();
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-      if (progress < 1) ref.current = requestAnimationFrame(animate);
-    };
-    ref.current = requestAnimationFrame(animate);
-    return () => {
-      if (ref.current) cancelAnimationFrame(ref.current);
-    };
-  }, [target, duration, start]);
-
-  return count;
-}
+import { EmptySpendPlate } from '@/components/illustrations/empty-spend-plate';
 
 export function RunsPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const router = useRouter();
   const { data: rawRuns, isLoading, error } = useRuns();
-  const statsRef = useRef<HTMLDivElement>(null);
-  const [statsVisible, setStatsVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
-
-  useEffect(() => {
-    if (!statsRef.current) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setStatsVisible(true);
-      },
-      { threshold: 0.3 },
-    );
-    obs.observe(statsRef.current);
-    return () => obs.disconnect();
-  }, []);
 
   const runs = Array.isArray(rawRuns)
     ? rawRuns.map((r) => ({
@@ -90,12 +54,6 @@ export function RunsPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const firstAttentionRun = prioritizedRuns.find(
     (run) => run.status === 'paused_for_approval' || run.status === 'failed',
   );
-
-  // Animated counters
-  const animatedActive = useCountUp(statuses['running'] || 0, 2000, statsVisible);
-  const animatedCompleted = useCountUp(statuses['completed'] || 0, 2000, statsVisible);
-  const animatedAwaiting = useCountUp(statuses['paused_for_approval'] || 0, 2000, statsVisible);
-  const animatedFailed = useCountUp(statuses['failed'] || 0, 2000, statsVisible);
 
   return (
     <div className="space-y-6">
@@ -173,17 +131,16 @@ export function RunsPage({ hideHeader = false }: { hideHeader?: boolean }) {
         />
       ) : (
         <div
-          ref={statsRef}
           className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden"
         >
           <div className="bg-card p-4 flex items-center gap-3">
             <Activity className="h-5 w-5 text-primary" />
             <div>
               <div
-                className="text-xl font-bold"
+                className="text-xl font-bold tabular-nums"
                 style={{ fontFamily: 'var(--font-space-grotesk)' }}
               >
-                {statsVisible ? animatedActive : '—'}
+                {statuses['running'] || 0}
               </div>
               <div className="text-xs text-muted-foreground">Active</div>
             </div>
@@ -192,10 +149,10 @@ export function RunsPage({ hideHeader = false }: { hideHeader?: boolean }) {
             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             <div>
               <div
-                className="text-xl font-bold"
+                className="text-xl font-bold tabular-nums"
                 style={{ fontFamily: 'var(--font-space-grotesk)' }}
               >
-                {statsVisible ? animatedCompleted : '—'}
+                {statuses['completed'] || 0}
               </div>
               <div className="text-xs text-muted-foreground">Completed</div>
             </div>
@@ -204,10 +161,10 @@ export function RunsPage({ hideHeader = false }: { hideHeader?: boolean }) {
             <Clock className="h-5 w-5 text-sky-500" />
             <div>
               <div
-                className="text-xl font-bold"
+                className="text-xl font-bold tabular-nums"
                 style={{ fontFamily: 'var(--font-space-grotesk)' }}
               >
-                {statsVisible ? animatedAwaiting : '—'}
+                {statuses['paused_for_approval'] || 0}
               </div>
               <div className="text-xs text-muted-foreground">Awaiting</div>
             </div>
@@ -216,10 +173,10 @@ export function RunsPage({ hideHeader = false }: { hideHeader?: boolean }) {
             <AlertTriangle className="h-5 w-5 text-red-500" />
             <div>
               <div
-                className="text-xl font-bold"
+                className="text-xl font-bold tabular-nums"
                 style={{ fontFamily: 'var(--font-space-grotesk)' }}
               >
-                {statsVisible ? animatedFailed : '—'}
+                {statuses['failed'] || 0}
               </div>
               <div className="text-xs text-muted-foreground">Failed</div>
             </div>
@@ -241,6 +198,7 @@ export function RunsPage({ hideHeader = false }: { hideHeader?: boolean }) {
             label: 'Create API identity',
             onClick: () => router.push('/agents/workshop'),
           }}
+          illustration={<EmptySpendPlate />}
         />
       ) : error ? (
         <PageState

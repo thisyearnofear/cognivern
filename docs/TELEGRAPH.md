@@ -45,11 +45,32 @@ TELEGRAPH_EVM_PRIVATE_KEY=0x...        # BURNER wallet, testnet USDC only
 TELEGRAPH_CONFIDENCE_THRESHOLD=0.7     # default
 TELEGRAPH_EVM_NETWORK=eip155:*         # payments settle on Base Sepolia
 TELEGRAPH_SVM_NETWORK=solana:*
+TELEGRAPH_SOLANA_PRIVATE_KEY=<base58>   # registers ExactSvmScheme alongside EVM (x402 pays on Solana too)
 TELEGRAPH_REFRESH_INTERVAL_MS=300000
 TELEGRAPH_CRE_PROJECT_ID=<workspace-id>   # digest: persist calls as CRE runs (unset = stats-only)
 TELEGRAPH_DIGEST_MANDATE_ID=...           # mandate tag on digest artifacts (default: telegraph-governed-consumption)
 TELEGRAPH_MAX_SPEND_USD=1                 # hard per-run paid-call ceiling for the digest
 ```
+
+```bash
+# Authorized settlement on Solana (optional — compliant-call "settlement" leg)
+SOLANA_SETTLEMENT_ENABLED=true
+SOLANA_SETTLEMENT_PRIVATE_KEY=<base58>  # 64-byte ed25519 secret (seed || pubkey)
+SOLANA_CLUSTER=devnet                   # devnet (default) | mainnet-beta | testnet
+SOLANA_ALLOW_MAINNET=false              # must be true to arm mainnet-beta
+SOLANA_RPC_URL=                         # unset = default RPC for the cluster
+SOLANA_USDC_MINT=                       # unset = canonical USDC for the cluster
+SOLANA_SETTLEMENT_MAX_USD=0.05          # per-transfer cap
+SOLANA_SETTLEMENT_RUNWAY_USD=0.25       # cumulative cap per workspace+mandate (in-process)
+SOLANA_SETTLEMENT_PAYEE_ALLOWLIST=      # csv base58 payees; empty = no transfers
+SOLANA_SETTLEMENT_INTENT_FILE=          # unset = data/solana-settlement-intents.json
+```
+
+Empty env values are treated as unset (so `SOLANA_RPC_URL=` falls back to the
+cluster default). Malformed numbers (`NaN`, `0`, negatives), a per-transfer cap
+above the runway, or `mainnet-beta` without `SOLANA_ALLOW_MAINNET=true` are
+startup config errors — the rail fails closed rather than silently disabling a
+guard.
 
 `paymentReady` in `/api/telegraph/status` is the honest readiness gate: true
 only when a real x402 signer was constructed from the key. x402 handling is
@@ -70,12 +91,49 @@ runs for the caller's workspace — settlement count, spend, burn by
 intent/miner/mandate, and per-call dispositions including held-signal
 resolution) · `compliant-call` (screen first, then buy the requested call
 only when the screen is `clear` and the declared spend guard passes) ·
-`evidence/:runId` (workspace-authenticated retrieval of the evidence bundle
+`settlement/reconcile` (verify an uncertain settlement intent against the
+chain; see the settlement section) · `evidence/:runId`
+(workspace-authenticated retrieval of the evidence bundle
 attached to a compliant-call gate or settlement artifact).
 
 The in-product dashboard is `/telegraph` — categories, questions, the
 governed-consumption stats panel, and the intelligence ledger (settlements,
 burn by intent, recent calls with dispositions).
+
+**Inspect the decision** opens the recorded testnet case at `/verify?report=supplier-diligence&case=2&model=groq&view=governed`. For Northwind, a fictional supplier, the model recommended proceeding; low-confidence evidence triggered a human-review hold. Inspecting this example makes no paid call. It is not a current supplier assessment.
+
+### Glossary: the two kinds of "settlement"
+
+The word appears twice in this rail with different meanings. Keeping them
+straight is the single biggest readability win when reading evidence:
+
+| Term | Meaning | Money |
+| --- | --- | --- |
+| `settlement` | The *paid intelligence call* the compliant-call endpoint executes (the parent x402 purchase). | screening + call cost |
+| `settlementTransfer` | The *downstream USDC transfer* on Solana that an approved intelligence call authorizes. | the transfer amount |
+
+In an evidence bundle, `settlement` is always about the intelligence
+purchase; `settlementTransfer` is always about the Solana leg. A request with
+no `settlement` field performs no transfer at all.
+
+### Replay rules for `settlementTransfer` (what happens on retry)
+
+Retrying a compliant-call with the same `intentId` is always safe, but the
+outcome depends on the journalled state of that intent:
+
+| Journalled state | What a retry does |
+| --- | --- |
+| `confirmed` | Returns the recorded signature. No broadcast, no second debit. |
+| `sent` / `pending` / `uncertain` | Refuses to broadcast (`uncertain` outcome with the recorded signature). Reconcile first. |
+| `failed` (retryable) | A new attempt is made under the same intentId; prior attempts stay in the record's `attempts[]`. |
+| `failed` (non-retryable) | Refuses (`already_failed`). |
+| no record | A fresh attempt: journalled `pending` before broadcast. |
+
+If the request omits `intentId`, one is derived from the request payload
+(`auto-<hash>`), so an identical retry replays rather than double-paying —
+but *changing any part of the request* (payee, amount, body) derives a
+different id and is a new intent. To retry after a failure with different
+parameters, supply a fresh `intentId` explicitly.
 
 ## Anjoman delegated tasks (API-key rail)
 
@@ -351,6 +409,97 @@ block because this endpoint performs one screen; `budgetId` is recorded for
 mandate/budget linkage but does not yet debit a budget ledger. If a required
 price or miner lookup cannot be proven, the call blocks instead of guessing.
 
+#### Authorized settlement on Solana
+
+`compliant-call` accepts an optional `settlement` object — the downstream
+stablecoin transfer the screened intelligence authorizes:
+
+```json
+{
+  "settlement": { "rail": "solana", "payee": "<base58>", "amountUsd": 0.01, "intentId": "case-1" }
+}
+```
+
+The `SolanaSettlementService`
+(`src/backend/services/blockchain/solana/`) sends SPL USDC
+`transferChecked` instructions to the canonical Token program — no custom
+on-chain program is deployed. SOL pays fees only; USDC is what moves. A first
+transfer to a *new* payee also creates its associated token account, which
+costs ~0.00204 SOL of rent that is **not** recovered and is not part of the
+USDC caps — keep at least ~0.01 SOL in the payer for fees + rent.
+
+**Pre-screen guard.** Everything that could make settlement fail later runs
+before the paid screen: mandate policy (active mandate, USDC budget line,
+`settlement.allowedAssets`, `chainIds`, Cleanverse requirements), env caps,
+payee allowlist, and rail readiness (enabled flag, key, payer SOL/USDC
+balance). A blocked intent never buys intelligence it could not settle, and
+is recorded in the evidence bundle as `settlementTransfer`
+(`status: "blocked"`) with the violation list. `settlementTransfer` is
+deliberately distinct from `settlement`, which describes the *parent* paid
+intelligence call.
+
+**Idempotency.** `intentId` is optional; when omitted the server derives it
+from the request (`workspace + payee + amount + bodyHash`), so an identical
+retry replays instead of paying twice. The durable journal
+(`data/solana-settlement-intents.json`, override with
+`SOLANA_SETTLEMENT_INTENT_FILE`) records an intent *before* broadcast and is
+the source of truth across process restarts and concurrent requests:
+
+| state       | meaning                                                        |
+| ----------- | -------------------------------------------------------------- |
+| `pending`   | reserved, not yet broadcast                                    |
+| `sent`      | broadcast, signature known, not yet confirmed                  |
+| `confirmed` | confirmed on-chain; replays return the recorded signature      |
+| `failed`    | provably did not move; `retryable` decides whether a retry may reuse the id |
+| `uncertain` | broadcast outcome unknown; replay refuses to send again        |
+
+An `intentId` is bound to its exact payload (`workspace`, cluster, mint,
+payee, amount); reusing it for a different transfer is rejected as
+`intent_conflict`. The per-transfer cap and cumulative runway are reserved
+synchronously before any await, so concurrent requests cannot both pass the
+runway check.
+
+**Runway survives restarts.** The cumulative counter is rehydrated from the
+intent journal at first use after a process restart: confirmed records count
+as spent, and unfinished (`pending`/`sent`/`uncertain`) records keep their
+reservation held. The hard cumulative backstop remains the USDC balance of
+the settlement wallet: fund it with exactly the runway you are willing to
+spend, and no counter failure can increase exposure.
+
+**Statuses.** Broadcast errors map to honest outcomes — `uncertain` when the
+signature may have landed (the caller must reconcile on Solscan, never blind
+retry), `failed` when preflight/on-chain execution provably moved nothing,
+`unavailable` when the rail is not armed or misconfigured. Settlement never
+runs unless `SOLANA_SETTLEMENT_ENABLED=true`.
+
+**Reconciling an uncertain intent.** `POST /api/telegraph/settlement/reconcile`
+with `{ "intentId": "..." }` (requires the `spend:execute` scope) verifies the
+recorded signature on-chain via `getSignatureStatuses` and flips the journal
+state only on chain truth: confirmed → replayable and debitable, failed →
+retryable, not-yet-visible → left untouched. The endpoint never broadcasts and
+never trusts an operator's claim — if the cluster has not resolved the
+signature, the intent stays `uncertain`.
+
+**Payee risk.** The rail does not screen the payee address itself (no
+address-risk provider is wired). The compliance screen covers the *subject*
+passed to `compliance.params`; if the payee is the counterparty, include it
+in the screened subject. The allowlist is the only payee control.
+
+**Evidence.** Settled results carry `cluster`, `signature`, and a convenience
+`explorerUrl` in the authenticated, hash-sealed bundle. The published
+`/verify` report keeps only `cluster` + `signature` and derives the Solscan
+link itself, so the shareable report never leaks a raw URL.
+`/api/telegraph/status` reports `solanaSettlement` readiness
+(enabled/configured/cluster/caps/allowlist size/config errors) alongside the
+x402 payment rails.
+
+The `telegraph:diligence` eval attaches the settlement intent to its final
+verification step via `--settlement-payee <base58>`
+(`--settlement-amount-usd`, default `0.01`) with `intentId` set to the case
+id, so cleared suppliers settle for real and screened-out suppliers settle
+nothing. `/verify` renders the outcome as a terminal node on the evidence
+chain.
+
 ### Registry intent matching
 
 Miners register suffixed intents (`SANCTIONS_SCREENING_MATCH_GENERAL`,
@@ -434,7 +583,7 @@ move from call governance to repeatable transaction assurance.
 | P0 — implemented | Provider verdict adapters + canonical `clear / hit / review / unknown` | Explicit provider labels now run before recursive field guessing. Counterproof `CLEAR / REVIEW / BLOCK` maps to `clear / review / hit`; the raw response, provider verdict, and verdict source are hashed/linked into compliance evidence.                                                                   |
 | P0 — implemented | Shareable evidence bundle per payment attempt                          | Each compliant-call artifact now carries a signed `evidenceBundle` linking screen, gate, settlement, artifact hashes, miner/source/list metadata, costs, policy evaluation, payment network, and replay metadata. `GET /api/telegraph/evidence/:runId` and `telegraph-demo.ts evidence <runId>` retrieve it. |
 | P0 — implemented | Spend-guard policy on `compliant-call`                                 | `spendGuard` now supports max screening/total cost, permitted parent and screening miners/intents, subject allow/deny terms, consensus count, and budget id. Checks run before any payment and again before the parent purchase; violations block and are recorded.                                          |
-| P1               | Stablecoin payment-guard workflow                                      | Extend the validated call into a payment intent: payee entity/wallet + amount + rail → sanctions/fraud/transaction-risk screen → `allow / deny / review` → downstream purchase or settlement. This is the clearest Mission 02 buyer workflow.                                                                |
+| P1 — implemented | Stablecoin payment-guard workflow (Solana)                              | `compliant-call` now carries `settlement: {rail:"solana", payee, amountUsd, intentId}` — payee wallet + amount + rail → sanctions screen → gate → governed SPL USDC transfer via `SolanaSettlementService`. Mandate guards run before the paid screen; the transfer executes once per `intentId` only on gate approval; outcomes land as `settlementTransfer` in the evidence bundle and as a terminal node in `/verify`. See "Authorized settlement on Solana". |
 | P1 — implemented | Human review path for compliance screens                              | A provider `review` verdict creates a paused gate-decision run in the existing approval inbox; `compliance.disputeHit: true` does the same for an explicitly disputed `hit`. Approval releases and rejection quarantines the review case, with `held_pending → released/quarantined` ledger states; it never silently clears the provider verdict or resumes the denied parent call. |
 | P1 — implemented | Verification harness and benchmarks                                    | `telegraph-benchmark.ts` re-runs fixed public cases from `telegraph-benchmark-cases.json` against independent ground truth, emits JSON/Markdown reports with run ids, response/evidence hashes, cost, latency, review/unknown/error rates, and hit precision/recall including false positives/negatives. Optional `--baseline` compares an OpenAI-compatible frontier model; live execution still requires workspace auth and paid calls are explicit. |
 | P2               | Quality/cost-aware miner router                                        | Selection today favors score then price. Add measured verifier agreement, historical error/review rates, latency, endpoint health, source freshness, and explicit source coverage; support fallback miners and dry-run quotes.                                                                               |
@@ -524,7 +673,7 @@ parametric-cover contract).
 > **Status (2026-11-14):** Season II is live (Nov 1 – Dec 1 2026, $10K, 3
 > tracks). We entered Track 03 Apps & Agents on missions 02 (agent expense
 > ledger + compliance-on-payment) and 10 (model economy). Items 1–3 below
-> shipped; see the [S2 submission doc](./history/HACKATHON_SUBMISSION_TELEGRAPH_S2.md)
+> shipped; see the [S2 submission doc](./HACKATHON_SUBMISSION_TELEGRAPH_S2.md)
 > for live evidence. Submission form opens later via Anjoman
 > (anjoman.ai → dashboard → Hackathon).
 

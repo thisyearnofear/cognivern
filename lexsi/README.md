@@ -10,7 +10,7 @@ policy violations are refused before they reach wallet-layer enforcement?
 - Submission adapter: [`Papajams/aya-expanse-8b-lexsi-v7`](https://huggingface.co/Papajams/aya-expanse-8b-lexsi-v7)
 - Data, eval suite, per-scenario logs, AuditKIT scores:
   [`Papajams/lexsi-governance`](https://huggingface.co/datasets/Papajams/lexsi-governance)
-- Experiment log: [`docs/LEXSI_HACKATHON.md`](../docs/LEXSI_HACKATHON.md) ·
+- Experiment log: [`docs/history/LEXSI_HACKATHON.md`](../docs/history/LEXSI_HACKATHON.md) ·
   submission draft: [`SUBMISSION.md`](SUBMISSION.md)
 
 Everything in this directory was built during the hackathon; it reuses

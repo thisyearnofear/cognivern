@@ -1,13 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Check, AlertTriangle } from "lucide-react";
+import { motion } from "motion/react";
+import { ArrowRight, Trophy } from "lucide-react";
+import { SegmentedControl } from "@/components/primitives/segmented-control";
+import { SealedEnvelope } from "@/components/primitives/sealed-envelope";
+import { MOTION_DURATION } from "@/lib/motion-tokens";
 
 // Interactive "why Canton" — the same sealed-bid protocol runs on either
 // backend (createRound backend: "canton" | "fhe") behind the same API. They
 // seal bids equally well; the reveal is where they diverge, and that's the
-// whole argument. Toggling makes the difference visible instead of asserted.
+// whole argument. The same three worked-example bids flip between archived
+// ghosts (Canton) and exposed amber cards (FHE) as you toggle.
+const EXAMPLE_BIDS = [
+  { bidder: "Alice", amountUsd: 14200 },
+  { bidder: "Bob", amountUsd: 12400 },
+  { bidder: "Charlie", amountUsd: 13800 },
+] as const;
+const WINNER = EXAMPLE_BIDS[1]; // Bob — lowest quote
+
 export function RevealComparison() {
   const [backend, setBackend] = useState<"canton" | "fhe">("canton");
 
@@ -24,70 +35,64 @@ export function RevealComparison() {
             . Both seal bids. The reveal is where the rails diverge.
           </p>
         </div>
-        <div className="flex gap-1">
-          {(["canton", "fhe"] as const).map((b) => (
-            <button
-              key={b}
-              type="button"
-              onClick={() => setBackend(b)}
-              className={`px-3 py-1 text-xs rounded-md border transition-colors ${
-                backend === b
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "hover:bg-accent"
-              }`}
-            >
-              {b === "canton" ? "Canton" : "FHE (Fhenix)"}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          id="reveal-backend"
+          options={[
+            { value: "canton" as const, label: "Canton" },
+            { value: "fhe" as const, label: "FHE (Fhenix)" },
+          ]}
+          value={backend}
+          onChange={setBackend}
+        />
       </div>
 
-      <AnimatePresence mode="wait">
-        {backend === "canton" ? (
-          <motion.div
-            key="canton"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-xs space-y-1.5"
-          >
-            <div className="font-medium text-foreground flex items-center gap-1.5">
-              <Check className="h-4 w-4 text-emerald-600" /> Losing prices are
-              not in the result
+      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+        <div className="grid flex-1 grid-cols-3 gap-2">
+          {EXAMPLE_BIDS.map((bid) => {
+            const isWinner = bid.bidder === WINNER.bidder;
+            const state = isWinner
+              ? "open"
+              : backend === "canton"
+                ? "archived"
+                : "exposed";
+            return (
+              <SealedEnvelope
+                key={bid.bidder}
+                state={state}
+                bidder={bid.bidder}
+                amountUsd={bid.amountUsd}
+                tag={isWinner ? "winner" : undefined}
+              />
+            );
+          })}
+        </div>
+
+        <ArrowRight
+          className="h-4 w-4 shrink-0 rotate-90 self-center text-muted-foreground sm:rotate-0"
+          aria-hidden
+        />
+
+        {/* Result slot — the winner is all the reveal ever contains. */}
+        <motion.div
+          layout
+          transition={{ duration: MOTION_DURATION.fast }}
+          className="flex shrink-0 items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/5 px-3 py-2"
+        >
+          <Trophy className="h-4 w-4 text-emerald-600" aria-hidden />
+          <div className="text-xs">
+            <div className="text-muted-foreground">Winner</div>
+            <div className="font-semibold tabular-nums text-foreground">
+              {WINNER.bidder} ${WINNER.amountUsd.toLocaleString()}
             </div>
-            <p className="text-muted-foreground leading-relaxed">
-              <span className="font-mono">CloseAndReveal</span> archives the
-              active bids and records the winner in one transaction. The manager
-              can read all bids before close. No active bids after reveal does
-              not mean the manager never saw those prices.
-            </p>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="fhe"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs space-y-1.5"
-          >
-            <div className="font-medium text-foreground flex items-center gap-1.5">
-              <AlertTriangle className="h-4 w-4 text-amber-600" /> The manager
-              sees every losing price
-            </div>
-            <p className="text-muted-foreground leading-relaxed">
-              FHE seals the bids, but picking a winner means decrypting them. In
-              our Option B flow the round manager decrypts every bid off-chain
-              and publishes the result — so the auctioneer learns all losing
-              prices at reveal. Better than a threshold ceremony the losers won&apos;t
-              join, but sub-bidder privacy from the manager is lost. For an
-              institutional RFP, that&apos;s the leak the seal was supposed to
-              prevent.
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </motion.div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        {backend === "canton"
+          ? "Losing bids archive on reveal — absent from the result."
+          : "Manager decrypts all bids off-chain to pick a winner."}
+      </p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Check,
   CheckCircle2,
@@ -10,9 +11,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { DecisionStamp, type DecisionStampDecision } from "@/components/primitives/decision-stamp";
 import { trackUxEvent } from "@/lib/ux-events";
 import { decisionLabel } from "@/lib/decision-language";
+import { cn } from "@/lib/utils";
 
 interface DecisionReceiptProps {
   decision: string;
@@ -40,11 +42,26 @@ interface LifecycleStep {
 
 const STEP_META: Record<
   StepState,
-  { icon: typeof CheckCircle2; className: string; label: string }
+  { icon: typeof CheckCircle2; className: string; dot: string; label: string }
 > = {
-  complete: { icon: CheckCircle2, className: "text-emerald-500", label: "Complete" },
-  pending: { icon: Clock3, className: "text-amber-500", label: "Pending" },
-  blocked: { icon: XCircle, className: "text-red-500", label: "Blocked" },
+  complete: {
+    icon: CheckCircle2,
+    className: "text-emerald-500",
+    dot: "border-emerald-500 bg-emerald-500/15 text-emerald-500",
+    label: "Complete",
+  },
+  pending: {
+    icon: Clock3,
+    className: "text-amber-500",
+    dot: "border-amber-500 bg-amber-500/15 text-amber-500",
+    label: "Pending",
+  },
+  blocked: {
+    icon: XCircle,
+    className: "text-red-500",
+    dot: "border-red-500 bg-red-500/15 text-red-500",
+    label: "Blocked",
+  },
 };
 
 /** The decision step is complete when a final outcome was rendered. */
@@ -85,7 +102,47 @@ function recordStep(decision: string): { detail: string; state: StepState } {
   }
 }
 
-/** A deliberately compact, copyable proof artifact for an operator review. */
+/** Map arbitrary decision/run statuses onto the three stamp verdicts. */
+function stampDecision(decision: string): DecisionStampDecision {
+  switch (decision) {
+    case "held":
+    case "paused_for_approval":
+    case "running":
+      return "held";
+    case "denied":
+    case "failed":
+      return "denied";
+    default:
+      return "approved";
+  }
+}
+
+/**
+ * Notched ticket-stub seam — a row of punched half-circles along a horizontal
+ * edge. Pure CSS radial-gradient mask: zero images, crisp in both themes.
+ */
+function PerforatedSeam({ position }: { position: "top" | "bottom" }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={cn(
+        "h-2 w-full",
+        position === "top" ? "rounded-t-xl" : "rounded-b-xl rotate-180",
+      )}
+      style={{
+        backgroundImage:
+          "radial-gradient(circle at 6px 0px, transparent 4px, var(--border) 4.5px, transparent 5px)",
+        backgroundSize: "16px 8px",
+        backgroundRepeat: "repeat-x",
+        backgroundPosition: "0 0",
+        opacity: 0.9,
+      }}
+    />
+  );
+}
+
+/** A deliberately compact, copyable proof artifact for an operator review,
+ *  styled as a tamper-evident notary receipt rather than a settings card. */
 export function DecisionReceipt({
   decision,
   subject,
@@ -96,6 +153,7 @@ export function DecisionReceipt({
   reviewPath = "/audit",
 }: DecisionReceiptProps) {
   const [copied, setCopied] = useState(false);
+  const reduceMotion = useReducedMotion();
   const record = recordStep(decision);
   const lifecycle: LifecycleStep[] = [
     { label: "Request", detail: "Intent received", state: "complete" },
@@ -133,7 +191,9 @@ export function DecisionReceipt({
 
   return (
     <aside className="app-surface-card motion-enter overflow-hidden">
-      <div className="flex items-start justify-between gap-3 border-b border-border/70 px-4 py-3">
+      {/* Perforated proof seam — the tactile tell that this is a receipt. */}
+      <PerforatedSeam position="top" />
+      <div className="flex items-start justify-between gap-3 border-b border-dashed border-border px-4 pb-3 pt-1">
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary"><ShieldCheck className="h-4 w-4" /></span>
           <div>
@@ -141,26 +201,47 @@ export function DecisionReceipt({
             <p className="text-[11px] text-muted-foreground">Shareable review summary</p>
           </div>
         </div>
-        <StatusBadge status={decision} className="text-[11px]" />
+        {/* Embossed notary stamp, top-right. */}
+        <DecisionStamp decision={stampDecision(decision)} className="shadow" />
       </div>
       <div className="space-y-3 px-4 py-3 text-sm">
         <p className="font-medium">{subject}</p>
         <p className="text-xs leading-relaxed text-muted-foreground">{summary}</p>
+        {/* Horizontal 5-node connected wire — the lifecycle reads in one
+            eye-sweep instead of five boxed tiles. */}
         <ol
           aria-label="Decision lifecycle"
-          className="grid grid-cols-2 gap-2 sm:grid-cols-5"
+          className="flex items-start"
         >
-          {lifecycle.map((step) => {
+          {lifecycle.map((step, index) => {
             const meta = STEP_META[step.state];
             const Icon = meta.icon;
             return (
-              <li key={step.label} className="min-w-0 rounded-lg border bg-muted/20 px-2.5 py-2">
-                <div className="flex items-center gap-1.5 text-[11px] font-medium">
-                  <Icon className={`h-3 w-3 shrink-0 ${meta.className}`} aria-hidden="true" />
-                  <span className="sr-only">{meta.label}</span>
-                  <span className="truncate">{step.label}</span>
+              <li key={step.label} className="flex min-w-0 flex-1 items-start last:flex-none">
+                <div className="flex w-16 min-w-0 flex-col items-center gap-1">
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-full border",
+                      meta.dot,
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="sr-only">{meta.label}</span>
+                  </span>
+                  <span className="text-[10px] font-medium leading-tight">{step.label}</span>
+                  <span className="max-w-full truncate text-center text-[9.5px] leading-tight text-muted-foreground">
+                    {step.detail}
+                  </span>
                 </div>
-                <div className="mt-0.5 truncate text-[10px] text-muted-foreground">{step.detail}</div>
+                {index < lifecycle.length - 1 && (
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "mx-0.5 mt-[13px] h-px min-w-2 flex-1",
+                      step.state === "complete" ? "bg-emerald-500/50" : "bg-border",
+                    )}
+                  />
+                )}
               </li>
             );
           })}
@@ -171,14 +252,27 @@ export function DecisionReceipt({
             {evidence.length > 0 ? evidence.map((item) => <span key={item} className="rounded-full border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">{item}</span>) : <span className="text-[11px] text-muted-foreground">No supporting evidence attached.</span>}
           </div>
         </div>
-        <div className="flex items-center justify-between gap-2 border-t border-border/70 pt-3">
-          <code className="max-w-[15rem] truncate text-[11px] text-muted-foreground">{reference}</code>
+        <div className="flex items-center justify-between gap-2 border-t border-dashed border-border pt-3">
+          <code className="max-w-[15rem] truncate font-mono text-[11px] text-muted-foreground">{reference}</code>
           <Button type="button" size="sm" variant="outline" onClick={() => void copyReceipt()}>
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
-            {copied ? "Copied" : "Copy for review"}
+            {/* Morphing copy confirmation — icon crossfades copy → check. */}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={copied ? "copied" : "copy"}
+                initial={reduceMotion ? false : { scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={reduceMotion ? undefined : { scale: 0.6, opacity: 0 }}
+                transition={{ duration: 0.12 }}
+                className="flex items-center gap-1.5"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? "Copied" : "Copy for review"}
+              </motion.span>
+            </AnimatePresence>
           </Button>
         </div>
       </div>
+      <PerforatedSeam position="bottom" />
     </aside>
   );
 }

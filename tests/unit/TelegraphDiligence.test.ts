@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import {
   SpendTracker,
   buildSummary,
+  compliantCallBody,
   fillParams,
   finalGovernedDecision,
   gateOutcome,
@@ -50,9 +51,7 @@ describe('fillParams', () => {
     });
     const individual = { ...supplier, type: 'individual' as const };
     expect(fillParams({ type: '$type' }, individual)).toEqual({ type: 'individual' });
-    expect(() => fillParams({ name: '$bogus' }, supplier)).toThrow(
-      /unknown supplier placeholder/,
-    );
+    expect(() => fillParams({ name: '$bogus' }, supplier)).toThrow(/unknown supplier placeholder/);
   });
 });
 
@@ -79,9 +78,7 @@ describe('parseDecision', () => {
 
 describe('parseRationale', () => {
   it('returns the rationale string', () => {
-    expect(parseRationale('{"decision":"hold","rationale":"needs a human"}')).toBe(
-      'needs a human',
-    );
+    expect(parseRationale('{"decision":"hold","rationale":"needs a human"}')).toBe('needs a human');
   });
   it('caps the rationale at 300 characters', () => {
     const long = 'x'.repeat(400);
@@ -91,6 +88,44 @@ describe('parseRationale', () => {
     expect(parseRationale('{"decision":"hold","rationale":" a   b  c "}')).toBe('a b c');
     expect(parseRationale('{"decision":"hold"}')).toBeNull();
     expect(parseRationale('no json here')).toBeNull();
+  });
+});
+
+describe('compliantCallBody settlement', () => {
+  const specialists = {
+    screenA: { minerId: '731002', intent: 'SANCTIONS_SCREENING_MATCH', params: { name: '$name' } },
+    screenB: { minerId: '710637', intent: 'SANCTIONS_SCREENING_MATCH', params: { name: '$name' } },
+    registry: { minerId: '7393', intent: 'CORPORATE_REGISTRY_LOOKUP', params: { name: '$name' } },
+    vendorVerify: { minerId: '7396', intent: 'VENDOR_VERIFY', params: { name: '$name' } },
+  };
+
+  it('attaches the Solana settlement block when requested', () => {
+    const body = compliantCallBody({
+      parent: specialists.vendorVerify,
+      screen: specialists.screenB,
+      supplier,
+      mandateId: 'm-1',
+      description: 'd',
+      settlement: { payee: 'payee-wallet', amountUsd: 0.01, intentId: 'case-1' },
+    }) as Record<string, unknown>;
+
+    expect(body.settlement).toEqual({
+      rail: 'solana',
+      payee: 'payee-wallet',
+      amountUsd: 0.01,
+      intentId: 'case-1',
+    });
+  });
+
+  it('omits settlement when not requested', () => {
+    const body = compliantCallBody({
+      parent: specialists.registry,
+      screen: specialists.screenA,
+      supplier,
+      mandateId: 'm-1',
+      description: 'd',
+    }) as Record<string, unknown>;
+    expect('settlement' in body).toBe(false);
   });
 });
 
@@ -108,15 +143,25 @@ describe('toPublicReport', () => {
       casesFile: {
         policy: 'declared policy',
         specialists: {
-          screenA: { minerId: '731002', intent: 'SANCTIONS_SCREENING_MATCH', params: { name: '$name' } },
-          screenB: { minerId: '710637', intent: 'SANCTIONS_SCREENING_MATCH', params: { name: '$name' } },
-          registry: { minerId: '7393', intent: 'CORPORATE_REGISTRY_LOOKUP', params: { name: '$name' } },
+          screenA: {
+            minerId: '731002',
+            intent: 'SANCTIONS_SCREENING_MATCH',
+            params: { name: '$name' },
+          },
+          screenB: {
+            minerId: '710637',
+            intent: 'SANCTIONS_SCREENING_MATCH',
+            params: { name: '$name' },
+          },
+          registry: {
+            minerId: '7393',
+            intent: 'CORPORATE_REGISTRY_LOOKUP',
+            params: { name: '$name' },
+          },
           vendorVerify: { minerId: '7396', intent: 'VENDOR_VERIFY', params: { name: '$name' } },
         },
       },
-      models: [
-        { label: 'm', provider: 'example', model: 'm1', route: 'direct' },
-      ],
+      models: [{ label: 'm', provider: 'example', model: 'm1', route: 'direct' }],
     },
     cases: [
       {
@@ -151,11 +196,21 @@ describe('toPublicReport', () => {
           specialistSpendUsd: 0.01,
           escalations: [],
         },
-        gate: { decision: 'reject' as const, decidedBy: 'compliance_gate' as const, reasons: ['sanctions_hit'] },
+        gate: {
+          decision: 'reject' as const,
+          decidedBy: 'compliance_gate' as const,
+          reasons: ['sanctions_hit'],
+        },
         perModel: [
           {
             label: 'm',
-            alone: { decision: 'proceed' as const, correct: false, rationale: 'looks fine', costUsd: null, error: 'boom' },
+            alone: {
+              decision: 'proceed' as const,
+              correct: false,
+              rationale: 'looks fine',
+              costUsd: null,
+              error: 'boom',
+            },
             governed: {
               modelDecision: null,
               finalDecision: 'reject' as const,
@@ -169,7 +224,10 @@ describe('toPublicReport', () => {
         ],
       } as CaseResult,
     ],
-    summary: { perModel: [], run: { specialistSpendUsd: 0.01, escalations: 0, casesHeld: 0, casesRejected: 1 } },
+    summary: {
+      perModel: [],
+      run: { specialistSpendUsd: 0.01, escalations: 0, casesHeld: 0, casesRejected: 1 },
+    },
   };
 
   it('emits the public schema, id, and expected shape', () => {
@@ -190,9 +248,75 @@ describe('toPublicReport', () => {
     expect(Array.isArray(pub.honestyBounds)).toBe(true);
   });
 
+  it('carries the Solana settlement as signature + cluster, never a URL', () => {
+    const withSettlement = {
+      ...internalReport,
+      cases: [
+        {
+          ...internalReport.cases[0],
+          evidence: {
+            ...internalReport.cases[0].evidence,
+            steps: [
+              {
+                ...internalReport.cases[0].evidence.steps[0],
+                settlementTransfer: {
+                  rail: 'solana',
+                  status: 'settled',
+                  cluster: 'mainnet-beta',
+                  payee: 'payee-wallet',
+                  amountUsd: 0.01,
+                  signature: 'sig-1',
+                  explorerUrl: 'https://internal-should-not-leak.example/tx/sig-1',
+                  intentId: 'listed-entity',
+                },
+              },
+            ],
+            settlement: {
+              rail: 'solana',
+              status: 'settled',
+              cluster: 'mainnet-beta',
+              payee: 'payee-wallet',
+              amountUsd: 0.01,
+              signature: 'sig-1',
+              explorerUrl: 'https://internal-should-not-leak.example/tx/sig-1',
+              intentId: 'listed-entity',
+              attemptedStep: 2,
+            },
+          },
+        },
+      ],
+    };
+    const pub = toPublicReport(withSettlement, { id: 'test-report' });
+    const step = pub.cases[0].evidence.steps[0] as Record<string, unknown>;
+    const settle = pub.cases[0].evidence.settlement as Record<string, unknown>;
+
+    expect(step.settlementTransfer).toMatchObject({
+      rail: 'solana',
+      status: 'settled',
+      cluster: 'mainnet-beta',
+      signature: 'sig-1',
+    });
+    expect(settle).toMatchObject({
+      status: 'settled',
+      signature: 'sig-1',
+      attemptedStep: 2,
+    });
+    // explorerUrl is derivable — it must not leak into the public report
+    // (also keeps the http-string ban below passing).
+    expect(JSON.stringify(pub)).not.toContain('explorerUrl');
+    expect(JSON.stringify(pub)).not.toContain('http');
+  });
+
   it('never leaks internals: no error/key/url keys and no http strings', () => {
     const pub = toPublicReport(internalReport, { id: 'test-report' });
-    const bannedKeys = new Set(['error', 'apiKey', 'baseUrl', 'gatewayKey', 'parentResponse', 'api']);
+    const bannedKeys = new Set([
+      'error',
+      'apiKey',
+      'baseUrl',
+      'gatewayKey',
+      'parentResponse',
+      'api',
+    ]);
     const walk = (node: unknown): void => {
       if (Array.isArray(node)) {
         node.forEach(walk);
@@ -211,28 +335,53 @@ describe('toPublicReport', () => {
 
 describe('gateOutcome', () => {
   it('rejects on a hit that is not held for review', () => {
-    const out = gateOutcome(evidence([step({ verdict: 'hit', status: 'denied', blocked: true, parentPurchased: false })]));
-    expect(out).toEqual({ decision: 'reject', decidedBy: 'compliance_gate', reasons: ['sanctions_hit'] });
+    const out = gateOutcome(
+      evidence([step({ verdict: 'hit', status: 'denied', blocked: true, parentPurchased: false })]),
+    );
+    expect(out).toEqual({
+      decision: 'reject',
+      decidedBy: 'compliance_gate',
+      reasons: ['sanctions_hit'],
+    });
   });
   it('holds on a hit that was held for review (disputed)', () => {
     const out = gateOutcome(
       evidence([
-        step({ verdict: 'hit', status: 'held', blocked: true, reviewRequired: true, parentPurchased: false }),
+        step({
+          verdict: 'hit',
+          status: 'held',
+          blocked: true,
+          reviewRequired: true,
+          parentPurchased: false,
+        }),
       ]),
     );
     expect(out).toEqual({ decision: 'hold', decidedBy: 'review_hold', reasons: ['disputed_hit'] });
   });
   it('holds on a review verdict at step 1', () => {
-    const out = gateOutcome(evidence([step({ verdict: 'review', status: 'held', reviewRequired: true, pendingAction: 'review_compliance_verdict', parentPurchased: false })]));
+    const out = gateOutcome(
+      evidence([
+        step({
+          verdict: 'review',
+          status: 'held',
+          reviewRequired: true,
+          pendingAction: 'review_compliance_verdict',
+          parentPurchased: false,
+        }),
+      ]),
+    );
     expect(out?.decision).toBe('hold');
     expect(out?.reasons).toContain('compliance_review');
   });
   it('reports low_confidence_evidence when the purchased parent is held by the confidence gate', () => {
     const out = gateOutcome(
-      evidence([
-        step({ status: 'held', settlementStatus: 'held', parentPurchased: false }),
-        step({ step: 2 }),
-      ], true),
+      evidence(
+        [
+          step({ status: 'held', settlementStatus: 'held', parentPurchased: false }),
+          step({ step: 2 }),
+        ],
+        true,
+      ),
     );
     expect(out?.decision).toBe('hold');
     expect(out?.reasons).toEqual(['low_confidence_evidence']);
@@ -243,14 +392,19 @@ describe('gateOutcome', () => {
     );
     expect(out?.reasons).toContain('request_error');
     const out2 = gateOutcome(
-      evidence([step({ verdict: 'unknown', blocked: true, spendGuardBlocked: true, parentPurchased: false })]),
+      evidence([
+        step({
+          verdict: 'unknown',
+          blocked: true,
+          spendGuardBlocked: true,
+          parentPurchased: false,
+        }),
+      ]),
     );
     expect(out2?.reasons).toEqual(['spend_guard', 'compliance_review']);
   });
   it('returns null when both screens clear and both parents purchased', () => {
-    const out = gateOutcome(
-      evidence([step(), step({ step: 2, screenMinerId: '710637' })], true),
-    );
+    const out = gateOutcome(evidence([step(), step({ step: 2, screenMinerId: '710637' })], true));
     expect(out).toBeNull();
   });
   it('holds when step 1 cleared but step 2 never ran', () => {
@@ -262,8 +416,44 @@ describe('gateOutcome', () => {
     expect(out?.decision).toBe('hold');
   });
   it('holds on a spend-guard-blocked step', () => {
-    const out = gateOutcome(evidence([step({ verdict: 'unknown', blocked: true, spendGuardBlocked: true, parentPurchased: false })]));
+    const out = gateOutcome(
+      evidence([
+        step({
+          verdict: 'unknown',
+          blocked: true,
+          spendGuardBlocked: true,
+          parentPurchased: false,
+        }),
+      ]),
+    );
     expect(out?.decision).toBe('hold');
+  });
+  it('reports settlement_guard when the settlement leg was blocked before screening', () => {
+    const out = gateOutcome(
+      evidence([
+        step({
+          verdict: undefined,
+          status: 'denied',
+          blocked: true,
+          parentPurchased: false,
+          settlementGuardBlocked: true,
+          settlementTransfer: {
+            rail: 'solana',
+            status: 'blocked',
+            reason: 'payee not allowlisted',
+          },
+        }),
+      ]),
+    );
+    expect(out?.decision).toBe('hold');
+    expect(out?.reasons).toContain('settlement_guard');
+  });
+  it('holds when the parent purchased but the settlement did not settle', () => {
+    for (const status of ['failed', 'uncertain', 'unavailable']) {
+      const out = gateOutcome(evidence([step({ settlementTransfer: { rail: 'solana', status } })]));
+      expect(out?.decision).toBe('hold');
+      expect(out?.reasons).toContain('settlement_incomplete');
+    }
   });
 });
 
@@ -374,9 +564,7 @@ describe('buildSummary', () => {
         ],
       },
     ];
-    const summary = buildSummary(caseResults, [
-      { label: 'm', provider: 'm' },
-    ]);
+    const summary = buildSummary(caseResults, [{ label: 'm', provider: 'm' }]);
     expect(summary.perModel[0]).toMatchObject({
       casesRun: 2,
       aloneCorrect: 1,
