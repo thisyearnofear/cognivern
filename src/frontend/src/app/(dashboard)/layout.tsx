@@ -11,7 +11,6 @@ import { DemoBanner } from "@/components/layout/demo-banner";
 import { SignInPrompt } from "@/components/layout/sign-in-prompt";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { AnimatePresence } from "motion/react";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { WelcomeOverlay } from "@/components/ui/welcome-overlay";
@@ -49,11 +48,9 @@ export default function DashboardLayout({
           <Breadcrumb />
           <WelcomeOverlay />
           <ErrorBoundary>
-            <AnimatePresence mode="wait">
-              <PageTransition routeKey={pathname}>
-                {children}
-              </PageTransition>
-            </AnimatePresence>
+            <PageTransition routeKey={pathname}>
+              {children}
+            </PageTransition>
           </ErrorBoundary>
         </main>
       </SidebarInset>

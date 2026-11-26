@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { motion } from "motion/react";
+import { MOTION_SPRING } from "@/lib/motion-tokens";
 import {
   Sidebar,
   SidebarContent,
@@ -41,6 +43,21 @@ import { ModeSwitch } from "./mode-switch";
 import { shortAddress } from "@/lib/workspace-label";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { NAV_GROUPS, DEMO_NAV_ITEMS } from "@/lib/nav-items";
+
+/**
+ * 2px vertical primary bar that glides between active nav items via a shared
+ * layoutId. Rendered inside the active SidebarMenuButton only.
+ */
+function SidebarActiveIndicator() {
+  return (
+    <motion.span
+      layoutId="sidebar-active-indicator"
+      transition={MOTION_SPRING.snappy}
+      aria-hidden
+      className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary"
+    />
+  );
+}
 
 /**
  * Identity lines for the sidebar footer.
@@ -171,10 +188,11 @@ export function AppSidebar() {
                       <SidebarMenuButton
                         onClick={() => router.push(item.href)}
                         isActive={isActive}
-                        className="h-9 rounded-lg px-3 font-normal text-muted-foreground"
+                        className="relative h-9 rounded-lg px-3 font-normal text-muted-foreground"
                         aria-label={`Navigate to ${item.label}`}
                         tooltip={item.description}
                       >
+                        {isActive && <SidebarActiveIndicator />}
                         <item.icon className="h-[18px] w-[18px]" />
                         <span>{item.label}</span>
                       </SidebarMenuButton>
@@ -200,10 +218,11 @@ export function AppSidebar() {
                       <SidebarMenuButton
                         onClick={() => router.push(item.href)}
                         isActive={isActive}
-                        className="h-9 rounded-lg px-3 font-normal text-amber-600 dark:text-amber-400"
+                        className="relative h-9 rounded-lg px-3 font-normal text-amber-600 dark:text-amber-400"
                         aria-label={`Navigate to ${item.label}`}
                         tooltip={item.description}
                       >
+                        {isActive && <SidebarActiveIndicator />}
                         <item.icon className="h-[18px] w-[18px]" />
                         <span>{item.label}</span>
                       </SidebarMenuButton>
