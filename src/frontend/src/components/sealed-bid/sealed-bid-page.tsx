@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -27,6 +27,9 @@ import { AgentCreateRound } from "./agent-create-round";
 import { GuidedRoundCreate } from "./guided-round-create";
 import { RoundDetail } from "./round-detail";
 import { displayPartyName, relativeDeadline } from "@/lib/workspace-label";
+import { SegmentedControl } from "@/components/primitives/segmented-control";
+import { AnimatedValue } from "@/components/primitives/animated-value";
+import { playSeal } from "@/lib/tactile-sound";
 
 function StatusPill({ status }: { status: string }) {
   if (status === "open")
@@ -92,6 +95,32 @@ export function SealedBidPage() {
   useSealedBidLiveUpdates(null, undefined, !selectedRoundId);
   const [showCantonSignIn, setShowCantonSignIn] = useState(false);
   const isAppAuthenticated = useAuthStore((s) => s.isConnected);
+  const previousRounds = useRef<Map<string, { status: string; bidCount: number }> | null>(null);
+
+  // The detail action buttons live inside RoundDetail; at list level we still
+  // acknowledge genuine ledger transitions (new sealed bid count or a round
+  // reaching reveal) once, never on initial load or repeated renders.
+  useEffect(() => {
+    if (!rounds) return;
+    const next = new Map(rounds.map((round) => [round.roundId, {
+      status: round.status,
+      bidCount: round.bidCount,
+    }]));
+    const previous = previousRounds.current;
+    if (previous) {
+      for (const round of rounds) {
+        const before = previous.get(round.roundId);
+        if (!before) continue;
+        const sealedNewBid = round.bidCount > before.bidCount;
+        const revealed = before.status !== "revealed" && round.status === "revealed";
+        if (sealedNewBid || revealed) {
+          playSeal();
+          break;
+        }
+      }
+    }
+    previousRounds.current = next;
+  }, [rounds]);
 
   if (selectedRoundId) {
     return (
@@ -235,20 +264,22 @@ export function SealedBidPage() {
                 aria-label="Search rounds"
                 className="h-9 w-full sm:w-64 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
               />
-              <div className="flex gap-1" role="group" aria-label="Filter by status">
-                {(["all", "open", "closed", "revealed", "cancelled"] as const).map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setStatusFilter(s)}
-                    aria-pressed={statusFilter === s}
-                    className={`px-2.5 py-1 text-xs rounded-md border transition-colors capitalize ${statusFilter === s ? "bg-primary text-primary-foreground border-primary" : "hover:bg-accent"}`}
-                  >
-                    {s === "all" ? "All" : s === "revealed" ? "Decided" : s}
-                  </button>
-                ))}
-              </div>
-              <span className="ml-auto text-xs text-muted-foreground">{filtered.length} of {rounds.length}</span>
+              <SegmentedControl
+                id="sealed-bid-status-filter"
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "open", label: "Open" },
+                  { value: "closed", label: "Closed" },
+                  { value: "revealed", label: "Decided" },
+                  { value: "cancelled", label: "Cancelled" },
+                ]}
+                value={statusFilter}
+                onChange={setStatusFilter}
+              />
+              <span className="ml-auto text-xs text-muted-foreground">
+                <AnimatedValue value={filtered.length} minChars={2} /> of{" "}
+                <AnimatedValue value={rounds.length} minChars={2} />
+              </span>
             </div>
           )}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -313,7 +344,11 @@ export function SealedBidPage() {
                     <span>
                       {r.status === "revealed"
                         ? "Bids sealed & archived"
-                        : `${r.bidCount}/${r.maxBids} bids`}
+                        : (
+                          <>
+                            <AnimatedValue value={r.bidCount} minChars={1} />/{r.maxBids} bids
+                          </>
+                        )}
                       {r.createdByAgent && " · agent-checked"}
                     </span>
                     {r.winner && (

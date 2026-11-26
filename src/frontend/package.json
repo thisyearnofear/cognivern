@@ -14,6 +14,7 @@
     "@category-labs/mera": "0.2.0",
     "@cofhe/react": "1.0.1",
     "@cognivern/shared": "workspace:*",
+    "@number-flow/react": "0.6.2",
     "@rainbow-me/rainbowkit": "2.2.11",
     "@tanstack/react-query": "5.100.14",
     "@xterm/addon-fit": "0.11.0",

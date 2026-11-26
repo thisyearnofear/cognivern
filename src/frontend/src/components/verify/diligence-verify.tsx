@@ -26,8 +26,11 @@ import {
   type DiligenceDecision,
   type PublicDiligenceReport,
 } from "@/lib/diligence-report";
-import { ChipGroup, ProofSummary, ReceiptRow, Reveal } from "./proof-replay";
+import { ProofSummary, ReceiptRow, Reveal } from "./proof-replay";
 import { proofFromDiligenceReport } from "@/lib/proof";
+import { SegmentedControl } from "@/components/primitives/segmented-control";
+import { AnimatedValue } from "@/components/primitives/animated-value";
+import { playStamp, primeTactileSound } from "@/lib/tactile-sound";
 
 /**
  * Public, login-free replay of a published supplier-diligence report.
@@ -240,6 +243,7 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
     searchParams.get("view") === "governed" ? "governed" : "alone",
   );
   const [replaying, setReplaying] = useState(false);
+  const replayStampKey = useRef<string | null>(null);
   // Captured once: whether the URL carried a cell selection. Not a dep of
   // `load` — a live searchParams dep makes load() refire on every
   // router.replace, and each refire unmounts the report tree mid-animation.
@@ -353,6 +357,23 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
     return () => clearTimeout(t);
   }, [replaying, view, caseIndex, report]);
 
+  // Sound follows only the auto-replay's alone → governed verdict transition.
+  // The key makes it once per supplier/model/replay pass, so scrubbing and
+  // re-renders cannot turn the cue into a loop.
+  useEffect(() => {
+    if (!replaying || view !== "governed" || !governedDecision) return;
+    const key = `${caseIndex}:${activeModel?.label ?? "none"}:${governedDecision}`;
+    if (replayStampKey.current === key) return;
+    replayStampKey.current = key;
+    playStamp(
+      governedDecision === "proceed"
+        ? "approved"
+        : governedDecision === "reject"
+          ? "stopped"
+          : "held",
+    );
+  }, [replaying, view, governedDecision, caseIndex, activeModel?.label]);
+
   const cta = (() => {
     if (!report || !caseResult) return null;
     if (view === "alone") {
@@ -443,7 +464,7 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-center">
                   <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
-                    {heroStats.totalChanged}
+                    <AnimatedValue value={heroStats.totalChanged} minChars={1} />
                   </div>
                   <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                     decision{heroStats.totalChanged === 1 ? "" : "s"} changed by governance
@@ -451,7 +472,7 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                 </div>
                 <div className="rounded-xl border border-border bg-card p-4 text-center">
                   <div className="text-2xl font-bold text-foreground">
-                    {heroStats.models}
+                    <AnimatedValue value={heroStats.models} minChars={1} />
                   </div>
                   <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                     model vendors, same evidence
@@ -459,7 +480,7 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                 </div>
                 <div className="rounded-xl border border-border bg-card p-4 text-center">
                   <div className="text-2xl font-bold text-foreground">
-                    {heroStats.escalations}
+                    <AnimatedValue value={heroStats.escalations} minChars={1} />
                   </div>
                   <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                     item{heroStats.escalations === 1 ? "" : "s"} sent to a human
@@ -583,7 +604,8 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
           {/* ── Controls ── */}
           <div className="space-y-4 rounded-xl border border-border bg-card p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-6">
-              <ChipGroup
+              <SegmentedControl
+                id="diligence-supplier"
                 label="Supplier"
                 options={report.cases.map((c, i) => ({
                   value: String(i),
@@ -602,7 +624,8 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                 }}
               />
               {runnableModels.length > 0 ? (
-                <ChipGroup
+                <SegmentedControl
+                  id="diligence-model"
                   label="Model"
                   options={runnableModels.map((m) => ({
                     value: m.label,
@@ -627,7 +650,8 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
               {/* The alone/governed toggle only matters on narrow screens,
                   where the two arms stack; on sm+ both render side by side. */}
               <div className="sm:hidden">
-                <ChipGroup
+                <SegmentedControl<"alone" | "governed">
+                  id="diligence-view"
                   label="View"
                   options={[
                     { value: "alone", label: "Model alone" },
@@ -647,6 +671,8 @@ export function DiligenceVerify({ initialReportId }: { initialReportId: string }
                     if (replaying) {
                       setReplaying(false);
                     } else {
+                      replayStampKey.current = null;
+                      primeTactileSound();
                       setCaseIndex(0);
                       setView("alone");
                       setReplaying(true);

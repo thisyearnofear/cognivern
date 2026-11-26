@@ -40,6 +40,9 @@ import { EmptyAuditState } from './empty-audit-state';
 import { AuditMetrics } from './audit-metrics';
 import { DecisionProvenance } from './decision-provenance';
 import { ProofDetails } from './proof-details';
+import { SegmentedControl } from '@/components/primitives/segmented-control';
+import { AnimatedValue } from '@/components/primitives/animated-value';
+import { playStamp, primeTactileSound } from '@/lib/tactile-sound';
 
 /**
  * Audit page — investigate decisions and proof. The timeline is the focus;
@@ -305,6 +308,7 @@ export function AuditPage() {
         setBatchAction(null);
         setBatchReason('');
         setSelectedIds(new Set());
+        playStamp(approve ? 'approved' : 'stopped');
         trackUxEvent('batch_action_completed', 'audit', approve ? 'approve' : 'reject');
       }
 
@@ -413,35 +417,35 @@ export function AuditPage() {
               aria-label="Search audit decisions"
               className="sm:max-w-xs"
             />
-            <div className="flex flex-wrap gap-1.5" aria-label="Filter audit decisions">
-              {(['all', 'needs_attention', 'approved', 'held', 'denied'] as const).map((filter) => (
-                <Button
-                  key={filter}
-                  type="button"
-                  size="sm"
-                  variant={decisionFilter === filter ? 'secondary' : 'ghost'}
-                  onClick={() => handleFilterChange(filter)}
-                  className="h-8 capitalize"
-                >
-                  {filter === 'needs_attention' ? 'Needs attention' : filter}
-                </Button>
-              ))}
-            </div>
-            <label className="flex items-center gap-2 text-xs text-muted-foreground sm:ml-auto">
-              Group by
-              <select
-                value={groupBy}
-                onChange={(event) => handleGroupChange(event.target.value as typeof groupBy)}
-                className="h-8 rounded-md border bg-background px-2 text-xs text-foreground"
-              >
-                <option value="none">None</option>
-                <option value="decision">Decision</option>
-                <option value="agent">API identity</option>
-                <option value="chain">Chain</option>
-              </select>
-            </label>
+            <SegmentedControl<AuditFilter>
+              id="audit-status-filter"
+              label="Filter"
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'needs_attention', label: 'Needs attention' },
+                { value: 'approved', label: 'Approved' },
+                { value: 'held', label: 'Held' },
+                { value: 'denied', label: 'Denied' },
+              ]}
+              value={decisionFilter}
+              onChange={handleFilterChange}
+            />
+            <SegmentedControl<GroupBy>
+              id="audit-group-by"
+              label="Group by"
+              options={[
+                { value: 'none', label: 'None' },
+                { value: 'decision', label: 'Decision' },
+                { value: 'agent', label: 'API identity' },
+                { value: 'chain', label: 'Chain' },
+              ]}
+              value={groupBy}
+              onChange={handleGroupChange}
+              className="sm:ml-auto"
+            />
             <span className="text-xs text-muted-foreground">
-              {filteredLogs.length} of {total} decisions
+              <AnimatedValue value={filteredLogs.length} minChars={2} /> of{' '}
+              <AnimatedValue value={total} minChars={2} /> decisions
             </span>
             <div className="flex items-center gap-1.5 border-l pl-3">
               <Button
@@ -641,7 +645,10 @@ export function AuditPage() {
               variant={batchAction === 'reject' ? 'destructive' : 'default'}
               size="sm"
               disabled={batchBusy}
-              onClick={() => void handleBatchAction()}
+              onClick={() => {
+                primeTactileSound();
+                void handleBatchAction();
+              }}
             >
               {batchBusy ? (
                 <>
