@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion, useScroll, useTransform, useReducedMotion } from "motion/react";
+import { motion, useScroll, useTransform } from "motion/react";
 import {
   ArrowRight,
   Shield,
@@ -27,6 +27,8 @@ import { useDemoStore } from "@/stores/demo-store";
 import { useAuthStore, useAuthHydrated } from "@/stores/auth-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { DecisionPreview } from "@/components/governance/decision-preview";
+import { BoundaryBar } from "@/components/primitives/boundary-bar";
+import { DecisionStamp } from "@/components/primitives/decision-stamp";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAccount } from "wagmi";
 import {
@@ -356,21 +358,6 @@ export function LandingPage() {
           : "Within the automatic approval limit.",
   };
 
-  // Delight: a "decision stamp" pops over the live demo when the outcome
-  // changes (e.g. dragging the slider past the $100 limit). Keyed by a
-  // counter so every flip re-runs the stamp animation. Skipped entirely on
-  // first render so the panel loads quietly.
-  const reduceMotion = useReducedMotion();
-  const [stampKey, setStampKey] = useState(0);
-  const prevOutcomeRef = useRef(demoResult.status);
-
-  useEffect(() => {
-    if (prevOutcomeRef.current !== demoResult.status) {
-      prevOutcomeRef.current = demoResult.status;
-      setStampKey((k) => k + 1);
-    }
-  }, [demoResult.status]);
-
   useEffect(() => {
     return () => {
       if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
@@ -554,33 +541,20 @@ export function LandingPage() {
                     <span className="text-sm text-muted-foreground">Requested amount</span>
                     <span className="text-3xl font-bold text-foreground" style={{ fontFamily: "var(--font-space-grotesk)" }}>${demoAmount}</span>
                   </div>
-                  <input
-                    type="range"
-                    min={10}
-                    max={5000}
-                    step={10}
+                  <BoundaryBar
+                    className="mt-6"
+                    approveLimit={DEMO_APPROVE_THRESHOLD}
+                    hardLimit={DEMO_HARD_LIMIT}
+                    maxDisplay={5000}
                     value={demoAmount}
-                    onChange={(e) => setDemoAmount(Number(e.target.value))}
-                    aria-label="Requested amount"
-                    aria-valuetext={`$${demoAmount}`}
-                    className="mt-6 h-2 w-full cursor-pointer appearance-none rounded-full bg-muted [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-lg"
+                    interactive
+                    onChange={setDemoAmount}
                   />
-                  <div className="mt-2 flex justify-between text-xs text-muted-foreground"><span>$10</span><span>$5,000</span></div>
-                  <p className="mt-5 text-sm text-muted-foreground">Drag past ${DEMO_APPROVE_THRESHOLD} to hold a request for review, or past ${DEMO_HARD_LIMIT.toLocaleString()} to stop it outright.</p>
                 </div>
                 <div className="relative p-5">
-                  {stampKey > 0 && (
-                    <motion.div
-                      key={stampKey}
-                      initial={reduceMotion ? false : { opacity: 0, scale: 2.4, rotate: -18 }}
-                      animate={{ opacity: 1, scale: 1, rotate: -8 }}
-                      transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 22, mass: 0.8 }}
-                      aria-hidden
-                      className="pointer-events-none absolute right-3 top-3 z-10 inline-flex items-center rounded-md border-2 border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-widest text-primary shadow-sm"
-                    >
-                      Decision updated
-                    </motion.div>
-                  )}
+                  <div className="pointer-events-none absolute right-3 top-3 z-10">
+                    <DecisionStamp decision={demoResult.status} />
+                  </div>
                   <DecisionPreview
                     decision={demoResult.status}
                     amount={demoAmount}

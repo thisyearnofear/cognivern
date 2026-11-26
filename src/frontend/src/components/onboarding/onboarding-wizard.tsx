@@ -34,6 +34,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useFheProgress } from "@/hooks/use-fhe-progress";
 import type { GovernanceEvaluation } from "@/lib/api-client";
+import { BoundaryBar } from "@/components/primitives/boundary-bar";
 
 const STEPS = [
   {
@@ -636,6 +637,27 @@ export function OnboardingWizard() {
                   </button>
                 ))}
               </div>
+              {(() => {
+                const selectedTemplate =
+                  POLICY_TEMPLATES.find((t) => t.id === selectedPolicy) ??
+                  POLICY_TEMPLATES[0];
+                return (
+                  <div className="rounded-xl border border-border bg-muted/20 p-4">
+                    <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{selectedTemplate.name} boundary</span>
+                      <span className="tabular-nums">
+                        Example $500 spend
+                      </span>
+                    </div>
+                    <BoundaryBar
+                      approveLimit={selectedTemplate.dailyLimit}
+                      hardLimit={selectedTemplate.approvalThreshold}
+                      maxDisplay={selectedTemplate.approvalThreshold * 1.5}
+                      value={500}
+                    />
+                  </div>
+                );
+              })()}
             </motion.div>
           )}
 

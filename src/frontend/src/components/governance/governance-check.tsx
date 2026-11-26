@@ -46,6 +46,8 @@ import { GovernanceMoment } from "@/components/ui/governance-moment";
 import { ConfidentialSpendTry } from "@/components/governance/confidential-spend-try";
 import { DecisionPreview, type DecisionOutcome } from "@/components/governance/decision-preview";
 import { resolveDecision } from "@/lib/decision-language";
+import { BoundaryBar } from "@/components/primitives/boundary-bar";
+import { DEMO_APPROVE_THRESHOLD, DEMO_HARD_LIMIT } from "@cognivern/shared";
 
 function getSuggestion(reason: string): string {
   const lower = reason.toLowerCase();
@@ -691,6 +693,14 @@ export function GovernanceCheck() {
                         </div>
                       </div>
                     </div>
+                    <BoundaryBar
+                      compact
+                      className="mt-3"
+                      approveLimit={DEMO_APPROVE_THRESHOLD}
+                      hardLimit={DEMO_HARD_LIMIT}
+                      maxDisplay={5000}
+                      value={numAmount}
+                    />
                   </div>
                 );
               })()}
