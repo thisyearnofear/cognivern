@@ -1,24 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, useScroll, useTransform } from "motion/react";
 import {
   ArrowRight,
   Shield,
-  Terminal,
-  ChevronRight,
-  Globe,
-  Lock,
-  Eye,
   ExternalLink,
-  Copy,
-  Target,
-  CircleDollarSign,
-  ShieldCheck,
-  Receipt,
-  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
@@ -29,6 +18,10 @@ import { usePreferencesStore } from "@/stores/preferences-store";
 import { DecisionPreview } from "@/components/governance/decision-preview";
 import { BoundaryBar } from "@/components/primitives/boundary-bar";
 import { DecisionStamp } from "@/components/primitives/decision-stamp";
+import { ProofFlip } from "@/components/landing/proof-flip";
+import { LoopExplorer } from "@/components/landing/loop-explorer";
+import { UseCaseApi } from "@/components/landing/usecase-api";
+import { AudienceDoors } from "@/components/landing/audience-doors";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAccount } from "wagmi";
 import {
@@ -38,269 +31,6 @@ import {
   type DemoDecision,
 } from "@cognivern/shared";
 import { decisionLabel } from "@/lib/decision-language";
-
-/**
- * Canonical public API origin for user-facing snippets (curl examples,
- * copy buttons, docs links). The frontend itself proxies /api/* through
- * Next.js rewrites, but external developers calling from their terminal
- * hit the backend directly — so display strings must point here, not at
- * the Vercel origin or the dead api.cognivern.xyz hostname.
- */
-const PUBLIC_API_ORIGIN = "https://api.cognivern.persidian.com";
-
-/* ─── Live proof stats ─────────────────────────────────────────
-   The diligence report is the strongest checkable artifact on the
-   site — real purchased evidence, public receipts, three model
-   vendors. The band under the hero pulls its numbers from the same
-   static JSON /verify renders, so they stay live when the report
-   regenerates; the fallback constants match the published run. */
-
-type DiligenceReportPeek = {
-  summary?: {
-    perModel?: { label?: string; decisionsChanged?: number }[];
-    run?: { escalations?: number };
-  };
-  cases?: {
-    supplier?: { name?: string };
-    perModel?: {
-      label?: string;
-      alone?: { decision?: string | null };
-      governed?: { finalDecision?: string | null };
-    }[];
-  }[];
-};
-
-const PROOF_FALLBACK = {
-  changed: 5,
-  vendors: 3,
-  escalated: 3,
-  cell: {
-    caseIndex: 3,
-    supplier: "Viktor Anatolyevich Bout",
-    model: "qwen",
-    alone: "reject",
-    governed: "hold",
-  },
-};
-
-function useDiligenceProof() {
-  const [stats, setStats] = useState(PROOF_FALLBACK);
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/evidence/diligence/supplier-diligence.json")
-      .then((r) => (r.ok ? (r.json() as Promise<DiligenceReportPeek>) : Promise.reject(r.status)))
-      .then((report) => {
-        if (cancelled) return;
-        const cases = report.cases ?? [];
-        let cell = PROOF_FALLBACK.cell;
-        for (let ci = 0; ci < cases.length; ci++) {
-          const pm = (cases[ci].perModel ?? []).find(
-            (m) =>
-              m.alone?.decision &&
-              m.governed?.finalDecision &&
-              m.alone.decision !== m.governed.finalDecision,
-          );
-          if (pm) {
-            cell = {
-              caseIndex: ci,
-              supplier: cases[ci].supplier?.name ?? "supplier",
-              model: pm.label ?? "model",
-              alone: pm.alone!.decision!,
-              governed: pm.governed!.finalDecision!,
-            };
-            break;
-          }
-        }
-        const perModel = report.summary?.perModel ?? [];
-        setStats({
-          changed:
-            perModel.reduce((s, m) => s + (m.decisionsChanged ?? 0), 0) ||
-            PROOF_FALLBACK.changed,
-          vendors: perModel.length || PROOF_FALLBACK.vendors,
-          escalated: report.summary?.run?.escalations ?? PROOF_FALLBACK.escalated,
-          cell,
-        });
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  return stats;
-}
-
-const PROOF_CHIP: Record<string, string> = {
-  proceed:
-    "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
-  hold: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30",
-  reject: "bg-destructive/10 text-destructive border-destructive/30",
-};
-
-function ProofDecisionChip({ decision }: { decision: string }) {
-  return (
-    <span
-      className={`inline-block rounded border px-1.5 py-px text-[10px] font-semibold leading-4 ${
-        PROOF_CHIP[decision] ?? "border-border bg-muted/40 text-muted-foreground"
-      }`}
-    >
-      {decision}
-    </span>
-  );
-}
-
-/* ─── Flow node component ───────────────────────────────────── */
-
-function FlowNode({
-  icon: Icon,
-  title,
-  subtitle,
-  index,
-  isLast,
-}: {
-  icon: React.ElementType;
-  title: string;
-  subtitle: string;
-  index: number;
-  isLast: boolean;
-}) {
-  return (
-    <div className="flex items-start gap-4 sm:gap-0 sm:flex-col sm:items-center sm:text-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ delay: index * 0.15, duration: 0.5 }}
-        className="flex items-center gap-4 sm:flex-col sm:items-center"
-      >
-        <div className="relative flex-shrink-0 w-14 h-14 rounded-2xl bg-primary/10 dark:bg-primary/15 flex items-center justify-center text-primary border border-primary/20">
-          <Icon size={22} />
-        </div>
-        <div className="sm:mt-3">
-          <div className="font-semibold text-foreground text-base">{title}</div>
-          <div className="text-sm text-muted-foreground mt-0.5 max-w-[220px]">
-            {subtitle}
-          </div>
-        </div>
-      </motion.div>
-      {!isLast && (
-        <motion.div
-          initial={{ opacity: 0, scaleX: 0 }}
-          whileInView={{ opacity: 1, scaleX: 1 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ delay: index * 0.15 + 0.25, duration: 0.4 }}
-          className="hidden sm:flex items-center justify-center w-12 flex-shrink-0"
-        >
-          <div className="w-8 h-px bg-primary/30" />
-        </motion.div>
-      )}
-      {!isLast && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ delay: index * 0.15 + 0.25 }}
-          className="sm:hidden mt-1 ml-7"
-        >
-          <ChevronRight size={16} className="text-muted-foreground/40 rotate-90" />
-        </motion.div>
-      )}
-    </div>
-  );
-}
-
-/* ─── The loop card (landing section) ──────────────────────── */
-
-const LOOP_STAGES: Array<{
-  icon: React.ElementType;
-  title: string;
-  subtitle: string;
-  state: "live" | "building";
-}> = [
-  {
-    icon: CircleDollarSign,
-    title: "Fund",
-    subtitle: "A mandate sets the budget, boundary, and success metric for a piece of agentic work.",
-    state: "live",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Act",
-    subtitle: "Agents work under governed policy — every action approved, held, or stopped with a reason.",
-    state: "live",
-  },
-  {
-    icon: Receipt,
-    title: "Spend",
-    subtitle: "Every dollar attributed to a mandate, with receipt-backed evidence your team can verify.",
-    state: "live",
-  },
-  {
-    icon: TrendingUp,
-    title: "Outcome",
-    subtitle: "Business results recorded and independently verified where the source allows.",
-    state: "building",
-  },
-  {
-    icon: Target,
-    title: "Allocate",
-    subtitle: "Evidence gating the next tranche — advisory guidance, never automatic execution.",
-    state: "building",
-  },
-];
-
-function LoopCard({
-  icon: Icon,
-  title,
-  subtitle,
-  state,
-  index,
-}: {
-  icon: React.ElementType;
-  title: string;
-  subtitle: string;
-  state: "live" | "building";
-  index: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.08, duration: 0.4 }}
-      className="relative rounded-xl border border-border bg-card p-5"
-    >
-      <span className="absolute top-4 right-4 flex items-center gap-2">
-        <span
-          className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider ${
-            state === "live"
-              ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
-              : "border-border text-muted-foreground"
-          }`}
-        >
-          <span
-            className={`h-1 w-1 rounded-full ${
-              state === "live" ? "bg-emerald-500" : "bg-muted-foreground/50"
-            }`}
-          />
-          {state}
-        </span>
-        <span className="text-xs font-mono text-muted-foreground/50">
-          0{index + 1}
-        </span>
-      </span>
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
-        <Icon size={18} />
-      </div>
-      <h3
-        className="mt-4 font-semibold"
-        style={{ fontFamily: "var(--font-space-grotesk)" }}
-      >
-        {title}
-      </h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{subtitle}</p>
-    </motion.div>
-  );
-}
 
 /* ─── Main landing page ─────────────────────────────────────── */
 
@@ -314,9 +44,6 @@ export function LandingPage() {
   const { isConnected: walletConnected } = useAccount();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [demoAmount, setDemoAmount] = useState(50);
-  const [copyFeedback, setCopyFeedback] = useState(false);
-  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const proof = useDiligenceProof();
 
   const { scrollYProgress } = useScroll();
   const heroOpacity = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
@@ -358,21 +85,6 @@ export function LandingPage() {
           : "Within the automatic approval limit.",
   };
 
-  useEffect(() => {
-    return () => {
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-    };
-  }, []);
-
-  const handleCopyCurl = useCallback(() => {
-    navigator.clipboard.writeText(
-      `curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\\n  -H "Content-Type: application/json" \\\n  -d '{"agentId":"demo","action":{"type":"spend","metadata":{"amount":50}}}'`,
-    );
-    setCopyFeedback(true);
-    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-    copyTimeoutRef.current = setTimeout(() => setCopyFeedback(false), 2000);
-  }, []);
-
   return (
     <div className="min-h-screen bg-background">
       {/* ── Header ── */}
@@ -386,11 +98,11 @@ export function LandingPage() {
           </span>
         </div>
         <nav className="hidden lg:flex items-center gap-6 text-sm text-muted-foreground" aria-label="Landing sections">
+          <a href="#proof" className="transition-colors hover:text-foreground">
+            Proof
+          </a>
           <a href="#the-loop" className="transition-colors hover:text-foreground">
             The loop
-          </a>
-          <a href="#how-it-works" className="transition-colors hover:text-foreground">
-            How it works
           </a>
           <a href="#use-cases" className="transition-colors hover:text-foreground">
             Use cases
@@ -432,7 +144,7 @@ export function LandingPage() {
         </div>
       </header>
 
-      {/* ── Hero ── */}
+      {/* ── Band 1: Hero + interactive boundary instrument ── */}
       <motion.section style={{ opacity: heroOpacity }} className="relative overflow-hidden">
         {/* Background */}
         <div className="hero-glow absolute inset-0 z-0" />
@@ -468,10 +180,8 @@ export function LandingPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-lg text-muted-foreground max-w-xl mx-auto mt-6 leading-relaxed"
             >
-              Set the boundaries, let agents handle routine work, and step in when a
-              decision needs judgment. Every action leaves a clear record — and
-              every governed run is publicly inspectable. No account needed to
-              check our work.
+              Set the limits once. Agents handle routine spend; exceptions pause
+              for your call — with public proof.
             </motion.p>
 
             <motion.div
@@ -486,20 +196,9 @@ export function LandingPage() {
               <Button
                 variant="secondary"
                 size="lg"
-                onClick={() => router.push("/demo/attribution")}
+                onClick={() => router.push("/verify?report=supplier-diligence")}
               >
-                <Target className="h-4 w-4 mr-1.5" />
-                See a funded mandate
-              </Button>
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={() =>
-                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })
-                }
-              >
-                <ArrowRight className="h-4 w-4 mr-1.5 rotate-90" />
-                How it works
+                Inspect a live run <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </motion.div>
           </div>
@@ -578,652 +277,23 @@ export function LandingPage() {
         </div>
       </motion.section>
 
-      {/* ── Proof, not promise ──
-          The strongest checkable artifact on the site sits directly under
-          the hero: a live governed run with purchased evidence, receipts,
-          and three model vendors — inspectable without an account. */}
-      <section className="border-t border-border bg-muted/30">
-        <div className="max-w-4xl mx-auto px-6 py-16">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-10"
-          >
-            <span
-              className="text-xs font-semibold text-primary uppercase tracking-widest"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              Proof, not promise
-            </span>
-            <h2
-              className="text-3xl font-bold text-foreground mt-3"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              Watch governance change a real decision
-            </h2>
-            <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
-              One supplier, one model, two arms — the model alone vs the same
-              model with purchased specialist evidence and enforced policy.
-              Receipts included. No account needed to inspect.
-            </p>
-          </motion.div>
+      {/* ── Band 2: Proof, not promise ── */}
+      <ProofFlip />
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              { v: proof.changed, l: "decisions changed by governance" },
-              { v: proof.vendors, l: "model vendors, same evidence" },
-              { v: proof.escalated, l: "items sent to a human" },
-            ].map((s, i) => (
-              <motion.div
-                key={s.l}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08, duration: 0.4 }}
-                className="rounded-xl border border-border bg-card p-5 text-center"
-              >
-                <div
-                  className="text-4xl font-bold text-primary"
-                  style={{ fontFamily: "var(--font-space-grotesk)" }}
-                >
-                  {s.v}
-                </div>
-                <div className="mt-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  {s.l}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+      {/* ── Band 3: Interactive loop explorer ── */}
+      <LoopExplorer />
 
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4"
-          >
-            <div className="flex items-center gap-2.5 text-sm min-w-0">
-              <span className="text-muted-foreground shrink-0">Featured flip:</span>
-              <span className="font-medium truncate">{proof.cell.supplier}</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-muted-foreground">{proof.cell.model}</span>
-              <ProofDecisionChip decision={proof.cell.alone} />
-              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <ProofDecisionChip decision={proof.cell.governed} />
-            </div>
-            <Link
-              href={`/verify?report=supplier-diligence&case=${proof.cell.caseIndex}&model=${proof.cell.model}`}
-              className="inline-flex shrink-0 items-center text-sm font-medium text-primary hover:underline"
-            >
-              Inspect the run <ArrowRight className="h-4 w-4 ml-1" />
-            </Link>
-          </motion.div>
-        </div>
-      </section>
+      {/* ── Band 4: Use cases + developer API ── */}
+      <UseCaseApi />
 
-      {/* ── The loop ──
-          The vision in one line: funded → governed action → attributed spend
-          → measured outcome → next allocation. This is the growth story
-          (capital following provable agentic outcomes); the CTA drops the
-          visitor straight into the guest attribution demo (/demo/attribution)
-          so they see it with real-looking numbers, not just prose. */}
-      <section id="the-loop" className="border-t border-border scroll-mt-24">
-        <div className="max-w-5xl mx-auto px-6 py-24">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-14"
-          >
-            <span
-              className="text-xs font-semibold text-primary uppercase tracking-widest"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              The loop
-            </span>
-            <h2
-              className="text-3xl font-bold text-foreground mt-3"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              From funded mandate to measured outcome
-            </h2>
-            <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
-              Capital meets a mandate. Agents act inside a governed boundary, every dollar
-              leaves a receipt, and the evidence decides what gets funded next.
-            </p>
-          </motion.div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {LOOP_STAGES.map((stage, index) => (
-              <LoopCard
-                key={stage.title}
-                icon={stage.icon}
-                title={stage.title}
-                subtitle={stage.subtitle}
-                state={stage.state}
-                index={index}
-              />
-            ))}
-          </div>
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            Live today: mandate, governed action, spend receipts. Building:
-            outcome attribution, evidence-gated allocation.
-          </p>
-
-          <div className="mt-12 text-center">
-            <Button
-              variant="default"
-              size="lg"
-              onClick={() => router.push("/demo/attribution")}
-            >
-              See a funded mandate <ArrowRight className="h-4 w-4 ml-1.5" />
-            </Button>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Sample data, no wallet needed — watch the loop run end to end
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── How it works ── */}
-      <section id="how-it-works" className="max-w-5xl mx-auto px-6 py-24 scroll-mt-24">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <span
-            className="text-xs font-semibold text-primary uppercase tracking-widest"
-            style={{ fontFamily: "var(--font-space-grotesk)" }}
-          >
-            How it works
-          </span>
-          <h2
-            className="text-3xl font-bold text-foreground mt-3"
-            style={{ fontFamily: "var(--font-space-grotesk)" }}
-          >
-            From agent request to accountable action
-          </h2>
-          <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
-            Every consequential action follows the same clear path: define the
-            boundary, evaluate the request, decide what happens, and keep the record.
-          </p>
-        </motion.div>
-
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-center gap-8 sm:gap-0">
-          <FlowNode
-            icon={Terminal}
-            title="Agent Request"
-            subtitle="Agent sends spend intent with amount, asset, and recipient"
-            index={0}
-            isLast={false}
-          />
-          <FlowNode
-            icon={Shield}
-            title="Policy Evaluation"
-            subtitle="Real-time rule checks — deny, approve, or hold for review"
-            index={1}
-            isLast={false}
-          />
-          <FlowNode
-            icon={Globe}
-            title="Accountable Record"
-            subtitle="Approved spends receive a tamper-evident record your team can review."
-            index={2}
-            isLast={false}
-          />
-          <FlowNode
-            icon={Eye}
-            title="Audit Trail"
-            subtitle="A durable activity trail for reviews, investigations, and reporting."
-            index={3}
-            isLast={true}
-          />
-        </div>
-      </section>
-
-      {/* ── Jobs to be done ── */}
-      <section className="border-t border-border bg-muted/30">
-        <div className="max-w-5xl mx-auto px-6 py-20">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <span
-              className="text-xs font-semibold text-primary uppercase tracking-widest"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              Built for the moments that matter
-            </span>
-            <h2
-              className="text-3xl font-bold text-foreground mt-3"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              Let agents handle more. Keep judgment where it matters.
-            </h2>
-            <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
-              Cognivern gives teams a clear answer at the moment an agent asks to do something consequential — without turning every routine action into a meeting.
-            </p>
-          </motion.div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {[
-              { icon: Shield, title: "Set limits", body: "Give every agent a clear budget, approved recipients, and actions it can take without asking.", note: "Stop overspending before it starts." },
-              { icon: Eye, title: "Review exceptions", body: "Route high-risk or unusual actions to the right person instead of blindly letting them through.", note: "Keep human judgment for the moments that need it." },
-              { icon: Terminal, title: "Investigate decisions", body: "See what the agent attempted, which policy applied, and the evidence behind every decision.", note: "Answer “what happened?” without guesswork." },
-            ].map((job, index) => (
-              <motion.div
-                key={job.title}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="rounded-xl border border-border bg-card p-5"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary"><job.icon size={18} /></div>
-                <h3 className="mt-4 text-lg font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>{job.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{job.body}</p>
-                <p className="mt-5 border-t border-border pt-3 text-xs font-medium text-foreground">{job.note}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── What you can count on ──
-          Capability claims, not usage counters: these stay true whether ten
-          or ten thousand decisions have run, so the section never argues
-          from a small number. */}
-      <section className="border-t border-border">
-        <div className="max-w-4xl mx-auto px-6 py-16">
-          <div className="flex justify-center gap-12 sm:gap-24 flex-wrap">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center"
-            >
-              <div
-                className="text-4xl font-bold text-primary"
-                style={{ fontFamily: "var(--font-space-grotesk)" }}
-              >
-                {"<"}1min
-              </div>
-              <div className="text-sm text-muted-foreground mt-1">Time to first governed action</div>
-              <div className="text-[11px] text-muted-foreground/60 mt-0.5">
-                Sign in → set a policy → try a scenario
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="text-center"
-            >
-              <div
-                className="text-4xl font-bold text-primary"
-                style={{ fontFamily: "var(--font-space-grotesk)" }}
-              >
-                3
-              </div>
-              <div className="text-sm text-muted-foreground mt-1">Decision outcomes</div>
-              <div className="text-[11px] text-muted-foreground/60 mt-0.5">
-                Approved, held, or stopped — nothing ambiguous
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="text-center"
-            >
-              <div
-                className="text-4xl font-bold text-primary"
-                style={{ fontFamily: "var(--font-space-grotesk)" }}
-              >
-                0
-              </div>
-              <div className="text-sm text-muted-foreground mt-1">Accounts needed to inspect the evidence</div>
-              <div className="text-[11px] text-muted-foreground/60 mt-0.5">
-                Every governed run is public — check our work at /verify
-              </div>
-            </motion.div>
-          </div>
-          <p className="mt-10 text-center text-xs text-muted-foreground">
-            Live today: policy checks on every action · x402 evidence purchases on
-            testnet · sealed-bid vendor selection on Canton · public verification
-            of every run.
-          </p>
-        </div>
-      </section>
-
-      {/* ── "Prove It" Section ── */}
-      <section id="api" className="border-t border-border bg-muted/30 scroll-mt-24">
-        <div className="max-w-3xl mx-auto px-6 py-20">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-10"
-          >
-            <span
-              className="text-xs font-semibold text-primary uppercase tracking-widest"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              For developers
-            </span>
-            <h2
-              className="text-3xl font-bold text-foreground mt-3"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              Connect the control plane to your system
-            </h2>
-            <p className="text-muted-foreground mt-3 max-w-md mx-auto">
-              Add one governance check before an agent takes a consequential action. Sign in to get an API key for your workspace, or try the live demo to see the decision boundary first.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="relative"
-          >
-            <div className="rounded-xl border border-border bg-[#0A0A0A] dark:bg-black overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5">
-                <span className="text-[11px] text-white/40 font-medium">bash</span>
-                <button
-                  onClick={handleCopyCurl}
-                  aria-label="Copy curl command"
-                  className="text-white/40 hover:text-white/80 transition-colors"
-                >
-                  {copyFeedback ? (
-                    <span className="text-emerald-400 text-xs">Copied!</span>
-                  ) : (
-                    <Copy size={14} />
-                  )}
-                </button>
-              </div>
-              <pre
-                className="p-5 text-sm leading-relaxed text-white/80 overflow-x-auto"
-                style={{ fontFamily: "var(--font-jetbrains-mono, var(--font-geist-mono))" }}
-              >
-{`# Evaluate a spend against the active policy
-# Replace $KEY with your workspace API key (x-api-key header)
-curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
-  -H "Content-Type: application/json" \\
-  -H "x-api-key: $KEY" \\
-  -d '{
-    "agentId": "demo",
-    "action": {
-      "type": "spend",
-      "amount": 50,
-      "currency": "USDC"
-    }
-  }'`}
-              </pre>
-            </div>
-
-            <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-              <div className="text-xs text-emerald-500 font-semibold mb-2">Illustrative response (amount under $100 → approved):</div>
-              <pre
-                className="text-xs text-foreground/70 leading-relaxed"
-                style={{ fontFamily: "var(--font-jetbrains-mono, var(--font-geist-mono))" }}
-              >
-{`{
-  "success": true,
-  "data": {
-    "allowed": true,
-    "decision": "approved",
-    "reasoning": "Approved — passed 2 policy check(s)",
-    "policyChecks": [
-      { "policyId": "policy-budget", "result": true, "reason": "Within $3000 hard limit" },
-      { "policyId": "policy-approval", "result": true, "reason": "Under $100 auto-approval threshold" }
-    ],
-    "auditLogId": "log-demo-2026-07-25T12-00-00",
-    "timestamp": "2026-07-25T12:00:00.000Z"
-  }
-}`}
-              </pre>
-            </div>
-
-            <p className="mt-8 text-center text-sm text-muted-foreground">
-              Connect the systems you already run. Cognivern governs the action before it moves and preserves the evidence afterward.{" "}
-              <a
-                href="https://github.com/thisyearnofear/cognivern/blob/main/docs/DEV.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                See the architecture &amp; deployed networks →
-              </a>
-            </p>
-            <p className="mt-3 text-center text-sm text-muted-foreground">
-              See the same check run live — purchased specialist evidence, public
-              receipts:{" "}
-              <Link
-                href="/verify?report=supplier-diligence"
-                className="text-primary hover:underline"
-              >
-                inspect a governed run — no login →
-              </Link>
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── Use Cases — Alternating Rows ── */}
-      <section id="use-cases" className="max-w-5xl mx-auto px-6 py-20 scroll-mt-24">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="text-center mb-14"
-        >
-          <span
-            className="text-xs font-semibold text-primary uppercase tracking-widest"
-            style={{ fontFamily: "var(--font-space-grotesk)" }}
-          >
-            Use cases
-          </span>
-          <h2
-            className="text-3xl font-bold text-foreground mt-3"
-            style={{ fontFamily: "var(--font-space-grotesk)" }}
-          >
-            Delegate the work you already understand
-          </h2>
-          <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
-            Begin with one consequential workflow, prove the guardrails work, then expand with confidence.
-          </p>
-        </motion.div>
-
-        <div className="space-y-6">
-          {[
-            {
-              title: "Payment agents",
-              desc: "Set per-payment and daily limits, restrict recipients, and hold unusual requests for review.",
-              example: "Pay a new supplier 500 USDC — held for review",
-              icon: Globe,
-              href: "/verify?report=supplier-diligence",
-              linkLabel: "See a supplier payment decided alone vs governed",
-            },
-            {
-              title: "Procurement agents",
-              desc: "Run confidential vendor selections with a clear record of the process and outcome.",
-              example: "Select a security vendor — competing bids stay private",
-              icon: Terminal,
-            },
-            {
-              title: "Operations agents",
-              desc: "Let routine work proceed automatically while sensitive changes and purchases require the right review.",
-              example: "Upgrade a customer plan — approved within the agent's limit",
-              icon: Lock,
-            },
-            {
-              title: "Financial agents",
-              desc: "Apply strict rules to trading, treasury, and transfer workflows without slowing every routine decision.",
-              example: "Move $2,000 to a new protocol — blocked by policy",
-              icon: Eye,
-            },
-          ].map((uc, i) => (
-            <motion.div
-              key={uc.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className={`flex flex-col sm:flex-row gap-5 p-6 ${
-                i % 2 === 0 ? "" : "sm:flex-row-reverse"
-              }`}
-            >
-              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                <uc.icon size={20} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3
-                  className="font-semibold text-foreground text-base"
-                  style={{ fontFamily: "var(--font-space-grotesk)" }}
-                >
-                  {uc.title}
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{uc.desc}</p>
-                {"href" in uc && uc.href && (
-                  <Link
-                    href={uc.href}
-                    className="mt-1.5 inline-block text-xs text-primary hover:underline"
-                  >
-                    {"linkLabel" in uc && uc.linkLabel ? uc.linkLabel : "Learn more"}
-                  </Link>
-                )}
-              </div>
-              <div className="flex-shrink-0 sm:w-64">
-                <div className="text-[11px] font-mono text-primary/70 bg-primary/5 border border-primary/10 rounded-lg px-3 py-2 leading-relaxed">
-                  {uc.example}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="mt-14 border-t border-border pt-10">
-          <span
-            className="text-xs font-semibold text-primary uppercase tracking-widest"
-            style={{ fontFamily: "var(--font-space-grotesk)" }}
-          >
-            Who it&apos;s for
-          </span>
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
-            {[
-              { label: "Agent builders & AI product teams", desc: "Ship agents that customers can trust with consequential work" },
-              { label: "Operations teams", desc: "Delegate routine work without surrendering oversight" },
-              { label: "Financial teams", desc: "Keep spending agents inside explicit limits" },
-            ].map((persona) => (
-              <div
-                key={persona.label}
-                className="rounded-xl border border-border bg-card p-5 text-center"
-              >
-                <h3 className="text-sm font-semibold text-foreground">{persona.label}</h3>
-                <p className="mt-1.5 text-sm text-muted-foreground">{persona.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── For organisers — fenced teaser ──
-          The sponsored-cohorts wedge serves a different buyer (hackathon /
-          workshop organisers) than the governance narrative above, so it gets
-          one clearly fenced banner here and a full landing of its own at
-          /sponsor instead of interrupting the main story. */}
-      <section className="border-t border-border bg-muted/30">
-        <div className="max-w-5xl mx-auto px-6 py-14">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="flex flex-col md:flex-row md:items-center gap-6 rounded-xl border border-border bg-card p-6"
-          >
-            <div className="flex-1 min-w-0">
-              <span
-                className="text-xs font-semibold text-primary uppercase tracking-widest"
-                style={{ fontFamily: "var(--font-space-grotesk)" }}
-              >
-                For organisers
-              </span>
-              <h2
-                className="text-xl font-semibold text-foreground mt-2"
-                style={{ fontFamily: "var(--font-space-grotesk)" }}
-              >
-                Running a hackathon or workshop? Sponsor a cohort at cost.
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-                Hand out metered inference budgets at 0% throughput fees, with
-                receipts anyone can verify. Separate console, same evidence model.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
-              <Link
-                href="/sponsor"
-                className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                Sponsor a cohort <ArrowRight className="h-4 w-4 ml-1.5" />
-              </Link>
-              <Link
-                href="/credits"
-                className="inline-flex h-10 items-center rounded-md bg-secondary px-5 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-              >
-                Have a key? Check your credits
-              </Link>
-            </div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-4 flex flex-col md:flex-row md:items-center gap-6 rounded-xl border border-border bg-card p-6"
-          >
-            <div className="flex-1 min-w-0">
-              <span
-                className="text-xs font-semibold text-primary uppercase tracking-widest"
-                style={{ fontFamily: "var(--font-space-grotesk)" }}
-              >
-                For procurement
-              </span>
-              <h2
-                className="text-xl font-semibold text-foreground mt-2"
-                style={{ fontFamily: "var(--font-space-grotesk)" }}
-              >
-                Procuring with agents? Run confidential vendor selection on Canton.
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-                Fund a mandate, let agents run a sealed-bid round, and settle
-                the winner atomically — with a public proof link for every outcome.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
-              <Link
-                href="/procure"
-                className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                Procure with agents <ArrowRight className="h-4 w-4 ml-1.5" />
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+      {/* ── Band 5: Audience doors ── */}
+      <AudienceDoors />
 
       {/* ── Final CTA ── */}
       <section className="relative overflow-hidden border-t border-border">
         <div className="hero-glow absolute inset-0 z-0 opacity-50" />
         <div className="landing-grid absolute inset-0 z-0 opacity-50" />
-        <div className="relative z-10 max-w-2xl mx-auto px-6 py-24 text-center">
+        <div className="relative z-10 max-w-2xl mx-auto px-6 py-20 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1235,20 +305,9 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
             >
               Start with one governed action.
             </h2>
-            <p className="text-muted-foreground max-w-md mx-auto mb-8 leading-relaxed">
-              Prove the boundary with a realistic request, then connect the same
-              controls to your own agents and workflows.
-            </p>
-            <div className="flex gap-4 justify-center flex-wrap">
+            <div className="flex gap-4 justify-center flex-wrap mt-8">
               <Button variant="default" size="lg" onClick={handleTryDemo}>
                 Run a governed request <ExternalLink className="h-4 w-4 ml-1" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={() => router.push("/verify")}
-              >
-                Inspect a run <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
               <Button
                 variant="secondary"
