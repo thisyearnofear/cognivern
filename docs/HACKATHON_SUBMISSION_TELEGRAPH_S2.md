@@ -241,8 +241,10 @@ Implementation: named OpenAI-compatible providers via
 does not match the program's backend is ignored), and the
 `telegraph:diligence` runner (`tooling/scripts/agents/telegraph-diligence.ts`)
 with four fixed supplier cases (listed entity, registered-clear,
-unregistered entity, individual name-match). Results are pending a live
-run; this is an
+unregistered entity, individual name-match). A paid run was recorded on
+Nov 24 — the redacted public report is at
+[`../src/frontend/public/evidence/diligence/supplier-diligence.json`](../src/frontend/public/evidence/diligence/supplier-diligence.json)
+(served as `/verify?report=supplier-diligence`). This is an
 enterprise example, not a claim of Alibaba adoption or partnership.
 
 ## Product developments worth implementing next
@@ -292,11 +294,12 @@ or judge can independently verify. Ordered by leverage:
    November 23 paid production fixture run passed all three cases with `$0.03`
    measured spend. Optional `--baseline` compares an OpenAI-compatible frontier
    model.
-7. **Supplier diligence example (implemented, live run pending).** Named
+7. **Supplier diligence example (implemented, recorded Nov 24).** Named
    OpenAI-compatible providers via `OPENAI_COMPAT_PROVIDERS` (Qwen first,
    model-agnostic — no dedicated backend) plus the `telegraph:diligence`
    runner comparing model-alone versus model+Cognivern+Telegraph on fixed
-   supplier cases with paired cost/evidence reports.
+   supplier cases with paired cost/evidence reports — the recorded public
+   report is [in the repo](../src/frontend/public/evidence/diligence/supplier-diligence.json).
 8. **Router + agent SDK (P2).** Route miners by measured quality/cost and
    expose `screenBeforeSpend`, `buyIntel`, `getEvidence`, `budgetStatus`, and
    `approveReview` as tools agents can use without learning CRE internals.
@@ -348,10 +351,20 @@ subject is passed to `compliance.params`.
 **Status:** code complete and unit/integration-tested
 (`SolanaSettlementService` unit suite including a mocked-RPC broadcast,
 durable-journal replay/concurrency tests, settlement-policy tests, diligence
-plumbing + public-report leak-guard tests, controller suite). **Live funded
-run pending** — devnet first, then mainnet with `SOLANA_ALLOW_MAINNET=true`;
-the diligence eval will settle cleared suppliers at $0.01 USDC each against a
-second controlled wallet, with screened-out suppliers receiving nothing.
+plumbing + public-report leak-guard tests, controller suite). A funded
+devnet confirmation is not evidenced here. The Nov 24 report has three
+holds and one rejection; it cannot demonstrate a positive transfer. A
+positive control must legitimately pass the same policy without changing
+thresholds or releasing a held intent. Mainnet is outside this
+reproduction.
+
+## Public reproduction boundary (Nov 26)
+
+Praman proposed binding a Cognivern decision digest to its WASM/screening receipt. This is a proposed audit experiment, not a deployed integration or payment authorization. Start with synthetic, publishable bytes and a pinned commit on each side. Each team recomputes the other's expected digest locally; an altered input must fail. Agree on canonicalization, signer/trust root, list source/version, idempotency, retention and which subject/transaction is actually covered before any network call. A matched hash authenticates neither the issuer nor the truth of the screening conclusion. Keep any future combined receipt separate from the original bundle and from settlement authority: a human release never resumes a blocked transfer. The public diligence CLI dry run validates fixtures without buying intelligence or moving funds; it does not reproduce live provider responses.
+
+Gate 1 is executable offline: `tooling/scripts/agents/supplier-payment-rehearsal.ts` verifies an Ed25519-signed `cognivern.supplier-payment-rehearsal.v1` envelope — the sole transaction request — against an operator-pinned public key and the internal report's canonical-JSON digest (fixed at 0.01 USDC on devnet). The diligence collector no longer constructs supplier settlements; the legacy `--settlement-payee` / `--settlement-amount-usd` flags are rejected before any network call, and historical reports remain readable — the Nov 24 report itself has no transfer signature. Before any live execution an executor must still independently satisfy authenticated server-side evidence and mandate-policy lineage, an independently pinned issuer plus envelope freshness, atomic consume/replay with a single debit, and a real funded devnet rehearsal. The verifier is not a payment authorization API and no legacy flag or route may be used as a fallback. A synthetic held-decision reproduction of the proposed Praman digest-binding experiment lives in [`../examples/praman-reproduction/`](../examples/praman-reproduction/) with a pinned digest and standalone verifier.
+
+Showcase gates: attach a cluster-labelled confirmed signature and matching amount/mint/payee, demonstrate replay without a second debit plus a held case with no transfer, and obtain a shareable video URL before calling the Solana use case complete. Link the X post and confirm Anjoman submission separately. No Praman result, partnership, or future commercial-thread claim is asserted here.
 
 ## Submission checklist status
 

@@ -1,7 +1,8 @@
 # Zapier Build Week — preview-only weekly vendor review pilot
 
-> Status: Preview-only weekly vendor review pilot (Challenges 1–2); partner and
-> live run pending.
+> Status: Parked after the fictional two-pass rehearsal; no operator or live
+> Zapier run yet. To resume, start with the interview below, not an account
+> connection.
 >
 > Event: Nov 23–29, 2026. Promo window: free/trial tier allows up to 250
 > Zapier MCP calls per account per day (resets midnight UTC), Nov 23 noon ET –

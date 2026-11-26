@@ -31,6 +31,7 @@ commit it or copy its contents into public docs.
 - [LANGFUSE_LESSONS.md](./LANGFUSE_LESSONS.md) — observability adjacency plan
 - [PROMPT_INJECTION_CONTROLS_PLAN.md](./PROMPT_INJECTION_CONTROLS_PLAN.md) — injection-defense controls
 - [SUBMISSION_CHECKLIST.md](./SUBMISSION_CHECKLIST.md) — reusable pre-submission pass for judged programs
+- [HACKATHON_PIPELINE.md](./HACKATHON_PIPELINE.md) — program selection doctrine (north-star alignment filter) and live opportunity evaluation
 
 ## Rails & integrations (current)
 
@@ -48,7 +49,7 @@ commit it or copy its contents into public docs.
 
 ## Program status
 
-Status as of **2026-11-25**. Update this table when a program changes state;
+Status as of **2026-11-26**. Update this table when a program changes state;
 never bake deadlines into `AGENTS.md` or rail docs.
 
 | Program | Type | Status | Reference |
@@ -58,14 +59,17 @@ never bake deadlines into `AGENTS.md` or rail docs.
 | HackCanton S3 | Hackathon | Concluded Oct 21 2026 — not shortlisted; [retro](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md#retrospective) | [submission](./history/HACKATHON_SUBMISSION_HACKCANTON_S3.md) |
 | HackCanton S4 | Hackathon | Postponed to 2027 — dates to be announced | [CANTON.md](./CANTON.md) |
 | Prezenti AI Builder Sponsorship | Sponsorship (not a hackathon) | Applying — hard close Dec 29 2026; Celo mainnet milestone required | [PREZENTI_SPONSORSHIP.md](./PREZENTI_SPONSORSHIP.md) |
-| Zapier Build Week | Usage challenge (not a hackathon, no prizes) | Event Nov 23–29 2026 — preview-only weekly vendor review pilot (Challenges 1–2); partner and live run pending; free-call window ends 5 Jan 2027 | [ZAPIER_BUILD_WEEK.md](./ZAPIER_BUILD_WEEK.md) |
+| ETHGlobal Agentic Markets | Hackathon | Evaluating — aligned per pipeline doctrine; async Dec 3–10 2026, $50K+, agentic markets theme | [HACKATHON_PIPELINE.md](./HACKATHON_PIPELINE.md) |
+| Celo Agents Open for Business | Hackathon | Evaluating — aligned (Altana/Verified tracks); ends Dec 7 2026; can double-count the Prezenti Celo-mainnet milestone | [HACKATHON_PIPELINE.md](./HACKATHON_PIPELINE.md) |
+| Colosseum Eternal | Ongoing sprint program | Aligned — start 4-week sprint when Solana settlement evidence is ready; feeds Spring 2027 hackathon | [HACKATHON_PIPELINE.md](./HACKATHON_PIPELINE.md) |
+| Zapier Build Week | Usage challenge (not a hackathon, no prizes) | Parked — fictional two-pass rehearsal done; no operator or live Zapier run yet; free-call window ends 5 Jan 2027 | [ZAPIER_BUILD_WEEK.md](./ZAPIER_BUILD_WEEK.md) |
 | HackCanton S2 | Hackathon | Concluded | [CANTON.md](./CANTON.md) (rail stays live) |
 | Cleanverse Build: Trusted Assets | Hackathon | Concluded Aug 9 2026 | [history submission](./history/HACKATHON_SUBMISSION_CLEANVERSE.md) |
 | KeeperHub — Agents Onchain | Hackathon | Concluded Aug 13 2026 | [history submission](./history/HACKATHON_SUBMISSION_KEEPERHUB.md) |
 | Flare Summer Signal | Hackathon | Concluded Aug 14 2026 | [history submission](./history/FLARE_SUMMER_SIGNAL.md) |
 | Lexsi AI Safety & Alignment | Hackathon | Concluded — submission window closed Nov 15 2026; v7 adapter/results documented; no outcome recorded | [experiment log](./history/LEXSI_HACKATHON.md) · [product translation](./LEXSI_PRODUCT.md) |
 | Apart Swarm Alignment | Hackathon | Concluded Nov 8 2026 — Kernel v8 results final | [archived doc](./history/APART_SWARM_2026.md) · [durable constraints](./internals/population-governance.md) |
-| Telegraph Protocol S2 | Hackathon | Active — final submission prep; Track 03 Apps & Agents with Mission 02 primary and Mission 10 supporting evidence; model-agnostic supplier-diligence example live against production with three model arms (qwen4-max, gemini-3.6-flash, gpt-oss-20b) — public report at `/verify?report=supplier-diligence`; submissions close Dec 1 2026 23:59 UTC via Anjoman | [submission](./HACKATHON_SUBMISSION_TELEGRAPH_S2.md) · [TELEGRAPH.md](./TELEGRAPH.md) · [SPONSORED_CREDITS.md](./SPONSORED_CREDITS.md) |
+| Telegraph Protocol S2 | Hackathon | Active — final submission prep; Track 03 Apps & Agents with Mission 02 primary and Mission 10 supporting evidence; model-agnostic paid supplier-diligence report recorded Nov 24 with three model arms (qwen4-max, gemini-3.6-flash, gpt-oss-20b) — public report at `/verify?report=supplier-diligence`; funded Solana devnet transfer proof pending; submissions close Dec 1 2026 23:59 UTC via Anjoman | [submission](./HACKATHON_SUBMISSION_TELEGRAPH_S2.md) · [TELEGRAPH.md](./TELEGRAPH.md) · [SPONSORED_CREDITS.md](./SPONSORED_CREDITS.md) |
 | Telegraph Protocol S1 Track 3 | Hackathon | Concluded Sep 7 2026 — no placement; [retrospective](./TELEGRAPH.md#season-i-retrospective) | [history submission](./history/HACKATHON_SUBMISSION_TELEGRAPH.md) |
 
 ## History
