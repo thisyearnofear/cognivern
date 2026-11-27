@@ -22,6 +22,8 @@ Cognivern makes autonomous work fundable: a business can define a bounded mandat
 | Run or add tests                 | [Testing Guide](./tests/README.md)                              |
 | Deploy or operate the service    | [Deployment](./docs/DEPLOYMENT.md)                              |
 
+Internal partner-discovery note: [Tangem Build Night: Who approved this payment?](./docs/tangem-build-night.md) — operator interviews, not an integration commitment.
+
 ## Repository at a glance
 
 ```text
